@@ -9,8 +9,8 @@ and goals, approved site history and a pending campaign change to review.
 `src/demo.ts` loads real records with fixed IDs and never fetches.
 
 Base's v2 guard allows public reads and mocks effects on people and third-party
-accounts. Vane's sign-in and invitation mail uses `demoEffect` for silent success
-without a provider secret. Analytics collection stays inside the visitor's copy.
+accounts. Vane's sign-in and invitation mail uses Base's silent development
+sender without a provider secret. Analytics collection stays inside the visitor's copy.
 The hosted instance accepts Base's signed owner claim at `/auth/owner-claim`.
 
 `.github/workflows/run-demo.yml` reads the `run-demo` GitHub environment. Dispatch
@@ -22,4 +22,4 @@ Production start pages never sign a visitor in until Turnstile passes.
 
 `deploy-demo.json` declares the hostname, product name, container size and plain
 mail sender settings. Real deployments refuse `RER_DEMO` settings. Base's adoption
-guide is https://github.com/runeditrun/base/blob/rer-v0.2.22/default-seed/DEMO.md.
+guide is https://github.com/runeditrun/base/blob/rer-v0.2.24/default-seed/DEMO.md.
