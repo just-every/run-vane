@@ -1935,7 +1935,7 @@
       "executable": false
     },
     "src/site/shell.ts": {
-      "sha256": "bda57d7ca2a6641a29d5673b1ebe188a72f313591d4bf9b73813f4f7767dd6dd",
+      "sha256": "b56d43a99592d8c15819ab1cfc83256f991fe8bf23633c44ac17f9ff89289019",
       "executable": false
     },
     "src/vane/actions.ts": {
