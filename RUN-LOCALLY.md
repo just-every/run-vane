@@ -139,7 +139,7 @@ checkout's dev key in its fragment: opening it signs the browser in through a
 real dev session, and the key is removed from the address bar and kept only as a
 host-only cookie. Treat that line as a credential and open it only on this
 computer. A dev-only badge switches between the owner, signed out and the
-seed's personas (`admin@dev.localhost` and so on). `rer dev --as PERSONA` starts as
+seed's generated local development personas. `rer dev --as PERSONA` starts as
 another persona or `signed-out`; `rer dev --login` turns dev identity off and uses
 the outbox: it prints `RER_SIGN_IN URL` and a `RER_OPEN` URL that opens that
 outbox. Choose the newest ordinary sign-in message and follow its link. No
