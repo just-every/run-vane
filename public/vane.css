@@ -1,0 +1,85 @@
+/* Product documents reuse Base's frame, fonts and edition theme tokens. */
+.rer-themed body.vane-app { padding: 0; }
+.rer-themed .vane-app main { width: min(1120px, calc(100% - 48px)); max-width: none; margin: 32px auto 48px; padding: 0; border-radius: 0; background: transparent; box-shadow: none; }
+.vane-app *, .vane-app *::before, .vane-app *::after { box-sizing: border-box; }
+.vane-header { display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 20px max(24px, calc((100% - 1120px) / 2)); border-bottom: 1px solid var(--rer-border); background: var(--rer-surface); }
+.vane-brand { text-decoration: none; }
+.rer-themed .vane-header .rer-brand { margin: 0; }
+.vane-header nav { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 12px 24px; }
+.vane-heading, .vane-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.vane-heading { margin-bottom: 24px; }
+.rer-themed .vane-heading h1 { margin-bottom: 8px; }
+.rer-themed .vane-heading p { margin: 0; }
+.rer-themed .vane-eyebrow { margin-bottom: 6px; font-size: 14px; font-weight: 600; }
+.vane-panel { min-width: 0; margin-bottom: 24px; padding: 28px; border: 1px solid var(--rer-border); border-radius: var(--rer-radius); background: var(--rer-surface); }
+.vane-app h2 { margin: 0 0 16px; font-size: 22px; line-height: 1.3; font-family: var(--rer-font-heading); }
+.vane-app h3 { margin: 0 0 12px; font-size: 19px; line-height: 1.4; }
+.vane-panel > :last-child, .rer-themed .vane-panel > p:last-child { margin-bottom: 0; }
+.vane-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
+.vane-tabs a { padding: 10px 16px; border: 1px solid var(--rer-border); border-radius: var(--rer-radius); text-decoration: none; background: var(--rer-surface); }
+.vane-tabs a[aria-current] { color: var(--rer-surface); background: var(--rer-text); border-color: var(--rer-text); }
+.vane-badge { display: inline-block; padding: 2px 8px; border: 1px solid var(--rer-border); border-radius: var(--rer-radius); color: var(--rer-muted); font-size: 13px; font-weight: 500; overflow-wrap: anywhere; }
+.vane-sites { padding: 0; margin: 0; list-style: none; }
+.vane-sites li { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 20px 0; border-bottom: 1px solid var(--rer-border); }
+.vane-sites li:first-child { padding-top: 0; }
+.vane-sites li:last-child { padding-bottom: 0; border-bottom: 0; }
+.vane-site-name { font-size: 20px; font-weight: 600; }
+.rer-themed .vane-sites p { margin: 4px 0 0; }
+.vane-form-grid, .vane-breakdowns, .vane-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.vane-form-grid { gap: 16px; }
+.rer-themed .vane-app form { gap: 20px; }
+.vane-app textarea, .vane-app select { width: 100%; min-height: 46px; padding: 10px 14px; border: 1px solid var(--rer-border); border-radius: calc(var(--rer-radius) / 2); color: var(--rer-text); background: var(--rer-surface); font: inherit; }
+.vane-app textarea { resize: vertical; }
+.vane-app input[type=file] { min-width: 0; max-width: 100%; }
+.vane-help { display: block; color: var(--rer-muted); font-size: 14px; font-weight: 400; }
+.vane-form-footer { display: grid; gap: 16px; padding-top: 8px; }
+.rer-themed .vane-app button, .vane-button { width: fit-content; max-width: 100%; min-height: 46px; padding: 10px 20px; border: 1px solid transparent; border-radius: var(--rer-radius); font: inherit; font-weight: 600; text-align: center; text-decoration: none; }
+.vane-button { display: inline-flex; align-items: center; justify-content: center; }
+.rer-themed .vane-app .vane-secondary { border-color: var(--rer-border); color: var(--rer-text); background: var(--rer-surface); }
+.rer-themed .vane-app .vane-danger { color: var(--rer-surface); background: var(--rer-text); border: 2px solid var(--rer-text); }
+.rer-themed .vane-filter { display: flex; flex-wrap: wrap; align-items: flex-end; margin-bottom: 16px; }
+.vane-filter label { flex: 1; min-width: 160px; }
+.rer-themed .vane-metric { margin: 0 0 12px; color: var(--rer-text); font-size: 44px; font-weight: 600; line-height: 1.2; }
+.vane-table-scroll { position: relative; max-width: 100%; overflow-x: auto; }
+.vane-table-scroll[aria-label="Import preview records"] table,
+.vane-table-scroll[aria-label="Import journal"] table { min-width: 660px; }
+.vane-table-scroll[aria-label="Import journal"] td { white-space: nowrap; }
+.vane-app table { width: 100%; border-collapse: collapse; text-align: left; }
+.vane-app caption { padding-bottom: 12px; text-align: left; color: var(--rer-muted); }
+.vane-app th, .vane-app td { padding: 12px 8px; border-bottom: 1px solid var(--rer-border); vertical-align: top; overflow-wrap: anywhere; }
+.vane-app th { font-weight: 600; }
+.vane-app th:first-child, .vane-app td:first-child { padding-left: 0; }
+.vane-app th:last-child, .vane-app td:last-child { padding-right: 0; }
+.vane-app tbody tr:last-child > * { border-bottom: 0; }
+.vane-number { text-align: right; font-variant-numeric: tabular-nums; }
+.vane-code { max-width: 100%; padding: 16px; border: 1px solid var(--rer-border); border-radius: calc(var(--rer-radius) / 2); background: var(--rer-page); white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; }
+.vane-app code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+.vane-app summary { min-height: 44px; padding: 8px 0; cursor: pointer; font-weight: 500; }
+.vane-proposal + .vane-proposal { margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--rer-border); }
+.vane-actions { display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+.vane-notice, .vane-error { padding: 16px 20px; margin-bottom: 24px; border: 1px solid var(--rer-border); border-radius: var(--rer-radius); background: var(--rer-surface); overflow-wrap: anywhere; }
+.vane-error { border: 2px solid var(--rer-text); }
+.vane-footer { max-width: 1120px; margin: 0 auto; padding: 0 24px 24px; color: var(--rer-muted); font-size: 14px; }
+.vane-skip { position: fixed; left: 16px; top: -120px; padding: 12px 20px; z-index: 10; background: var(--rer-surface); border: 2px solid var(--rer-text); border-radius: var(--rer-radius); }
+.vane-skip:focus { top: 16px; }
+.vane-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+@media (max-width: 680px) {
+  .rer-themed .vane-app main { width: calc(100% - 32px); margin-top: 24px; }
+  .vane-header { align-items: flex-start; padding: 16px; gap: 12px; }
+  .vane-header nav { max-width: 65%; gap: 8px 12px; font-size: 14px; }
+  .vane-header nav > span { text-align: right; }
+  .vane-heading { align-items: flex-start; flex-direction: column; }
+  .vane-panel { padding: 20px; }
+  .vane-form-grid, .vane-breakdowns, .vane-metrics { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .vane-metrics, .vane-breakdowns { gap: 0; }
+  .vane-sites li { align-items: flex-start; flex-direction: column; gap: 12px; }
+  .vane-tabs { gap: 6px; }
+  .vane-tabs a { padding: 9px 12px; }
+  .rer-themed .vane-app dl { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .vane-app dd { margin-bottom: 12px; }
+  .vane-app .vane-row { align-items: flex-start; flex-direction: column; margin-bottom: 16px; }
+  .rer-themed .vane-app button, .vane-button { width: 100%; }
+  .vane-actions { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .rer-themed .vane-filter { display: grid; }
+  .vane-footer { padding-left: 16px; padding-right: 16px; }
+}

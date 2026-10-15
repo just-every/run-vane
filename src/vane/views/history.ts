@@ -1,0 +1,51 @@
+import { count, escape, hidden, operation, panel } from './html'
+import type { ViewData } from './types'
+
+/** The route supplies these reviewed values with its sanitized importCarry. */
+export interface ImportPreview {
+  fingerprint: string
+  count: number
+  duplicates?: number
+  warnings?: string[]
+  errors?: string[]
+  rows?: { date: string; path: string; visits: number; source?: string; campaign?: string; goal?: string }[]
+}
+
+function preview(data: ViewData): string {
+  const item: ImportPreview | undefined = data.importPreview
+  if (!item || !data.site || data.actor.role !== 'owner') return ''
+  const errors = item.errors ?? []
+  const rows = item.rows ?? []
+  const details = `<dl><dt>Records in preview</dt><dd>${count(item.count)}</dd>${item.duplicates !== undefined ? `<dt>Duplicate records</dt><dd>${count(item.duplicates)}</dd>` : ''}<dt>Document fingerprint</dt><dd><code>${escape(item.fingerprint)}</code></dd></dl>${item.warnings?.length ? `<ul>${item.warnings.map(warning => `<li>${escape(warning)}</li>`).join('')}</ul>` : ''}${errors.length ? `<div class="vane-error" role="alert"><p>This import needs attention before it can be applied.</p><ul>${errors.map(error => `<li>${escape(error)}</li>`).join('')}</ul></div>` : ''}${rows.length ? `<div class="vane-table-scroll" role="region" aria-label="Import preview records" tabindex="0"><table><caption>Import preview records</caption><thead><tr><th scope="col">Date</th><th scope="col">Path</th><th scope="col">Referring hostname</th><th scope="col">Campaign</th><th scope="col">Goal</th><th scope="col" class="vane-number">Visits (page loads)</th></tr></thead><tbody>${rows.map(row => `<tr><td>${escape(row.date)}</td><th scope="row">${escape(row.path)}</th><td>${escape(row.source ?? '—')}</td><td>${escape(row.campaign ?? '—')}</td><td>${escape(row.goal ?? '—')}</td><td class="vane-number">${count(row.visits)}</td></tr>`).join('')}</tbody></table></div>` : ''}`
+  const apply = data.actor.role === 'owner' && !errors.length && item.fingerprint && data.importCarry
+    ? `<form method="post" action="/app/action">${operation('import.apply', data.site.id)}${hidden('document', data.importCarry)}${hidden('fingerprint', item.fingerprint)}<p>Apply the reviewed document to this site. You can undo this import from its journal below.</p><button type="submit">Apply import</button></form>`
+    : '<p class="vane-help">Only the owner can apply a validated import.</p>'
+  return panel('Review import', details + apply)
+}
+
+function journals(data: ViewData): string {
+  const items = data.imports ?? []
+  if (!items.length) return panel('Import journal', '<p class="vane-empty">No imports recorded for this site.</p>')
+  return panel('Import journal', `<div class="vane-table-scroll" role="region" aria-label="Import journal" tabindex="0"><table><caption class="vane-sr-only">Imports for this site</caption><thead><tr><th scope="col">Import</th><th scope="col">State</th><th scope="col" class="vane-number">Records</th><th scope="col">Journal</th><th scope="col">Action</th></tr></thead><tbody>${items.map(job => `<tr><th scope="row">${escape(job.id)}</th><td>${escape(job.state)}</td><td class="vane-number">${count(job.count)}</td><td><a href="/api/vane/import-journal?siteId=${encodeURIComponent(data.site.id)}&amp;jobId=${encodeURIComponent(job.id)}" download>Download journal<span class="vane-sr-only"> ${escape(job.id)}</span></a></td><td>${data.actor.role === 'owner' && ['applied', 'completed', 'complete'].includes(job.state) ? `<form method="post" action="/app/action">${operation('import.undo', data.site.id)}${hidden('jobId', job.id)}<button class="vane-secondary" type="submit">Undo import<span class="vane-sr-only"> ${escape(job.id)}</span></button></form>` : '—'}</td></tr>`).join('')}</tbody></table></div>`)
+}
+
+function exportPanel(): string {
+  return panel('Export analytics history', '<p>Download analytics for the whole installation, across all sites, with its history journals. This archive excludes authentication and sign-in data.</p><a class="vane-button vane-secondary" href="/api/vane/export" download>Download installation archive</a>')
+}
+
+export function globalHistoryPage(data: ViewData): string {
+  if(data.actor.role!=='owner')return panel('Data history','<p>The owner manages imports, exports, restoration and erasure.</p>')
+  const restore = data.actor.role !== 'owner' ? '' : data.sites.length
+    ? panel('Restore an installation archive', '<p>Restoring requires an installation with no sites. Export your current history before using a fresh installation to restore an archive.</p>')
+    : panel('Restore an installation archive', `<p>Restore a whole-installation analytics export into this empty installation. Existing erasure fences prevent older archives from bringing erased history back. Include a later journal if erasures happened after the archive was made, so a fresh store also preserves those erasures.</p><form method="post" action="/app/action" enctype="multipart/form-data">${operation('history.restore')}<label>Installation archive<input type="file" name="archive" required></label><label>Later journal (optional)<input type="file" name="journal"></label><button type="submit">Restore archive</button></form>`)
+  return exportPanel() + restore
+}
+
+export function historyPage(data: ViewData): string {
+  if (!data.site) return globalHistoryPage(data)
+  const owner = data.actor.role === 'owner'
+  const imported = owner ? panel('Import a document', `<p>Choose an analytics document to validate and preview before applying it to ${escape(data.site.name)}.</p><form method="post" action="/app/action" enctype="multipart/form-data">${operation('import.preview', data.site.id)}<label>Analytics document<input type="file" name="document" required></label><button type="submit">Preview import</button></form>`) : ''
+  const retention = owner ? panel('Apply retention', `<p>Remove analytics older than the configured retention periods. If imported rows remain beyond those periods, repeat Apply retention until they have all been processed.</p><form method="post" action="/app/action">${operation('history.retention', data.site.id)}<button type="submit">Apply retention</button></form>`) : ''
+  const erase = owner ? panel('Erase this site’s history', `<p>Erasure removes analytics for ${escape(data.site.name)}. It records an erasure fence so an older archive cannot resurrect that history. Prepare the request here, then review and approve it in Approvals.</p><form method="post" action="/app/action">${operation('history.erase.prepare', data.site.id)}<button type="submit" class="vane-danger">Prepare history erasure</button></form>`) : ''
+  return (owner ? exportPanel() : '') + imported + preview(data) + journals(data) + retention + erase
+}

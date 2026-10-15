@@ -1,0 +1,49 @@
+{
+  "data": [
+    {
+      "id": "synthetic-event-001",
+      "websiteId": "synthetic-website",
+      "sessionId": "synthetic-session-1",
+      "createdAt": "2026-10-01T10:20:30Z",
+      "urlPath": "/",
+      "urlQuery": "utm_campaign=launch&email=synthetic%40example.test",
+      "referrerPath": "/synthetic-private-path",
+      "referrerQuery": "synthetic=discard-me",
+      "referrerDomain": "search.example",
+      "pageTitle": "Synthetic title to discard",
+      "eventType": 1,
+      "eventName": ""
+    },
+    {
+      "id": "synthetic-event-002",
+      "websiteId": "synthetic-website",
+      "sessionId": "synthetic-session-2",
+      "createdAt": "2026-10-02T10:20:30Z",
+      "urlPath": "/thanks",
+      "urlQuery": "utm_campaign=not-approved&token=synthetic-token",
+      "referrerPath": "/synthetic-private-path",
+      "referrerQuery": "synthetic=discard-me",
+      "referrerDomain": "unapproved.example",
+      "pageTitle": "Synthetic title to discard",
+      "eventType": 2,
+      "eventName": "signup"
+    },
+    {
+      "id": "synthetic-event-003",
+      "websiteId": "synthetic-website",
+      "sessionId": "synthetic-session-3",
+      "createdAt": "2026-10-03T10:20:30Z",
+      "urlPath": "/",
+      "urlQuery": "",
+      "referrerPath": "/synthetic-private-path",
+      "referrerQuery": "synthetic=discard-me",
+      "referrerDomain": "",
+      "pageTitle": "Synthetic title to discard",
+      "eventType": 1,
+      "eventName": ""
+    }
+  ],
+  "count": 3,
+  "page": 1,
+  "pageSize": 20
+}
