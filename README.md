@@ -5,6 +5,8 @@ loads, sources, campaigns and goal conversions, then export or restore history.
 The run site presents the product, launch instructions and documentation built
 from this repository's Markdown. Installed instances open on their own Lobby.
 
+The public site is at https://run-vane.com.
+
 ## Run locally
 
 Install Git and RER, then:
@@ -169,6 +171,6 @@ The docs manifest is `src/site/docs/manifest.ts`. Add or update repository
 Markdown there; the site build reads the files directly. Links to published
 Markdown become `/docs` links. Other repository files link to Source.
 
-The site workflow is gated by `RUN_SITE_DEPLOY` and remains disabled. The
-existing `deploy-site.json` placeholder domain is unchanged; no domain or
-provider resources have been created. There is no hosted demo.
+The site workflow is gated by `RUN_SITE_DEPLOY` and publishes to
+https://run-vane.com on pushes to `main` when enabled. `deploy-site.json`
+declares the public domain. There is no hosted demo.
