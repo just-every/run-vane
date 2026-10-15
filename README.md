@@ -2,14 +2,15 @@
 
 Cookie-free website analytics in your own account. Add a script, count page
 loads, sources, campaigns and goal conversions, then export or restore history.
-This release uses Base's interface components; visual design comes later.
+The run site presents the product, launch instructions and documentation built
+from this repository's Markdown. Installed instances open on their own Lobby.
 
 ## Run locally
 
 Install Git and RER, then:
 
 ```sh
-npx -y @runeditrun/rer@0.2.17 cli install
+npx -y @runeditrun/rer cli install
 git clone https://github.com/just-every/run-vane.git
 cd run-vane
 rer dev
@@ -31,7 +32,7 @@ roles. Never use the review identity as your production owner.
 ## First website
 
 1. In **Add a site**, enter a name and exact origin, such as
-   `https://fern.example`. Enter `/` and `/thanks` as allowed paths, one per line;
+   `https://fern.example`. Enter `/`, `/pricing` and `/thanks` as allowed paths, one per line;
    `signup=/thanks` as a goal; `launch` as a campaign; and `search.example` as a
    referring hostname. Choose consent mode. List only public static paths and
    labels, never names, addresses or customer identifiers.
@@ -154,3 +155,20 @@ rer verify
 Verify builds, typechecks, tests public flows and checks hosted assets. CI runs
 one Verify per push. Build/deploy do not run tests. See [acceptance](ACCEPTANCE.md)
 and [source attribution](SOURCES.md). MIT licensed.
+
+## Run site and documentation
+
+`rer build --site` writes the static run site to `dist/site`: the approved
+Vane homepage, `/run`, `/docs`, seven Markdown guides and a not-found page.
+The homepage and docs share the installed app's Geologica type, paper and ink
+tokens, and indigo isobar artwork. All fonts and artwork are served locally.
+`rer dev` prints the separate `RER_SITE` address alongside the installed app.
+It preserves the installed `/` Lobby and never adds marketing routes to the app.
+
+The docs manifest is `src/site/docs/manifest.ts`. Add or update repository
+Markdown there; the site build reads the files directly. Links to published
+Markdown become `/docs` links. Other repository files link to Source.
+
+The site workflow is gated by `RUN_SITE_DEPLOY` and remains disabled. The
+existing `deploy-site.json` placeholder domain is unchanged; no domain or
+provider resources have been created. There is no hosted demo.

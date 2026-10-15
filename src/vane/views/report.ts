@@ -4,7 +4,7 @@ import type { ViewData } from './types'
 function comparison(current: number, previous: number): string {
   if (!previous) return current ? 'No activity in the previous period.' : 'No activity in either period.'
   const change = ((current - previous) / previous) * 100
-  return `${change > 0 ? '+' : ''}${change.toFixed(1)}% compared with the previous period (${count(previous)}).`
+  return `<span class="vane-change">${change > 0 ? '+' : ''}${change.toFixed(1)}%</span> compared with the previous period (${count(previous)}).`
 }
 
 export function reportPage(data: ViewData): string {
