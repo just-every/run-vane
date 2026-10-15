@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "findings": [
+    {
+      "rule": "hygiene.github-missing",
+      "path": "HOMEPAGE-VARIANTS.md",
+      "blob": "5d5246a342257aa02ee069fb0899cd2356818b5a",
+      "reason": "Documentation uses brand/2026-10-11 and style/2026-10-11 as illustrative local branch names, not GitHub repositories. Its actual linked example repositories are public.",
+      "reviewer": "Codex Vane builder",
+      "date": "2026-10-15"
+    },
+    {
+      "rule": "secret.assignment",
+      "path": "OPERATIONS.json",
+      "blob": "b7f0ceab4a644c5c9533fd3a11fcf5c9a74977b9",
+      "reason": "environmentSources describes where to find deployment instructions. The token-named key maps to human-readable prose, not a stored credential.",
+      "reviewer": "Codex Vane builder",
+      "date": "2026-10-15"
+    },
+    {
+      "rule": "hygiene.github-missing",
+      "path": "README.md",
+      "blob": "54b74eea8fff5446a4db5018e2292b8c1da7b2c5",
+      "reason": "analytics/vane is the preserved logical project identity and dist/site is the local static build output directory. Neither is a GitHub repository. The actual source URL is public just-every/run-vane.",
+      "reviewer": "Codex Vane builder",
+      "date": "2026-10-15"
+    },
+    {
+      "rule": "hygiene.email",
+      "path": "RUN-LOCALLY.md",
+      "blob": "f2208b94b5a5a923159f914522cb33359e32471d",
+      "reason": "The administrator address on the reserved dev.localhost domain is a documented local-only development persona, not a real owner mailbox. Development identities are excluded from exports.",
+      "reviewer": "Codex Vane builder",
+      "date": "2026-10-15"
+    },
+    {
+      "rule": "hygiene.github-missing",
+      "path": "RUN-LOCALLY.md",
+      "blob": "f2208b94b5a5a923159f914522cb33359e32471d",
+      "reason": "exports/x.rer is an illustrative local export archive path, not a GitHub repository.",
+      "reviewer": "Codex Vane builder",
+      "date": "2026-10-15"
+    },
+    {
+      "rule": "hygiene.github-missing",
+      "path": "SEED-COMMAND-CONTRACT.md",
+      "blob": "77728ef023c75c4fda3887e59e3d57d02833954b",
+      "reason": "dist/site, exports/x.rer, modules/delivery-producer and modules/erasure are documented local build, export and module paths, not GitHub repositories.",
+      "reviewer": "Codex Vane builder",
+      "date": "2026-10-15"
+    },
+    {
+      "rule": "secret.assignment",
+      "path": "src/modules/operator-auth/identity/oidc/README.md",
+      "blob": "8455cc902ad3b6532f4b67df34e3cc9a45fa3964",
+      "reason": "The copied Base OIDC example references environment bindings and token authentication method identifiers, not literal credentials. The exact copied bytes remain pinned and checked by rer.",
+      "reviewer": "Codex Vane builder",
+      "date": "2026-10-15"
+    }
+  ]
+}
