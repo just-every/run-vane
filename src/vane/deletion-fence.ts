@@ -1,6 +1,6 @@
 import { createPortability } from '@runeditrun/rer/modules/portability'
 import type { Env } from './core'
-import type { D1Sql } from '../modules/import-kit/d1/types'
+import type { D1Sql } from '../modules/import-kit/src/d1/types'
 
 /** Commit Base's archive checkpoint with native and import-custody deletion. */
 export async function deletionFence(env:Env):Promise<D1Sql[]> {

@@ -1,9 +1,9 @@
-import { planD1Import, createD1ImportJob, readD1ImportJob } from '../../modules/import-kit/d1/jobs.ts';
-import { applyD1ImportBatches } from '../../modules/import-kit/d1/apply.ts';
-import { undoD1Import } from '../../modules/import-kit/d1/reverse.ts';
-import { atomic } from '../../modules/import-kit/d1/database.ts';
-import { retireD1ImportCustody } from '../../modules/import-kit/d1/retirement.ts';
-import type { D1Sql } from '../../modules/import-kit/d1/types.ts';
+import { planD1Import, createD1ImportJob, readD1ImportJob } from '../../modules/import-kit/src/d1/jobs.ts';
+import { applyD1ImportBatches } from '../../modules/import-kit/src/d1/apply.ts';
+import { undoD1Import } from '../../modules/import-kit/src/d1/reverse.ts';
+import { atomic } from '../../modules/import-kit/src/d1/database.ts';
+import { retireD1ImportCustody } from '../../modules/import-kit/src/d1/retirement.ts';
+import type { D1Sql } from '../../modules/import-kit/src/d1/types.ts';
 import type { MoveinEnvironment, MoveinActor } from './types.ts';
 import { MoveinError } from './types.ts';
 import { context, jobContext, loadSite, namespace, requireOwner } from './policy.ts';

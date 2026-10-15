@@ -11,8 +11,10 @@ export async function installation() {
  const paths=await readdir(root,{recursive:true})
  const entry=join(root,config.main)
  const modules=[entry,...paths.filter(p=>p.endsWith('.js')&&join(root,p)!==entry).map(p=>join(root,p))].map(path=>({type:'ESModule',path}))
- const vars={AUTH_LOCAL:'true',AUTH_ORIGIN:origin,OWNER_EMAIL:'owner@example.test',SESSION_SECRET:randomBytes(32).toString('hex'),SETUP_TOKEN:randomBytes(32).toString('hex'),RER_DEV_KEY:randomBytes(32).toString('hex'),MAIL_PROVIDER:'development',MAIL_FROM:'auth@localhost.test'}
- const mf=new Miniflare(convertV4MiniflareOptions({host:'127.0.0.1',port:0,cf:false,workers:[{name:'ingress',modules:true,script:`export default {fetch(request,env){const url=new URL(request.headers.get('x-original-url')),headers=new Headers(request.headers);headers.delete('x-original-url');headers.set('host',url.host);return env.APP.fetch(new Request(url,{method:request.method,headers,redirect:'manual',...(!['GET','HEAD'].includes(request.method)?{body:request.body}:{})}))}}`,serviceBindings:{APP:'app'}},{name:'app',modules,modulesRoot:root,compatibilityDate:config.compatibility_date,compatibilityFlags:config.compatibility_flags,bindings:vars,d1Databases:{DB:'test-vane'},assets:{directory:resolve('dist/client'),binding:'ASSETS',routerConfig:{has_user_worker:true,invoke_user_worker_ahead_of_assets:true}}}]}))
+ const vars={AUTH_LOCAL:'true',AUTH_ORIGIN:origin,OWNER_EMAIL:'owner@example.test',SESSION_SECRET:randomBytes(32).toString('hex'),SETUP_TOKEN:randomBytes(32).toString('hex'),RER_DEV_KEY:randomBytes(32).toString('hex'),MAIL_PROVIDER:'resend',MAIL_API_KEY:'test-only-network-edge',MAIL_FROM:'auth@localhost.test'}
+ const sentMail=[]
+ const mailEdge=async request=>{if(new URL(request.url).hostname!=='api.resend.com')throw new Error('Unexpected test egress');sentMail.push(await request.json());return Response.json({id:crypto.randomUUID()})}
+ const mf=new Miniflare(convertV4MiniflareOptions({host:'127.0.0.1',port:0,cf:false,workers:[{name:'ingress',modules:true,script:`export default {fetch(request,env){const url=new URL(request.headers.get('x-original-url')),headers=new Headers(request.headers);headers.delete('x-original-url');headers.set('host',url.host);return env.APP.fetch(new Request(url,{method:request.method,headers,redirect:'manual',...(!['GET','HEAD'].includes(request.method)?{body:request.body}:{})}))}}`,serviceBindings:{APP:'app'}},{name:'app',outboundService:mailEdge,modules,modulesRoot:root,compatibilityDate:config.compatibility_date,compatibilityFlags:config.compatibility_flags,bindings:vars,d1Databases:{DB:'test-vane'},assets:{directory:resolve('dist/client'),binding:'ASSETS',routerConfig:{has_user_worker:true,invoke_user_worker_ahead_of_assets:true}}}]}))
  try {
  await mf.ready
  const db=await mf.getD1Database('DB','app')
@@ -27,14 +29,9 @@ export async function installation() {
  await request('/setup',{method:'POST',headers:{origin,'content-type':'application/x-www-form-urlencoded',cookie:owner},body:'confirm=yes'})
  async function invite(email,role) {
   const response=await post('/auth/invite',{email,role,displayName:role},owner);assert.equal(response.status,202,await response.text())
-  const listing=await (await request('/__dev/outbox',{headers:{'x-rer-dev-key':vars.RER_DEV_KEY}})).text()
-  for(const [,href] of listing.matchAll(/href="(\/__dev\/outbox\?message=[^"]+)"/g)) {
-   const detail=await (await request(href.replaceAll('&amp;','&'),{headers:{'x-rer-dev-key':vars.RER_DEV_KEY}})).text()
-   if(!detail.includes(email))continue
-   const link=detail.match(/href="([^"]*\/auth\/confirm\?token=[^"]+)"/)?.[1];if(!link)continue
-   const token=new URL(link.replaceAll('&amp;','&'),origin).searchParams.get('token')
-   const confirmed=await post('/auth/confirm',{token});assert.equal(confirmed.status,303);return cookieOf(confirmed)
-  }
+  const message=sentMail.findLast(message=>JSON.stringify(message.to).includes(email))
+  const link=(message?.html??'').match(/href="([^"]*\/auth\/confirm\?token=[^"]+)"/)?.[1]
+  if(link){const token=new URL(link.replaceAll('&amp;','&'),origin).searchParams.get('token');const confirmed=await post('/auth/confirm',{token});assert.equal(confirmed.status,303);return cookieOf(confirmed)}
   throw new Error('Invitation not found in local outbox')
  }
  async function addSite(overrides={}) {
@@ -45,6 +42,6 @@ export async function installation() {
  const event=(siteId,extra={})=>({siteId,id:crypto.randomUUID(),path:'/',source:'search.example',campaign:'launch',consent:'not-required',...extra})
  const collect=(value,siteOrigin='https://fern.example')=>post('/api/vane/collect',value,'',{origin:siteOrigin})
  const archive=async()=>{const r=await request('/api/vane/export',{headers:{cookie:owner}});assert.equal(r.status,200);return r.json()}
- return {request,post,form,owner,invite,addSite,event,collect,archive,close:()=>mf.dispose()}
+ return {request,post,form,owner,invite,sentMail,addSite,event,collect,archive,close:()=>mf.dispose()}
  } catch(error) {await mf.dispose();throw error}
 }

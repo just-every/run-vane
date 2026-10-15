@@ -1,5 +1,5 @@
-import { canonicalJson, sha256 } from '../../modules/import-kit/provenance/identity.ts';
-import type { SourceBundle, ImportMapping, Json } from '../../modules/import-kit/types.ts';
+import { canonicalJson, sha256 } from '../../modules/import-kit/src/provenance/identity.ts';
+import type { SourceBundle, ImportMapping, Json } from '../../modules/import-kit/src/types.ts';
 import type { DiscardedCounts, ImportSite, SafeEvent, SitePolicy } from './types.ts';
 import { MoveinError } from './types.ts';
 import { mappingVersion, namespace } from './policy.ts';

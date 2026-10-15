@@ -1,5 +1,5 @@
-import type { D1TargetAdapter, D1Sql, D1Database } from '../../modules/import-kit/d1/types.ts';
-import type { TargetRow, Json } from '../../modules/import-kit/types.ts';
+import type { D1TargetAdapter, D1Sql, D1Database } from '../../modules/import-kit/src/d1/types.ts';
+import type { TargetRow, Json } from '../../modules/import-kit/src/types.ts';
 import { MoveinError } from './types.ts';
 
 const fields = ['day','kind','path','source','campaign','consent','sample_rate'] as const;

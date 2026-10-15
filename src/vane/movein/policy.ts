@@ -1,4 +1,4 @@
-import type { D1ImportContext } from '../../modules/import-kit/d1/types.ts';
+import type { D1ImportContext } from '../../modules/import-kit/src/d1/types.ts';
 import type { MoveinActor, MoveinEnvironment, ImportSite, SitePolicy } from './types.ts';
 import { MoveinError } from './types.ts';
 import { targetAdapter } from './targets.ts';
