@@ -22,4 +22,4 @@ Production start pages never sign a visitor in until Turnstile passes.
 
 `deploy-demo.json` declares the hostname, product name, container size and plain
 mail sender settings. Real deployments refuse `RER_DEMO` settings. Base's adoption
-guide is https://github.com/runeditrun/base/blob/rer-v0.2.21/default-seed/DEMO.md.
+guide is https://github.com/runeditrun/base/blob/rer-v0.2.22/default-seed/DEMO.md.
