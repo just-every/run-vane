@@ -9,7 +9,7 @@ This release uses Base's interface components; visual design comes later.
 Install Git and RER, then:
 
 ```sh
-npx -y @runeditrun/rer@0.2.14 cli install
+npx -y @runeditrun/rer@0.2.17 cli install
 git clone https://github.com/just-every/run-vane.git
 cd run-vane
 rer dev

@@ -2,7 +2,7 @@
 
 Started from the committed Base foundation at
 `fc0e1041efa55771142bbb57c4ab4743147e264d`, converted to package mode with RER
-0.2.14. `composition.lock.json` records foundation copies; domain additions are
+0.2.17. `composition.lock.json` records foundation copies; domain additions are
 edition-owned. The Base import-kit runtime is copied from the same revision.
 Auth copies remain unchanged.
 
@@ -23,7 +23,4 @@ Adapted MIT sibling source:
 Read package-mode examples run-coaster `3cdb77f`, run-beam `9029728` and run-pier
 `dcd4c59`. No sibling repository was changed.
 
-The published RER package has one pnpm patch: allow 15 seconds for bounded OS
-process/socket diagnostics. On loaded macOS, lsof exceeded its three-second
-limit and falsely refused the application's own listener. Ownership checks
-remain required; this patch changes only their timeout.
+The exact published RER 0.2.17 package supplies bounded, nonblocking macOS listener ownership inspection. No local RER patches are applied.
