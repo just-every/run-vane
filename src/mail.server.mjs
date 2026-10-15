@@ -10,6 +10,7 @@ function realOperatorMail(env) {
 
 // Construct the configured transport only for real sends: demos hold no provider secret.
 export function operatorMail(env) {
+ if (env.RER_DEMO !== '1') return realOperatorMail(env)
  return { send: message => demoEffect(
   () => { const sender = realOperatorMail(env); if (!sender) throw new Error('Mail is not configured'); return sender.send(message) },
   () => ({ provider: env.MAIL_PROVIDER ?? 'resend', status: env.MAIL_PROVIDER === 'development' ? 'development' : 'accepted', providerMessageId: null }),

@@ -443,7 +443,7 @@
       "executable": false
     },
     "src/mail.server.mjs": {
-      "sha256": "07526cee31c7accae2832471e9e5c73324395498b5f249d9b519a3f1afcfd085",
+      "sha256": "aa0e00c77523b469eab3dbb92d446b0e055ec549bb04981a9d025e2ceb9f6d3f",
       "executable": false
     },
     "src/modules/ai/client.mjs": {
