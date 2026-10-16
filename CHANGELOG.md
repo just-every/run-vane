@@ -2,6 +2,8 @@
 
 ## Unreleased — 16 October 2026
 
+- Run the hosted demo on rer 0.2.30's native Worker Loader host instead of a
+  container; Base copies refreshed from rer-v0.2.30.
 - Implement the approved Vane run-site homepage: an indigo isobar setting,
   three real-product steps and six concise feature bands.
 - Add on-site documentation rendered from repository Markdown, with navigation,

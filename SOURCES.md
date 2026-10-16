@@ -3,8 +3,10 @@
 Started from the committed Base foundation at
 `fc0e1041efa55771142bbb57c4ab4743147e264d`, converted to package mode with RER
 0.2.17. `composition.lock.json` records foundation copies; domain additions are
-edition-owned. The Base import-kit runtime is copied from the same revision.
-Auth copies remain unchanged.
+edition-owned. The package pin is now RER 0.2.30, and every Base copy recorded
+in `base-copies.json` (modules, `src/base`, edition-authoring scripts and
+`run-demo.yml`) is refreshed from rer-v0.2.30
+(`d434ea67989fe10b6ddff01daba8bb350975e54a`).
 
 Adapted MIT sibling source:
 

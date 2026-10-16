@@ -2,7 +2,6 @@
   "version": 1,
   "domain": "run-vane.com",
   "name": "Vane",
-  "instanceType": "basic",
   "ownerEmail": "maya@fernandfield.example",
   "settings": {
     "MAIL_PROVIDER": "resend",

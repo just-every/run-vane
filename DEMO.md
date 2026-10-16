@@ -17,9 +17,10 @@ The hosted instance accepts Base's signed owner claim at `/auth/owner-claim`.
 it with `test_only` for the separate test host and published Turnstile test keys;
 use `test_only` plus `remove` to delete that host. Dispatch without those inputs
 for production, after the real widget's site key and secret are configured. Each
-visitor gets an isolated container, ending after 60 minutes or 15 idle minutes.
+visitor gets their own native Worker Loader isolate and SQLite copy of the
+database, erased after 60 minutes or 15 idle minutes.
 Production start pages never sign a visitor in until Turnstile passes.
 
-`deploy-demo.json` declares the hostname, product name, container size and plain
+`deploy-demo.json` declares the hostname, product name, demo owner and plain
 mail sender settings. Real deployments refuse `RER_DEMO` settings. Base's adoption
-guide is https://github.com/runeditrun/base/blob/rer-v0.2.24/default-seed/DEMO.md.
+guide is https://github.com/runeditrun/base/blob/rer-v0.2.30/default-seed/DEMO.md.
