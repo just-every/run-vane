@@ -9,7 +9,7 @@ const headers = { authorization: `Bearer ${process.env.CLOUDFLARE_API_TOKEN}`, '
 const output = '.rer/demo-admissions.jsonl'
 await mkdir('.rer', { recursive: true })
 const record = value => appendFile(output, JSON.stringify(value) + '\n')
-const response = await fetch(base, { method: 'POST', headers, body: '{}' })
+const response = await fetch(base, { method: 'POST', headers, body: '{}', signal: AbortSignal.timeout(20000) })
 const result = await response.json()
 if (!response.ok || !result.success) throw Error('tail-create-failed')
 const tail = result.result, socket = new WebSocket(tail.url, 'trace-v1')
@@ -17,10 +17,12 @@ socket.binaryType = 'arraybuffer'
 let timer, stop
 try {
  await new Promise((resolve, reject) => {
-  socket.addEventListener('open', resolve, { once: true })
-  socket.addEventListener('error', () => reject(Error('tail-connect-failed')), { once: true })
+  const deadline = setTimeout(() => reject(Error('tail-connect-timeout')), 30000)
+  socket.addEventListener('open', () => { clearTimeout(deadline); resolve() }, { once: true })
+  socket.addEventListener('error', () => { clearTimeout(deadline); reject(Error('tail-connect-failed')) }, { once: true })
  })
  await record({ event: 'observation_started', at: new Date().toISOString(), worker: config.name })
+ console.log('Admission observation started')
  const pending = []
  socket.addEventListener('message', message => {
   try {
@@ -42,10 +44,16 @@ try {
  })
  await Promise.all(pending)
  await record({ event: 'observation_completed', at: new Date().toISOString() })
+ console.log('Admission observation completed')
 } finally {
  clearTimeout(timer)
  if (stop) { process.removeListener('SIGTERM', stop); process.removeListener('SIGINT', stop) }
  socket.close()
- const removed = await fetch(base + '/' + tail.id, { method: 'DELETE', headers })
+ const removed = await fetch(base + '/' + tail.id, { method: 'DELETE', headers, signal: AbortSignal.timeout(20000) })
+ await removed.arrayBuffer()
  if (!removed.ok) throw Error('tail-delete-failed')
+ console.log('Admission tail deleted')
 }
+// Node's native WebSocket can retain its closing handle after the provider has
+// deleted the tail. This CLI has finished all writes and provider cleanup.
+process.exit(0)

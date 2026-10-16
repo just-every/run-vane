@@ -275,7 +275,7 @@
       "executable": false
     },
     "scripts/demo-observe.mjs": {
-      "sha256": "78cf7c4e564dba1838aef0a87b2147644a4bef5d88e3d52c65862ad569e6fea1",
+      "sha256": "2a404c0656daa562837fc8f3951cc3a0114487786f4f2b423f713162d8111451",
       "executable": false
     },
     "scripts/edition-authoring/base-copies.mjs": {
