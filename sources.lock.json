@@ -35,7 +35,7 @@
   ],
   "files": {
     ".github/workflows/run-demo.yml": {
-      "sha256": "f7263d881a6a091a4c37b50da1b8014d01d8381b47b0a38a29b17cc48af02508",
+      "sha256": "f40730ab6b9c88010bf726e72abaa390129e05cf848924d3c24cdfb659f843f1",
       "executable": false
     },
     ".github/workflows/run-site.yml": {
@@ -272,6 +272,10 @@
     },
     "RUN-LOCALLY.md": {
       "sha256": "7b013820e587bfb6892c1573f202890f67712e41b8d08e5124968fd1bbd10e73",
+      "executable": false
+    },
+    "scripts/demo-observe.mjs": {
+      "sha256": "78cf7c4e564dba1838aef0a87b2147644a4bef5d88e3d52c65862ad569e6fea1",
       "executable": false
     },
     "scripts/edition-authoring/base-copies.mjs": {
