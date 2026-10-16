@@ -11,7 +11,7 @@ const list=(value:unknown)=>Array.isArray(value)?value.map(String):String(value?
 export function cleanConfig(input:any):Config {
  const paths=[...new Set(list(input.paths))],campaigns=[...new Set(list(input.campaigns))],sources=[...new Set(list(input.sources))];
  const goals:Record<string,string>=typeof input.goals==='object'&&!Array.isArray(input.goals)&&input.goals?{...input.goals}:Object.fromEntries(list(input.goals).map(x=>x.split('=').map(v=>v.trim())));
- insist(paths.length>0&&paths.length<=50&&paths.every(p=>/^\/(?:[a-z0-9_-]+\/?)*$/.test(p)&&p.length<=120),'paths','Allow 1–50 static lowercase paths without queries, names or identifiers.');
+ insist(paths.length>0&&paths.length<=50&&paths.every(p=>p.length<=120&&/^\/(?:[a-z0-9_-]+\/)*[a-z0-9_-]*$/.test(p)),'paths','Allow 1–50 static lowercase paths without queries, names or identifiers.');
  insist(campaigns.length<=30&&campaigns.every(c=>/^[a-z][a-z0-9-]{0,39}$/.test(c)),'campaigns','Campaigns must be short lowercase names.');
  insist(sources.length<=30&&sources.every(s=>/^(?:[a-z0-9-]+\.)+[a-z]{2,20}$/.test(s)&&s.length<=80),'sources','Sources must be public referring hostnames.');
  insist(Object.keys(goals).length<=20&&Object.entries(goals).every(([name,path])=>/^[a-z][a-z0-9-]{0,39}$/.test(name)&&name!=='pageview'&&paths.includes(path)),'goals','Use goal-name=/allowed-path, one per line.');
