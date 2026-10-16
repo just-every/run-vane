@@ -28,7 +28,7 @@
 .vane-header nav { display: flex; align-items: center; justify-content: flex-end; gap: 28px; font-size: 15px; }
 .vane-header nav > span { display: flex; align-items: center; gap: 10px; }
 .rer-themed .vane-header nav a { color: var(--rer-text); text-decoration: none; }
-.vane-badge { display: inline-block; padding: 3px 9px; border-radius: 999px; color: var(--rer-accent); background: var(--vane-tint); font-size: 12px; line-height: 1.4; font-weight: 600; overflow-wrap: anywhere; }
+.vane-badge { display: inline-block; padding: 3px 9px; border-radius: 999px; color: var(--rer-accent); background: var(--vane-tint); font-size: 12px; line-height: 1.4; font-weight: 600; white-space: nowrap; flex: none; }
 .vane-footer { width: min(1100px, calc(100% - 48px)); margin: auto auto 0; padding: 20px 0 28px; border-top: 1px solid var(--rer-border); color: var(--rer-muted); font-size: 13px; }
 .rer-themed body.vane-empty-sites::after { content: ''; display: block; flex: none; height: 160px; background: url('/brand/band.svg') center bottom / 100% auto no-repeat; opacity: .6; }
 
