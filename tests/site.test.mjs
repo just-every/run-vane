@@ -15,7 +15,7 @@ test('a visitor can follow the public homepage to run instructions and every rep
   assert.ok(targets.includes('/docs'), 'homepage reaches the guide index')
   const run = await readFile(resolve(root, 'run.html'), 'utf8')
   assert.ok(/rer dev/.test(run), 'run instructions reach the real launch command')
-  assert.ok(/git clone/.test(run), 'run instructions include the public repository')
+  assert.ok(/rer dev just-every\/run-vane/.test(run), 'run instructions include the public repository')
   const docs = pages.filter(page => page.startsWith('docs/'))
   assert.ok(docs.length > 0, 'repository guides are built')
   for (const file of pages) {

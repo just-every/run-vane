@@ -9,16 +9,13 @@ The public site is at https://run-vane.com.
 
 ## Run locally
 
-Install Git and RER, then:
+Install Git, then run one line. It installs RER, clones Vane and starts it:
 
 ```sh
-npx -y @runeditrun/rer cli install
-git clone https://github.com/just-every/run-vane.git
-cd run-vane
-rer dev
+npx -y @runeditrun/rer dev just-every/run-vane
 ```
 
-Add the installer's printed directory to your shell PATH if requested. `rer dev`
+To start it again later, run `cd run-vane && rer dev`. Add the installer's printed directory to your shell PATH if requested. `rer dev`
 installs pinned dependencies, selects Node 22.20.0, and prepares a local owner
 and D1 database. The first launch takes a few minutes and prints progress. Open
 `RER_OPEN` on this computer, confirm the owner on **Finish setup**, then open

@@ -259,7 +259,7 @@
       "executable": false
     },
     "README.md": {
-      "sha256": "c21ab7fdb251d9f0dbb9a3fb60665354359a32e61bed55a3486ffcba8df80c45",
+      "sha256": "88823670d8df830b2f309eb9257de2582b629c68132bb4865fb5a2df3c93ff5f",
       "executable": false
     },
     "rer-project.json": {
@@ -1951,7 +1951,7 @@
       "executable": false
     },
     "src/site/run.json": {
-      "sha256": "2fbaaa7cdfa97c62f28ade1fb285f644fe47941a6eab5e3eddeb5c909b2f140b",
+      "sha256": "d6e0a729b60a59de99cc559920f397f8b48dd71f55712bead2eb0c812d4eba38",
       "executable": false
     },
     "src/site/shell.ts": {
@@ -2083,7 +2083,7 @@
       "executable": false
     },
     "tests/site.test.mjs": {
-      "sha256": "87aca67cb3c9ea7d16bd10d661a0b3cdfd358d0cc33e4b4fbf71be35e5487625",
+      "sha256": "62f91cdc05e7c440adf4911c91a02059477a1783a8ba238843ebafc65bd0aab7",
       "executable": false
     },
     "tests/vane.test.mjs": {
