@@ -15,15 +15,14 @@ Install Git, then run one line. It installs RER, clones Vane and starts it:
 npx -y @runeditrun/rer dev just-every/run-vane
 ```
 
-To start it again later, run `cd run-vane && rer dev`. Add the installer's printed directory to your shell PATH if requested. `rer dev`
+Without Node, `curl -fsSL https://runeditrun.com/install.sh | sh -s -- dev just-every/run-vane` does the same. To start it again later, run `cd run-vane && rer dev`. `rer dev`
 installs pinned dependencies, selects Node 22.20.0, and prepares a local owner
 and D1 database. The first launch takes a few minutes and prints progress. Open
 `RER_OPEN` on this computer, confirm the owner on **Finish setup**, then open
 **Your sites**. The link is a credential: keep it private. No external email is
 sent. Repeating `rer dev` reuses the server. Stop with `rer dev --stop`.
 
-For your own identity on a fresh checkout, use `rer install`, then
-`rer setup --owner-email you@example.com`, then `rer dev`. Use `rer dev --login`
+For your own identity, run `npx -y @runeditrun/rer install just-every/run-vane`, then from the checkout `rer setup --owner-email you@example.com` and `rer dev`. Use `rer dev --login`
 for ordinary email-link sign-in through the private local outbox. Local personas
 `rer dev --as admin` and `rer dev --as member` use real administrator/read-only
 roles. Never use the review identity as your production owner.

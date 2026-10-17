@@ -4,7 +4,7 @@ Vane counts page loads, sources, campaigns and goals. Start with one website and
 
 ## Run Vane
 
-Follow the [Run page](/run) to get Vane on your computer. Open the private sign-in link printed by `rer dev`, confirm the owner on **Finish setup**, then open **Your sites**. Keep that link private.
+Follow the [Run page](/run) to get Vane on your computer: `npx -y @runeditrun/rer dev just-every/run-vane`. Open the private sign-in link printed by `rer dev`, confirm the owner on **Finish setup**, then open **Your sites**. Keep that link private.
 
 Vane starts empty. It never loads sample analytics into your installation.
 
