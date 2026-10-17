@@ -6,7 +6,7 @@ const details = [
   ['green', icons.external, 'Outbound links', 'Clicks to other sites, counted on their own.'],
   ['orange', icons.download, 'File downloads', 'PDFs and zips tracked with no extra code.'],
   ['blue', icons.code, 'Stats API', 'Pull any number into your own tools.'],
-  ['green', icons.users, 'Team access', 'Viewers, editors and owners for each site.'],
+  ['green', icons.users, 'Team access', 'Viewers, analysts and admins for each site.'],
   ['orange', icons.history, 'Data retention', 'Keep raw events as long as you choose.'],
 ]
 

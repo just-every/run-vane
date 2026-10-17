@@ -4,7 +4,7 @@
 body { --art: max(22vh, 160px); background: radial-gradient(110% 70% at 85% -10%, rgba(253,216,196,.45), transparent 60%), var(--rer-page); }
 .brand { font-weight: 700; font-size: 26px; }
 .brand img { width: 50px; height: auto; }
-h1 { font-weight: 800; letter-spacing: -.05em; }
+h1 { font-weight: 800; letter-spacing: -.05em; word-spacing: .05em; }
 .intro h1 { font-size: 72px; line-height: .98; }
 .sub { color: var(--body); }
 .step { background: var(--rer-surface); border-color: var(--line); border-radius: 20px; box-shadow: var(--chip-shadow); backdrop-filter: none; }

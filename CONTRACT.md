@@ -353,7 +353,7 @@ The approved homepage (17 Oct 2026, `HOME-001`) states 80 capabilities in its co
 | 19 | Visitors card: "38 online now" | `DASH-001` | missing |
 | 20 | Visitors card: Unique visitors 28,416 ↑ 12%, Visits, Bounce rate, Visit duration tiles | `METRIC-001`, `METRIC-002`, `METRIC-003`, `DASH-008` | partial |
 | 21 | Visitors card: Seven-day line chart | `DASH-002` | partial |
-| 22 | Visitors chip: Salt rotated 12:00 am UTC · yesterday's visitors can't be linked | `METRIC-001` | missing |
+| 22 | Visitors chip: Salt rotated at midnight · yesterday's visitors can't be linked | `METRIC-001` | missing |
 | 23 | Sources: "Sources" | `DASH-004`, `DASH-014` | partial |
 | 24 | Sources: "pages" | `DASH-003` | partial |
 | 25 | Sources: "campaigns" | `DASH-004` | partial |
@@ -396,17 +396,17 @@ The approved homepage (17 Oct 2026, `HOME-001`) states 80 capabilities in its co
 | 62 | Move in: "or Matomo" | `IMPORT-005` | missing |
 | 63 | Move in: "Your charts start full on day one" | `IMPORT-001`, `IMPORT-002`, `IMPORT-003`, `IMPORT-004`, `IMPORT-005`, `IMPORT-007` | partial |
 | 64 | Move in card: Jun 3–4, 2024 · overlap with Google Analytics 4 skipped | `IMPORT-007` | partial |
-| 65 | Ownership: "Run Vane on your own computer or server" | `HOST-002`, `HOST-001` | partial |
+| 65 | Ownership: "Run Vane on your own computer or your own Cloudflare account" | `HOST-002`, `HOST-001` | partial |
 | 66 | Ownership: "keep every visit and event" | `RETENTION-002`, `COLLECT-004` | partial |
 | 67 | Ownership: "Export everything, any time" / "Export any time" | `ARCHIVE-001` | done |
-| 68 | Ownership: "Your own computer or server" | `HOST-002`, `HOST-001` | partial |
+| 68 | Ownership: "Your own computer or your own Cloudflare account" | `HOST-002`, `HOST-001` | partial |
 | 69 | Ownership: "Your visitors' data stays yours" | `PRIVACY-005` | partial |
 | 70 | Ownership terminal: `npx -y @runeditrun/rer dev just-every/run-vane` | `RUNSITE-001`, `HOST-002` | partial |
 | 71 | Quiet details: Bot filtering | `COLLECT-003` | missing |
 | 72 | Quiet details: Outbound links | `CONV-003` | missing |
 | 73 | Quiet details: File downloads | `CONV-003` | missing |
 | 74 | Quiet details: Stats API | `API-001` | partial |
-| 75 | Quiet details: Team access: "Viewers, editors and owners for each site" | `TEAM-001` | partial |
+| 75 | Quiet details: Team access: "Viewers, analysts and admins for each site" | `TEAM-001` | partial |
 | 76 | Quiet details: Data retention: "Keep raw events as long as you choose" | `RETENTION-002` | partial |
 | 77 | Closing: "Open source website analytics without cookies" | `OPEN-001`, `COLLECT-001`, `METRIC-001` | partial |
 | 78 | Closing: "Free and open source, MIT licensed" | `OPEN-001` | done |

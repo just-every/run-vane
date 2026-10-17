@@ -13,7 +13,12 @@
 .art-hero { position: absolute; inset: 0; }
 .art-hero img { object-position: center bottom; }
 .hero-copy { position: relative; z-index: 2; padding-top: max(110px, calc(var(--d) * 136)); }
-.hero h1 { max-width: 12ch; font: 800 max(52px, calc(var(--d) * 83))/0.97 var(--font-head); letter-spacing: -.028em; color: var(--ink); }
+/* Past 1536 the page column grows faster than the painting, so the copy (and the header over the sky) keep
+   the desk's x of 123 art units, where the column's left edge is at 1536, and the cards stay clear of them. */
+@media (min-width: 1537px) {
+  .hero-copy, .landing .site-header .wrap { width: auto; margin-inline: calc(100% * 123 / 1536); }
+}
+.hero h1 { max-width: 12ch; font: 800 max(52px, calc(var(--d) * 83))/0.97 var(--font-head); letter-spacing: -.028em; word-spacing: .03em; color: var(--ink); }
 .hero-sub { max-width: max(470px, calc(var(--d) * 545)); margin-top: max(18px, calc(var(--d) * 26)); color: #4a5470; font-size: max(18px, calc(var(--d) * 23.4)); line-height: 1.42; }
 .hero-alt { max-width: max(430px, calc(var(--d) * 470)); margin-top: max(18px, calc(var(--d) * 28)); color: #3c4560; font-size: max(17px, calc(var(--d) * 20)); line-height: 1.45; }
 .hero-alt strong { color: var(--ink); font-weight: 650; }
@@ -52,7 +57,8 @@
 .feature-grid { display: grid; grid-template-columns: minmax(0, 553fr) minmax(0, 672fr); gap: 70px; align-items: center; }
 .feature.flip .feature-copy { order: 2; }
 .feature.flip .feature-grid { grid-template-columns: minmax(0, 672fr) minmax(0, 553fr); }
-.feature h2, .details h2 { margin-top: 26px; font: 800 84px/0.95 var(--font-head); letter-spacing: -.042em; color: var(--ink); text-wrap: balance; }
+/* Tight tracking narrows the space too; word-spacing gives the words back the desk's gap. */
+.feature h2, .details h2 { margin-top: 26px; font: 800 84px/0.95 var(--font-head); letter-spacing: -.042em; word-spacing: .05em; color: var(--ink); text-wrap: balance; }
 .lede { margin-top: 26px; max-width: 590px; color: var(--body); font-size: 23px; line-height: 1.52; text-wrap: pretty; }
 .lede a { color: var(--ink); text-decoration-thickness: 1.5px; text-underline-offset: 4px; }
 .feature-drawing { position: relative; min-width: 0; }
@@ -101,7 +107,7 @@ main { position: relative; isolation: isolate; overflow-x: clip; }
 .art-closing { position: absolute; inset: 0; }
 .art-closing img { object-position: center bottom; }
 .closing-copy { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; padding-top: max(96px, calc(var(--d) * 140)); text-align: center; }
-.closing h2 { font: 800 max(56px, calc(var(--d) * 108))/1 var(--font-head); letter-spacing: -.04em; color: var(--ink); }
+.closing h2 { font: 800 max(56px, calc(var(--d) * 108))/1 var(--font-head); letter-spacing: -.04em; word-spacing: .05em; color: var(--ink); }
 .closing-sub { margin-top: max(14px, calc(var(--d) * 22)); color: #3f4862; font-size: max(21px, calc(var(--d) * 36)); line-height: 1.25; }
 .closing-actions { display: flex; align-items: center; gap: max(28px, calc(var(--d) * 36)); margin-top: max(30px, calc(var(--d) * 42)); }
 .closing .run-button { min-height: max(54px, calc(var(--d) * 64)); padding-inline: max(40px, calc(var(--d) * 48)); font-size: max(20px, calc(var(--d) * 25)); }

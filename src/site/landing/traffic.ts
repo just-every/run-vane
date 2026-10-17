@@ -32,7 +32,7 @@ const sourcesCard = card('Top sources, Oct 1 to 16, United States', `<header cla
 export const traffic = () => feature({
   id: 'visitors', eyebrow: 'Visitors', title: 'Every visitor,<br> no cookies.',
   body: 'Vane counts unique visitors, visits, bounce rate and visit duration with a salted hash that resets every day. No cookies, no banner, and the method is published.',
-  drawing: visitorsCard + handled("Salt rotated 12:00 am UTC · yesterday's visitors can't be linked"),
+  drawing: visitorsCard + handled("Salt rotated at midnight · yesterday's visitors can't be linked"),
 }) + feature({
   id: 'sources', eyebrow: 'Sources and pages', title: 'See where they <br>came from.', flip: true,
   body: 'Sources, pages, campaigns, countries, devices and browsers, live and over any period, with filters and comparisons.',
