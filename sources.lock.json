@@ -107,7 +107,7 @@
       "executable": false
     },
     "docs/getting-started.md": {
-      "sha256": "134626fd91772736a40c339814065d26d873b66b2435e9022eb9f72f1557c352",
+      "sha256": "741944ca09579aa2d2731d4a9640564366af6275d0b9d65a26f7690bdd592d6f",
       "executable": false
     },
     "docs/history.md": {
@@ -191,7 +191,7 @@
       "executable": false
     },
     "ONBOARDING.md": {
-      "sha256": "fdbfd832168f2a05e187ea2385c4675f0efce246278e6f720ba403fdc754bbf7",
+      "sha256": "fd670d07c014d21fe4000d491e9d1b87586839e9fcc29ff159029fa1cdd4d1c6",
       "executable": false
     },
     "OPERATIONS.json": {
@@ -199,7 +199,7 @@
       "executable": false
     },
     "OPERATIONS.md": {
-      "sha256": "a08fb441d70fc487ecd94f14ac22e8b7dff2ec39962a395f1a6a8cf37b4bfb87",
+      "sha256": "7298fc1cc9c644f28efa7989b6266a446f531092616efa43b9f5679b7ac90ecf",
       "executable": false
     },
     "package.json": {
@@ -259,7 +259,7 @@
       "executable": false
     },
     "README.md": {
-      "sha256": "88823670d8df830b2f309eb9257de2582b629c68132bb4865fb5a2df3c93ff5f",
+      "sha256": "42f9a9711572f57f0fd74c35b34679d588a8a99ca3eaeb2ff394573269deec84",
       "executable": false
     },
     "rer-project.json": {
@@ -271,7 +271,7 @@
       "executable": false
     },
     "RUN-LOCALLY.md": {
-      "sha256": "7b013820e587bfb6892c1573f202890f67712e41b8d08e5124968fd1bbd10e73",
+      "sha256": "e1d9821e73929de421f3f821cf0f67854c5c6bd0a390daacd70f4dff1b33af65",
       "executable": false
     },
     "scripts/edition-authoring/base-copies.mjs": {
