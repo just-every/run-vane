@@ -4,7 +4,7 @@ import { docHref, docsPages } from './manifest'
 import { renderDocs, type Article } from './render'
 
 function navigation(current?: string) {
-  return [...new Set(docsPages.map(page => page.section))].map(section => `<div class="docs-nav-group"><p>${section}</p>${docsPages.filter(page => page.section === section).map(page => `<a href="${docHref(page.slug)}"${current === page.slug ? ' aria-current="page"' : ''}>${page.title}</a>`).join('')}</div>`).join('')
+  return [...new Set(docsPages.map(page => page.section))].map(section => `<div class="docs-nav-group"><p>${section}</p>${docsPages.filter(page => page.section === section).map(page => `<a href="${docHref(page.slug)}"${current === page.slug ? ' aria-current="page"' : ''}>${page.title}</a>`).join('')}</div>`).join('') + '<div class="docs-nav-group"><p>Project</p><a href="/contract">Contract</a></div>'
 }
 const copyScript = "document.querySelectorAll('.docs-copy').forEach(b=>{b.hidden=false;b.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(b.closest('.docs-code').querySelector('code').textContent);b.textContent='Copied';setTimeout(()=>{b.textContent='Copy'},1600)}catch{}})})"
 

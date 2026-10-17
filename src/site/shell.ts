@@ -12,7 +12,7 @@ const share = `${identity.runSite}/site/share.jpg`
 export const lockup = (light = false) => `<a class="lockup" href="/" aria-label="Vane home"><img src="/brand/${light ? 'mark-dark' : 'mark'}.svg" width="46" height="34" alt=""><span>Vane</span></a>`
 
 export function header(current?: 'docs') {
-  return `<a class="skip-link" href="#main">Skip to content</a><header class="site-header"><div class="wrap">${lockup()}<nav aria-label="Main"><a href="/docs"${current === 'docs' ? ' aria-current="page"' : ''}>Docs</a><a href="${escapeHtml(run.repository)}">Source</a></nav></div></header>`
+  return `<a class="skip-link" href="#main">Skip to content</a><header class="site-header"><div class="wrap">${lockup()}<nav aria-label="Main"><a href="/docs"${current === 'docs' ? ' aria-current="page"' : ''}>Docs</a><a href="/contract">Contract</a><a href="${escapeHtml(run.repository)}">Source</a></nav></div></header>`
 }
 
 export const footer = () => `<footer class="site-footer"><div class="wrap">${lockup()}<nav aria-label="Footer"><a href="/docs">Docs</a><a href="${escapeHtml(run.repository)}">Source</a><a href="${escapeHtml(run.repository)}/blob/main/LICENSE">MIT licensed</a></nav></div></footer>`
