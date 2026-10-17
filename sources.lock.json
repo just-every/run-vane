@@ -63,7 +63,7 @@
       "executable": false
     },
     "base-copies.json": {
-      "sha256": "32bbadfb4ff702ce5bf01d7da3138dce30c9d8abe89696d075596dcf1c9e1afc",
+      "sha256": "b4719e0fab84f0412e8b0c4996e631537cd4e1b1adb08ad1bf0aa13d5f14a8fe",
       "executable": false
     },
     "CHANGELOG.md": {
@@ -543,7 +543,7 @@
       "executable": false
     },
     "src/base/contract-style.ts": {
-      "sha256": "41afdf1cb60983b340283b13e414102387eb2a4af022d730220050a4384d0753",
+      "sha256": "4325f4eeabac2bef722808576605d7b657858b918729097c3412393fc6e4941f",
       "executable": false
     },
     "src/base/deployment-health.ts": {
