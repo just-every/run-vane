@@ -70,7 +70,7 @@ These clauses restate what the released first contract and ACCEPTANCE.md promise
 
 - **DOCS-001 — Documentation built from repository Markdown.** `/docs` renders the repository's Markdown guides with readable code blocks, tables, section links and optional copy-to-clipboard controls. **Acceptance evidence:** Build the site and open each guide. Code blocks, tables and heading anchors render, and the clipboard control copies the block.
 
-- **HOME-001 — The approved homepage in the shared theme.** The run site serves the owner-approved indigo-isobar landing page in the shared Geologica theme with locally served fonts. At phone width its three hero cards and feature bands stack. Its Fern figures are explanatory drawings and are never seeded as analytics. **Acceptance evidence:** The independent visual gate compares the built homepage at 1440 and 390 px with the approved specification and picks.
+- **HOME-001 — The approved homepage in the shared theme.** The run site serves the owner-approved design-desk landing page (17 Oct 2026: the weather vane in an open sky, the swallow mark, Inter Tight and Inter type) in the shared theme with locally served fonts and artwork. At phone width its hero cards and every section's drawing stack under their copy. Its Juniper Coffee figures are explanatory drawings and are never seeded as analytics. **Acceptance evidence:** The independent visual gate compares the built homepage at 1440 and 390 px with the approved specification and picks.
 
 - **LOBBY-001 — The installed Lobby and real sign-in stay intact.** An installed instance keeps its Lobby at `/`, real sign-in and first-run setup flows, and its existing authenticated routes, all in the shared Vane theme. **Acceptance evidence:** On a fresh installation, bootstrap the owner, complete `/setup`, sign in by email link and open `/app`. No landing-drawing numbers appear in analytics.
 
@@ -314,7 +314,7 @@ The approved category review (16 October 2026) named what a Plausible or Fathom 
 | WordPress, Shopify, Webflow and Squarespace install paths, and a first-party proxy so ad blockers do not erase data | `INSTALL-001` to `INSTALL-008`, `COVERAGE-001` |
 | Push further: explain why traffic or conversions moved, propose and ship a change under granted authority, and measure the result against coverage gaps | `AGENT-001` to `AGENT-007` |
 
-No desk homepage claims file exists for Vane at this edition, so this contract has no homepage-claims table. The owner-approved homepage (`HOME-001`) is unchanged.
+The design-desk homepage (17 Oct 2026) now serves under `HOME-001`. Each capability its copy and drawings claim is one of the target clauses in the table above; the run-site gate checks those claims against the Status section before any deploy.
 
 ## Status
 
@@ -342,7 +342,7 @@ Judged from the code and tests at commit `640e97625528478703a81568a44288120d06ad
 | `RETENTION-001` | The declared retention window erases older history | published | done | `src/vane/actions.ts`; `tests/vane.test.mjs` |  |
 | `RUNSITE-001` | The public run site reaches installation and every guide | published | done | `src/base/run-site.ts`; `tests/site.test.mjs` |  |
 | `DOCS-001` | Documentation built from repository Markdown | published | partial | `src/site/docs/render.ts`; `tests/site.test.mjs` | Guides are built and their links resolve; rendering of code blocks, tables, heading anchors and the clipboard control is not asserted. |
-| `HOME-001` | The approved homepage in the shared theme | published | partial | `src/site/landing/page.ts`; `src/site/landing/sections.ts` | The approved page ships; the 1440 and 390 px visual gate runs outside the repository and no repository test checks the phone stacking. |
+| `HOME-001` | The approved homepage in the shared theme | published | partial | `src/site/landing/page.ts` and its section files in `src/site/landing/` | The approved page ships; the 1440 and 390 px visual gate runs outside the repository and no repository test checks the phone stacking. |
 | `LOBBY-001` | The installed Lobby and real sign-in stay intact | published | partial | `src/base/lobby.ts`; `tests/harness.mjs`; `tests/email-link.mjs` | Bootstrap, setup and email-link sign-in are exercised; no journey opens the Lobby and /app in a browser or asserts that landing-drawing figures never reach analytics. |
 | `DEPLOY-001` | Run-site deployment stays behind its switch | published | done | `.github/workflows/run-site.yml`; `wrangler.jsonc` |  |
 | `INSTALL-001` | One script tag with live install verification | target | partial | `src/vane/views/settings.ts`; `src/vane/views/script-copy.ts` | The snippet and copy control exist; there is no Verify installation check, failure diagnosis or awaiting-first-event state. |

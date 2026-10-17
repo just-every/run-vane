@@ -41,6 +41,6 @@ Visits count accepted page loads. Reloading a page counts again. They do not mea
 
 ## Bring history with you
 
-For an existing Umami installation, use **History → Import a document**. **Preview import** writes nothing; inspect the preview before **Apply import**. You can **Undo import** later. See [Move from Umami v2](umami-import.md) for the supported format.
+For an existing Umami installation, use **History → Import a document**. **Preview import** writes nothing; inspect the preview before **Apply import**. You can **Undo import** later. See [Move in from Umami](umami-import.md) for the supported format.
 
-To move a whole Vane installation, use **Data history → Download installation archive**. See [History and portability](history.md) before restoring or erasing data.
+To move a whole Vane installation, use **Data history → Download installation archive**. See [Back up and restore](history.md) before restoring or erasing data.

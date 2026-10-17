@@ -1,0 +1,19 @@
+/* Base's Run and not-found pages in the landing's look: sky-white paper, heavy
+   Inter Tight headline, white step cards, the swallow's blue numerals and the
+   terminal's dark code cards. Base's markup and commands are unchanged. */
+body { --art: max(22vh, 160px); background: radial-gradient(110% 70% at 85% -10%, rgba(253,216,196,.45), transparent 60%), var(--rer-page); }
+.brand { font-weight: 700; font-size: 26px; }
+.brand img { width: 50px; height: auto; }
+h1 { font-weight: 800; letter-spacing: -.05em; }
+.intro h1 { font-size: 72px; line-height: .98; }
+.sub { color: var(--body); }
+.step { background: var(--rer-surface); border-color: var(--line); border-radius: 20px; box-shadow: var(--chip-shadow); backdrop-filter: none; }
+.num { background: var(--blue); color: #fff; font-weight: 750; }
+.step h2 { font-weight: 750; letter-spacing: -.03em; }
+.code { border-radius: 14px; }
+.facts { color: var(--body); }
+.art { opacity: .9; }
+@media (max-width: 760px) {
+  .intro h1 { font-size: 42px; }
+  .brand img { width: 40px; }
+}

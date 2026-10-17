@@ -1,26 +1,65 @@
 @import url('/fonts/fonts.css');
-/* Vane's shared palette and components. Base and product pages read one theme. */
+/* Vane's tokens, defined once. The app (vane.css), the run site (public/site/),
+   the installer, sign-in, /setup, the Lobby and Base's Run and not-found pages
+   all read this file.
+   Vane's look (design desk, 17 Oct 2026): cool sky-white paper, near-black ink,
+   the swallow's blue as the accent with green, coral and apricot beside it,
+   Inter Tight headings over Inter body text, white cards with hairlines. */
 :root {
-  --rer-font-body: Geologica, Arial, sans-serif;
-  --rer-font-heading: Geologica, Arial, sans-serif;
-  --rer-font-mono: 'IBM Plex Mono', monospace;
-  --rer-page: #FAF8F3;
-  --rer-surface: #FFFFFF;
-  --rer-text: #141C2B;
-  --rer-muted: #4B5466;
-  --rer-border: #D8DCE4;
-  --rer-accent: #2B3990;
-  --rer-accent-text: #FFFFFF;
+  --rer-font-body: Inter, Arial, sans-serif;
+  --rer-font-heading: 'Inter Tight', Inter, Arial, sans-serif;
+  --rer-font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --rer-page: #f5f9fd;
+  --rer-surface: #ffffff;
+  --rer-text: #0b0d14;
+  --rer-muted: #5d6783;
+  --rer-border: #8e9ab0;
+  --rer-accent: #1d58f0;
+  --rer-accent-text: #ffffff;
   --rer-focus: var(--rer-accent);
   --rer-link: var(--rer-text);
-  --rer-chart: #3B4AA3;
-  --rer-tint: #ECEEF8;
-  --rer-code: #EEF0F3;
-  --rer-danger: #9B2C2C;
-  --rer-radius: 12px;
-  --rer-button-radius: 999px;
-  --rer-shadow: 0 1px 2px rgba(20,28,43,.04), 0 8px 24px rgba(20,28,43,.06);
+  --rer-chart: #1d58f0;
+  --rer-tint: #e9f0fe;
+  --rer-code: #eef2f7;
+  --rer-code-background: #12141b;
+  --rer-code-text: #e8ecf4;
+  --rer-danger: #b4233c;
+  --rer-radius: 14px;
+  --rer-button-radius: 14px;
+  --rer-shadow: 0 1px 2px rgba(16,32,72,.05), 0 18px 44px -18px rgba(16,32,72,.18);
+  --rer-wordmark-tracking: -.03em;
   --rer-logo: url('/brand/mark.svg');
+
+  --paper: var(--rer-page);
+  --surface: var(--rer-surface);
+  --ink: var(--rer-text);
+  --body: var(--rer-muted);
+  --soft: #7a849c;
+  --faint: #a9b2c4;
+  --line: #e4eaf3;
+  --line-soft: #eef2f8;
+  --track: #e8edf5;
+  --blue: var(--rer-accent);
+  --blue-ink: #124ad6;
+  --blue-tint: var(--rer-tint);
+  --mark-blue: #1651c5;
+  --green: #1fa463;
+  --green-ink: #16884f;
+  --green-tint: #e3f5ec;
+  --coral: #f0506e;
+  --orange: #f7931e;
+  --orange-ink: #c8641a;
+  --orange-tint: #fdeee3;
+  --violet: #8b4fe0;
+  --apricot-glow: rgba(253, 216, 196, .55);
+  --button: #1b1c22;
+  --button-hover: #30323b;
+  --terminal: var(--rer-code-background);
+  --card-shadow: 0 1px 2px rgba(16,32,72,.04), 0 24px 48px -24px rgba(16,32,72,.20);
+  --chip-shadow: 0 1px 2px rgba(16,32,72,.04), 0 10px 26px -14px rgba(16,32,72,.22);
+  --font-head: var(--rer-font-heading);
+  --font-body: var(--rer-font-body);
+  --font-mono: var(--rer-font-mono);
 }
 html { color-scheme: light; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
 html.rer-themed a { text-decoration-thickness: 1px; text-underline-offset: 3px; }
@@ -41,7 +80,7 @@ html.rer-themed body:has(>main>.brand) main, html.rer-themed body:has(>main>form
 html.rer-themed body:has(>main>.brand) .brand, html.rer-themed body:has(>main>form[action="/setup"]) .rer-brand {
   justify-content: center; gap: 12px; margin: 0 0 44px; color: var(--rer-text); font-size: 24px; font-weight: 600;
 }
-html.rer-themed body:has(>main>.brand) .brand::before, html.rer-themed body:has(>main>form[action="/setup"]) .rer-brand::before { width: 32px; height: 32px; }
+html.rer-themed body:has(>main>.brand) .brand::before, html.rer-themed body:has(>main>form[action="/setup"]) .rer-brand::before { width: 43px; height: 32px; }
 html.rer-themed body:has(>main>.brand) h1, html.rer-themed body:has(>main>form[action="/setup"]) h1 {
   margin: 0 0 32px; color: var(--rer-text); font-size: 32px; font-weight: 600; line-height: 1.15; letter-spacing: -.02em;
 }
@@ -69,6 +108,7 @@ html.rer-themed body:has(>main>.brand) .notice { border-color: var(--rer-accent)
 html body .door { background: var(--rer-page); padding-top: max(100px, 20vh); }
 html body .door-card { width: min(510px,100%); padding: 44px; border: 1px solid var(--rer-border); border-radius: var(--rer-radius); background: var(--rer-surface); box-shadow: var(--rer-shadow); }
 html body .door-card h1 { font-size: 32px; }
+html body .door-card .mark { width: 1.56em; height: 1.16em; }
 html body .door-card .line { font-size: 18px; margin-top: 24px; }
 html body .door-card .btn { min-height: 48px; padding: 0 28px; font-size: 16px; font-weight: 500; background: var(--rer-text); color: var(--rer-surface); box-shadow: none; }
 html body .door-card .credit { font-size: 13px; }

@@ -1,0 +1,78 @@
+/* /docs: the landing's paper, type and cards around the repository's guides. */
+.docs-index { padding: 40px 0 120px; }
+.docs-index h1 { margin-top: 22px; max-width: 13ch; font: 800 72px/0.98 var(--font-head); letter-spacing: -.05em; }
+.docs-intro { margin-top: 24px; max-width: 620px; color: var(--body); font-size: 22px; line-height: 1.5; }
+.docs-index-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 18px 36px; margin-top: 34px; }
+.docs-index-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; margin-top: 64px; }
+.docs-index-card { position: relative; display: block; height: 100%; padding: 26px 28px 30px; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); box-shadow: var(--chip-shadow); color: var(--ink); text-decoration: none; transition: transform .15s, box-shadow .15s; }
+.docs-index-card:hover { transform: translateY(-2px); box-shadow: var(--card-shadow); }
+.docs-index-num { display: inline-grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: var(--blue-tint); color: var(--blue-ink); font: 700 16px/1 var(--font-head); }
+.docs-index-section { margin-top: 22px; color: var(--blue); font-size: 13px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; }
+.docs-index-card h2 { margin-top: 8px; font: 750 25px/1.2 var(--font-head); letter-spacing: -.025em; }
+.docs-index-card p:last-of-type { margin-top: 10px; color: var(--body); font-size: 17px; line-height: 1.55; }
+.docs-index-go { position: absolute; top: 30px; right: 28px; color: var(--soft); font-size: 20px; }
+
+.docs-layout { display: grid; grid-template-columns: 230px minmax(0, 1fr) 210px; gap: 56px; padding: 36px 0 110px; }
+.docs-sidebar nav, .docs-toc nav { position: sticky; top: 28px; }
+.docs-nav-group + .docs-nav-group { margin-top: 26px; }
+.docs-nav-group p, .docs-toc p { margin-bottom: 10px; color: var(--soft); font-size: 12.5px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; }
+.docs-nav-group a { display: block; padding: 8px 12px; margin-left: -12px; border-radius: 10px; color: #2d3550; font-size: 16px; text-decoration: none; }
+.docs-nav-group a:hover { background: #fff; }
+.docs-nav-group a[aria-current="page"] { background: var(--blue-tint); color: var(--blue-ink); font-weight: 600; }
+.docs-toc a { display: block; padding: 5px 0; color: var(--body); font-size: 14.5px; text-decoration: none; }
+.docs-toc a:hover { color: var(--ink); }
+.docs-mobile-nav, .docs-mobile-toc { display: none; }
+.docs-page-heading h1 { margin-top: 16px; font: 800 58px/1 var(--font-head); letter-spacing: -.045em; }
+.docs-summary { margin-top: 18px; color: var(--body); font-size: 21px; line-height: 1.5; }
+.docs-prose { margin-top: 40px; padding: 8px 44px 40px; border: 1px solid var(--line); border-radius: 20px; background: var(--surface); box-shadow: var(--chip-shadow); color: #2d3550; font-size: 17.5px; line-height: 1.7; }
+.docs-prose h2 { margin: 40px 0 12px; color: var(--ink); font: 750 29px/1.2 var(--font-head); letter-spacing: -.03em; scroll-margin-top: 24px; }
+.docs-prose h3 { margin: 28px 0 8px; color: var(--ink); font: 700 21px/1.3 var(--font-head); }
+.docs-prose p, .docs-prose ul, .docs-prose ol { margin: 14px 0; }
+.docs-prose ul { list-style: disc; padding-left: 22px; }
+.docs-prose ol { list-style: decimal; padding-left: 24px; }
+.docs-prose li + li { margin-top: 6px; }
+.docs-prose a { color: var(--blue-ink); text-underline-offset: 3px; }
+.docs-prose strong { color: var(--ink); font-weight: 650; }
+.docs-prose :not(pre) > code { padding: 2px 6px; border-radius: 6px; background: #eef2f7; color: var(--ink); font: 400 .88em var(--font-mono); overflow-wrap: anywhere; }
+.docs-code { margin: 20px 0; border-radius: 14px; background: var(--terminal); color: #e8ecf4; overflow: hidden; }
+.code-heading { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid #262a35; color: #8b93a8; font-size: 13px; }
+.docs-copy { min-height: 30px; padding: 0 12px; border: 1px solid #3a3f4d; border-radius: 8px; background: transparent; color: #c9cfdc; font: 500 13px/1 var(--font-body); cursor: pointer; }
+.docs-code pre { padding: 16px 18px 18px; overflow-x: auto; font: 400 15px/1.75 var(--font-mono); }
+.docs-table { margin: 20px 0; overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; }
+.docs-table table { width: 100%; border-collapse: collapse; font-size: 16px; }
+.docs-table th, .docs-table td { padding: 11px 14px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+.docs-table th { background: #f6f8fc; color: var(--ink); font-weight: 650; }
+.docs-table tr:last-child td { border-bottom: 0; }
+.docs-pager { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 28px; }
+.docs-pager a { display: grid; gap: 4px; padding: 18px 22px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); color: var(--ink); text-decoration: none; font-weight: 600; }
+.docs-pager a:hover { box-shadow: var(--chip-shadow); }
+.docs-pager small { color: var(--soft); font-weight: 500; }
+.docs-pager-next { text-align: right; }
+
+@media (max-width: 1180px) {
+  .docs-layout { grid-template-columns: 210px minmax(0, 1fr); gap: 40px; }
+  .docs-toc { display: none; }
+  .docs-index-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  .docs-index { padding: 20px 0 72px; }
+  .docs-index h1 { font-size: 44px; }
+  .docs-intro { font-size: 18px; }
+  .docs-index-actions .run-button { width: 100%; }
+  .docs-index-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; margin-top: 36px; }
+  .docs-index-card { padding: 20px; }
+  .docs-index-card h2 { font-size: 21px; }
+  .docs-layout { display: block; padding: 12px 0 72px; }
+  .docs-sidebar { display: none; }
+  .docs-mobile-nav, .docs-mobile-toc { display: block; margin-bottom: 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+  .docs-mobile-nav summary, .docs-mobile-toc summary { padding: 13px 16px; font-weight: 600; cursor: pointer; }
+  .docs-mobile-nav nav, .docs-mobile-toc nav { padding: 0 16px 14px; }
+  .docs-mobile-toc nav a { display: block; padding: 6px 0; color: var(--body); text-decoration: none; }
+  .docs-page-heading h1 { font-size: 40px; }
+  .docs-summary { font-size: 17px; }
+  .docs-mobile-toc { margin-top: 22px; }
+  .docs-prose { margin-top: 22px; padding: 2px 18px 22px; border-radius: 16px; font-size: 16px; }
+  .docs-prose h2 { font-size: 23px; margin-top: 30px; }
+  .docs-code pre { font-size: 13px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .docs-pager { grid-template-columns: minmax(0, 1fr); }
+}

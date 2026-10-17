@@ -1,4 +1,4 @@
-# Move from Umami v2
+# Move in from Umami
 
 Vane accepts a JSON response from Umami v2's documented
 [`GET /api/websites/:websiteId/events`](https://v2.umami.is/docs/api/events-api).

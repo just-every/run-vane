@@ -9,7 +9,7 @@ export const count = (value: unknown) => Number.isFinite(Number(value)) ? Number
 export function date(value: unknown): string {
   if (!value) return '—'
   const parsed = new Date(typeof value === 'number' ? value : String(value))
-  return Number.isNaN(parsed.getTime()) ? escape(value) : escape(parsed.toISOString().slice(0, 10))
+  return Number.isNaN(parsed.getTime()) ? escape(value) : escape(parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }))
 }
 
 export function panel(title: string, content: string, description = ''): string {

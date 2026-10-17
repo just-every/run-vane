@@ -1,11 +1,10 @@
 export const docsPages = [
-  { slug: 'getting-started', title: 'Your first website', section: 'Start', source: 'docs/getting-started.md', summary: 'Add your website, install the script and read your first report.' },
-  { slug: 'collection', title: 'Collection and coverage', section: 'Use Vane', source: 'docs/collection.md', summary: 'Understand page loads, consent, sampling and the limits behind the counts.' },
-  { slug: 'history', title: 'History and portability', section: 'Use Vane', source: 'docs/history.md', summary: 'Import, undo, export, restore and erase analytics history.' },
-  { slug: 'umami-import', title: 'Move from Umami v2', section: 'Reference', source: 'docs/umami-import.md', summary: 'The supported Events API format and import custody rules.' },
+  { slug: 'getting-started', title: 'Your first website', section: 'Start', source: 'docs/getting-started.md', summary: 'Run Vane, add your website, install the script and read your first report.' },
+  { slug: 'collection', title: 'Collection and coverage', section: 'Use Vane', source: 'docs/collection.md', summary: 'What the script sends, consent, sampling and the limits behind the counts.' },
+  { slug: 'approvals', title: 'People and approvals', section: 'Use Vane', source: 'docs/approvals.md', summary: 'Owners, administrators and members, and how a prepared change is approved.' },
+  { slug: 'umami-import', title: 'Move in from Umami', section: 'Move in', source: 'docs/umami-import.md', summary: 'Bring Umami v2 history across: the supported format, preview, apply and undo.' },
+  { slug: 'history', title: 'Back up and restore', section: 'Keep your data', source: 'docs/history.md', summary: 'Download an archive, restore it, keep history for as long as you choose, or erase it.' },
   { slug: 'commands', title: 'Agent commands', section: 'Reference', source: 'docs/commands.md', summary: 'Prepare changes through the authenticated command protocol.' },
-  { slug: 'run-locally', title: 'Run locally', section: 'Reference', source: 'RUN-LOCALLY.md', summary: 'RER commands, private settings and local development.' },
-  { slug: 'readme', title: 'Repository guide', section: 'Reference', source: 'README.md', summary: 'The repository’s installation, deployment and development guide.' },
 ] as const
 export type DocsPage = typeof docsPages[number]
 export const docHref = (slug: string) => `/docs/${slug}`

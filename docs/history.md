@@ -1,10 +1,10 @@
-# History and portability
+# Back up and restore
 
 Your analytics history stays portable. Vane can import supported Umami history, undo an import, download an installation archive and restore into an empty installation.
 
 ## Import and undo
 
-Open a site's **History**, choose an **Analytics document**, and select **Preview import**. Preview writes nothing. Check the rows and fingerprint under **Review import**, then select **Apply import**. See [Move from Umami v2](umami-import.md) for the supported JSON and limits.
+Open a site's **History**, choose an **Analytics document**, and select **Preview import**. Preview writes nothing. Check the rows and fingerprint under **Review import**, then select **Apply import**. See [Move in from Umami](umami-import.md) for the supported JSON and limits.
 
 The **Import journal** records approval, checkpoints and committed records. **Undo import** removes that import's unchanged contributions. Repeat apply or undo while processing remains. Imported consent and sampling stay unknown.
 

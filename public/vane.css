@@ -21,7 +21,7 @@
 .vane-header { position: relative; display: flex; justify-content: space-between; align-items: center; gap: 24px; width: min(1200px, calc(100% - 48px)); height: 64px; margin: 0 auto; border-bottom: 1px solid var(--rer-border); }
 .rer-themed .vane-header .vane-brand { color: var(--rer-text); text-decoration: none; }
 .rer-themed .vane-header .rer-brand { margin: 0; gap: 10px; font-size: 20px; line-height: 1; font-weight: 600; }
-.rer-themed .vane-header .rer-brand::before { width: 24px; height: 24px; }
+.rer-themed .vane-header .rer-brand::before { width: 33px; height: 24px; }
 .vane-account { margin: 0; }
 .vane-account > summary { display: none; }
 .vane-account::details-content { display: contents; content-visibility: visible; }

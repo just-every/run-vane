@@ -1,3 +1,5 @@
+<img src="public/brand/mark.svg" width="96" alt="Vane, a blue swallow in flight">
+
 # Vane
 
 Cookie-free website analytics in your own account. Add a script, count page
@@ -9,13 +11,17 @@ The public site is at https://run-vane.com.
 
 ## Run locally
 
-Install Git, then run one line. It installs RER, clones Vane and starts it:
+Two lines, the same as the [Run page](https://run-vane.com/run). Install rer once
+per computer; it brings its own Node when you have none:
 
 ```sh
-npx -y @runeditrun/rer dev just-every/run-vane
+curl -fsSL https://runeditrun.com/install.sh | sh
+rer dev just-every/run-vane
 ```
 
-Without Node, `curl -fsSL https://runeditrun.com/install.sh | sh -s -- dev just-every/run-vane` does the same. To start it again later, run `cd run-vane && rer dev`. `rer dev`
+If the installer prints an `export PATH=…` line, run it before the second line.
+Already have Node 22 or later? `npx -y @runeditrun/rer dev just-every/run-vane`
+does both in one line. To start it again later, run `cd run-vane && rer dev`. `rer dev`
 installs pinned dependencies, selects Node 22.20.0, and prepares a local owner
 and D1 database. The first launch takes a few minutes and prints progress. Open
 `RER_OPEN` on this computer, confirm the owner on **Finish setup**, then open
@@ -156,10 +162,12 @@ and [source attribution](SOURCES.md). MIT licensed.
 
 ## Run site and documentation
 
-`rer build --site` writes the static run site to `dist/site`: the approved
-Vane homepage, `/run`, `/docs`, seven Markdown guides and a not-found page.
-The homepage and docs share the installed app's Geologica type, paper and ink
-tokens, and indigo isobar artwork. All fonts and artwork are served locally.
+`rer build --site` writes the static run site to `dist/site`: the Vane
+homepage approved on the design desk (17 Oct 2026), `/run`, `/docs`, six
+Markdown guides and a not-found page. The homepage, docs and `/run` share the
+installed app's tokens (`public/rer-theme.css`), Inter Tight and Inter type and
+the swallow mark; the painted hero, interlude and closing are local AVIF/WebP
+files in `public/site/art/`. All fonts and artwork are served locally.
 `rer dev` prints the separate `RER_SITE` address alongside the installed app.
 It preserves the installed `/` Lobby and never adds marketing routes to the app.
 
@@ -169,4 +177,5 @@ Markdown become `/docs` links. Other repository files link to Source.
 
 The site workflow is gated by `RUN_SITE_DEPLOY` and publishes to
 https://run-vane.com on pushes to `main` when enabled. `deploy-site.json`
-declares the public domain. There is no hosted demo.
+declares the public domain. The hosted demo is https://demo.run-vane.com/ (see
+[DEMO.md](DEMO.md)).
