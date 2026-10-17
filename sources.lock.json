@@ -79,7 +79,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "f01cdf9ed7ca8160291f350027d7dda9f93c95bf5a0d204c9e7a8bc4efe5ac65",
+      "sha256": "6e53ec3711c26dbccf1747bae94599ecb6ec776e56805c8c0a2037f9065cad30",
       "executable": false
     },
     "DEMO.md": {
@@ -423,15 +423,15 @@
       "executable": false
     },
     "public/site/docs.css": {
-      "sha256": "c6e0c3235068410e902964597a43f58df65214c55d4421ec8dfda46bb4bcb606",
+      "sha256": "a6d01596f5c8170e67655d2b1edb26cf5eafb4aeb109724f884e730c702c1a0f",
       "executable": false
     },
     "public/site/landing.css": {
-      "sha256": "6fd314cadaccee1d2a42e58bd07cbd8e5cf1ee5d6b5e972408bdd7402dfd7e5e",
+      "sha256": "8ca7200a6d3b446f7e780fe722a6bab91d4fb50ba6a9db813eda1633d7d35b66",
       "executable": false
     },
     "public/site/run.css": {
-      "sha256": "7f390e43630c790bb35ddb1a177611e4291d3dacaf678e9299268574c87eebce",
+      "sha256": "97ece2deb2dc4ae159fe9b4a1cf80bc872aeac1a0bc02beafc1522c740d9fd08",
       "executable": false
     },
     "public/site/share.jpg": {
@@ -2203,7 +2203,7 @@
       "executable": false
     },
     "src/site/landing/details.ts": {
-      "sha256": "1a484f93ab23c8ac967156f57555e8278bc1627f3506409f4fa4c3f8ad92d715",
+      "sha256": "19a0452646f43102a28e42d5923e99f3b5b08442fcf4807773b84ef20eec5d58",
       "executable": false
     },
     "src/site/landing/hero.ts": {
@@ -2223,7 +2223,7 @@
       "executable": false
     },
     "src/site/landing/ownership.ts": {
-      "sha256": "36a60d3e14b01a4f4bc0447894c8755893e4f75e4dd05a3525bdb72ab144ed6a",
+      "sha256": "4d182b2d8dbc95b3ba89ae521dbc87ee631cd6ff734c61b282f608e96325d6ba",
       "executable": false
     },
     "src/site/landing/page.ts": {
@@ -2239,7 +2239,7 @@
       "executable": false
     },
     "src/site/landing/traffic.ts": {
-      "sha256": "6b863d233c86a7cf1cbfcac7008d2bea6c055eae1645a234cb47c5e885e151bf",
+      "sha256": "60f5c0c039984d68391661f90f03ac9e91bcc4c23438dd9b86c892062b5b2a67",
       "executable": false
     },
     "src/site/pages.ts": {
