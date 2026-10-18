@@ -419,13 +419,13 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Published | 11 | 6 | 0 | 17 |
+| Published | 12 | 5 | 0 | 17 |
 | Target and push further | 1 | 26 | 64 | 91 |
-| All | 12 | 32 | 64 | 108 |
+| All | 13 | 31 | 64 | 108 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
-| `HTTP-001` | One Worker with honest public and private doors | published | partial | `src/server.ts`; `src/base/dispatch.ts`; `src/vane/routes.ts`; `tests/vane.test.mjs` | Private-door refusals are tested; /health, /vane.js and the unknown-path 404 have no assertion. |
+| `HTTP-001` | One Worker with honest public and private doors | published | done | `src/server.ts`; `src/vane/collect.ts`; `src/vane/routes.ts`; `tests/vane.test.mjs` |  |
 | `ACCESS-001` | Owners approve, administrators prepare, members read | published | done | `src/vane/core.ts`; `src/vane/commands.ts`; `tests/vane.test.mjs` |  |
 | `ACCESS-002` | Private doors refuse signed-out and cross-origin requests | published | done | `src/vane/routes.ts`; `tests/vane.test.mjs` |  |
 | `APPROVE-001` | Prepared changes apply only on the owner's recorded approval | published | done | `src/vane/commands.ts`; `src/vane/routes.ts`; `tests/vane.test.mjs` |  |

@@ -4,7 +4,7 @@ Each clause in CONTRACT.md is accepted by the evidence below, run through a publ
 
 ## Existing guarantees
 
-- `HTTP-001` One Worker with honest public and private doors (partial): Request `/health`, `/vane.js`, an unknown path and every private route signed out on a built Worker. Health answers, the script is served, unknown paths return 404, and private routes return 401 or redirect to sign-in (`tests/vane.test.mjs`).
+- `HTTP-001` One Worker with honest public and private doors (done): Request `/health`, `/vane.js`, an unknown path and every private route signed out on a built Worker. Health answers, the script is served, unknown paths return 404, and private routes return 401 or redirect to sign-in (`tests/vane.test.mjs`).
 - `ACCESS-001` Owners approve, administrators prepare, members read (done): Invite an administrator and a member. The member cannot prepare, the administrator cannot approve or import, export is owner-only, and revoking the administrator ends their session (`tests/vane.test.mjs`).
 - `ACCESS-002` Private doors refuse signed-out and cross-origin requests (done): Call every private GET and POST door signed out, signed out after sign-out, and with a foreign Origin. Each is refused with no write (`tests/vane.test.mjs`).
 - `APPROVE-001` Prepared changes apply only on the owner's recorded approval (done): Prepare as an administrator, approve as the owner, then approve again; the second approval gets 409. Inspect the proposal for distinct preparer and approver (`tests/vane.test.mjs`).

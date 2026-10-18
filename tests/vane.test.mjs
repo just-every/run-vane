@@ -6,12 +6,19 @@ const fixture=JSON.parse(await readFile(new URL('./fixtures/umami-events.json',i
 async function withApp(t){const app=await installation();t.after(()=>app.close());return app}
 async function movein(app,siteId,document=fixture){const r=await app.post('/api/vane/import-preview',{siteId,document},app.owner);assert.equal(r.status,200,await r.clone().text());const p=await r.json();const a=await app.post('/api/vane/import-apply',{siteId,document:p.carry,fingerprint:p.fingerprint},app.owner);assert.equal(a.status,200,await a.clone().text());return {preview:p,applied:await a.json()}}
 
-test('native sessions and every private door reject anonymous and cross-origin mutations',async t=>{
- const a=await withApp(t)
+test('HTTP-001 and ACCESS-002: one Worker serves honest public doors; every private door rejects anonymous and cross-origin requests',async t=>{
+ const a=await withApp(t),id=await a.addSite()
+ const health=await a.request('/health');assert.equal(health.status,200);assert.equal((await health.json()).status,'ok')
+ for(const path of ['/','/signin'])assert.equal((await a.request(path)).status,200,path)
+ const setup=await a.request('/setup');assert.ok([200,303].includes(setup.status),'setup answers')
+ const script=await a.request('/vane.js');assert.equal(script.status,200);assert.match(script.headers.get('content-type'),/javascript/);assert.match(await script.text(),/\/api\/vane\/collect/)
+ const config=await a.request('/api/vane/config/'+id,{headers:{origin:'https://fern.example'}});assert.equal(config.status,200);assert.deepEqual((await config.json()).paths,['/','/thanks'])
+ for(const path of ['/no-such-page','/api/no-such-door'])assert.equal((await a.request(path)).status,404,path)
+ assert.equal((await a.request('/api/vane/no-such-door',{headers:{cookie:a.owner}})).status,404)
  for(const path of ['/api/vane/sites','/api/vane/summary','/api/vane/export','/api/vane/proposals','/api/vane/import-journal'])assert.equal((await a.request(path)).status,401)
  for(const path of ['/api/vane/commands','/api/vane/import-preview','/api/vane/import-apply','/api/vane/import-undo','/api/vane/restore','/app/action'])assert.equal((await a.post(path,{})).status,401)
  assert.equal((await a.post('/api/vane/commands',{command:'site.create'},a.owner,{origin:'https://foreign.example'})).status,403)
- assert.equal((await a.request('/app')).status,303)
+ for(const path of ['/app','/app/sites/'+id]){const r=await a.request(path);assert.equal(r.status,303);assert.match(r.headers.get('location'),/^\/signin/)}
  assert.equal((await a.post('/auth/signout',{},a.owner)).status,204)
  assert.equal((await a.request('/api/vane/sites',{headers:{cookie:a.owner}})).status,401)
 })

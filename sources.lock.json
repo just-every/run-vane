@@ -55,7 +55,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "91867030e36c705f158fe6c45a9b30de7ddb4f4560249218ea5ceae44f5c5f31",
+      "sha256": "3d0c315bc52ba6d83ce728339b6b72b34f09a3cdbb2771d590a31b2f44ae8fa6",
       "executable": false
     },
     "AGENTS.md": {
@@ -79,7 +79,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "6e53ec3711c26dbccf1747bae94599ecb6ec776e56805c8c0a2037f9065cad30",
+      "sha256": "d2fecd7116cb7f94f46a4734430ad9e7cf1c18b78caf826cee18b75b2a5617f3",
       "executable": false
     },
     "DEMO.md": {
@@ -2455,7 +2455,7 @@
       "executable": false
     },
     "tests/vane.test.mjs": {
-      "sha256": "3ffde5ec76d759bcc40e41c098c21e0a4deb0621103c37e603e85aab2be8d3bb",
+      "sha256": "8c8da552bebe752a4ae7aade44036312e77181107ccbf526979f10402dbb1f55",
       "executable": false
     },
     "tsconfig.json": {
