@@ -419,9 +419,9 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Published | 13 | 4 | 0 | 17 |
+| Published | 14 | 3 | 0 | 17 |
 | Target and push further | 1 | 26 | 64 | 91 |
-| All | 14 | 30 | 64 | 108 |
+| All | 15 | 29 | 64 | 108 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -438,7 +438,7 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | `ERASURE-001` | Owner-approved erasure, fenced against old backups | published | done | `src/vane/commands.ts`; `src/vane/deletion-fence.ts`; `tests/vane.test.mjs` |  |
 | `RETENTION-001` | The declared retention window erases older history | published | done | `src/vane/actions.ts`; `tests/vane.test.mjs` |  |
 | `RUNSITE-001` | The public run site reaches installation and every guide | published | done | `src/base/run-site.ts`; `tests/site.test.mjs` |  |
-| `DOCS-001` | Documentation built from repository Markdown | published | partial | `src/site/docs/render.ts`; `tests/site.test.mjs` | Guides are built and their links resolve; rendering of code blocks, tables, heading anchors and the clipboard control is not asserted. |
+| `DOCS-001` | Documentation built from repository Markdown | published | done | `src/site/docs/render.ts`; `src/site/docs/pages.ts`; `tests/site.test.mjs` |  |
 | `HOME-001` | The approved homepage in the shared theme | published | partial | `src/site/landing/page.ts` and its section files in `src/site/landing/` | The approved page ships; the 1440 and 390 px visual gate runs outside the repository and no repository test checks the phone stacking. |
 | `LOBBY-001` | The installed Lobby and real sign-in stay intact | published | partial | `src/base/lobby.ts`; `tests/harness.mjs`; `tests/email-link.mjs` | Bootstrap, setup and email-link sign-in are exercised; no journey opens the Lobby and /app in a browser or asserts that landing-drawing figures never reach analytics. |
 | `DEPLOY-001` | Run-site deployment stays behind its switch | published | done | `.github/workflows/run-site.yml`; `wrangler.jsonc` |  |
