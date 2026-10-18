@@ -419,9 +419,9 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Published | 12 | 5 | 0 | 17 |
+| Published | 13 | 4 | 0 | 17 |
 | Target and push further | 1 | 26 | 64 | 91 |
-| All | 13 | 31 | 64 | 108 |
+| All | 14 | 30 | 64 | 108 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -432,7 +432,7 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | `COLLECT-001` | A cookie-free script that sends only declared anonymous fields | published | partial | `src/vane/tracker.ts`; `src/vane/collect.ts`; `tests/vane.test.mjs` | Server-side origin, field and path refusals are tested; the browser script's no-storage behaviour and its Do Not Track and Global Privacy Control skip are not exercised by any test, and the declared storage exceptions and hostname field do not exist yet. |
 | `CONSENT-001` | The site's consent mode is enforced at collection | published | done | `src/vane/collect.ts`; `tests/vane.test.mjs` |  |
 | `DEDUP-001` | Each page load is admitted once | published | done | `src/vane/collect.ts`; `tests/vane.test.mjs` |  |
-| `TRAFFIC-001` | Page loads, sources, campaigns and goals with a comparison and stated limits | published | partial | `src/vane/reports.ts`; `src/vane/views/report.ts`; `tests/vane.test.mjs` | Totals and breakdowns are tested; the previous-period totals, difference, seven-day default and coverage-limit text have no assertion. |
+| `TRAFFIC-001` | Page loads, sources, campaigns and goals with a comparison and stated limits | published | done | `src/vane/reports.ts`; `src/vane/views/report.ts`; `src/vane/views/html.ts`; `tests/vane.test.mjs` |  |
 | `IMPORT-001` | Reviewed, journalled and undoable Umami import | published | done | `src/vane/movein/index.ts`; `src/vane/movein/normalize.ts`; `tests/vane.test.mjs` |  |
 | `ARCHIVE-001` | Complete history export and atomic restore | published | done | `src/vane/archive.ts`; `tests/vane.test.mjs` |  |
 | `ERASURE-001` | Owner-approved erasure, fenced against old backups | published | done | `src/vane/commands.ts`; `src/vane/deletion-fence.ts`; `tests/vane.test.mjs` |  |
