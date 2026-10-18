@@ -12,8 +12,9 @@ export async function installation() {
  const entry=join(root,config.main)
  const modules=[entry,...paths.filter(p=>p.endsWith('.js')&&join(root,p)!==entry).map(p=>join(root,p))].map(path=>({type:'ESModule',path}))
  const vars={AUTH_LOCAL:'true',AUTH_ORIGIN:origin,OWNER_EMAIL:'owner@example.test',SESSION_SECRET:randomBytes(32).toString('hex'),SETUP_TOKEN:randomBytes(32).toString('hex'),RER_DEV_KEY:randomBytes(32).toString('hex'),MAIL_PROVIDER:'resend',MAIL_API_KEY:'test-only-network-edge',MAIL_FROM:'auth@localhost.test'}
- const sentMail=[]
- const mailEdge=async request=>{if(new URL(request.url).hostname!=='api.resend.com')throw new Error('Unexpected test egress');sentMail.push(await request.json());return Response.json({id:crypto.randomUUID()})}
+ const sentMail=[],egress=[]
+ // Every outbound request from the Worker is recorded; only the fake mail edge answers.
+ const mailEdge=async request=>{egress.push(request.url);if(new URL(request.url).hostname!=='api.resend.com')throw new Error('Unexpected test egress');sentMail.push(await request.json());return Response.json({id:crypto.randomUUID()})}
  const mf=new Miniflare(convertV4MiniflareOptions({host:'127.0.0.1',port:0,cf:false,workers:[{name:'ingress',modules:true,script:`export default {fetch(request,env){const url=new URL(request.headers.get('x-original-url')),headers=new Headers(request.headers);headers.delete('x-original-url');headers.set('host',url.host);return env.APP.fetch(new Request(url,{method:request.method,headers,redirect:'manual',...(!['GET','HEAD'].includes(request.method)?{body:request.body}:{})}))}}`,serviceBindings:{APP:'app'}},{name:'app',outboundService:mailEdge,modules,modulesRoot:root,compatibilityDate:config.compatibility_date,compatibilityFlags:config.compatibility_flags,bindings:vars,d1Databases:{DB:'test-vane'},assets:{directory:resolve('dist/client'),binding:'ASSETS',routerConfig:{has_user_worker:true,invoke_user_worker_ahead_of_assets:true}}}]}))
  try {
  await mf.ready
@@ -42,6 +43,6 @@ export async function installation() {
  const event=(siteId,extra={})=>({siteId,id:crypto.randomUUID(),path:'/',source:'search.example',campaign:'launch',consent:'not-required',...extra})
  const collect=(value,siteOrigin='https://fern.example')=>post('/api/vane/collect',value,'',{origin:siteOrigin})
  const archive=async()=>{const r=await request('/api/vane/export',{headers:{cookie:owner}});assert.equal(r.status,200);return r.json()}
- return {request,post,form,owner,invite,sentMail,addSite,event,collect,archive,close:()=>mf.dispose()}
+ return {origin,request,post,form,owner,invite,sentMail,egress,addSite,event,collect,archive,close:()=>mf.dispose()}
  } catch(error) {await mf.dispose();throw error}
 }

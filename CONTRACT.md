@@ -400,7 +400,7 @@ The approved homepage (17 Oct 2026, `HOME-001`) states 80 capabilities in its co
 | 66 | Ownership: "keep every visit and event" | `RETENTION-002`, `COLLECT-004` | partial |
 | 67 | Ownership: "Export everything, any time" / "Export any time" | `ARCHIVE-001` | done |
 | 68 | Ownership: "Your own computer or your own Cloudflare account" | `HOST-002`, `HOST-001` | partial |
-| 69 | Ownership: "Your visitors' data stays yours" | `PRIVACY-005` | partial |
+| 69 | Ownership: "Your visitors' data stays yours" | `PRIVACY-005` | done |
 | 70 | Ownership terminal: `npx -y @runeditrun/rer dev just-every/run-vane` | `RUNSITE-001`, `HOST-002` | partial |
 | 71 | Quiet details: Bot filtering | `COLLECT-003` | missing |
 | 72 | Quiet details: Outbound links | `CONV-003` | missing |
@@ -420,8 +420,8 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 14 | 3 | 0 | 17 |
-| Target and push further | 1 | 26 | 64 | 91 |
-| All | 15 | 29 | 64 | 108 |
+| Target and push further | 2 | 25 | 64 | 91 |
+| All | 16 | 28 | 64 | 108 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -517,7 +517,7 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | `PRIVACY-002` | US state privacy signals honoured | target | partial | `src/vane/tracker.ts` | The script skips collection under DNT and GPC; no test, signal counter or recorded state-law stance. |
 | `PRIVACY-003` | Consent managers and regional consent modes | target | partial | `src/vane/tracker.ts`; `src/vane/views/settings.ts` | Consent comes only from window.vaneConsent; no Consent Mode, consent-manager adapters or regional modes. |
 | `PRIVACY-004` | Data location choice | target | missing |  | No data location choice. |
-| `PRIVACY-005` | Visitor data stays in the owner's installation | target | partial | `src/vane/tracker.ts`; `tests/harness.mjs`; `seed.json` | The script talks only to its own origin and the test Worker refuses every outbound request except the fake mail edge, but no test asserts that collection, reporting, import and export attempt none, and no browser test records the script's requests. |
+| `PRIVACY-005` | Visitor data stays in the owner's installation | target | done | `src/vane/tracker.ts`; `src/vane/collect.ts`; `seed.json`; `tests/harness.mjs`; `tests/vane.test.mjs` |  |
 | `AUDIT-001` | Durable audit of settings, data and agent actions | target | partial | `migrations/core/0014_vane.sql`; `src/vane/movein/index.ts`; `tests/vane.test.mjs` | Proposals record preparer and approver, and imports and deletions are journalled; exports, restores, shares, keys, sign-ins and agent actions are not audited and there is no audit view. |
 | `SITE-001` | Site management | target | partial | `src/vane/commands.ts`; `src/vane/privacy.ts`; `tests/vane.test.mjs` | Sites are created and reconfigured through approval and history can be erased; one origin per site, no time zone, currency or site deletion. |
 | `HOST-001` | Owner-run hosting with measured cost | target | partial | `deploy.json`; `wrangler.jsonc` | Owner-account deployment is declared; no measured cost per 100,000 pageviews or in-app cost panel. |

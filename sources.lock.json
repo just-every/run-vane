@@ -55,7 +55,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "683754cb9d4ada6e50e0b4fcd8861cf2fca3525c043c6b53945fac03bb98080d",
+      "sha256": "123b52ee8970502bfa8df997d19b116579f470f0d0b5c75da01db9bfdabbc81d",
       "executable": false
     },
     "AGENTS.md": {
@@ -79,7 +79,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "c42471aafb0b43814a67fe5be73127bcc4e5e4142cde057f227ec8f4c2baa126",
+      "sha256": "9e9a987bad9dcf48231e3bb390df899a0cbbb288fca8dabc2ac4bfebb97ac2f6",
       "executable": false
     },
     "DEMO.md": {
@@ -2447,7 +2447,7 @@
       "executable": false
     },
     "tests/harness.mjs": {
-      "sha256": "564d24e2f5492c4c33e130cbb9215e38bc0519c2cc3b3fb630cb2b404626de42",
+      "sha256": "846c78d10a03487991069cba5766f440af096804caf20209585a0a4c97c5b92d",
       "executable": false
     },
     "tests/site.test.mjs": {
@@ -2455,7 +2455,7 @@
       "executable": false
     },
     "tests/vane.test.mjs": {
-      "sha256": "a03345f23d310793080290b3e3ea3b824752f5efa79c731c1f9db0043d60bc97",
+      "sha256": "0b6b18620a103ccd5689f4ebca70d22da8514454cdb26ec6ea806b94c5e3eccf",
       "executable": false
     },
     "tsconfig.json": {
