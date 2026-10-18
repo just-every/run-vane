@@ -63,6 +63,8 @@
 .rer-themed .vane-app form { gap: 16px; }
 .rer-themed .vane-app label { min-width: 0; gap: 6px; color: var(--rer-muted); font-size: 14px; font-weight: 400; }
 .rer-themed .vane-app input:not([type=checkbox]):not([type=hidden]), .vane-app textarea, .vane-app select { width: 100%; min-width: 0; min-height: 44px; padding: 10px 12px; border: 1px solid var(--rer-border); border-radius: 8px; color: var(--rer-text); background: var(--rer-surface); font: inherit; font-size: 14px; line-height: 1.5; box-shadow: none; }
+/* every single-choice select draws its chevron 14px in from the right border (two gradient strokes in --rer-muted: the theme CSP allows no data: images); multiple and size>1 lists keep their native look */
+.vane-app select:not([multiple]):not([size]), .vane-app select[size="1"]:not([multiple]) { -webkit-appearance: none; appearance: none; padding-inline-end: 40px; background-image: linear-gradient(to top right, transparent calc(50% - 1.1px), var(--rer-muted) calc(50% - .55px), var(--rer-muted) calc(50% + .55px), transparent calc(50% + 1.1px)), linear-gradient(to top left, transparent calc(50% - 1.1px), var(--rer-muted) calc(50% - .55px), var(--rer-muted) calc(50% + .55px), transparent calc(50% + 1.1px)); background-repeat: no-repeat; background-position: right 20px center, right 14px center; background-size: 6px 6px; }
 .vane-app textarea { min-height: 88px; resize: vertical; font-family: var(--vane-mono); }
 .vane-app input[type=file] { max-width: 100%; overflow-wrap: anywhere; }
 .vane-app input::placeholder { color: var(--rer-muted); opacity: 1; }
