@@ -102,7 +102,7 @@ These clauses restate what the released first contract and ACCEPTANCE.md promise
 
 - **COLLECT-004 — Collection at small-business scale.** One installation collects at least 10 million pageviews a month across its sites with bursts of 500 events per second. Dashboards answer a 12-month query in under 2 seconds at that volume, using aggregated rollups and a declared analytical store (Cloudflare Analytics Engine, D1 rollups or the buyer's warehouse through `API-002`). Any limit is published and shown before it is reached: the current fixed 10,000-events-per-site-per-day admission ceiling is lifted. **Acceptance evidence:** A load test at the stated volume and burst rate admits every valid event exactly once. The 12-month dashboard query is timed, and the limit warning appears at the published threshold.
 
-- **COVERAGE-001 — Coverage shown beside every number.** Every report states what it cannot see: the consent-declined share (the script sends a field-free declined counter when consent is not granted, if the owner enables it), sampling, exclusions by reason, the proxy and direct share, imported periods with unknown coverage, and deleted history. Where the site's Cloudflare zone is connected, Vane also compares its pageviews with zone page requests to estimate the share lost to blockers. No total is presented as complete when coverage is unknown. **Acceptance evidence:** Combine declined consent, sampling, exclusions, an import and a zone comparison on one site. The report shows each share with its denominator and labels the totals as partial.
+- **COVERAGE-001 — Coverage shown beside every number.** Every report states what it cannot see: the consent-declined share (the script sends a field-free declined counter when consent is not granted, if the owner enables it), sampling, exclusions by reason, the proxy and direct share, imported periods with unknown coverage, and deleted history. Where the site's Cloudflare zone is connected, Vane also compares its pageviews with zone page requests to estimate the share lost to blockers. No total is presented as complete when coverage is unknown. The exact rules: each share is its count over the page loads that reached Vane for it (that count plus the accepted page loads in the range); the declined-consent and exclusion counts hold only the site, day and reason; erased history is named with the day before which events were erased; and since blocked scripts are never measured until a zone is connected, every total is labelled partial. This is done when every coverage gap that exists today is shown: declined consent, privacy signals, excluded paths, sampling, imports with unknown coverage and erased history. Each later source of a gap shows its share before it ships: bot, referrer-spam, IP, country and own-browser exclusions (`COLLECT-003`), the proxy and direct share (`INSTALL-006`) and the Cloudflare zone comparison when a zone connection exists. The counts are site-wide under a Hostname filter (`DASH-013`). **Acceptance evidence:** Combine declined consent, sampling, exclusions, an import and a zone comparison on one site. The report shows each share with its denominator and labels the totals as partial.
 
 ### Visitors and engagement
 
@@ -420,8 +420,8 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 17 | 0 | 0 | 17 |
-| Target and push further | 22 | 16 | 53 | 91 |
-| All | 39 | 16 | 53 | 108 |
+| Target and push further | 23 | 15 | 53 | 91 |
+| All | 40 | 15 | 53 | 108 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -453,7 +453,7 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | `COLLECT-002` | Open path collection with automatic redaction | target | done | `src/vane/paths.ts`; `src/vane/collect.ts`; `src/vane/tracker.ts`; `tests/vane.test.mjs` |  |
 | `COLLECT-003` | Bot, referrer-spam and internal-traffic exclusion | target | missing |  | Only the browser-side Do Not Track and GPC skip exists; no bot, spam, IP, page, country or own-browser exclusion or exclusion report. |
 | `COLLECT-004` | Collection at small-business scale | target | partial | `src/vane/collect.ts` | Admission is atomic but capped at 10,000 events per site per day in D1; no rollups, analytical store, load test or published limits. |
-| `COVERAGE-001` | Coverage shown beside every number | target | partial | `src/vane/reports.ts`; `src/vane/views/report.ts`; `tests/vane.test.mjs` | Sampling, consent, path and imported unknown-coverage notes are shown; no declined-consent counter, exclusion shares, proxy share or zone comparison. |
+| `COVERAGE-001` | Coverage shown beside every number | target | done | `src/vane/exclusions.ts`; `src/vane/reports.ts`; `src/vane/views/report.ts`; `tests/vane.test.mjs` |  |
 | `METRIC-001` | Cookie-free unique visitors from daily-rotating salted hashes | target | done | `src/vane/visitors.ts`; `src/vane/collect.ts`; `src/vane/reports.ts`; `src/vane/methodology.ts`; `src/server.ts`; `migrations/core/0018_vane_visitors.sql`; `tests/vane.test.mjs` |  |
 | `METRIC-002` | Visits and pages per visit | target | done | `src/vane/visits.ts`; `src/vane/reports.ts`; `src/vane/collect.ts`; `src/vane/clock.ts`; `src/vane/views/report.ts`; `src/vane/methodology.ts`; `migrations/core/0019_vane_visits.sql`; `tests/vane.test.mjs` |  |
 | `METRIC-003` | Bounce rate and visit duration | target | done | `src/vane/tracker.ts`; `src/vane/collect.ts`; `src/vane/visits.ts`; `src/vane/views/report.ts`; `src/vane/methodology.ts`; `tests/vane.test.mjs` |  |

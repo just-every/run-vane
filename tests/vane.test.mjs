@@ -650,3 +650,26 @@ test('DASH-013 www and blog hostnames keep their pages apart, the Hostnames repo
  const page=await (await a.request(`/app/sites/${id}?section=report&hostOp=is&host=blog.fern.example`,owner)).text()
  assert.ok(page.includes('Filtered: hostname is blog.fern.example'));assert.ok(!page.includes('www.fern.example/pricing'))
 })
+test('COVERAGE-001 declined consent, excluded paths, privacy signals, sampling, an import and erased history are each shown with their denominator, and every total is labelled partial',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({paths:[],excludePaths:['/admin/**'],consent:'required',declinedCounter:true,signalCounter:true,sampleRate:50})
+ // In a browser, a page load without consent sends only an empty declined count.
+ const {context}=await browse(t,a,{'https://fern.example/':`<!doctype html><title>Fern</title><script src="${a.origin}/vane.js" data-site="${id}"></script>`}),tab=await context.newPage()
+ const declined=tab.waitForRequest(r=>new URL(r.url()).pathname==='/api/vane/declined/'+id);await tab.goto('https://fern.example/');const request=await declined
+ assert.equal(request.postData()??'',''); assert.equal((await request.response()).status(),202)
+ const site={origin:'https://fern.example'}
+ assert.equal((await a.post('/api/vane/declined/'+id,{path:'/private'},'',site)).status,400,'a declined count carries no fields')
+ assert.equal((await a.request('/api/vane/declined/'+id,{method:'POST',headers:site,body:''})).status,202)
+ for(const n of [1,2])assert.equal((await a.post('/api/vane/collect',a.event(id,{consent:'granted'}),'',{...site,'cf-connecting-ip':'203.0.113.'+n})).status,202)
+ assert.equal((await a.post('/api/vane/collect',a.event(id,{consent:'granted',path:'/admin/users'}),'',site)).status,403)
+ assert.equal((await a.request('/api/vane/signal/'+id,{method:'POST',headers:site,body:''})).status,202)
+ const today=new Date().toISOString().slice(0,10),data=[{id:'cov-1',websiteId:'w',sessionId:'s',createdAt:today+'T00:00:01Z',urlPath:'/',urlQuery:'',referrerPath:'',referrerQuery:'',referrerDomain:'',pageTitle:'',eventType:1,eventName:''}]
+ await movein(a,id,{data,count:1,page:1,pageSize:1})
+ const r=await (await a.request('/api/vane/summary?siteId='+id,owner)).json()
+ assert.deepEqual([r.complete,r.exclusions,r.privacySignals,r.imported],[false,[{reason:'consent-declined',count:2},{reason:'excluded-path',count:1}],1,1])
+ const html=await (await a.request(`/app/sites/${id}?section=report`,owner)).text(),seen=r.pageviews
+ for(const part of ['Every total below is partial',`Declined consent</dt><dd>2 of ${2+seen} page loads that reached Vane (${(200/(2+seen)).toFixed(1)}%)`,`Excluded paths</dt><dd>1 of ${1+seen} page loads that reached Vane`,'Sample rate</dt><dd>50%','Imported share</dt><dd>1 of','Totals</dt><dd>Partial.'])assert.ok(html.includes(part),part)
+ const inventory=await (await a.request('/api/vane/inventory?siteId='+id,owner)).json();assert.ok(inventory.fields.some(f=>f.table==='vane_exclusions'&&/without consent/.test(f.description)))
+ const p=await (await a.post('/api/vane/commands',{command:'history.erase',input:{siteId:id}},a.owner)).json();assert.equal((await a.form({operation:'proposal.approve',id:p.id},a.owner)).status,303)
+ const after=await (await a.request('/api/vane/summary?siteId='+id,owner)).json();assert.deepEqual([after.deletedHistory.map(d=>d.reason),after.exclusions],[['owner-erasure'],[]])
+ assert.ok((await (await a.request(`/app/sites/${id}?section=report`,owner)).text()).includes('Deleted history</dt><dd>Events before'))
+})

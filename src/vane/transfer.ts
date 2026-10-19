@@ -2,10 +2,10 @@ import { atomic, digest, insist, role, rows, statement, type Actor, type Env } f
 import { cleanSite } from './privacy'
 import { audit, auditStatement } from './audit'
 // SITE-001: a site archive moves one site, its settings and its history to another installation.
-// It carries the site's own events, privacy-signal counts, automatic events, deletion journal and
+// It carries the site's own events, privacy-signal and exclusion counts, automatic events, deletion journal and
 // imported rows. Daily salts never leave an installation, and an import's journal and undo stay
 // with the source installation's whole archive (ARCHIVE-001), so imported rows arrive settled.
-const TABLES=['vane_events','vane_signals','vane_auto_events','vane_deletions','vane_import_events'] as const
+const TABLES=['vane_events','vane_signals','vane_exclusions','vane_auto_events','vane_deletions','vane_import_events'] as const
 interface Payload { format:'vane-site/1'; exportedAt:number; site:Record<string,any>; tables:Record<string,Record<string,any>[]> }
 interface SiteArchive { payload:Payload; sha256:string }
 

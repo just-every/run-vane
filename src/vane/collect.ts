@@ -9,9 +9,10 @@ import { deviceOf } from './devices'
 import { searchTerm } from './search'
 import { hostOf, keptValue, pathAllowed, redactPath, storedPath, visitSource } from './paths'
 import { channelOf, webmail } from './channels'
+import { countExclusion, declinedResponse } from './exclusions'
 export async function collector(request:Request,env:Env):Promise<Response|null> {
  const url=new URL(request.url);
- const signal=await signalResponse(request,env);if(signal)return signal;
+ const signal=await signalResponse(request,env)??await declinedResponse(request,env);if(signal)return signal;
  if(url.pathname==='/vane.js')return new Response(request.method==='HEAD'?null:tracker,{headers:{'content-type':'application/javascript; charset=utf-8','cache-control':'public,max-age=300','x-content-type-options':'nosniff'}});
  const match=url.pathname.match(/^\/api\/vane\/config\/([\w-]+)$/);
  const engage=url.pathname==='/api/vane/engage';
@@ -52,7 +53,7 @@ export async function collector(request:Request,env:Env):Promise<Response|null> 
   insist(payload.width===undefined||Number.isInteger(payload.width)&&payload.width>=0&&payload.width<=10000,'width','The viewport width is a whole number of CSS pixels.');
   insist(/^[a-f0-9-]{36}$/.test(payload.id),'event_id','A fresh UUID identifies each page load.');
   const path=storedPath(value.config,payload.path),utmSource=keptValue(utm.source);
-  insist(pathAllowed(value.config,path),'path','This path is not collected for this site.',403);
+  if(!pathAllowed(value.config,path)){await countExclusion(env,value.id,localDay(clock(),value.config.timeZone??'UTC'),'excluded-path').run();throw new VaneError('path','This path is not collected for this site.',403)}
   // DASH-004: the referring page is kept as its hostname and redacted path, without query or fragment; an
   // Android app referrer (DASH-014) is kept as its app ID only; an
   // email client or webmail referrer is grouped as the source webmail and its address is not kept.

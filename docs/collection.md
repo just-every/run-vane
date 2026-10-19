@@ -14,6 +14,8 @@ Each page load also gets a channel (Direct, Organic Search, Paid Search, Organic
 
 ## Consent and browser signals
 
+With **Count declined consent** on (consent-required sites only), a page load without consent sends one empty count, so the report can show the declined share; page loads refused on an excluded path are counted the same way. Each count holds only the site, the day and the reason.
+
 Choose **Consent required** or **Consent not required** in collection settings. For consent-required sites, load the script only after consent and set `window.vaneConsent = true` before it runs.
 
 Unique visitors are counted without cookies. For each page load the Worker hashes a random daily salt with the site ID, the visitor's IP address and user agent; it stores only the hash, never the IP address or user agent. Each site's salt rotates at midnight in the site's time zone (set in **Settings**) and is deleted after 24 hours, so a visitor cannot be followed across days or sites. A range of several days shows the sum of its daily unique visitors. Reports use the site's local dates.
