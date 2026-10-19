@@ -810,3 +810,24 @@ test('DASH-010 three sites sort by change and search on the overview, and a roll
  const methodology=await (await a.request('/methodology')).text()
  for(const rule of ['id="roll-ups"','sum of each site’s own counts','labelled summed per site','Pageviews, goal conversions and other events are exact sums','recomputed from the summed visits and conversions, never averaged across sites'])assert.ok(methodology.includes(rule),rule)
 })
+test('DASH-011 visits through home → pricing → signup and home → blog → exit give the journeys from home, entering at a page, and to signup with their counts and drop-off',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}}
+ const id=await a.addSite({paths:[]}),start=Date.parse('2026-10-17T10:00:00Z')
+ // Three visitors a minute apart per step: two go home → pricing → signup, one goes home → blog and leaves; a fourth enters at the blog.
+ const walk=async(ip,offset,paths)=>{for(const [i,path] of paths.entries()){await a.clock(start+offset+i*60000);assert.equal((await a.post('/api/vane/collect',a.event(id,{path}),'',{origin:'https://fern.example','cf-connecting-ip':ip,'user-agent':'Synthetic Browser'})).status,202)}}
+ await walk('203.0.113.1',0,['/','/pricing','/signup']);await walk('203.0.113.2',300000,['/','/blog']);await walk('203.0.113.3',600000,['/','/pricing','/signup']);await walk('203.0.113.4',900000,['/blog'])
+ await a.clock(Date.parse('2026-10-17T12:00:00Z'))
+ const journey=async query=>(await (await a.request(`/api/vane/summary?siteId=${id}&period=today&${query}`,owner)).json()).journey
+ const home=await journey('journey=/')
+ assert.deepEqual([home.visits,home.next.map(r=>[r.steps.join(' → '),r.visits]),home.previous.map(r=>[r.steps.join(' ← '),r.visits])],[3,[['/pricing → /signup → (exit)',2],['/blog → (exit)',1]],[['(entrance)',3]]])
+ assert.deepEqual(home.nextSteps.map(s=>[s.step,s.reached,s.continuing,s.dropOff]),[[1,3,3,0],[2,3,2,1],[3,2,0,2]])
+ const signup=await journey('journey=/signup');assert.deepEqual(signup.previous.map(r=>[r.steps.join(' ← '),r.visits]),[['/pricing ← / ← (entrance)',2]])
+ const blog=await journey('journey=/blog&journeyMode=entry');assert.deepEqual([blog.visits,blog.next.map(r=>[r.steps.join(' → '),r.visits])],[1,[['(exit)',1]]],'only the visit that entered at /blog')
+ assert.equal((await journey('journey=/pricing&journeyMode=entry')).visits,0)
+ assert.equal((await journey('')).path,'/','the most loaded page by default')
+ // On the page, every page row links to its journeys, and the journey tables show the paths and their counts.
+ const page=await (await a.request(`/app/sites/${id}?section=report&period=today&journey=%2F`,owner)).text()
+ assert.match(page,/<a href="\?section=report&amp;journey=%2Fpricing&amp;journeyMode=page&amp;period=today#journeys" aria-label="Journeys through \/pricing">Journeys<\/a><\/td><\/tr>/)
+ assert.match(page,/<a href="\?section=report&amp;journey=%2Fblog&amp;journeyMode=entry&amp;period=today#journeys" aria-label="Journeys entering at \/blog">/)
+ for(const [steps,visits] of [['/pricing → /signup → (exit)',2],['/blog → (exit)',1]])assert.ok(page.includes(`<tr><th scope="row">${steps.replaceAll('>','&gt;')}</th><td class="vane-number">${visits}</td>`)||page.includes(`<tr><th scope="row">${steps}</th><td class="vane-number">${visits}</td>`),steps)
+})
