@@ -31,6 +31,7 @@ export async function decide(env:Env,actor:Actor,id:string,approve:boolean) {
     {sql:"INSERT INTO vane_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM vane_proposals WHERE id=? AND state='pending') THEN 1 ELSE 0 END",params:[id]},
     {sql:'INSERT INTO vane_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM vane_sites WHERE id=? AND version=?) THEN 1 ELSE 0 END',params:[current.id,payload.version]},
     {sql:'DELETE FROM vane_events WHERE site_id=?',params:[current.id]},
+    {sql:'DELETE FROM vane_signals WHERE site_id=?',params:[current.id]},
     {sql:'INSERT INTO vane_deletions(id,site_id,before_day,at,actor,reason) VALUES(?,?,?,?,?,?)',params:[uid(),current.id,day(at+86400000),at,actor.id,'owner-erasure']},
     {sql:"UPDATE vane_proposals SET state='approved',approved_by=?,approved_at=? WHERE id=? AND state='pending'",params:[actor.id,at,id]},
     {sql:'DELETE FROM vane_guard',params:[]},

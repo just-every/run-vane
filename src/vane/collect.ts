@@ -1,7 +1,9 @@
 import { day, insist, site, statement, VaneError, type Env } from './core'
 import { tracker } from './tracker'
+import { signalResponse } from './privacy-signals'
 export async function collector(request:Request,env:Env):Promise<Response|null> {
  const url=new URL(request.url);
+ const signal=await signalResponse(request,env);if(signal)return signal;
  if(url.pathname==='/vane.js')return new Response(request.method==='HEAD'?null:tracker,{headers:{'content-type':'application/javascript; charset=utf-8','cache-control':'public,max-age=300','x-content-type-options':'nosniff'}});
  const match=url.pathname.match(/^\/api\/vane\/config\/([\w-]+)$/);
  if(!match&&url.pathname!=='/api/vane/collect')return null;

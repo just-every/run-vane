@@ -193,3 +193,30 @@ test('INSTALL-001 Verify installation names the exact cause of each failure and 
  assert.match(await pending,/^Installation verified: the script is on https:\/\/fern\.example\/ and its first event has arrived\.$/)
  assert.equal((await (await a.request('/api/vane/sites',owner)).json()).find(site=>site.id===id).awaitingFirstEvent,false)
 })
+test('PRIVACY-002 GPC and DNT stop collection, an owner-enabled field-free counter shows their share, and settings and the methodology page state the stance',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}},counted=await a.addSite({signalCounter:true}),quiet=await a.addSite({origin:'https://quiet.example'})
+ const page=(origin,site,attribute='')=>`<!doctype html><title>Fixture</title><script src="${a.origin}/vane.js" data-site="${site}"${attribute}></script>`
+ const {context,requests}=await browse(t,a,{'https://fern.example/':page('https://fern.example',counted,' data-count-signals'),'https://quiet.example/':page('https://quiet.example',quiet)})
+ const signals={gpc:"Object.defineProperty(Navigator.prototype,'globalPrivacyControl',{get:()=>true})",dnt:"Object.defineProperty(Navigator.prototype,'doNotTrack',{get:()=>'1'})"}
+ for(const script of Object.values(signals)){
+  const tab=await context.newPage();await tab.addInitScript(script);const before=requests.length
+  const sent=tab.waitForResponse(response=>new URL(response.url()).pathname===`/api/vane/signal/${counted}`)
+  await tab.goto('https://fern.example/');assert.equal((await sent).status(),202)
+  await tab.goto('https://quiet.example/',{waitUntil:'networkidle'})
+  assert.deepEqual(requests.slice(before),['https://fern.example',a.origin,a.origin,'https://quiet.example',a.origin],'a signalling browser sends one count to a counting site and nothing beyond the script to any other')
+  await tab.close()
+ }
+ const plain=await context.newPage(),collected=plain.waitForResponse(response=>new URL(response.url()).pathname==='/api/vane/collect')
+ await plain.goto('https://fern.example/');assert.equal((await collected).status(),202)
+ const report=await (await a.request('/api/vane/summary?siteId='+counted,owner)).json();assert.deepEqual([report.visits,report.privacySignals,report.signalCounter],[1,2,true])
+ assert.match(await (await a.request(`/app/sites/${counted}?section=report`,owner)).text(),/2 page loads sent Global Privacy Control or Do Not Track and were not collected \(66\.7% of observed page loads\)/)
+ const archive=await a.archive();assert.deepEqual(archive.payload.tables.vane_signals.map(row=>Object.keys(row).sort()),[['count','day','site_id']])
+ assert.equal((await a.request('/api/vane/summary?siteId='+quiet,owner).then(r=>r.json())).visits,0)
+ assert.equal((await a.post('/api/vane/signal/'+quiet,undefined,'',{origin:'https://quiet.example'})).status,403)
+ assert.equal((await a.request('/api/vane/signal/'+counted,{method:'POST',headers:{origin:'https://fern.example'},body:'path=/private'})).status,400)
+ const settings=await (await a.request(`/app/sites/${counted}?section=settings`,owner)).text()
+ assert.ok(settings.includes(`data-site=&quot;${counted}&quot; data-count-signals&gt;&lt;/script&gt;`),'the snippet carries the counter');assert.match(settings,/Privacy stance.*CCPA|Privacy stance.*California Consumer Privacy Act/s);assert.match(settings,/name="signalCounter" value="on" checked/)
+ const methodology=await a.request('/methodology');assert.equal(methodology.status,200)
+ const text=await methodology.text();for(const phrase of ['Global Privacy Control and Do Not Track are honoured by default','California Consumer Privacy Act as amended by the CPRA','other US state privacy laws','one count that carries no path'])assert.ok(text.includes(phrase),phrase)
+ await context.close()
+})

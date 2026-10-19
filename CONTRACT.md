@@ -420,8 +420,8 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 15 | 2 | 0 | 17 |
-| Target and push further | 3 | 24 | 64 | 91 |
-| All | 18 | 26 | 64 | 108 |
+| Target and push further | 4 | 23 | 64 | 91 |
+| All | 19 | 25 | 64 | 108 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -457,7 +457,7 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | `METRIC-001` | Cookie-free unique visitors from daily-rotating salted hashes | target | missing |  | Counts are page loads; no daily-salted visitor hash. |
 | `METRIC-002` | Visits and pages per visit | target | missing |  | No visits or pages per visit. |
 | `METRIC-003` | Bounce rate and visit duration | target | missing |  | No engagement ping, bounce rate or visit duration. |
-| `METRIC-004` | Methodology disclosed and versioned | target | partial | `src/vane/views/report.ts`; `src/vane/reports.ts` | The report states that counts are page loads, not people or sessions; no public methodology page, per-metric definitions or versioned definition annotations. |
+| `METRIC-004` | Methodology disclosed and versioned | target | partial | `src/vane/methodology.ts`; `src/vane/views/report.ts`; `src/vane/reports.ts` | A public `/methodology` page defines page loads, goals, sources and campaigns, the script's fields and the privacy-signal stance; no definitions of visitors, visits, bounce, duration, scroll depth or revenue, no hash recipe, and no versioned definition annotations. |
 | `METRIC-005` | Consented visitor mode: returning visitors and retention | target | missing |  | No consented mode, returning visitors or retention cohorts. |
 | `METRIC-006` | Scroll depth and time on page | target | missing |  | No scroll depth or time on page. |
 | `DASH-001` | Real-time dashboard | target | missing |  | No real-time view. |
@@ -514,7 +514,7 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | `API-004` | MCP endpoint for assistants | target | missing |  | No MCP endpoint. |
 | `PRIVACY-001` | Data inventory and privacy-policy text | target | partial | `src/vane/views/report.ts` | The coverage panel lists sample rate, consent, allowed paths and retention; no full field inventory, processors list, longer retention choices or generated policy text. |
 | `RETENTION-002` | Raw events kept as long as the owner chooses | target | partial | `src/vane/privacy.ts`; `src/vane/actions.ts`; `tests/vane.test.mjs` | Sites choose 30, 90 or 365 days and retention applies them; no 13- or 25-month or keep-forever window, no capacity warning, and admission is still capped per site per day. |
-| `PRIVACY-002` | US state privacy signals honoured | target | partial | `src/vane/tracker.ts` | The script skips collection under DNT and GPC; no test, signal counter or recorded state-law stance. |
+| `PRIVACY-002` | US state privacy signals honoured | target | done | `src/vane/tracker.ts`; `src/vane/privacy-signals.ts`; `src/vane/methodology.ts`; `src/vane/views/settings.ts`; `src/vane/views/report.ts`; `migrations/core/0016_vane_signals.sql`; `tests/vane.test.mjs` |  |
 | `PRIVACY-003` | Consent managers and regional consent modes | target | partial | `src/vane/tracker.ts`; `src/vane/views/settings.ts` | Consent comes only from window.vaneConsent; no Consent Mode, consent-manager adapters or regional modes. |
 | `PRIVACY-004` | Data location choice | target | missing |  | No data location choice. |
 | `PRIVACY-005` | Visitor data stays in the owner's installation | target | done | `src/vane/tracker.ts`; `src/vane/collect.ts`; `seed.json`; `tests/harness.mjs`; `tests/vane.test.mjs` |  |

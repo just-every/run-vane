@@ -12,7 +12,7 @@ Only allowed paths, configured campaign labels and referring hostnames enter ana
 
 Choose **Consent required** or **Consent not required** in collection settings. For consent-required sites, load the script only after consent and set `window.vaneConsent = true` before it runs.
 
-Do Not Track and Global Privacy Control stop collection. Blockers, consent exclusions and unlisted pages are invisible to the report. Vane does not measure complete traffic coverage.
+Do Not Track and Global Privacy Control stop collection. To see how much traffic sends either signal, turn on **Count privacy signals** in a site's settings and, after approval, copy the updated snippet: it adds `data-count-signals`, and each signalling page load then sends one count that carries no path, source, campaign or identifier. The report shows the count and its share beside the other coverage limits. Settings and the installation's public `/methodology` page state Vane's stance under the CCPA/CPRA and the other US state privacy laws. Blockers, consent exclusions and unlisted pages are invisible to the report. Vane does not measure complete traffic coverage.
 
 ## Sampling
 

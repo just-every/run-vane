@@ -1,6 +1,7 @@
 import { withDemo } from './modules/demo/index.mjs'
 import { seedDemo } from './demo'
 import { collector } from './vane/collect'
+import { methodologyResponse } from './vane/methodology'
 import { vaneResponse } from './vane/routes'
 import { rejectedResponse } from './base/rejected-response'
 import start from '@tanstack/react-start/server-entry'
@@ -31,6 +32,8 @@ export default withDemo({
     if (asset) return asset
     const collected = await collector(request, env)
     if (collected) return collected
+    const methodology = await methodologyResponse(request)
+    if (methodology) return methodology
     const auth = await authResponse(request, env)
     if (auth) return auth
     const vane = await vaneResponse(request, env)

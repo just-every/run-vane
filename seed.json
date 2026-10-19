@@ -39,7 +39,8 @@
     "publicPaths": [
       "/",
       "/health",
-      "/signin"
+      "/signin",
+      "/methodology"
     ],
     "notes": "Native owner sessions guard /app; unknown paths return real 404s; the development outbox is local-only."
   },
