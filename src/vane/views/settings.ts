@@ -8,6 +8,9 @@ import { PERIODS } from '../periods'
 import { SORTS } from '../overview'
 import { RETENTION_CHOICES, retentionChoice } from '../retention'
 
+// METRIC-004: the site's current visit definition version.
+const definitionStatus = (config: any) => { const versions = config.definitions ?? [], last = versions[versions.length - 1]; return last ? `Now visit definition v${versions.length + 1}, ${last.minutes} minutes, since ${last.from}.` : 'Now visit definition v1, the 30-minute default.' }
+
 function select(label: string, name: string, value: number, options: number[]): string {
   return `<label>${escape(label)}<select name="${escape(name)}" aria-label="${escape(label)}" required>${options.map(option => `<option value="${option}"${option === value ? ' selected' : ''}>${option}</option>`).join('')}</select></label>`
 }
@@ -28,6 +31,7 @@ export function configForm(site?: any): string {
     ${select('Sample rate (%)', 'sampleRate', config.sampleRate ?? 100, [10, 25, 50, 100])}<label>Retention<select name="retention" aria-label="Retention" aria-describedby="retention-help" required>${Object.entries(RETENTION_CHOICES).map(([value, title]) => `<option value="${value}"${value === retentionChoice(config) ? ' selected' : ''}>${escape(title)}</option>`).join('')}</select><span class="vane-help" id="retention-help">Raw events are kept at full detail for this long; applying retention erases only older ones.</span></label></div>
     <div class="vane-form-grid">${field('Time zone', 'timeZone', config.timeZone ?? 'UTC', `required maxlength="64" placeholder="America/New_York"${site ? '' : ' data-browser-zone'}`)}${field('Site-search query parameter', 'searchParam', config.searchParam ?? '', 'maxlength="20" placeholder="q" aria-describedby="search-param-help"')}</div><p class="vane-help" id="search-param-help">Optional. When named, the script sends that parameter’s search term with the page load; terms that look like an email address or phone number are dropped, and a term is reported only once two different visitors have searched it.</p>
     <p class="vane-help">Reports use this zone's dates, and the visitor salt rotates at its midnight.</p>
+    <div class="vane-form-grid">${field('Visit timeout (minutes)', 'visitTimeout', config.visitTimeout ?? 30, 'type="number" required min="15" max="120" step="1" aria-describedby="visit-timeout-help"')}</div><p class="vane-help" id="visit-timeout-help">A visit ends after this many minutes without a page load: 30 by default, from 15 to 120. ${escape(definitionStatus(config))} An approved change is a new dated definition version from the site’s local day of approval; earlier days keep the definition they were counted under, and the charts of visits, bounce rate and visit duration annotate the change. <a href="/methodology#visits">Definition</a></p>
     <label class="vane-check"><input type="checkbox" name="signalCounter" value="on"${config.signalCounter ? ' checked' : ''}> Count privacy signals: browsers sending Global Privacy Control or Do Not Track are never collected; with this on, each such page load adds one field-free count.</label>
     <label class="vane-check"><input type="checkbox" name="declinedCounter" value="on"${config.declinedCounter ? ' checked' : ''}> Count declined consent: when consent is required, each page load without it adds one field-free count, so reports show the declined share.</label>
     <p class="vane-help">100% includes every eligible page load. Pageviews count page loads; visits and unique visitors come from daily visitor hashes.</p>

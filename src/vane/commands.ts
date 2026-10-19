@@ -3,6 +3,9 @@ import { cleanSite } from './privacy'
 import { eraseSite } from './movein/index'
 import { deletionFence } from './deletion-fence'
 import { auditSql, auditStatement } from './audit'
+import { versioned } from './definitions'
+import { localDay } from './visitors'
+import { clock } from './clock'
 // The command API is the agent door: proposals it prepares are audited as agent actions.
 export async function prepare(env:Env,actor:Actor,command:string,input:any,channel:'app'|'command API') {
  role(actor,['owner','admin']);
@@ -22,11 +25,13 @@ export async function decide(env:Env,actor:Actor,id:string,approve:boolean) {
  const guard=statement(env,"INSERT INTO vane_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM vane_proposals WHERE id=? AND state='pending') THEN 1 ELSE 0 END",id);
  const change=statement(env,"UPDATE vane_proposals SET state=?,approved_by=?,approved_at=? WHERE id=? AND state='pending'",approve?'approved':'rejected',actor.id,at,id);
  const operations=[guard];
- if(approve&&p.command==='site.create') { operations.push(statement(env,'INSERT INTO vane_sites(id,name,origin,config_json,created_at) VALUES(?,?,?,?,?)',payload.siteId,payload.name,payload.origin,JSON.stringify(payload.config),at)); }
+ // METRIC-004: an approved visit-timeout change becomes a definition version dated the site's local day of approval.
+ const dated=(before:any,next:any)=>versioned(before,next,localDay(clock(),next.timeZone??'UTC'),clock());
+ if(approve&&p.command==='site.create') { operations.push(statement(env,'INSERT INTO vane_sites(id,name,origin,config_json,created_at) VALUES(?,?,?,?,?)',payload.siteId,payload.name,payload.origin,JSON.stringify(dated(null,payload.config)),at)); }
  if(approve&&p.command!=='site.create') {
   const current=await site(env,payload.siteId); insist(current.version===payload.version,'stale','Site settings changed; prepare a new proposal.',409);
   operations.push(statement(env,'INSERT INTO vane_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM vane_sites WHERE id=? AND version=?) THEN 1 ELSE 0 END',current.id,payload.version));
-  if(p.command==='site.configure')operations.push(statement(env,'UPDATE vane_sites SET name=?,origin=?,config_json=?,version=version+1 WHERE id=?',payload.name,payload.origin,JSON.stringify(payload.config),current.id));
+  if(p.command==='site.configure')operations.push(statement(env,'UPDATE vane_sites SET name=?,origin=?,config_json=?,version=version+1 WHERE id=?',payload.name,payload.origin,JSON.stringify(dated(current.config,payload.config)),current.id));
   // SITE-001: deleting a site first erases its history exactly as history.erase does, then removes the site with its
   // counters and salts. Import custody checks the site at the end of its erasure, so the site goes in a second batch;
   // until it commits the proposal stays pending and approving again finishes the deletion.

@@ -3,7 +3,9 @@ import { change, changeHead, count, escape, panel } from './html'
 export const decimal = (value: unknown) => value === null || value === undefined ? '—' : Number(value).toLocaleString('en-US', { maximumFractionDigits: 2 })
 export const percent = (value: unknown) => value === null || value === undefined ? '—' : `${Number(value).toFixed(1)}%`
 export const duration = (value: unknown) => value === null || value === undefined ? '—' : `${Math.floor(Number(value) / 60)}m ${String(Number(value) % 60).padStart(2, '0')}s`
-export const tile = (title: string, value: string, help: string) => `<section class="vane-panel"><h2>${escape(title)}</h2><p class="vane-metric">${escape(value)}</p><p class="vane-help">${escape(help)}</p></section>`
+// METRIC-004: every metric links to its definition on the public methodology page.
+export const definition = (anchor: string) => ` <a href="/methodology#${anchor}" data-definition="${anchor}">Definition</a>`
+export const tile = (title: string, value: string, help: string, anchor = '') => `<section class="vane-panel"><h2>${escape(title)}</h2><p class="vane-metric">${escape(value)}</p><p class="vane-help">${escape(help)}${anchor ? definition(anchor) : ''}</p></section>`
 
 // DASH-012: site search, shown when the owner names a search parameter.
 export function searchPanel(search: any, param: string | undefined): string {

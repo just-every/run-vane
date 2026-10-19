@@ -175,3 +175,5 @@
 .vane-sparkline { flex: none; width: 96px; height: 24px; color: var(--rer-accent); }
 .vane-sparkline polyline { fill: none; stroke: currentColor; stroke-width: 1.5; vector-effect: non-scaling-stroke; }
 .vane-site-stats { font-size: 14px; color: var(--rer-muted); }
+.vane-chart-annotation { stroke: var(--rer-accent); stroke-width: 1.5; stroke-dasharray: 2 3; }
+.vane-annotations { margin: 8px 0; padding-left: 20px; font-size: 14px; }

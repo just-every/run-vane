@@ -302,7 +302,7 @@ test('METRIC-002 one visitor\'s pageviews 10, 40 and 5 minutes apart make 2 visi
  const day=await summary('2026-03-02','2026-03-03');assert.deepEqual([day.visits,day.pageviews,day.pagesPerVisit,day.visitors,day.viewsPerVisitor],[2,4,2,1,4])
  assert.match(day.explanation,/Visits: 2, previously 0, each a run of one visitor hash's page loads with no gap over 30 minutes/)
  const page=await (await a.request(`/app/sites/${id}?section=report&from=2026-03-02&to=2026-03-03`,owner)).text()
- for(const tile of ['<h2>Visits</h2><p class="vane-metric">2</p>','<h2>Pageviews</h2><p class="vane-metric">4</p>','<h2>Pages per visit</h2><p class="vane-metric">2</p><p class="vane-help">Views per visitor: 4.</p>'])assert.ok(page.includes(tile),tile)
+ for(const tile of ['<h2>Visits</h2><p class="vane-metric">2</p>','<h2>Pageviews</h2><p class="vane-metric">4</p>','<h2>Pages per visit</h2><p class="vane-metric">2</p><p class="vane-help">Views per visitor: 4. <a href="/methodology#pages-per-visit"'])assert.ok(page.includes(tile),tile)
  // 23:50 is a new visit after a 13-hour gap; 00:05 is 15 minutes later but on the next day's salt, so it is another.
  await load(Date.parse('2026-03-02T23:50:00Z'));await load(Date.parse('2026-03-03T00:05:00Z'))
  const both=await summary('2026-03-02','2026-03-04');assert.deepEqual([both.visits,both.pageviews,both.pagesPerVisit,both.visitors,both.viewsPerVisitor],[4,6,1.5,2,3])
@@ -858,4 +858,35 @@ test('DASH-001 in a browser the real-time view shows current visitors, pageviews
  assert.deepEqual([await rowsOf('Live pages'),await rowsOf('Live sources')],[[],[]])
  await tab.setViewportSize({width:390,height:844});assert.ok(await tab.evaluate(()=>document.documentElement.scrollWidth<=390),'no horizontal scroll at 390 px')
  await context.close()
+})
+test('METRIC-004 the signed-out methodology page defines every metric the dashboard links to, and an owner-approved visit timeout is a dated definition version annotated on the charts it affects',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}},admin=await a.invite('admin@example.test','admin'),id=await a.addSite(),oak=await a.addSite({name:'Oak Store',origin:'https://oak.example'})
+ const load=async(site,origin,at)=>{await a.clock(at);assert.equal((await a.post('/api/vane/collect',a.event(site),'',{origin,'cf-connecting-ip':'203.0.113.4','user-agent':'Synthetic Browser 4'})).status,202)}
+ const at=(d,minutes)=>Date.parse(d+'T09:00:00Z')+minutes*60000
+ // 2 March, under the 30-minute default: page loads 40 minutes apart are two visits.
+ for(const m of [0,40])await load(id,'https://fern.example',at('2026-03-02',m))
+ const methodology=await a.request('/methodology');assert.equal(methodology.status,200);const page=await methodology.text()
+ const report=await (await a.request(`/app/sites/${id}?section=report&from=2026-03-01&to=2026-03-08`,owner)).text(),links=[...new Set([...report.matchAll(/href="\/methodology#([a-z-]+)"/g)].map(m=>m[1]))]
+ for(const anchor of ['unique-visitors','visits','pageviews','pages-per-visit','bounce-rate','visit-duration','conversions','time-on-page','scroll-depth'])assert.ok(links.includes(anchor),anchor)
+ for(const anchor of [...links,'revenue','consented-mode','definition-versions','estimation','roll-ups'])assert.ok(page.includes(`id="${anchor}"`),anchor)
+ for(const phrase of ['exactly two declared exceptions','never averaged across sites','never scaled up','a whole number of minutes from 15 to 120'])assert.ok(page.includes(phrase),phrase)
+ // An administrator prepares the change, only 15 to 120 minutes are accepted, forged versions are ignored, and only the owner approves.
+ const input={siteId:id,name:'Fern Studio',origin:'https://fern.example',paths:['/','/thanks'],goals:{signup:'/thanks'},consent:'not-required',sampleRate:100,retentionDays:90}
+ for(const visitTimeout of [10,121,30.5])assert.equal((await a.post('/api/vane/commands',{command:'site.configure',input:{...input,visitTimeout}},admin)).status,400)
+ const p=await (await a.post('/api/vane/commands',{command:'site.configure',input:{...input,visitTimeout:45,definitions:[{metric:'visit-timeout',from:'2020-01-01',minutes:120,previous:30,approvedAt:0}]}},admin)).json()
+ assert.equal((await a.form({operation:'proposal.approve',id:p.id},admin)).status,403)
+ await a.clock(Date.parse('2026-03-05T08:00:00Z'));assert.equal((await a.form({operation:'proposal.approve',id:p.id},a.owner)).status,303)
+ // 5 March, under version 2 (45 minutes): gaps of 40 and 50 minutes make two visits; Oak keeps its 30 minutes.
+ for(const m of [0,40,90])await load(id,'https://fern.example',at('2026-03-05',m))
+ for(const m of [0,40])await load(oak,'https://oak.example',at('2026-03-05',m))
+ const summary=await (await a.request(`/api/vane/summary?siteId=${id}&from=2026-03-01&to=2026-03-08`,owner)).json()
+ assert.equal(summary.visits,4,'2 March keeps the 30-minute version, 5 March uses 45 minutes');assert.match(summary.explanation,/no gap over 45 minutes \(the visit definition changed in this range/)
+ const note='Visit definition v2: a visit ends after 45 minutes without a page load (was 30).'
+ for(const metric of ['visits','bounceRate','duration']){const html=await (await a.request(`/app/sites/${id}?section=report&from=2026-03-01&to=2026-03-08&metric=${metric}`,owner)).text();assert.ok(html.includes('data-annotation="2026-03-05"')&&html.includes(`<time datetime="2026-03-05">2026-03-05</time> ${note}`),metric)}
+ for(const query of ['metric=pageviews&from=2026-03-01&to=2026-03-08','metric=visits&from=2026-03-06&to=2026-03-08'])assert.ok(!(await (await a.request(`/app/sites/${id}?section=report&${query}`,owner)).text()).includes('data-annotation='),query)
+ assert.ok((await (await a.request(`/app/sites/${id}?section=settings`,owner)).text()).includes('Now visit definition v2, 45 minutes, since 2026-03-05.'))
+ // A roll-up applies each site's own version and names the site in the annotation.
+ const created=await a.form({operation:'rollup.create',name:'Both',[`site_${id}`]:'on',[`site_${oak}`]:'on'},a.owner),rollup=created.headers.get('location').match(/\/app\/rollups\/([\w-]+)/)[1]
+ const rolled=await (await a.request(`/api/vane/summary?rollupId=${rollup}&from=2026-03-01&to=2026-03-08`,owner)).json();assert.equal(rolled.visits,6)
+ assert.ok((await (await a.request(`/app/rollups/${rollup}?from=2026-03-01&to=2026-03-08&metric=visits`,owner)).text()).includes(`<time datetime="2026-03-05">2026-03-05</time> Fern Studio: ${note}`))
 })

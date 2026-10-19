@@ -1,4 +1,4 @@
-import { VISIT_GAP_MS } from './visits'
+import { gapSql } from './definitions'
 import type { Env } from './core'
 // DASH-012: a site-search term is lowercased and its spaces collapsed. A term that looks personal (an
 // email address, a phone or account number, a URL) is dropped before storage: the search still counts,
@@ -8,8 +8,8 @@ export function searchTerm(value:string):string {
  const term=value.trim().toLowerCase().replace(/\s+/g,' ');
  return /@|\d[\d\s().-]{5,}\d|https?:|www\./.test(term)?'':term;
 }
-const timedFrom=(events:string)=>`WITH e AS (SELECT id,day,visitor,path,at,search,LAG(at) OVER w AS prev_at,LAG(path) OVER w AS prev_path,LEAD(at) OVER w AS next_at FROM ${events} WHERE site_id IN (SELECT value FROM json_each(?1)) AND day>=?2 AND day<?3 AND kind='pageview' AND visitor IS NOT NULL AND at IS NOT NULL WINDOW w AS (PARTITION BY day,visitor ORDER BY at,id)),
-q AS (SELECT *,CASE WHEN prev_at IS NULL OR at-prev_at>${VISIT_GAP_MS} THEN 1 ELSE 0 END AS starts,CASE WHEN next_at IS NULL OR next_at-at>${VISIT_GAP_MS} THEN 1 ELSE 0 END AS ends,SUM(CASE WHEN prev_at IS NULL OR at-prev_at>${VISIT_GAP_MS} THEN 1 ELSE 0 END) OVER (PARTITION BY day,visitor ORDER BY at,id ROWS UNBOUNDED PRECEDING) AS visit FROM e),
+const timedFrom=(events:string)=>`WITH e AS (SELECT id,day,visitor,path,at,search,LAG(at) OVER w AS prev_at,LAG(path) OVER w AS prev_path,LEAD(at) OVER w AS next_at,${gapSql("l")} AS gap FROM ${events} l WHERE site_id IN (SELECT value FROM json_each(?1)) AND day>=?2 AND day<?3 AND kind='pageview' AND visitor IS NOT NULL AND at IS NOT NULL WINDOW w AS (PARTITION BY day,visitor ORDER BY at,id)),
+q AS (SELECT *,CASE WHEN prev_at IS NULL OR at-prev_at>gap THEN 1 ELSE 0 END AS starts,CASE WHEN next_at IS NULL OR next_at-at>gap THEN 1 ELSE 0 END AS ends,SUM(CASE WHEN prev_at IS NULL OR at-prev_at>gap THEN 1 ELSE 0 END) OVER (PARTITION BY day,visitor ORDER BY at,id ROWS UNBOUNDED PRECEDING) AS visit FROM e),
 s AS (SELECT * FROM q WHERE search IS NOT NULL),
 sv AS (SELECT day,visitor,visit,COUNT(*) AS searches,MAX(ends) AS exited FROM s GROUP BY day,visitor,visit)`
 export async function searchMetrics(env:Env,siteId:string,from:string,to:string,events='vane_events') {

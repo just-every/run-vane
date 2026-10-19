@@ -39,6 +39,8 @@ export function bucketsOf(interval:Interval,from:string,to:string,timeZone:strin
  while(key<to){keys.push(key);key=interval==='day'?shift(key,1):interval==='week'?shift(key,7):monthStart(key,1)}
  return keys.map(k=>({key:k,label:interval==='week'?`Week of ${k}`:interval==='month'?k.slice(0,7):k}))
 }
+// The key of the bucket holding a local date, matching bucketSql (an hour bucket: that day's local midnight).
+export const bucketKey=(interval:Interval,d:string,from:string,timeZone:string)=>interval==='hour'?String(Math.round((localMidnight(d,timeZone)-localMidnight(from,timeZone))/3600000)):interval==='day'?d:interval==='week'?shift(d,-((new Date(d).getUTCDay()+6)%7)):monthStart(d)
 // The SQL that maps a row to its bucket key; `start` is the parameter holding the range's first local midnight.
 export const bucketSql=(interval:Interval,start:string,atColumn='at')=>({hour:`CAST(CAST((${atColumn}-${start})/3600000 AS INTEGER) AS TEXT)`,day:'day',week:`date(day,'-6 days','weekday 1')`,month:`substr(day,1,7)||'-01'`})[interval]
 // DASH-008: the period a range is compared with. The previous period is the same length just before it; last

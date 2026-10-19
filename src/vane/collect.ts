@@ -3,7 +3,7 @@ import { tracker } from './tracker'
 import { signalResponse } from './privacy-signals'
 import { localDay, visitorHash } from './visitors'
 import { clock } from './clock'
-import { ENGAGED_AFTER_MS, VISIT_GAP_MS } from './visits'
+import { ENGAGED_AFTER_MS, ENGAGEMENT_WINDOW_MS } from './visits'
 import { goalApplies } from './goals'
 import { deviceOf } from './devices'
 import { searchTerm } from './search'
@@ -36,7 +36,7 @@ export async function collector(request:Request,env:Env):Promise<Response|null> 
    const at=clock(),eventId=value.id+':'+payload.id,load=await env.DB.prepare("SELECT at,path,hostname FROM vane_events WHERE id=? AND kind='pageview'").bind(eventId).first<{at:number|null,path:string,hostname:string|null}>();
    insist(typeof load?.at==='number','page_load','No timed page load has this ID.',404);
    insist(at-load.at>=ENGAGED_AFTER_MS,'engagement','Engagement counts after 10 seconds on the page.',409);
-   insist(at-load.at<=VISIT_GAP_MS,'expired','Engagement more than 30 minutes after its page load is not counted.',409);
+   insist(at-load.at<=ENGAGEMENT_WINDOW_MS,'expired','Engagement more than 30 minutes after its page load is not counted.',409);
    const goals=Object.entries(value.config.scrollGoals??{}).filter(([,goal])=>goalApplies(goal.path,load.hostname,load.path));
    await env.DB.batch([statement(env,'UPDATE vane_events SET engaged_at=MAX(COALESCE(engaged_at,0),?),scroll=MAX(COALESCE(scroll,0),?) WHERE id=?',at,payload.scroll,eventId),...goals.map(([name,goal])=>statement(env,'INSERT OR IGNORE INTO vane_events(id,site_id,day,kind,path,source,campaign,consent,sample_rate,visitor,at,hostname) SELECT id||?,site_id,day,?,path,source,campaign,consent,sample_rate,visitor,at,hostname FROM vane_events WHERE id=? AND scroll>=?',':'+name,name,eventId,goal.depth))]);
    return Response.json({accepted:true},{status:202,headers:cors});

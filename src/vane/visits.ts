@@ -1,5 +1,7 @@
 import { insist, type Env } from './core'
-// METRIC-002: a visit is a run of one visitor hash's page loads with no gap over 30 minutes. The hash
+import { gapSql } from './definitions'
+// METRIC-002: a visit is a run of one visitor hash's page loads with no gap over the site's visit timeout for that
+// day (30 minutes unless the owner approved another; METRIC-004). The hash
 // rotates with the daily salt, so a visit also ends at the site's local midnight.
 // METRIC-003: a bounce is a visit of one page load with no engagement ping. A visit lasts from its first
 // page load to its last signal (page load or ping). Time on a page runs to the next page load of the
@@ -9,10 +11,11 @@ import { insist, type Env } from './core'
 // each visit's last) by path or page group. A row's visits are the visits its page loads belong to:
 // bounce rate, visit duration and conversion rate (visits with a goal event, or with the selected goal) are over those visits.
 // DASH-004: channel, source, referrer and UTM tables attribute each visit to its first page load's values.
-export const VISIT_GAP_MS=1800000
+// METRIC-003: an engagement ping counts up to 30 minutes after its page load, whatever the visit timeout.
+export const ENGAGEMENT_WINDOW_MS=1800000
 export const ENGAGED_AFTER_MS=10000
-export const timedFrom=(events:string)=>`WITH e AS (SELECT l.id,l.day,l.visitor,l.hostname,l.path,l.at,l.engaged_at,l.scroll,l.channel,l.source,l.referrer,l.utm_source,l.utm_medium,l.campaign,l.utm_term,l.utm_content,EXISTS(SELECT 1 FROM ${events} c WHERE c.id>l.id||':' AND c.id<l.id||';' AND (?4 IS NULL OR c.kind=?4)) AS converted,LAG(l.at) OVER w AS prev_at,LEAD(l.at) OVER w AS next_at FROM ${events} l WHERE l.site_id IN (SELECT value FROM json_each(?1)) AND l.day>=?2 AND l.day<?3 AND l.kind='pageview' AND l.visitor IS NOT NULL AND l.at IS NOT NULL WINDOW w AS (PARTITION BY l.day,l.visitor ORDER BY l.at,l.id)),
-p AS (SELECT *,CASE WHEN prev_at IS NULL OR at-prev_at>${VISIT_GAP_MS} THEN 1 ELSE 0 END AS starts,CASE WHEN next_at IS NULL OR next_at-at>${VISIT_GAP_MS} THEN 1 ELSE 0 END AS ends,CASE WHEN next_at IS NOT NULL AND next_at-at<=${VISIT_GAP_MS} THEN next_at-at ELSE COALESCE(engaged_at-at,0) END AS on_page FROM e),
+export const timedFrom=(events:string)=>`WITH e AS (SELECT l.id,l.day,l.visitor,l.hostname,l.path,l.at,l.engaged_at,l.scroll,l.channel,l.source,l.referrer,l.utm_source,l.utm_medium,l.campaign,l.utm_term,l.utm_content,EXISTS(SELECT 1 FROM ${events} c WHERE c.id>l.id||':' AND c.id<l.id||';' AND (?4 IS NULL OR c.kind=?4)) AS converted,LAG(l.at) OVER w AS prev_at,LEAD(l.at) OVER w AS next_at,${gapSql('l')} AS gap FROM ${events} l WHERE l.site_id IN (SELECT value FROM json_each(?1)) AND l.day>=?2 AND l.day<?3 AND l.kind='pageview' AND l.visitor IS NOT NULL AND l.at IS NOT NULL WINDOW w AS (PARTITION BY l.day,l.visitor ORDER BY l.at,l.id)),
+p AS (SELECT *,CASE WHEN prev_at IS NULL OR at-prev_at>gap THEN 1 ELSE 0 END AS starts,CASE WHEN next_at IS NULL OR next_at-at>gap THEN 1 ELSE 0 END AS ends,CASE WHEN next_at IS NOT NULL AND next_at-at<=gap THEN next_at-at ELSE COALESCE(engaged_at-at,0) END AS on_page FROM e),
 q AS (SELECT *,SUM(starts) OVER (PARTITION BY day,visitor ORDER BY at,id ROWS UNBOUNDED PRECEDING) AS visit FROM p),
 v AS (SELECT day,visitor,visit,COUNT(*)=1 AND MAX(engaged_at IS NOT NULL)=0 AS bounce,MAX(converted) AS visit_converted,MAX(MAX(at,COALESCE(engaged_at,at)))-MIN(at) AS duration,MIN(at) AS started FROM q GROUP BY day,visitor,visit)`
 const middle=(r:string,c:string)=>`${r} IN ((${c}+1)/2,(${c}+2)/2)`
