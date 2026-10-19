@@ -890,3 +890,29 @@ test('METRIC-004 the signed-out methodology page defines every metric the dashbo
  const rolled=await (await a.request(`/api/vane/summary?rollupId=${rollup}&from=2026-03-01&to=2026-03-08`,owner)).json();assert.equal(rolled.visits,6)
  assert.ok((await (await a.request(`/app/rollups/${rollup}?from=2026-03-01&to=2026-03-08&metric=visits`,owner)).text()).includes(`<time datetime="2026-03-05">2026-03-05</time> Fern Studio: ${note}`))
 })
+test('REPORT-003 a week where organic search falls 40% on one page names that channel and page with their totals, lists the range\'s annotation and coverage change, and judges each day against the 95% day-of-week prediction interval',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}},input={name:'Fern Studio',origin:'https://fern.example',paths:[],excludePaths:['/admin/**'],goals:{},consent:'not-required',sampleRate:100,retentionDays:365},id=await a.addSite(input)
+ const DAY=86400000,date=ms=>new Date(ms).toISOString().slice(0,10),range=Date.parse('2026-03-09T00:00:00Z')
+ const visit=async(at,k,organic)=>{await a.clock(at);assert.equal((await a.post('/api/vane/collect',a.event(id,organic?{path:'/pricing',source:undefined,campaign:undefined,referrer:'https://www.google.com/'}:{path:'/',source:undefined,campaign:undefined}),'',{origin:'https://fern.example','cf-connecting-ip':'203.0.113.'+k,'user-agent':'Synthetic Browser 7'})).status,202)}
+ const day=async(start,organic,direct)=>{for(let k=0;k<organic+direct;k++)await visit(start+(9*60+k*5)*60000,k+1,k<organic)}
+ // Weeks 2-8 before the range: 4 or 6 direct visits a day, alternating by week; week 1 (the compared week): 4 a day, 10 of them organic.
+ for(let week=8;week>=2;week--)for(let d=0;d<7;d++)await day(range-week*7*DAY+d*DAY,0,week%2?4:6)
+ for(const [d,organic] of [2,2,2,1,1,1,1].entries())await day(range-7*DAY+d*DAY,organic,4-organic)
+ // The range: organic 6 (−40%), direct 18 as before; Monday has 4 visits, Tuesday 1.
+ for(const [d,[organic,direct]] of [[2,2],[0,1],[1,3],[1,3],[1,3],[1,3],[0,3]].entries())await day(range+d*DAY,organic,direct)
+ await a.clock(range+2*DAY+12*3600000);assert.equal((await a.post('/api/vane/collect',a.event(id,{path:'/admin/users'}),'',{origin:'https://fern.example'})).status,403)
+ const p=await (await a.post('/api/vane/commands',{command:'site.configure',input:{...input,siteId:id,visitTimeout:45}},a.owner)).json();assert.equal((await a.form({operation:'proposal.approve',id:p.id},a.owner)).status,303)
+ const summary=await (await a.request(`/api/vane/summary?siteId=${id}&from=2026-03-09&to=2026-03-16`,owner)).json(),e=summary.explain
+ assert.deepEqual([summary.visits,summary.previousVisits],[24,28])
+ const moved=e.movers.map(m=>[m.dimension,m.label,m.then,m.now,m.totalThen,m.totalNow])
+ assert.deepEqual(moved.filter(m=>m[0]!=='Device'),[['Channel','Organic Search',10,6,28,24],['Page','/pricing',10,6,28,24]],'direct and / are stable, so only organic search and /pricing moved')
+ assert.deepEqual(e.annotations.map(n=>n.day),['2026-03-11']);assert.deepEqual(e.coverage,[{label:'excluded-path',now:1,then:0}])
+ const judged=Object.fromEntries(e.variation.map(d=>[d.day,d.metrics?.visitors]))
+ // Monday's baseline leaves out MLK Day and Washington's Birthday: 4,6,6,4,6,6 gives 5.33 ± 2.571·s·√(7/6); Tuesday's eight give 5 ± 2.365·s·√(9/8).
+ assert.deepEqual(judged['2026-03-09'],{value:4,low:2.5,high:8.2,within:true});assert.deepEqual(judged['2026-03-10'],{value:1,low:2.3,high:7.7,within:false})
+ const html=await (await a.request(`/app/sites/${id}?section=report&from=2026-03-09&to=2026-03-16`,owner)).text()
+ for(const phrase of ['Channel Organic Search: 10 → 6 visits (−4, −40%), of 28 → 24 visits in all.','Page /pricing: 10 → 6 pageviews (−4, −40%), of 28 → 24 pageviews in all.','2026-03-11: Visit definition v2','Excluded paths: 0 → 1.','2.3 to 7.7: outside normal variation','2.5 to 8.2: within normal variation'])assert.ok(html.includes(phrase),phrase)
+ assert.ok(!/because|caused|due to/i.test(html.slice(html.indexOf('Weekly explanation'),html.indexOf('What moved')+4000)),'the explanation never claims a cause')
+ const holiday=await (await a.request(`/api/vane/summary?siteId=${id}&from=2026-02-16&to=2026-02-18`,owner)).json();assert.deepEqual(holiday.explain.variation.map(d=>[d.day,d.holiday??null,Boolean(d.metrics)]),[['2026-02-16','Washington’s Birthday',false],['2026-02-17',null,true]])
+ assert.equal((await (await a.request(`/api/vane/summary?siteId=${id}&from=2026-01-01&to=2026-03-16`,owner)).json()).explain.variation,null,'ranges over 31 days are not judged')
+})
