@@ -45,7 +45,9 @@ export async function installation({setup=true}={}) {
  // Inspection for absence proofs: every row of every table, and the Worker's scheduled handler.
  const dump=async()=>{const tables=(await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%'").all()).results.map(r=>r.name);return Object.fromEntries(await Promise.all(tables.map(async name=>[name,(await db.prepare(`SELECT * FROM "${name}"`).all()).results])))}
  const scheduled=async()=>(await mf.getWorker('app')).scheduled({cron:'*/5 * * * *'})
+ // The product clock, moved through the local dev-key door so tests can prove gaps of minutes without waiting.
+ const clock=async at=>{const r=await request('/__dev/clock',{method:'POST',headers:{'x-rer-dev-key':vars.RER_DEV_KEY,'content-type':'application/json'},body:JSON.stringify({at})});assert.equal(r.status,200,await r.clone().text())}
  const archive=async()=>{const r=await request('/api/vane/export',{headers:{cookie:owner}});assert.equal(r.status,200);return r.json()}
- return {dump,scheduled,origin,cookieOf,request,post,form,owner,invite,sentMail,egress,fixtureSites,addSite,event,collect,archive,close:()=>mf.dispose()}
+ return {dump,scheduled,clock,origin,cookieOf,request,post,form,owner,invite,sentMail,egress,fixtureSites,addSite,event,collect,archive,close:()=>mf.dispose()}
  } catch(error) {await mf.dispose();throw error}
 }

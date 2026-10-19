@@ -1,5 +1,6 @@
 import { insist, site, VaneError, type Env } from './core'
 import { localDay } from './visitors'
+import { clock } from './clock'
 // PRIVACY-002: Global Privacy Control and Do Not Track stop collection. When the owner
 // turns the counter on, the script sends one field-free count per signalling page load.
 export const stance = [
@@ -26,7 +27,7 @@ export async function signalResponse(request:Request,env:Env):Promise<Response|n
   cors={...cors,'access-control-allow-origin':value.origin};
   insist(value.config.signalCounter===true,'signal_counter_off','This site does not count privacy signals.',403);
   insist((await request.text())==='','fields','The privacy-signal count carries no fields.');
-  await env.DB.prepare('INSERT INTO vane_signals(site_id,day,count) VALUES(?,?,1) ON CONFLICT(site_id,day) DO UPDATE SET count=count+1 WHERE count<100000').bind(value.id,localDay(Date.now(),value.config.timeZone??'UTC')).run();
+  await env.DB.prepare('INSERT INTO vane_signals(site_id,day,count) VALUES(?,?,1) ON CONFLICT(site_id,day) DO UPDATE SET count=count+1 WHERE count<100000').bind(value.id,localDay(clock(),value.config.timeZone??'UTC')).run();
   return Response.json({counted:true},{status:202,headers:cors});
  } catch(error) { const e=error instanceof VaneError?error:new VaneError('invalid_signal','Signal could not be counted.'); return Response.json({error:e.code,message:e.message},{status:e.status,headers:cors}); }
 }

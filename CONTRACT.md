@@ -345,8 +345,8 @@ The approved homepage (17 Oct 2026, `HOME-001`) states 80 capabilities in its co
 | 11 | Hero card: Wednesday dip: tracking script missing on /pricing · fixed | `AGENT-001`, `ALERT-002` | missing |
 | 12 | Hero card: No cookies · no banner | `COLLECT-001`, `CONSENT-001` | done |
 | 13 | Visitors: "counts unique visitors" | `METRIC-001` | done |
-| 14 | Visitors: "visits" | `METRIC-002` | missing |
-| 15 | Visitors: "bounce rate and visit duration" | `METRIC-003` | missing |
+| 14 | Visitors: "visits" | `METRIC-002` | done |
+| 15 | Visitors: "bounce rate and visit duration" | `METRIC-003` | done |
 | 16 | Visitors: "with a salted hash that resets every day" | `METRIC-001` | done |
 | 17 | Visitors: "No cookies, no banner" | `COLLECT-001`, `CONSENT-001` | done |
 | 18 | Visitors: "the method is published" | `METRIC-004` | partial |
@@ -420,8 +420,8 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 16 | 1 | 0 | 17 |
-| Target and push further | 6 | 22 | 63 | 91 |
-| All | 22 | 23 | 63 | 108 |
+| Target and push further | 8 | 22 | 61 | 91 |
+| All | 24 | 23 | 61 | 108 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -455,9 +455,9 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | `COLLECT-004` | Collection at small-business scale | target | partial | `src/vane/collect.ts` | Admission is atomic but capped at 10,000 events per site per day in D1; no rollups, analytical store, load test or published limits. |
 | `COVERAGE-001` | Coverage shown beside every number | target | partial | `src/vane/reports.ts`; `src/vane/views/report.ts`; `tests/vane.test.mjs` | Sampling, consent, path and imported unknown-coverage notes are shown; no declined-consent counter, exclusion shares, proxy share or zone comparison. |
 | `METRIC-001` | Cookie-free unique visitors from daily-rotating salted hashes | target | done | `src/vane/visitors.ts`; `src/vane/collect.ts`; `src/vane/reports.ts`; `src/vane/methodology.ts`; `src/server.ts`; `migrations/core/0018_vane_visitors.sql`; `tests/vane.test.mjs` |  |
-| `METRIC-002` | Visits and pages per visit | target | missing |  | No visits or pages per visit. |
-| `METRIC-003` | Bounce rate and visit duration | target | missing |  | No engagement ping, bounce rate or visit duration. |
-| `METRIC-004` | Methodology disclosed and versioned | target | partial | `src/vane/methodology.ts`; `src/vane/views/report.ts`; `src/vane/reports.ts` | A public `/methodology` page defines page loads, unique visitors (hash recipe, salt lifetime, sum of daily uniques), goals, sources and campaigns, the script's fields, both storage exceptions and the privacy-signal stance; no definitions of visits, bounce, duration, scroll depth or revenue, and no versioned definition annotations. |
+| `METRIC-002` | Visits and pages per visit | target | done | `src/vane/visits.ts`; `src/vane/reports.ts`; `src/vane/collect.ts`; `src/vane/clock.ts`; `src/vane/views/report.ts`; `src/vane/methodology.ts`; `migrations/core/0019_vane_visits.sql`; `tests/vane.test.mjs` |  |
+| `METRIC-003` | Bounce rate and visit duration | target | done | `src/vane/tracker.ts`; `src/vane/collect.ts`; `src/vane/visits.ts`; `src/vane/views/report.ts`; `src/vane/methodology.ts`; `tests/vane.test.mjs` |  |
+| `METRIC-004` | Methodology disclosed and versioned | target | partial | `src/vane/methodology.ts`; `src/vane/views/report.ts`; `src/vane/reports.ts` | A public `/methodology` page defines page loads, unique visitors (hash recipe, salt lifetime, sum of daily uniques), goals, sources and campaigns, the script's fields, both storage exceptions, the privacy-signal stance, and visits, bounce rate, visit duration and time on page; no definitions of scroll depth or revenue, and no versioned definition annotations. |
 | `METRIC-005` | Consented visitor mode: returning visitors and retention | target | missing |  | No consented mode, returning visitors or retention cohorts. |
 | `METRIC-006` | Scroll depth and time on page | target | missing |  | No scroll depth or time on page. |
 | `DASH-001` | Real-time dashboard | target | missing |  | No real-time view. |
