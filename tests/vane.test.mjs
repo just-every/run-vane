@@ -1720,3 +1720,36 @@ test('API-003 a signed webhook receives a goal burst as per-minute counts once e
  assert.ok(a.egress.every(url=>url.startsWith('https://hooks.fixture.example/')||url.includes('resend')),'deliveries go only to the endpoint')
  const hook=(await a.dump()).vane_webhooks[0].id;assert.equal((await a.form({operation:'webhook.delete',id:hook},a.owner)).status,303);assert.ok((await a.dump()).vane_audit.some(e=>e.action==='webhook.delete'))
 })
+test('REPORT-001 two weekly subscribers get the Monday 8:00 New York report once each across a daylight-saving change with the dashboard\'s figures, one-click unsubscribe stops it, temporary failures retry after 15 minutes and 2 hours, four failures show as failed, and a rejected message is not retried',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({paths:[],timeZone:'America/New_York',goals:{signup:'/thanks'}})
+ for(const [n,at,path] of [[1,'2026-02-24T15:00:00Z','/'],[2,'2026-02-25T16:00:00Z','/pricing'],[2,'2026-02-25T16:02:00Z','/thanks'],[3,'2026-02-27T18:00:00Z','/'],[4,'2026-03-04T15:00:00Z','/']]){await a.clock(Date.parse(at));assert.equal((await a.post('/api/vane/collect',a.event(id,{path}),'',{origin:'https://fern.example','cf-connecting-ip':'203.0.113.'+n,'user-agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36'})).status,202)}
+ // The mail provider's edge: each address gets the statuses queued for it, then 200.
+ const mails=[],plan={'retry@client.example':[500,500],'down@client.example':[500,500,500,500],'gone@client.example':[422]}
+ a.fixtureSites['https://api.resend.com']=async request=>{const body=await request.json(),to=body.to[0];if(!/ report, /.test(body.subject)){a.sentMail.push(body);return Response.json({id:crypto.randomUUID()})}const status=plan[to]?.shift()??200;mails.push({to,subject:body.subject,text:body.text,key:request.headers.get('idempotency-key'),status});return status===200?Response.json({id:crypto.randomUUID()}):Response.json({message:'refused'},{status})}
+ const subscribe=body=>a.form({operation:'report.subscribe',siteId:id,frequency:'weekly',weekday:'1',hour:'8',...body},a.owner),at=async iso=>{await a.clock(Date.parse(iso));await a.scheduled()},to=address=>mails.filter(m=>m.to===address)
+ await a.clock(Date.parse('2026-02-27T20:00:00Z'));assert.equal((await subscribe({})).status,303);assert.equal((await subscribe({email:'cfo@client.example'})).status,303)
+ assert.equal((await a.form({operation:'team.invite',email:'viewer@example.test',role:'viewer',scope:'all'},a.owner)).status,303)
+ // Monday 2 March, 8:00 EST is 13:00 UTC.
+ await at('2026-03-02T12:58:00Z');assert.equal(mails.length,0,'not before the local hour')
+ await at('2026-03-02T13:01:00Z');assert.deepEqual(mails.map(m=>m.to).sort(),['cfo@client.example','owner@example.test'])
+ const week=await (await a.request(`/api/vane/summary?siteId=${id}&from=2026-02-23&to=2026-03-02&compare=previous`,owner)).json()
+ for(const m of mails){assert.match(m.subject,/weekly report, 2026-02-23 to 2026-03-01/);for(const line of [`Visitors: ${week.visitors}`,`Visits: ${week.visits}`,`Pageviews: ${week.pageviews}`,`Goal conversions: ${week.goals}`,'- /pricing: 1 pageviews','Unsubscribe with one click: '])assert.ok(m.text.includes(line),line)}
+ await at('2026-03-02T13:06:00Z');await at('2026-03-03T13:01:00Z');await at('2026-03-07T13:01:00Z');assert.equal(mails.length,2,'once each, and on no other day')
+ // After the change to daylight time (8 March), 8:00 EDT is 12:00 UTC.
+ await at('2026-03-09T11:58:00Z');assert.equal(mails.length,2);await at('2026-03-09T12:01:00Z');assert.equal(mails.length,4);assert.ok(mails.slice(2).every(m=>/2026-03-02 to 2026-03-08/.test(m.subject)))
+ const link=new URL(to('cfo@client.example').at(-1).text.match(/Unsubscribe with one click: (\S+)/)[1]);assert.equal((await a.request(link.pathname)).status,200);assert.equal((await a.request(link.pathname)).status,404)
+ await at('2026-03-16T12:01:00Z');assert.deepEqual(mails.slice(4).map(m=>m.to),['owner@example.test'],'unsubscribed recipients get no more')
+ // Daily reports at 6:00 (10:00 UTC): temporary failures retry after 15 minutes and 2 hours with the same delivery ID.
+ for(const email of ['retry@client.example','down@client.example','gone@client.example'])assert.equal((await subscribe({email,frequency:'daily',hour:'6'})).status,303)
+ await at('2026-03-17T10:01:00Z');await at('2026-03-17T10:17:00Z');await at('2026-03-17T12:16:00Z');assert.equal(to('retry@client.example').length,2,'the third attempt waits 2 hours');await at('2026-03-17T12:18:00Z')
+ assert.deepEqual(to('retry@client.example').map(m=>m.status),[500,500,200]);assert.equal(new Set(to('retry@client.example').map(m=>m.key)).size,1,'one delivery ID across attempts')
+ assert.deepEqual(to('gone@client.example').map(m=>m.status),[422],'a rejected message is not retried')
+ await at('2026-03-18T00:17:00Z');assert.equal(to('down@client.example').length,3,'the fourth attempt waits 12 hours');await at('2026-03-18T00:19:00Z');assert.deepEqual(to('down@client.example').map(m=>m.status),[500,500,500,500])
+ const sends=await (await a.request(`/app/sites/${id}?section=settings`,owner)).text()
+ assert.match(sends,/<td>down@client\.example<\/td><td>2026-03-16 to 2026-03-17 \(end exclusive\)<\/td><td>failed<\/td><td class="vane-number">4<\/td><td>temporary failure \(uncertain\) on all 4 attempts<\/td>/)
+ assert.match(sends,/<td>gone@client\.example<\/td><td>[^<]*<\/td><td>failed<\/td><td class="vane-number">1<\/td><td>rejected by the mail provider[^<]*; not retried<\/td>/)
+ assert.match(sends,/<td>retry@client\.example<\/td><td>[^<]*<\/td><td>sent<\/td><td class="vane-number">3<\/td>/)
+ // Only the owner adds an external recipient; a viewer subscribes their own address.
+ const viewer=await a.accept('viewer@example.test');assert.equal((await a.form({operation:'report.subscribe',siteId:id,frequency:'weekly',weekday:'1',hour:'8',email:'someone@client.example'},viewer)).status,403);assert.equal((await a.form({operation:'report.subscribe',siteId:id,frequency:'monthly',weekday:'1',hour:'8'},viewer)).status,303)
+ assert.ok(!JSON.stringify(await a.dump()).includes(link.pathname.split('/').pop()),'only the unsubscribe token\'s hash is kept')
+})

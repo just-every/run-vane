@@ -129,6 +129,10 @@ Every report table downloads as CSV, and **Whole site as a ZIP of CSVs** on a re
 
 Create an **events token** for one site on the API keys page, then `POST /api/v1/events` with `Authorization: Bearer <token>` and one event (or `{"events": [...]}` with up to 100): the script's fields, `type` `pageview` or `event`, and the visitor's `client_ip` and `user_agent`, which are used only to count visitors and classify devices and are never stored. Send an `Idempotency-Key` header to make a retry safe for 24 hours.
 
+### Email reports
+
+In a site's settings anyone on the team subscribes to a daily, weekly or monthly report at an hour in the site's time zone; the owner can also add outside recipients. Each email has the headline figures with their comparison, top pages and sources, goals, revenue, coverage notes and what moved, and a one-click unsubscribe link. Mail goes through the installation's configured mail provider.
+
 ### Webhooks
 
 In a site's settings an owner or administrator adds an https endpoint. Goal conversions arrive as signed JSON counts per goal and minute; check `Vane-Signature` (`t=<unix time>,v1=<HMAC-SHA256 of t.body>`) with the secret shown when you add it, and keep one copy per `Vane-Delivery`. The settings page lists every attempt.

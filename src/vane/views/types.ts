@@ -13,6 +13,8 @@ export interface ViewData {
   webhooks?: import('../webhooks').Webhook[]
   webhookLog?: { delivery_id: string; attempt: number; at: number; status: number | null; outcome: string; event: string; state: string; url: string }[]
   webhookSecret?: string
+  reportSubscriptions?: import('../email-reports').Subscription[]
+  reportSends?: Awaited<ReturnType<typeof import('../email-reports').reportSends>>
   warehouse?: { endpoint: string; bucket: string; region: string; prefix: string; accessKeyId: string; lastDay: string; lastResult: string | null; createdAt: number } | null
   secret?: string
   shares?: import('../share').ShareLink[]

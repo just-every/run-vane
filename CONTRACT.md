@@ -214,7 +214,7 @@ These clauses restate what the released first contract and ACCEPTANCE.md promise
 
 ### Reports, alerts and follow-up
 
-- **REPORT-001 — Scheduled email reports.** Each team member, or an external recipient the owner adds, can subscribe to daily, weekly or monthly email reports for chosen sites and segments. Reports are sent at a chosen local time in the site's time zone. Each one shows the headline metrics with their comparison, top pages, sources, goals and revenue, the coverage notes and the explanation (`REPORT-003`). Every email has a one-click unsubscribe. A temporary delivery failure is retried 3 times, after 15 minutes, 2 hours and 12 hours, using the same message ID so the report is never sent twice. A permanent bounce is not retried. Either way the failure shows in the app with its reason. A weekly report goes out on the weekday the recipient chooses (Monday by default), and a monthly report on the first day of the month. **Acceptance evidence:** Subscribe two recipients to the weekly report at 8:00 America/New_York and run the schedule across a daylight-saving change. Each email arrives once at the local hour with figures that match the dashboard, and unsubscribe stops it. With a fake mail provider and clock, fail one delivery temporarily twice: it is retried at 15 minutes and 2 hours and delivered once. Fail another on all four attempts: it shows as failed after the 12-hour retry. A permanent bounce shows in the app at once and is not retried. A weekly report set to Mondays at 8:00 am arrives on Monday at 8:00 local time and on no other day.
+- **REPORT-001 — Scheduled email reports.** Each team member, or an external recipient the owner adds, can subscribe to daily, weekly or monthly email reports for chosen sites and segments. Reports are sent at a chosen local time in the site's time zone. Each one shows the headline metrics with their comparison, top pages, sources, goals and revenue, the coverage notes and the explanation (`REPORT-003`). Every email has a one-click unsubscribe. A temporary delivery failure is retried 3 times, after 15 minutes, 2 hours and 12 hours, using the same message ID so the report is never sent twice. A permanent bounce is not retried. Either way the failure shows in the app with its reason. A weekly report goes out on the weekday the recipient chooses (Monday by default), and a monthly report on the first day of the month. The exact rules: a subscription is one site (a site's saved segment optional) and one address; a team member subscribes their own address on any site they may open, and only the owner adds an external recipient. The chosen time is a whole hour in the site's time zone, daylight saving included, checked every 5 minutes: a daily report covers the day before, a weekly report the seven days before the chosen weekday, a monthly report the month before the 1st, each compared with the period before it. A send keeps one delivery ID on every attempt. A temporary failure (no answer, a rate limit or a provider error) is retried after 15 minutes, 2 hours and 12 hours and then shows as failed; a permanent failure, the provider rejecting the message, is not retried and shows at once. The site's settings list each send with its state, attempts and reason. The unsubscribe link ends the subscription with one click (a GET of the link, or the one-click POST the mail headers announce on an https installation), and only its SHA-256 is kept. Removing a team member ends their own subscriptions. **Acceptance evidence:** Subscribe two recipients to the weekly report at 8:00 America/New_York and run the schedule across a daylight-saving change. Each email arrives once at the local hour with figures that match the dashboard, and unsubscribe stops it. With a fake mail provider and clock, fail one delivery temporarily twice: it is retried at 15 minutes and 2 hours and delivered once. Fail another on all four attempts: it shows as failed after the 12-hour retry. A permanent bounce shows in the app at once and is not retried. A weekly report set to Mondays at 8:00 am arrives on Monday at 8:00 local time and on no other day.
 
 - **REPORT-002 — Slack, Microsoft Teams and Nook delivery.** Reports and alerts can be sent to a Slack channel (Slack app with OAuth), a Microsoft Teams channel (Teams app or workflow webhook) or a [Nook](https://github.com/just-every/run-nook) channel, with a link back to the filtered dashboard. **Acceptance evidence:** Against fixture endpoints for all three, send a weekly report and an alert. Each payload carries the right figures and a working deep link, and a revoked token surfaces as a delivery failure.
 
@@ -371,7 +371,7 @@ The approved homepage (17 Oct 2026, `HOME-001`) states 80 capabilities in its co
 | 37 | Goals: "custom event properties" | `CONV-002` | done |
 | 38 | Goals: "outbound links, file downloads and 404s tracked on their own" | `CONV-003` | done |
 | 39 | Goals chip: 404 · /pricng · 37 visits · redirect to /pricing added | `CONV-003`, `AGENT-003` | partial |
-| 40 | Reports: "Scheduled email reports" (Weekly report · Mondays 8:00 am) | `REPORT-001` | missing |
+| 40 | Reports: "Scheduled email reports" (Weekly report · Mondays 8:00 am) | `REPORT-001` | done |
 | 41 | Reports: "spike and drop alerts" (Traffic spike card) | `ALERT-001` | missing |
 | 42 | Reports: "shared dashboards for your team" | `SHARE-001`, `TEAM-001`, `DASH-007` | done |
 | 43 | Reports: "a public page when you want one" (Public stats page) | `SHARE-002` | done |
@@ -411,7 +411,7 @@ The approved homepage (17 Oct 2026, `HOME-001`) states 80 capabilities in its co
 | 77 | Closing: "Open source website analytics without cookies" | `OPEN-001`, `COLLECT-001`, `METRIC-001` | done |
 | 78 | Closing: "Free and open source, MIT licensed" | `OPEN-001` | done |
 | 79 | Closing card: Today · 4,812 visitors | `METRIC-001`, `DASH-002` | done |
-| 80 | Closing card: Weekly report sent | `REPORT-001` | missing |
+| 80 | Closing card: Weekly report sent | `REPORT-001` | done |
 
 ## Status
 
@@ -420,8 +420,8 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 17 | 0 | 0 | 17 |
-| Target and push further | 51 | 6 | 34 | 91 |
-| All | 68 | 6 | 34 | 108 |
+| Target and push further | 52 | 6 | 33 | 91 |
+| All | 69 | 6 | 33 | 108 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -497,7 +497,7 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | `IMPORT-007` | Imported history merges without double counting | target | partial | `src/vane/reports.ts`; `tests/vane.test.mjs` | Imported events are kept apart and counted as unknown coverage; no cut-over date, overlap handling, chart labels or parallel-run report. |
 | `IMPORT-008` | Tracking cut-over keeps incumbent events counting | target | missing |  | No Plausible or Fathom call and class compatibility, `plausible.init` option mapping, incumbent call-site scan or carried-over goal and property definitions. |
 | `IMPORT-009` | Goal and funnel definitions recovered from what each incumbent plan exposes | target | missing |  | No read of Plausible's goals and custom-properties endpoints, no display-name inference from a dashboard export, no Needs completion list and no guided funnel rebuild. |
-| `REPORT-001` | Scheduled email reports | target | missing |  | No scheduled email reports. |
+| `REPORT-001` | Scheduled email reports | target | done | `src/vane/email-reports.ts`; `src/vane/views/report-settings.ts`; `migrations/core/0042_vane_email_reports.sql`; `tests/vane.test.mjs` |  |
 | `REPORT-002` | Slack, Microsoft Teams and Nook delivery | target | missing |  | No Slack, Teams or Nook delivery. |
 | `REPORT-003` | A readable explanation of what changed | target | done | `src/vane/explain.ts`; `src/vane/reports.ts`; `src/vane/views/report.ts`; `tests/vane.test.mjs` |  |
 | `ALERT-001` | Traffic spike and drop alerts | target | missing |  | No traffic alerts. |
