@@ -50,7 +50,7 @@ export async function verifyInstallation(env:Env,actor:Actor,siteId:string,waitM
  }
  const path=storedPath(value.config,page.pathname);
  if(!pathAllowed(value.config,path))return fail('path_excluded',`The homepage path ${page.pathname} is left out by this site's include or exclude paths, so its page loads are not collected.`);
- if(value.config.consent==='required'&&!html.includes('vaneConsent'))return fail('consent_missing',`This site requires consent, but ${page.href} never sets window.vaneConsent, so no page load is sent.`);
+ if(value.config.consent==='required'&&!value.config.consentAdapter&&!html.includes('vaneConsent')&&!html.includes('analytics_storage'))return fail('consent_missing',`This site requires consent, but ${page.href} never sets window.vaneConsent, so no page load is sent.`);
  const arrived=()=>env.DB.prepare('SELECT 1 FROM vane_events WHERE site_id=? AND path=? LIMIT 1').bind(value.id,path).first();
  for(const until=Date.now()+waitMs;;await new Promise(done=>setTimeout(done,1000))) {
   if(await arrived())return {state:'verified',cause:'verified',message:`Installation verified: the script is on ${page.href} and its first event has arrived.`};

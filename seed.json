@@ -31,6 +31,25 @@
         "HTTP requests"
       ],
       "adapters": []
+    },
+    {
+      "id": "warehouse",
+      "required": false,
+      "why": "The owner's scheduled warehouse export (API-002) to their own Amazon S3 or Cloudflare R2 bucket",
+      "data": [
+        "Daily rollups",
+        "Event rows without the visitor hash"
+      ],
+      "adapters": []
+    },
+    {
+      "id": "webhooks",
+      "required": false,
+      "why": "Signed webhooks an owner or administrator adds (API-003) to their own endpoints",
+      "data": [
+        "Goal conversion counts per minute"
+      ],
+      "adapters": []
     }
   ],
   "env": [],

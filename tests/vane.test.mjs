@@ -1,8 +1,11 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
-import { createHash } from 'node:crypto'
+import { createHash, createHmac } from 'node:crypto'
+import { crc32 } from 'node:zlib'
+import { createRequire } from 'node:module'
 import { installation } from './harness.mjs'
+import { appsScript } from './apps-script.mjs'
 const fixture=JSON.parse(await readFile(new URL('./fixtures/umami-events.json',import.meta.url),'utf8'))
 // DASH-007 makes report row values links that filter by them; assertions on a row's cells read past the link.
 const unlinked=html=>html.replace(/<a href="[^"]*" data-filter-link>([^<]*)<\/a>/g,'$1')
@@ -132,7 +135,7 @@ test('TRAFFIC-001 the default seven-day report compares totals and every breakdo
 })
 test('PRIVACY-005 visitor data stays in the installation: the script talks only to its own origin, and collection, reports, import and export make no outbound request',async t=>{
  const a=await withApp(t),id=await a.addSite(),before=a.egress.length,seed=JSON.parse(await readFile(new URL('../seed.json',import.meta.url),'utf8'))
- assert.deepEqual(seed.externals.map(external=>external.id),['cloudflare'])
+ assert.deepEqual(seed.externals.filter(external=>external.required).map(external=>external.id),['cloudflare'])
  const {context,requests}=await browse(t,a,{'https://fern.example/thanks':`<!doctype html><title>Fern Studio</title><h1>Thanks</h1><script src="${a.origin}/vane.js" data-site="${id}"></script>`})
  const page=await context.newPage(),collected=page.waitForResponse(response=>new URL(response.url()).pathname==='/api/vane/collect'&&response.request().method()==='POST')
  await page.goto('https://fern.example/thanks')
@@ -269,7 +272,7 @@ test('AUDIT-001 every audited action is recorded with actor, time and subject, s
  assert.equal(archive.payload.tables.vane_events.length,0)
  const exported=archive.payload.tables.vane_audit;assert.ok(['import.apply','history.erase'].every(action=>exported.some(entry=>entry.action===action)),'audit travels in the archive')
  assert.equal(/\/thanks|search\.example|launch/.test(JSON.stringify(exported)),false,'audit entries hold no erased event data')
- const view=await (await a.request('/app?section=audit',owner)).text();for(const action of ['agent.prepare','settings.change','history.erase','sign-in'])assert.ok(view.includes(`<th scope="row">${action}</th>`),action)
+ const view=await (await a.request('/app?section=audit',owner)).text();for(const action of ['agent.prepare','settings.change','history.erase','sign-in'])assert.ok(view.includes(`<th scope="row" data-action="${action}">`),action)
  assert.equal((await a.request('/api/vane/audit',{headers:{cookie:member}})).status,403)
  assert.equal((await b.post('/api/vane/restore',{archive},b.owner)).status,200)
  const restored=await (await b.request('/api/vane/audit',{headers:{cookie:b.owner}})).json();assert.ok(restored.some(entry=>entry.action==='history.restore'));assert.ok(restored.some(entry=>entry.action==='history.erase'&&entry.subject===id))
@@ -743,12 +746,31 @@ test('DASH-002 events either side of the November daylight-saving change and mid
   const html=await (await a.request(`/app/sites/${id}?section=report&${query}`,owner)).text()
   const points=[...html.matchAll(/<circle class="vane-chart-point"[^>]*data-value="([^"]*)"/g)].map(m=>m[1]),cells=[...html.matchAll(new RegExp(`<td class="vane-number" data-metric="${metric}">([^<]*)</td>`,'g'))].map(m=>m[1])
   assert.equal(points.length,metric==='pageviews'?7:25,query);assert.deepEqual(points,cells,query);if(expected)assert.deepEqual(points,expected)
-  assert.match(html,/<svg class="vane-chart"[^>]*role="img"/);assert.match(html,/<caption>[^<]* by (day|hour), [^<]*America\/Chicago\)<\/caption>/)
+  assert.match(html,/<svg class="vane-chart"[^>]*role="img"/);assert.match(html,/<caption>[^<]* by (day|hour), [^<]*\(Central Time\)<\/caption>/)
  }
  // A new site's time zone starts as the zone the owner's browser reports.
  const {context}=await browse(t,a,{},{timezoneId:'America/Chicago'});await context.addCookies(a.owner.split('; ').map(pair=>{const [name,...value]=pair.split('=');return {name,value:value.join('='),url:a.origin}}))
  const page=await context.newPage();await page.goto(a.origin+'/app',{waitUntil:'networkidle'})
  assert.equal(await page.getByRole('textbox',{name:'Time zone'}).inputValue(),'America/Chicago')
+})
+test('DASH-008 a day still running is compared like with like: at 6:30 AM, 9:30 AM and 4 PM Central flat weeks read flat, and Today stops at the current hour without being judged',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}}
+ await a.clock(Date.parse('2026-10-04T12:00:00Z'));const id=await a.addSite({timeZone:'America/Chicago'})
+ // Identical days from Oct 5, 2026: one visitor each at 8 AM, noon and 6 PM Central; Monday Oct 19 runs up to each clock time.
+ const load=async(d,n,hour)=>{await a.clock(Date.parse(`2026-10-${String(d).padStart(2,'0')}T${hour}:00:00Z`));assert.equal((await a.post('/api/vane/collect',a.event(id),'',{origin:'https://fern.example','cf-connecting-ip':`203.0.113.${n}`,'user-agent':'Synthetic Browser'})).status,202)}
+ for(let d=5;d<=18;d++)for(const [n,hour] of [[1,13],[2,17],[3,23]])await load(d,n,hour)
+ for(const [at,hour,sofar,arrived] of [['2026-10-19T11:30:00Z',6,0,[]],['2026-10-19T14:30:00Z',9,1,[[1,13]]],['2026-10-19T21:00:00Z',16,2,[[2,17]]]]){
+  for(const [n,h] of arrived)await load(19,n,h)
+  await a.clock(Date.parse(at))
+  const week=await (await a.request(`/api/vane/summary?siteId=${id}&period=7d`,owner)).json(),today=await (await a.request(`/api/vane/summary?siteId=${id}&period=today`,owner)).json()
+  assert.deepEqual([week.visitors,week.previousVisitors,week.pageviews,week.previousPageviews,week.visits,week.previousVisits],Array(6).fill(18+sofar),at)
+  assert.deepEqual([today.visitors,today.previousVisitors,today.running.day,today.running.thenDay],[sofar,sofar,'2026-10-19','2026-10-18'],at)
+  const html=await (await a.request(`/app/sites/${id}?section=report&period=today`,owner)).text()
+  assert.equal((html.match(/<circle class="vane-chart-point"/g)??[]).length,hour+1,`${at}: the hourly line stops at the current hour`)
+  assert.ok(html.includes('Today is still running')&&!/vane-moved-finding">[^<]*fell/.test(html),`${at}: Today is not judged`)
+  assert.ok(!(await (await a.request(`/app/sites/${id}?section=report`,owner)).text()).match(/vane-delta is-bad/),`${at}: no card reads as a drop`)
+  assert.match(await (await a.request('/app',owner)).text(),/data-change="0">[^<]*<\/span> so far/,`${at}: the site row's change is flat`)
+ }
 })
 test('DASH-008 the last 30 days compared with the previous period, the same period last year and a custom period, with and without matched weekdays, overlay the chart and give every table row its absolute and percentage change',async t=>{
  const a=await withApp(t),owner={headers:{cookie:a.owner}}
@@ -925,13 +947,13 @@ test('METRIC-004 the signed-out methodology page defines every metric the dashbo
  const summary=await (await a.request(`/api/vane/summary?siteId=${id}&from=2026-03-01&to=2026-03-08`,owner)).json()
  assert.equal(summary.visits,4,'2 March keeps the 30-minute version, 5 March uses 45 minutes');assert.match(summary.explanation,/no gap over 45 minutes \(the visit definition changed in this range/)
  const note='Visit definition v2: a visit ends after 45 minutes without a page load (was 30).'
- for(const metric of ['visits','bounceRate','duration']){const html=await (await a.request(`/app/sites/${id}?section=report&from=2026-03-01&to=2026-03-08&metric=${metric}`,owner)).text();assert.ok(html.includes('data-annotation="2026-03-05"')&&html.includes(`<time datetime="2026-03-05">2026-03-05</time> ${note}`),metric)}
+ for(const metric of ['visits','bounceRate','duration']){const html=await (await a.request(`/app/sites/${id}?section=report&from=2026-03-01&to=2026-03-08&metric=${metric}`,owner)).text();assert.ok(html.includes('data-annotation="2026-03-05"')&&html.includes(`<time datetime="2026-03-05">Mar 5, 2026</time> ${note}`),metric)}
  for(const query of ['metric=pageviews&from=2026-03-01&to=2026-03-08','metric=visits&from=2026-03-06&to=2026-03-08'])assert.ok(!(await (await a.request(`/app/sites/${id}?section=report&${query}`,owner)).text()).includes('data-annotation='),query)
  assert.ok((await (await a.request(`/app/sites/${id}?section=settings`,owner)).text()).includes('Now visit definition v2, 45 minutes, since 2026-03-05.'))
  // A roll-up applies each site's own version and names the site in the annotation.
  const created=await a.form({operation:'rollup.create',name:'Both',[`site_${id}`]:'on',[`site_${oak}`]:'on'},a.owner),rollup=created.headers.get('location').match(/\/app\/rollups\/([\w-]+)/)[1]
  const rolled=await (await a.request(`/api/vane/summary?rollupId=${rollup}&from=2026-03-01&to=2026-03-08`,owner)).json();assert.equal(rolled.visits,6)
- assert.ok((await (await a.request(`/app/rollups/${rollup}?from=2026-03-01&to=2026-03-08&metric=visits`,owner)).text()).includes(`<time datetime="2026-03-05">2026-03-05</time> Fern Studio: ${note}`))
+ assert.ok((await (await a.request(`/app/rollups/${rollup}?from=2026-03-01&to=2026-03-08&metric=visits`,owner)).text()).includes(`<time datetime="2026-03-05">Mar 5, 2026</time> Fern Studio: ${note}`))
 })
 test('COLLECT-003 a headless browser, crawlers, Cloudflare low bot scores and verified bots, data-centre networks, referrer spam, excluded IP ranges, an excluded country and the owner\'s opted-out browser are refused and counted by reason beside real visits, and no visitor IP, country or user agent is stored',async t=>{
  const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({excludeIps:'198.51.100.0/24\n2001:db8::/32',excludeCountries:'ca',autoEvents:['outbound']})
@@ -984,7 +1006,7 @@ test('REPORT-003 a week where organic search falls 40% on one page names that ch
  // Monday's baseline leaves out MLK Day and Washington's Birthday: 4,6,6,4,6,6 gives 5.33 ± 2.571·s·√(7/6); Tuesday's eight give 5 ± 2.365·s·√(9/8).
  assert.deepEqual(judged['2026-03-09'],{value:4,low:2.5,high:8.2,within:true});assert.deepEqual(judged['2026-03-10'],{value:1,low:2.3,high:7.7,within:false})
  const html=await (await a.request(`/app/sites/${id}?section=report&from=2026-03-09&to=2026-03-16`,owner)).text()
- for(const phrase of ['Channel Organic Search: 10 → 6 visits (−4, −40%), of 28 → 24 visits in all.','Page /pricing: 10 → 6 pageviews (−4, −40%), of 28 → 24 pageviews in all.','2026-03-11: Visit definition v2','Excluded paths: 0 → 1.','2.3 to 7.7: outside normal variation','2.5 to 8.2: within normal variation'])assert.ok(html.includes(phrase),phrase)
+ for(const phrase of ['Channel Organic Search: 10 → 6 visits (−4, −40%), of 28 → 24 visits in all.','Page /pricing: 10 → 6 pageviews (−4, −40%), of 28 → 24 pageviews in all.','Mar 11, 2026: Visit definition v2','Excluded paths: 0 → 1.','2.3 to 7.7: outside normal variation','2.5 to 8.2: within normal variation'])assert.ok(html.includes(phrase),phrase)
  assert.ok(!/because|caused|due to/i.test(html.slice(html.indexOf('Weekly explanation'),html.indexOf('What moved')+4000)),'the explanation never claims a cause')
  const holiday=await (await a.request(`/api/vane/summary?siteId=${id}&from=2026-02-16&to=2026-02-18`,owner)).json();assert.deepEqual(holiday.explain.variation.map(d=>[d.day,d.holiday??null,Boolean(d.metrics)]),[['2026-02-16','Washington’s Birthday',false],['2026-02-17',null,true]])
  assert.equal((await (await a.request(`/api/vane/summary?siteId=${id}&from=2026-01-01&to=2026-03-16`,owner)).json()).explain.variation,null,'ranges over 31 days are not judged')
@@ -1035,7 +1057,7 @@ test('DASH-009 a member\'s note, an approved settings change, a deploy webhook, 
  assert.equal((await github('ping',{zen:'hi'})).status,200);assert.equal((await github('release',release)).status,201);assert.equal((await github('release',release)).status,200,'a redelivery is idempotent')
  assert.equal((await github('release',release,'vane_gh_'+'1'.repeat(64))).status,401);assert.equal((await github('push',{ref:'main'})).status,400)
  const html=await (await a.request(`/app/sites/${id}?section=report`,owner)).text()
- for(const [day,kind,text] of [[earlier,'release','Release v2.1.0'],[today,'note','Pricing page redesign shipped'],[today,'settings','Settings approved (version 1 to 2).'],[earlier,'deploy','Deploy 42'],[today,'incident','Checkout down for 4 minutes']])assert.ok(html.includes(`<li data-annotation-day="${day}" data-annotation-kind="${kind}"><time datetime="${day}">${day}</time> ${text}`),kind)
+ for(const [day,kind,text] of [[earlier,'release','Release v2.1.0'],[today,'note','Pricing page redesign shipped'],[today,'settings','Settings approved (version 1 to 2).'],[earlier,'deploy','Deploy 42'],[today,'incident','Checkout down for 4 minutes']])assert.ok(html.includes(`<li data-annotation-day="${day}" data-annotation-kind="${kind}"><time datetime="${day}">${new Date(day+'T00:00:00Z').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric',timeZone:'UTC'})}</time> ${text}`),kind)
  assert.ok(html.includes(`data-annotation="${earlier}"`)&&html.includes(`data-annotation="${today}"`)&&html.includes('https://ci.example/runs/42</a>')&&!html.includes('token=abc'))
  const summary=await (await a.request(`/api/vane/summary?siteId=${id}`,owner)).json();assert.deepEqual(summary.explain.annotations.map(n=>n.kind).sort(),['deploy','incident','note','release','settings'])
  assert.match(await (await a.request('/app',owner)).text(),/annotated buckets">(<line class="vane-chart-annotation"[^>]*data-annotation-bucket="\d"\/>){2}<polyline/,'the overview sparkline marks both annotated days')
@@ -1455,4 +1477,298 @@ test('API-002 every table of a filtered, compared report downloads as CSV with t
  // A viewer of another site gets 403, and a table the report does not have 404.
  assert.equal((await a.form({operation:'team.invite',email:'viewer@example.test',role:'viewer',scope:'chosen',[`site_${other}`]:'on'},a.owner)).status,303);const viewer=await a.accept('viewer@example.test')
  assert.equal((await a.request(links[0][1],{headers:{cookie:viewer}})).status,403);assert.equal((await a.request(`/api/vane/csv?siteId=${id}&table=nope`,owner)).status,404)
+})
+// A stored ZIP's entries by name, each checked against its CRC-32.
+function unzip(bytes){const b=Buffer.from(bytes),end=b.lastIndexOf(Buffer.from([0x50,0x4b,5,6])),files={};let at=b.readUInt32LE(end+16)
+ for(let i=0;i<b.readUInt16LE(end+10);i++){const size=b.readUInt32LE(at+20),length=b.readUInt16LE(at+28),name=b.toString('utf8',at+46,at+46+length),offset=b.readUInt32LE(at+42),start=offset+30+b.readUInt16LE(offset+26)+b.readUInt16LE(offset+28),data=b.subarray(start,start+size);assert.equal(crc32(data),b.readUInt32LE(at+16),name);files[name]=data.toString('utf8');at+=46+length+b.readUInt16LE(at+30)+b.readUInt16LE(at+32)}
+ return files}
+const csvRows=text=>{const [head,...rows]=text.trim().split('\r\n');const columns=head.split(',');return Object.assign(rows.map(r=>Object.fromEntries(r.split(',').map((v,i)=>[columns[i],v]))),{columns})}
+const sumBy=(rows,key,field)=>rows.reduce((m,r)=>({...m,[r[key]]:(m[r[key]]??0)+Number(r[field])}),{})
+test('API-002 a whole-site ZIP in Plausible\'s layout, the Looker Studio connector and a scheduled R2 export each match the dashboard and the declared schema; only the owner sets the export, with a sealed key, a public https endpoint and every run audited',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({paths:[],goals:{signup:'/thanks'}}),other=await a.addSite({name:'Oak Store',origin:'https://oak.example'})
+ const desktop='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',iphone='Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1'
+ const google={referrer:'https://www.google.com/'},email={campaign:'spring',utm:{source:'newsletter',medium:'email'}}
+ const visit=async(at,n,agent,first,paths)=>{for(const [i,path] of paths.entries()){await a.clock(at+n*600000+i*60000);assert.equal((await a.post('/api/vane/collect',a.event(id,{source:undefined,campaign:undefined,...(i?{}:first),path}),'',{origin:'https://fern.example','cf-connecting-ip':'203.0.113.'+n,'user-agent':agent})).status,202)}}
+ const day1=Date.parse('2026-03-09T10:00:00Z'),day2=Date.parse('2026-03-10T10:00:00Z')
+ for(const [n,agent,first,paths] of [[1,desktop,google,['/','/pricing']],[2,iphone,email,['/']]])await visit(day1,n,agent,first,paths)
+ for(const [n,agent,first,paths] of [[1,desktop,google,['/','/pricing']],[2,desktop,google,['/pricing','/thanks']],[3,desktop,email,['/','/pricing']],[4,iphone,google,['/pricing']],[5,desktop,email,['/']],[6,desktop,{},['/pricing']]])await visit(day2,n,agent,first,paths)
+ const summary=async query=>(await a.request(`/api/vane/summary?siteId=${id}&${query}`,owner)).json()
+ const both=await summary('from=2026-03-09&to=2026-03-11'),tenth=await summary('from=2026-03-10&to=2026-03-11')
+ // The site ZIP: Plausible's file names and columns, every date, and sums equal to the dashboard's.
+ const html=await (await a.request(`/app/sites/${id}?section=report`,owner)).text(),href=html.match(/href="([^"]+)" data-site-zip/)[1].replaceAll('&amp;','&')
+ const zipped=await a.request(href,owner);assert.equal(zipped.status,200);assert.equal(zipped.headers.get('content-type'),'application/zip');assert.match(zipped.headers.get('content-disposition'),new RegExp(`attachment; filename="vane-${id}_20260309_20260310.zip"`))
+ const files=unzip(await zipped.arrayBuffer()),file=name=>csvRows(files[`imported_${name}_20260309_20260310.csv`])
+ assert.deepEqual(Object.keys(files).sort(),['browsers','custom_events','devices','entry_pages','exit_pages','operating_systems','pages','sources','visitors'].map(name=>`imported_${name}_20260309_20260310.csv`))
+ const visitors=file('visitors');assert.deepEqual(visitors.columns,['date','visitors','pageviews','bounces','visits','visit_duration']);assert.deepEqual(visitors.map(r=>r.date),['2026-03-09','2026-03-10'])
+ const total=field=>visitors.reduce((n,r)=>n+Number(r[field]),0)
+ assert.deepEqual([total('visitors'),total('visits'),total('pageviews'),Math.round(total('bounces')/total('visits')*1000)/10],[both.visitors,both.visits,both.pageviews,both.bounceRate])
+ const row10=visitors.find(r=>r.date==='2026-03-10');assert.deepEqual([+row10.visitors,+row10.visits,+row10.pageviews],[tenth.visitors,tenth.visits,tenth.pageviews])
+ const sources=file('sources');assert.deepEqual(sources.columns,['date','source','referrer','utm_source','utm_medium','utm_campaign','utm_content','utm_term','pageviews','visitors','visits','visit_duration','bounces'])
+ assert.deepEqual(Object.fromEntries(Object.entries(sumBy(sources,'source','visits')).map(([k,v])=>[k||'direct',v])),Object.fromEntries(both.sourceVisits.map(r=>[r.label,r.visits])))
+ assert.deepEqual(sumBy(file('devices'),'device','visits'),Object.fromEntries(both.deviceVisits.map(r=>[r.label,r.visits])))
+ assert.deepEqual(sumBy(file('entry_pages'),'entry_page','entrances'),Object.fromEntries(both.entryPages.map(r=>[r.path,r.visits])))
+ assert.deepEqual(sumBy(file('pages'),'page','pageviews'),Object.fromEntries(both.topPages.map(r=>[r.path,r.pageviews])))
+ assert.equal((await a.form({operation:'team.invite',email:'viewer@example.test',role:'viewer',scope:'chosen',[`site_${other}`]:'on'},a.owner)).status,303);const viewer=await a.accept('viewer@example.test')
+ assert.equal((await a.request(href,{headers:{cookie:viewer}})).status,403,'the ZIP follows the viewer\'s site scope')
+ // The Looker Studio connector, run as Apps Script against the Stats API with a site's Stats API key.
+ const key=(await (await a.form({operation:'apikey.create',kind:'stats',label:'Looker Studio',[`site_${id}`]:'on'},a.owner)).text()).match(/data-api-key>(vane_k_[0-9a-f]{64})</)[1]
+ const looker=appsScript(await readFile(new URL('../connectors/looker-studio/Code.gs',import.meta.url),'utf8'),async(url,options)=>{const u=new URL(url);assert.equal(u.origin,a.origin);const r=await a.request(u.pathname+u.search,{headers:{authorization:options.headers.Authorization}});return {status:r.status,body:await r.text()}});t.after(()=>looker.close())
+ assert.equal((await looker.call('getAuthType')).type,'KEY');assert.equal((await looker.call('setCredentials',{key:'nope'})).errorCode,'INVALID_CREDENTIALS');assert.equal((await looker.call('setCredentials',{key})).errorCode,'NONE');assert.equal(await looker.call('isAuthValid'),true)
+ assert.equal((await looker.call('getConfig')).dateRangeRequired,true);const schema=(await looker.call('getSchema')).schema;assert.ok(['channel','page','visitors','bounce_rate'].every(name=>schema.some(f=>f.name===name)))
+ const request={configParams:{origin:a.origin,site_id:id},dateRange:{startDate:'2026-03-10',endDate:'2026-03-10'}}
+ const byChannel=await looker.call('getData',{...request,fields:[{name:'channel'},{name:'visitors'},{name:'visits'},{name:'bounce_rate'}]})
+ assert.deepEqual(byChannel.schema.map(f=>f.name),['channel','visitors','visits','bounce_rate']);assert.deepEqual(byChannel.rows.map(r=>r.values),tenth.channels.map(r=>[r.label,r.visitors,r.visits,r.bounceRate===null?null:r.bounceRate/100]))
+ const totals=await looker.call('getData',{...request,dateRange:{startDate:'2026-03-09',endDate:'2026-03-10'},fields:[{name:'visitors'},{name:'pageviews'}]});assert.deepEqual(totals.rows,[{values:[both.visitors,both.pageviews]}])
+ assert.ok(looker.fetches.every(f=>new URL(f.url).pathname==='/api/v1/stats'&&f.options.headers.Authorization==='Bearer '+key))
+ // The published schema of the warehouse export.
+ const published=await (await a.request('/api/v1/export-schema.json')).json(),columns=name=>published.objects[name].columns.map(c=>c.name)
+ assert.ok(published.never.includes('visitor hash')&&!columns('events').includes('visitor'))
+ // Only the owner schedules an export, to a public https endpoint.
+ const admin=await a.invite('admin@example.test','admin'),input={operation:'export.save',siteId:id,endpoint:'https://acct.r2.fixture.example',bucket:'vane-export',region:'auto',prefix:'analytics',accessKeyId:'FIXTUREKEY0001',secretAccessKey:'fixture-secret-'+crypto.randomUUID(),from:'2026-03-09'}
+ assert.equal((await a.form(input,admin)).status,403)
+ for(const endpoint of ['http://acct.r2.fixture.example','https://127.0.0.1','https://10.0.0.5','https://192.168.1.4','https://169.254.169.254','https://localhost','https://[::1]','https://metadata.internal','https://printer.local','https://bucket'])assert.equal((await a.form({...input,endpoint},a.owner)).status,400,endpoint)
+ const objects={};let refuse=false
+ a.fixtureSites['https://acct.r2.fixture.example']=async request=>{
+  const u=new URL(request.url),body=await request.text(),auth=request.headers.get('authorization').match(/^AWS4-HMAC-SHA256 Credential=([^/]+)\/(\d{8})\/auto\/s3\/aws4_request, SignedHeaders=([^,]+), Signature=([0-9a-f]{64})$/)
+  // The fixture checks the Signature Version 4 itself, so a PUT signed without the owner's secret key is refused.
+  const headers={'content-type':request.headers.get('content-type'),host:u.host,'x-amz-content-sha256':request.headers.get('x-amz-content-sha256'),'x-amz-date':request.headers.get('x-amz-date')},hash=createHash('sha256').update(body).digest('hex')
+  const canonical=['PUT',u.pathname,'',...auth[3].split(';').map(name=>`${name}:${headers[name]}`),'',auth[3],hash].join('\n'),scope=`${auth[2]}/auto/s3/aws4_request`
+  let signing=createHmac('sha256','AWS4'+input.secretAccessKey).update(auth[2]).digest();for(const part of ['auto','s3','aws4_request'])signing=createHmac('sha256',signing).update(part).digest()
+  const valid=request.method==='PUT'&&auth[1]===input.accessKeyId&&headers['x-amz-content-sha256']===hash&&createHmac('sha256',signing).update(['AWS4-HMAC-SHA256',headers['x-amz-date'],scope,createHash('sha256').update(canonical).digest('hex')].join('\n')).digest('hex')===auth[4]
+  if(!valid||refuse)return new Response('<Error><Code>AccessDenied</Code></Error>',{status:403})
+  objects[decodeURIComponent(u.pathname)]=body;return new Response(null,{status:200})
+ }
+ assert.equal((await a.form(input,a.owner)).status,303)
+ const settings=await (await a.request(`/app/sites/${id}?section=settings`,owner)).text();assert.match(settings,/data-export-status>Daily export to <code>acct\.r2\.fixture\.example\/vane-export\/analytics\/vane\//)
+ assert.ok(!settings.includes(input.secretAccessKey)&&!JSON.stringify(await a.dump()).includes(input.secretAccessKey),'the key is sealed');assert.ok(!('vane_exports' in (await a.archive()).payload.tables),'the export and its key are left out of history archives')
+ assert.ok(!(await (await a.request(`/app/sites/${id}?section=settings`,{headers:{cookie:admin}})).text()).includes('value="export.save"'),'an admin sees no export form')
+ // The scheduled run after both dates end: two objects per date, the rollup equal to that date's dashboard.
+ const before=a.egress.length;await a.clock(Date.parse('2026-03-11T01:00:00Z'));await a.scheduled()
+ const prefix=`/vane-export/analytics/vane/${id}`
+ assert.deepEqual(Object.keys(objects).sort(),[`${prefix}/daily_rollups/2026-03-09.csv`,`${prefix}/daily_rollups/2026-03-10.csv`,`${prefix}/events/2026-03-09.csv`,`${prefix}/events/2026-03-10.csv`])
+ const rollup=csvRows(objects[`${prefix}/daily_rollups/2026-03-10.csv`]);assert.deepEqual(rollup.columns,columns('daily_rollups'))
+ assert.deepEqual(rollup.map(r=>[r.date,r.site_id,+r.visitors,+r.visits,+r.pageviews,+r.bounce_rate,+r.visit_duration]),[['2026-03-10',id,tenth.visitors,tenth.visits,tenth.pageviews,tenth.bounceRate,tenth.averageDuration]])
+ const dump=await a.dump(),events=csvRows(objects[`${prefix}/events/2026-03-10.csv`]);assert.deepEqual(events.columns,columns('events'))
+ assert.deepEqual(events.map(r=>r.id).sort(),dump.vane_events.filter(e=>e.site_id===id&&e.day==='2026-03-10').map(e=>e.id).sort())
+ for(const hash of new Set(dump.vane_events.map(e=>e.visitor).filter(Boolean)))assert.ok(Object.values(objects).every(text=>!text.includes(hash)),'no visitor hash leaves')
+ const runs=()=>a.dump().then(d=>d.vane_audit.filter(e=>e.action.startsWith('export.')&&e.action!=='export.configure').map(e=>[e.action,e.detail]))
+ assert.deepEqual((await runs()).map(([action,detail])=>[action,detail.match(/^(\S+): 1 rollup row and (\d+) event rows/)?.slice(1)]).sort(),[['export.run',['2026-03-09','3']],['export.run',['2026-03-10',String(events.length)]]])
+ await a.scheduled();assert.equal(Object.keys(objects).length,4,'each date is exported once')
+ // A refused upload is audited with no rows sent, keeps the date for later and holds the export back for an hour.
+ refuse=true;await a.clock(Date.parse('2026-03-12T01:00:00Z'));await a.scheduled();const sent=a.egress.length;await a.scheduled()
+ assert.equal(a.egress.length,sent,'held back after a refusal');assert.ok((await runs()).some(([action,detail])=>action==='export.fail'&&detail.startsWith('2026-03-11 refused: HTTP 403')&&detail.includes('0 rows sent')))
+ refuse=false;await a.clock(Date.parse('2026-03-12T02:01:00Z'));await a.scheduled();assert.ok(objects[`${prefix}/events/2026-03-11.csv`],'retried after an hour')
+ assert.ok(a.egress.slice(before).every(url=>url.startsWith('https://acct.r2.fixture.example/')),'the export talks only to the owner\'s bucket')
+})
+test('MOBILE-001 at 390 and 1440 px the site, approval, report and filter journeys complete by keyboard, every page passing an automated WCAG 2.2 AA scan with no horizontal scroll',async t=>{
+ const a=await withApp(t),axe=await readFile(createRequire(import.meta.url).resolve('axe-core'),'utf8'),{context}=await browse(t,a)
+ await context.addCookies(a.owner.split('; ').map(pair=>{const [name,...value]=pair.split('=');return {name,value:value.join('='),url:a.origin}}))
+ // Playwright does not route the request that follows a fulfilled redirect, so a form's 303 is followed as a navigation.
+ await context.route(a.origin+'/app/action',async route=>{const request=route.request(),response=await a.request('/app/action',{method:'POST',headers:request.headers(),body:request.postData()??undefined}),location=response.headers.get('location');if(response.status!==303||!location)return route.fulfill({status:response.status,headers:Object.fromEntries(response.headers),body:Buffer.from(await response.arrayBuffer())});return route.fulfill({status:200,contentType:'text/html',body:`<!doctype html><title>Redirecting</title><meta http-equiv="refresh" content="0;url=${location.replaceAll('&','&amp;').replaceAll('"','&quot;')}">`})})
+ const page=await context.newPage()
+ // Keyboard only: Tab moves focus until it reaches the control, then keys type into it and Enter submits.
+ const tabTo=async selector=>{for(let i=0;i<400;i++){await page.keyboard.press('Tab');if(await page.evaluate(s=>document.activeElement?.matches(s)??false,selector))return}assert.fail('Tab never reached '+selector)}
+ const submit=async url=>{await Promise.all([page.waitForURL(url),page.keyboard.press('Enter')]);await page.waitForLoadState()}
+ // The scan runs axe-core in the page (the page's own CSP stays on) for WCAG 2.0-2.2 A and AA.
+ const scanned=async label=>{
+  const violations=await page.evaluate(`${axe}\n;axe.run(document,{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21a','wcag21aa','wcag22aa']}}).then(r=>r.violations.map(v=>v.id+': '+v.nodes.map(n=>n.target.join(' ')).join(', ')))`)
+  assert.deepEqual(violations,[],label);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`${label} scrolls sideways`)
+ }
+ for(const width of [390,1440]){
+  await page.setViewportSize({width,height:900});const origin=`https://fern${width}.example`
+  // Site: the Add a site form, then its approval.
+  await page.goto(a.origin+'/app');await scanned(`${width} sites`)
+  await tabTo('input[name="name"]');await page.keyboard.type(`Fern ${width}`);await tabTo('input[name="origin"]');await page.keyboard.type(origin);await submit(/section=approvals/)
+  await scanned(`${width} approvals`)
+  await tabTo('form:has(input[value="proposal.approve"]) button[type="submit"]');await submit(/\/app\/sites\/[\w-]+\?/)
+  const id=(await a.dump()).vane_sites.find(s=>s.name===`Fern ${width}`)?.id;assert.ok(id,'the approved site exists')
+  for(const path of ['/','/pricing','/thanks'])assert.equal((await a.collect(a.event(id,{path,consent:'granted'}),origin)).status,202)
+  // Report: change the range from the keyboard.
+  await page.goto(`${a.origin}/app/sites/${id}?section=report`);await scanned(`${width} report`)
+  await tabTo('select[name="period"]');await page.keyboard.type('Last 30');assert.equal(await page.evaluate(()=>document.activeElement.value),'30d')
+  await tabTo('form:has(select[name="period"]) button[type="submit"]');await submit(/period=30d/);await scanned(`${width} report, last 30 days`)
+  // Filter: Page is /thanks.
+  await tabTo('select[name="filterDimension"]');await page.keyboard.type('Page');assert.equal(await page.evaluate(()=>document.activeElement.value),'page')
+  await tabTo('input[name="filterValue"]');await page.keyboard.type('/thanks');await submit(/filterValue=%2Fthanks|filter=page/)
+  assert.match(await page.locator('[data-active-filters]').textContent(),/\/thanks/);await scanned(`${width} filtered report`)
+  for(const section of ['settings','history','realtime']){await page.goto(`${a.origin}/app/sites/${id}?section=${section}`);await scanned(`${width} ${section}`)}
+  for(const section of ['team','api','audit']){await page.goto(`${a.origin}/app?section=${section}`);await scanned(`${width} ${section}`)}
+ }
+ await context.close()
+})
+test('API-004 an MCP client with a site-scoped Stats API key lists its sites and gets last week\'s top sources equal to the Stats API answer; another site, a missing or revoked key and a write tool without a grant are refused',async t=>{
+ const a=await withApp(t),id=await a.addSite({paths:[]}),other=await a.addSite({name:'Oak Store',origin:'https://oak.example'})
+ const now=Date.parse('2026-03-12T12:00:00Z')
+ for(const [n,first,day] of [[1,{referrer:'https://www.google.com/'},1],[2,{referrer:'https://www.google.com/'},2],[3,{campaign:'spring',utm:{source:'newsletter',medium:'email'}},3],[4,{referrer:'https://news.ycombinator.com/'},4],[5,{},5]]){await a.clock(now-day*86400000);assert.equal((await a.post('/api/vane/collect',a.event(id,{source:undefined,campaign:undefined,...first,path:'/'}),'',{origin:'https://fern.example','cf-connecting-ip':'203.0.113.'+n,'user-agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36'})).status,202)}
+ await a.clock(now)
+ const key=(await (await a.form({operation:'apikey.create',kind:'stats',label:'Assistant',[`site_${id}`]:'on'},a.owner)).text()).match(/data-api-key>(vane_k_[0-9a-f]{64})</)[1]
+ // A minimal MCP client over Streamable HTTP: initialize, the initialized notification, then requests with the negotiated version.
+ let version='',next=0
+ const send=(message,token=key)=>a.request('/api/v1/mcp',{method:'POST',headers:{'content-type':'application/json',accept:'application/json, text/event-stream',...(token?{authorization:'Bearer '+token}:{}),...(version?{'mcp-protocol-version':version}:{})},body:JSON.stringify(message)})
+ const rpc=async(method,params,token)=>{const id=++next,r=await send({jsonrpc:'2.0',id,method,params},token);assert.equal(r.status,200,await r.clone().text());const body=await r.json();assert.equal(body.id,id);return body}
+ const init=await rpc('initialize',{protocolVersion:'2025-06-18',capabilities:{},clientInfo:{name:'test-client',version:'1'}});assert.equal(init.result.protocolVersion,'2025-06-18');assert.ok(init.result.capabilities.tools);version=init.result.protocolVersion
+ assert.equal((await send({jsonrpc:'2.0',method:'notifications/initialized'})).status,202)
+ const tools=(await rpc('tools/list',{})).result.tools;assert.ok(['list_sites','query_stats','add_annotation'].every(name=>tools.some(tool=>tool.name===name)));assert.equal(tools.find(tool=>tool.name==='query_stats').annotations.readOnlyHint,true)
+ const listed=(await rpc('tools/call',{name:'list_sites',arguments:{}})).result;assert.deepEqual(listed.structuredContent.sites.map(s=>s.id),[id],'only the key\'s sites')
+ // Last week's top sources: the tool's answer is the Stats API's answer.
+ const asked=(await rpc('tools/call',{name:'query_stats',arguments:{site_id:id,period:'7d',dimension:'source',metrics:['visitors','visits']}})).result
+ const stats=await (await a.request(`/api/v1/stats?site_id=${id}&period=7d&dimension=source&metrics=visitors,visits`,{headers:{authorization:'Bearer '+key}})).json()
+ assert.equal(asked.isError,false);assert.deepEqual(asked.structuredContent,stats);assert.deepEqual(JSON.parse(asked.content[0].text),stats)
+ assert.deepEqual(Object.fromEntries(stats.breakdown.filter(r=>r.visits).map(r=>[r.value,r.visits])),{Google:2,newsletter:1,'Hacker News':1,direct:1})
+ // Another site and a write tool are refused, and the write changes nothing.
+ const foreign=(await rpc('tools/call',{name:'query_stats',arguments:{site_id:other,period:'7d'}})).result;assert.equal(foreign.isError,true);assert.equal(foreign.structuredContent.error,'forbidden')
+ const write=(await rpc('tools/call',{name:'add_annotation',arguments:{site_id:id,day:'2026-03-11',text:'Launch'}})).result;assert.equal(write.isError,true);assert.equal(write.structuredContent.error,'grant_required');assert.deepEqual((await a.dump()).vane_annotations,[])
+ assert.equal((await rpc('tools/call',{name:'drop_tables',arguments:{}})).error.code,-32602);assert.equal((await rpc('resources/list',{})).error.code,-32601)
+ // No key, a revoked key and an event-stream GET are refused.
+ const anonymous=await send({jsonrpc:'2.0',id:99,method:'tools/list'},null);assert.equal(anonymous.status,401);assert.equal(anonymous.headers.get('www-authenticate'),'Bearer')
+ assert.equal((await a.request('/api/v1/mcp',{headers:{authorization:'Bearer '+key,accept:'text/event-stream'}})).status,405)
+ assert.equal((await a.form({operation:'apikey.revoke',id:(await a.dump()).vane_api_keys[0].id},a.owner)).status,303);assert.equal((await send({jsonrpc:'2.0',id:100,method:'tools/list'})).status,401)
+})
+test('IMPORT-006 a page of PostHog $pageview events and a Simple Analytics CSV export page import only the day, path, source and campaign, resume without double counting, and keep no person, session, device or IP identifier',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({paths:[]})
+ const person='0191f2d0-person-7a1b',ip='198.51.100.23',pageview=(uuid,timestamp,url,extra={})=>({uuid,event:'$pageview',timestamp,distinct_id:person,properties:{$current_url:url,$pathname:new URL(url).pathname,$host:'fern.example',$ip:ip,$session_id:'0191f2d0-session',$device_id:'0191f2d0-device',$title:'Title of a PostHog page',token:'phc_projectkey',$browser:'Chrome',$referrer:'$direct',$referring_domain:'$direct',...extra}})
+ const page={next:null,results:[
+  pageview('0191f2d0-0001-7000-8000-000000000001','2024-03-10T10:00:00.123000+00:00','https://fern.example/?utm_source=newsletter&utm_campaign=spring',{utm_source:'newsletter',utm_campaign:'spring'}),
+  pageview('0191f2d0-0002-7000-8000-000000000002','2024-03-10T10:05:00+00:00','https://fern.example/pricing',{$referrer:'https://www.google.com/search?q=fern',$referring_domain:'www.google.com'}),
+  pageview('0191f2d0-0003-7000-8000-000000000003','2024-03-11T09:00:00Z','https://fern.example/thanks'),
+ ]}
+ const {preview}=await movein(a,id,page)
+ assert.deepEqual(preview.normalized.map(e=>[e.day,e.path,e.source,e.campaign]).sort(),[['2024-03-10','/','newsletter','spring'],['2024-03-10','/pricing','www.google.com','none'],['2024-03-11','/thanks','direct','none']])
+ assert.deepEqual([preview.discarded.sessionIds,preview.discarded.pageTitles,preview.discarded.websiteIds,preview.discarded.sourceEventIds,preview.discarded.rawQueries,preview.discarded.referrerPaths],[9,3,3,3,1,1])
+ const totals=async()=>(await (await a.request(`/api/vane/summary?siteId=${id}&from=2024-03-10&to=2024-03-12`,owner)).json()).pageviews
+ assert.equal(await totals(),3)
+ // The same page again resumes its job: nothing counts twice.
+ await movein(a,id,page);assert.equal(await totals(),3)
+ const stored=JSON.stringify(await a.dump());for(const value of [person,ip,'0191f2d0-session','0191f2d0-device','phc_projectkey','Title of a PostHog page','0191f2d0-0001-7000-8000-000000000001','utm_source=newsletter'])assert.ok(!stored.includes(value),value)
+ // Anything but a $pageview, or a page without events, is refused before custody.
+ const refused=await a.post('/api/vane/import-preview',{siteId:id,document:{results:[{...page.results[0],event:'$autocapture'}]}},a.owner);assert.equal(refused.status,400);assert.match(await refused.text(),/ROW_1_UNSUPPORTED_EVENT_TYPE/)
+ assert.equal((await a.post('/api/vane/import-preview',{siteId:id,document:{results:[]}},a.owner)).status,400)
+ // A Simple Analytics data-point export page (CSV): the same four fields are kept, the session ID and the rest are not.
+ const csv='added_iso,path,uuid,session_id,hostname,referrer_hostname,referrer_path,utm_source,utm_campaign,query,browser_name,country_code,is_unique\r\n'+
+  '2024-03-12T08:00:00.000Z,/,sa-0001,sa-session-77,fern.example,news.ycombinator.com,/item,,,,Firefox,NL,true\r\n'+
+  '2024-03-12T08:05:00.000Z,/pricing,sa-0002,sa-session-77,fern.example,,,newsletter,"spring, launch",ref=x,Firefox,NL,false\r\n'
+ const simple=(await movein(a,id,csv)).preview
+ assert.deepEqual(simple.normalized.map(e=>[e.day,e.path,e.source,e.campaign]).sort(),[['2024-03-12','/','news.ycombinator.com','none'],['2024-03-12','/pricing','newsletter','spring, launch']])
+ assert.deepEqual([simple.discarded.sessionIds,simple.discarded.rawQueries,simple.discarded.referrerPaths],[2,1,1])
+ assert.equal((await (await a.request(`/api/vane/summary?siteId=${id}&from=2024-03-12&to=2024-03-13`,owner)).json()).pageviews,2)
+ await movein(a,id,csv);assert.equal((await (await a.request(`/api/vane/summary?siteId=${id}&from=2024-03-12&to=2024-03-13`,owner)).json()).pageviews,2,'resumes without double counting')
+ const after=JSON.stringify(await a.dump());for(const value of ['sa-session-77','sa-0001','ref=x'])assert.ok(!after.includes(value),value)
+})
+test('INSTALL-008 a server sends pageviews and a custom event with its site token, a repeated Idempotency-Key counts once, a token for another site is refused, and no raw IP or user agent is stored',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({paths:[]}),other=await a.addSite({name:'Oak Store',origin:'https://oak.example'})
+ await a.clock(Date.parse('2026-03-10T15:00:00Z'))
+ const token=async site=>(await (await a.form({operation:'apikey.create',kind:'events',label:'Backend '+site.slice(0,4),[`site_${site}`]:'on'},a.owner)).text()).match(/data-api-key>(vane_e_[0-9a-f]{64})</)[1]
+ assert.equal((await a.form({operation:'apikey.create',kind:'events',label:'Both',[`site_${id}`]:'on',[`site_${other}`]:'on'},a.owner)).status,400,'an events token covers one site')
+ const mine=await token(id),theirs=await token(other)
+ const send=(body,key=mine,extra={})=>a.request('/api/v1/events',{method:'POST',headers:{'content-type':'application/json',...(key?{authorization:'Bearer '+key}:{}),...extra},body:JSON.stringify(body)})
+ const chrome='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',iphone='Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1'
+ const page=(path,ip,agent,extra={})=>({type:'pageview',id:crypto.randomUUID(),path,consent:'not-required',client_ip:ip,user_agent:agent,...extra})
+ const first=page('/','203.0.113.9',chrome,{referrer:'https://www.google.com/',props:{plan:'pro'}})
+ const one=await send(first);assert.equal(one.status,200,await one.clone().text());assert.deepEqual((await one.json()).results.map(r=>r.status),[202])
+ const signup=await send({type:'event',id:crypto.randomUUID(),page:first.id,name:'Signup',consent:'not-required',client_ip:'203.0.113.9',user_agent:chrome});assert.deepEqual((await signup.json()).results.map(r=>r.status),[202])
+ // A batch with an Idempotency-Key, sent twice: the second answer repeats the first, and nothing counts twice.
+ const batch={events:[page('/pricing','203.0.113.9',chrome),page('/','198.51.100.4',iphone)]}
+ const sent=await (await send(batch,mine,{'idempotency-key':'order-1001'})).json(),again=await (await send(batch,mine,{'idempotency-key':'order-1001'})).json()
+ assert.equal(sent.accepted,2);assert.equal(again.duplicate,true);assert.deepEqual(again.results,sent.results)
+ assert.equal((await (await send(first)).json()).results[0].duplicate,true,'a repeated event ID is admitted once')
+ const summary=await (await a.request(`/api/vane/summary?siteId=${id}&period=today`,owner)).json()
+ assert.deepEqual([summary.pageviews,summary.visitors],[3,2],'two visitors from their client IP and user agent');assert.deepEqual(summary.sourceVisits.find(r=>r.label==='Google')?.visits,1)
+ const dump=await a.dump(),events=dump.vane_events.filter(e=>e.site_id===id)
+ assert.deepEqual(events.map(e=>e.browser).sort(),['Chrome','Chrome','Safari']);assert.equal(dump.vane_custom_events.filter(e=>e.site_id===id).length,1)
+ const stored=JSON.stringify(dump);for(const value of ['203.0.113.9','198.51.100.4',chrome,iphone,'order-1001',mine])assert.ok(!stored.includes(value),value)
+ // A token for another site, a Stats API key, no token and a missing client address are refused.
+ assert.equal((await send({...page('/','203.0.113.9',chrome),siteId:id},theirs)).status,403)
+ const stats=(await (await a.form({operation:'apikey.create',kind:'stats',label:'Read',[`site_${id}`]:'on'},a.owner)).text()).match(/data-api-key>(vane_k_[0-9a-f]{64})</)[1]
+ assert.equal((await send(page('/','203.0.113.9',chrome),stats)).status,403);assert.equal((await send(page('/','203.0.113.9',chrome),null)).status,401)
+ assert.equal((await send({...page('/','203.0.113.9',chrome),client_ip:undefined})).status,400)
+ assert.equal((await (await a.request(`/api/vane/summary?siteId=${other}&period=today`,owner)).json()).pageviews,0)
+ const openapi=await (await a.request('/api/v1/openapi.json')).json();assert.ok(openapi.paths['/api/v1/events']&&openapi['x-event-limits'].events.events>0)
+})
+test('PRIVACY-003 each consent manager adapter and Google Consent Mode decide collection where the site\'s regions require consent: denied then granted from California, Germany and Texas, an unknown country fails closed, and the server holds the same rule',async t=>{
+ const a=await withApp(t),states={
+  onetrust:g=>`window.OnetrustActiveGroups=',C0001,${g?'C0002,':''}'`,cookiebot:g=>`window.Cookiebot={hasResponse:true,consent:{statistics:${g}}}`,termly:g=>`window.Termly={getConsentState:()=>({analytics:${g}})}`,
+  osano:g=>`window.Osano={cm:{getConsent:()=>({ANALYTICS:'${g?'ACCEPT':'DENY'}'})}}`,iubenda:g=>`window._iub={cs:{api:{getPreferences:()=>({purposes:{1:true,4:${g}}})}}}`,cookieyes:g=>`window.getCkyConsent=()=>({isUserActionCompleted:true,categories:{analytics:${g}}})`}
+ const regions=['EU','UK','US-CA'],sites={}
+ for(const adapter of [...Object.keys(states),'consent-mode'])sites[adapter]=await a.addSite({name:'Fern '+adapter,origin:`https://${adapter}.fern.example`,paths:[],consent:'required',declinedCounter:true,consentRegions:regions,...(adapter==='consent-mode'?{}:{consentAdapter:adapter})})
+ const pages={},page=(adapter,script)=>{const url=`https://${adapter}.fern.example/p${Object.keys(pages).length}`;pages[url]=`<!doctype html><title>Fixture</title><script>${script}</script><script src="${a.origin}/vane.js" data-site="${sites[adapter]}"></script>`;return url}
+ const {context}=await browse(t,a,pages);let where={}
+ // The visitor's location arrives as Cloudflare's request fields, as the edge sets them.
+ await context.route(a.origin+'/**',async route=>{const request=route.request(),url=new URL(request.url()),response=await a.request(url.pathname+url.search,{method:request.method(),headers:request.headers(),body:request.postData()??undefined,cf:where});return route.fulfill({status:response.status,headers:Object.fromEntries(response.headers),body:Buffer.from(await response.arrayBuffer())})})
+ const tab=await context.newPage()
+ // One page load: the script either collects it or sends only the declined-consent count.
+ const outcome=async(url,location)=>{where=location;const done=tab.waitForResponse(r=>/\/api\/vane\/(collect|declined\/)/.test(new URL(r.url()).pathname));await tab.goto(url);const r=await done;return new URL(r.url()).pathname==='/api/vane/collect'?[r.status(),JSON.parse(r.request().postData()).consent]:'declined'}
+ const california={country:'US',regionCode:'CA'},germany={country:'DE',regionCode:'BE'},texas={country:'US',regionCode:'TX'}
+ for(const adapter of Object.keys(states))for(const [location,required] of [[california,true],[germany,true],[texas,false]]){
+  assert.deepEqual(await outcome(page(adapter,states[adapter](false)),location),required?'declined':[202,'not-required'],`${adapter} denied in ${location.regionCode}`)
+  assert.deepEqual(await outcome(page(adapter,states[adapter](true)),location),required?[202,'granted']:[202,'not-required'],`${adapter} granted in ${location.regionCode}`)
+ }
+ // Google Consent Mode v2: the last analytics_storage default or update decides; window.vaneConsent comes first.
+ const gtag=`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('consent','default',{analytics_storage:'denied',ad_storage:'denied'});`
+ assert.equal(await outcome(page('consent-mode',gtag),germany),'declined')
+ assert.deepEqual(await outcome(page('consent-mode',gtag+`gtag('consent','update',{analytics_storage:'granted'})`),germany),[202,'granted'])
+ assert.equal(await outcome(page('cookiebot','window.vaneConsent=false;'+states.cookiebot(true)),germany),'declined','window.vaneConsent comes first')
+ assert.equal(await outcome(page('onetrust',states.onetrust(false)),{country:'XX'}),'declined','an unknown country (Cloudflare\'s XX) is asked for consent')
+ // The configuration door says only whether consent is needed, and collection enforces the same rule.
+ where=texas;const config=await (await a.request(`/api/vane/config/${sites.osano}`,{headers:{origin:'https://osano.fern.example'},cf:texas})).json();assert.equal(config.consent,'not-required');assert.equal(config.consentAdapter,'osano');assert.ok(!JSON.stringify(config).includes('US'))
+ const direct=(cf,consent)=>a.request('/api/vane/collect',{method:'POST',headers:{origin:'https://osano.fern.example','content-type':'application/json','user-agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36'},body:JSON.stringify(a.event(sites.osano,{consent})),cf})
+ assert.equal((await direct(germany,'not-required')).status,403);assert.equal((await direct(texas,'not-required')).status,202);assert.equal((await direct(germany,'granted')).status,202)
+ assert.ok(!JSON.stringify((await a.dump()).vane_events).match(/"(DE|BE|TX)"/),'no region is stored')
+ await context.close()
+})
+test('API-003 a signed webhook receives a goal burst as per-minute counts once each after a failed first delivery is retried, and the delivery log shows the failure and the success',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({paths:[],goals:{signup:'/thanks'}}),T=Date.parse('2026-03-10T10:00:00Z')
+ const add=(body,cookie=a.owner)=>a.form({operation:'webhook.create',siteId:id,url:'https://hooks.fixture.example/vane','event_goal.conversions':'on',...body},cookie)
+ assert.equal((await add({url:'http://hooks.fixture.example/vane'})).status,400);assert.equal((await add({url:'https://10.1.2.3/vane'})).status,400)
+ assert.equal((await a.form({operation:'team.invite',email:'viewer@example.test',role:'viewer',scope:'all'},a.owner)).status,303);assert.equal((await add({},await a.accept('viewer@example.test'))).status,403)
+ await a.clock(T);const made=await add({});assert.equal(made.status,200);const secret=(await made.text()).match(/data-webhook-secret>(vane_wh_[0-9a-f]{64})</)[1]
+ assert.ok(!(await (await a.request(`/app/sites/${id}?section=settings`,owner)).text()).includes(secret),'shown once');assert.ok(!JSON.stringify(await a.dump()).includes(secret),'sealed')
+ const received=[];let fail=1
+ a.fixtureSites['https://hooks.fixture.example']=async request=>{const body=await request.text(),[,ts,v1]=request.headers.get('vane-signature').match(/^t=(\d+),v1=([0-9a-f]{64})$/);received.push({delivery:request.headers.get('vane-delivery'),event:request.headers.get('vane-event'),body:JSON.parse(body),valid:createHmac('sha256',secret).update(`${ts}.${body}`).digest('hex')===v1});return new Response(null,{status:fail-->0?500:204})}
+ // A burst: three signups in the 10:00 minute and one in 10:01.
+ const load=async(at,n)=>{await a.clock(at);assert.equal((await a.post('/api/vane/collect',a.event(id,{path:'/thanks'}),'',{origin:'https://fern.example','cf-connecting-ip':'203.0.113.'+n,'user-agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36'})).status,202)}
+ for(const [n,s] of [[1,5],[2,20],[3,40],[4,90]])await load(T+s*1000,n)
+ await a.clock(T+125000);await a.scheduled()
+ assert.equal(received.length,2);assert.ok(received.every(r=>r.valid&&r.event==='goal.conversions'))
+ await a.scheduled();assert.equal(received.length,2,'a failed delivery waits a minute before its retry')
+ await a.clock(T+125000+61000);await a.scheduled();assert.equal(received.length,3)
+ const failed=received[0].delivery;assert.equal(received[2].delivery,failed,'the retry carries the same delivery ID')
+ const delivered=received.slice(1);assert.deepEqual(delivered.map(r=>[r.body.minute,r.body.goal,r.body.count]).sort(),[['2026-03-10T10:00:00.000Z','signup',3],['2026-03-10T10:01:00.000Z','signup',1]])
+ assert.ok(received.every(r=>Object.keys(r.body).sort().join()===['count','event','goal','minute','site_id'].join()),'counts only, never per person')
+ await a.clock(T+600000);await a.scheduled();assert.equal(received.length,3,'each delivery succeeds once')
+ const log=await (await a.request(`/app/sites/${id}?section=settings`,owner)).text();assert.match(log,/<td class="vane-number">500<\/td><td>HTTP 500; retry in 1 min<\/td>/);assert.equal((log.match(/<td>delivered<\/td>/g)??[]).length,2)
+ assert.ok(a.egress.every(url=>url.startsWith('https://hooks.fixture.example/')||url.includes('resend')),'deliveries go only to the endpoint')
+ const hook=(await a.dump()).vane_webhooks[0].id;assert.equal((await a.form({operation:'webhook.delete',id:hook},a.owner)).status,303);assert.ok((await a.dump()).vane_audit.some(e=>e.action==='webhook.delete'))
+})
+test('REPORT-001 two weekly subscribers get the Monday 8:00 New York report once each across a daylight-saving change with the dashboard\'s figures, one-click unsubscribe stops it, temporary failures retry after 15 minutes and 2 hours, four failures show as failed, and a rejected message is not retried',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({paths:[],timeZone:'America/New_York',goals:{signup:'/thanks'}})
+ for(const [n,at,path] of [[1,'2026-02-24T15:00:00Z','/'],[2,'2026-02-25T16:00:00Z','/pricing'],[2,'2026-02-25T16:02:00Z','/thanks'],[3,'2026-02-27T18:00:00Z','/'],[4,'2026-03-04T15:00:00Z','/']]){await a.clock(Date.parse(at));assert.equal((await a.post('/api/vane/collect',a.event(id,{path}),'',{origin:'https://fern.example','cf-connecting-ip':'203.0.113.'+n,'user-agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36'})).status,202)}
+ // The mail provider's edge: each address gets the statuses queued for it, then 200.
+ const mails=[],plan={'retry@client.example':[500,500],'down@client.example':[500,500,500,500],'gone@client.example':[422]}
+ a.fixtureSites['https://api.resend.com']=async request=>{const body=await request.json(),to=body.to[0];if(!/ report, /.test(body.subject)){a.sentMail.push(body);return Response.json({id:crypto.randomUUID()})}const status=plan[to]?.shift()??200;mails.push({to,subject:body.subject,text:body.text,key:request.headers.get('idempotency-key'),status});return status===200?Response.json({id:crypto.randomUUID()}):Response.json({message:'refused'},{status})}
+ const subscribe=body=>a.form({operation:'report.subscribe',siteId:id,frequency:'weekly',weekday:'1',hour:'8',...body},a.owner),at=async iso=>{await a.clock(Date.parse(iso));await a.scheduled()},to=address=>mails.filter(m=>m.to===address)
+ await a.clock(Date.parse('2026-02-27T20:00:00Z'));assert.equal((await subscribe({})).status,303);assert.equal((await subscribe({email:'cfo@client.example'})).status,303)
+ assert.equal((await a.form({operation:'team.invite',email:'viewer@example.test',role:'viewer',scope:'all'},a.owner)).status,303)
+ // Monday 2 March, 8:00 EST is 13:00 UTC.
+ await at('2026-03-02T12:58:00Z');assert.equal(mails.length,0,'not before the local hour')
+ await at('2026-03-02T13:01:00Z');assert.deepEqual(mails.map(m=>m.to).sort(),['cfo@client.example','owner@example.test'])
+ const week=await (await a.request(`/api/vane/summary?siteId=${id}&from=2026-02-23&to=2026-03-02&compare=previous`,owner)).json()
+ for(const m of mails){assert.match(m.subject,/weekly report, 2026-02-23 to 2026-03-01/);for(const line of [`Visitors: ${week.visitors}`,`Visits: ${week.visits}`,`Pageviews: ${week.pageviews}`,`Goal conversions: ${week.goals}`,'- /pricing: 1 pageviews','Unsubscribe with one click: '])assert.ok(m.text.includes(line),line)}
+ await at('2026-03-02T13:06:00Z');await at('2026-03-03T13:01:00Z');await at('2026-03-07T13:01:00Z');assert.equal(mails.length,2,'once each, and on no other day')
+ // After the change to daylight time (8 March), 8:00 EDT is 12:00 UTC.
+ await at('2026-03-09T11:58:00Z');assert.equal(mails.length,2);await at('2026-03-09T12:01:00Z');assert.equal(mails.length,4);assert.ok(mails.slice(2).every(m=>/2026-03-02 to 2026-03-08/.test(m.subject)))
+ const link=new URL(to('cfo@client.example').at(-1).text.match(/Unsubscribe with one click: (\S+)/)[1]);assert.equal((await a.request(link.pathname)).status,200);assert.equal((await a.request(link.pathname)).status,404)
+ await at('2026-03-16T12:01:00Z');assert.deepEqual(mails.slice(4).map(m=>m.to),['owner@example.test'],'unsubscribed recipients get no more')
+ // Daily reports at 6:00 (10:00 UTC): temporary failures retry after 15 minutes and 2 hours with the same delivery ID.
+ for(const email of ['retry@client.example','down@client.example','gone@client.example'])assert.equal((await subscribe({email,frequency:'daily',hour:'6'})).status,303)
+ await at('2026-03-17T10:01:00Z');await at('2026-03-17T10:17:00Z');await at('2026-03-17T12:16:00Z');assert.equal(to('retry@client.example').length,2,'the third attempt waits 2 hours');await at('2026-03-17T12:18:00Z')
+ assert.deepEqual(to('retry@client.example').map(m=>m.status),[500,500,200]);assert.equal(new Set(to('retry@client.example').map(m=>m.key)).size,1,'one delivery ID across attempts')
+ assert.deepEqual(to('gone@client.example').map(m=>m.status),[422],'a rejected message is not retried')
+ await at('2026-03-18T00:17:00Z');assert.equal(to('down@client.example').length,3,'the fourth attempt waits 12 hours');await at('2026-03-18T00:19:00Z');assert.deepEqual(to('down@client.example').map(m=>m.status),[500,500,500,500])
+ const sends=await (await a.request(`/app/sites/${id}?section=settings`,owner)).text()
+ assert.match(sends,/<td>down@client\.example<\/td><td>2026-03-16 to 2026-03-17 \(end exclusive\)<\/td><td>failed<\/td><td class="vane-number">4<\/td><td>temporary failure \(uncertain\) on all 4 attempts<\/td>/)
+ assert.match(sends,/<td>gone@client\.example<\/td><td>[^<]*<\/td><td>failed<\/td><td class="vane-number">1<\/td><td>rejected by the mail provider[^<]*; not retried<\/td>/)
+ assert.match(sends,/<td>retry@client\.example<\/td><td>[^<]*<\/td><td>sent<\/td><td class="vane-number">3<\/td>/)
+ // Only the owner adds an external recipient; a viewer subscribes their own address.
+ const viewer=await a.accept('viewer@example.test');assert.equal((await a.form({operation:'report.subscribe',siteId:id,frequency:'weekly',weekday:'1',hour:'8',email:'someone@client.example'},viewer)).status,403);assert.equal((await a.form({operation:'report.subscribe',siteId:id,frequency:'monthly',weekday:'1',hour:'8'},viewer)).status,303)
+ assert.ok(!JSON.stringify(await a.dump()).includes(link.pathname.split('/').pop()),'only the unsubscribe token\'s hash is kept')
 })

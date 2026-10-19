@@ -30,8 +30,8 @@ function walk(funnel:Funnel,all:Load[][]) {
  for(const loads of all){let index=-1,previous=0;for(const [k,step] of funnel.steps.entries()){const i=loads.findIndex((load,j)=>(j>index||step.startsWith('event:')&&k>0&&j===index)&&matches(step,load));if(i<0)break;reached[k]!++;if(k)gaps[k]!.push(loads[i]!.at-previous);pages[k]!.set(loads[i]!.path,(pages[k]!.get(loads[i]!.path)??0)+1);index=i;previous=loads[i]!.at}}
  return {reached,gaps,pages}
 }
-export async function funnelReport(env:Env,scope:string,range:{from:string,to:string},compared:{from:string,to:string},events:string,funnels:Funnel[]) {
+export async function funnelReport(env:Env,scope:string,range:{from:string,to:string},compared:{from:string,to:string},events:string,funnels:Funnel[],comparedEvents=events) {
  if(!funnels.length)return []
- const [now,then]=await Promise.all([visits(env,scope,range.from,range.to,events),visits(env,scope,compared.from,compared.to,events)])
+ const [now,then]=await Promise.all([visits(env,scope,range.from,range.to,events),visits(env,scope,compared.from,compared.to,comparedEvents)])
  return funnels.map(funnel=>{const a=walk(funnel,now),b=walk(funnel,then);return {name:funnel.name,entrants:a.reached[0]!,steps:funnel.steps.map((step,k)=>({step:k+1,label:step,visits:a.reached[k]!,previous:b.reached[k]!,conversionRate:share(a.reached[k]!,a.reached[0]!),stepRate:k?share(a.reached[k]!,a.reached[k-1]!):null,dropOff:k<funnel.steps.length-1?a.reached[k]!-a.reached[k+1]!:null,medianSeconds:k?median(a.gaps[k]!):null,journey:[...a.pages[k]!.entries()].sort((x,y)=>y[1]-x[1]||x[0].localeCompare(y[0]))[0]?.[0]??null}))}})
 }

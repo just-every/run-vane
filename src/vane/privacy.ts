@@ -1,4 +1,5 @@
 import { cleanRates } from './revenue'
+import { cleanConsent } from './consent'
 import { cleanExperiments } from './experiments'
 import { cleanDefinitions, cleanVisitTimeout, DEFAULT_VISIT_TIMEOUT } from './definitions'
 import { cleanExcludedCountries, cleanExcludedIps } from './traffic'
@@ -33,6 +34,8 @@ export function cleanConfig(input:any):Config {
  insist(names.length<=20&&new Set(names).size===names.length&&names.every(name=>/^[a-z][a-z0-9-]{0,39}$/.test(name)&&name!=='pageview')&&[...Object.values(goals),...Object.values(scrollGoals).map(goal=>goal.path)].every(goal=>/^(?:[a-z0-9-]+(?:\.[a-z0-9-]+)+)?\/[a-z0-9_\-/*]{0,119}$/.test(goal)&&(paths.length===0||paths.some(allowed=>goalMatches(goalPath(goal),allowed))))&&Object.values(scrollGoals).every(goal=>goal.depth>=1&&goal.depth<=100),'goals','Use goal-name=/path or a pattern such as /thanks/* (one segment) or /blog/** (any depth) that matches an included path, or add @75 for a scroll depth, and prefix a hostname (blog.example.com/thanks) to count it on that hostname only; one per line.');
  const consent=input.consent??'required',sampleRate=Number(input.sampleRate??100),retention=retentionConfig(input);
  insist(['required','not-required'].includes(consent),'consent','Choose an explicit consent mode.');
+ // PRIVACY-003: regions that require consent and the consent manager the script reads.
+ const consentRules=cleanConsent(input,consent);
  insist([10,25,50,100].includes(sampleRate),'sample_rate','Choose 10, 25, 50 or 100 percent.');
  const signalCounter=input.signalCounter===true||input.signalCounter==='on',declinedCounter=input.declinedCounter===true||input.declinedCounter==='on',timeZone=String(input.timeZone||'UTC').trim();
  const searchParam=String(input.searchParam??'').trim();
@@ -61,6 +64,6 @@ export function cleanConfig(input:any):Config {
  const eventDefinitions=cleanEventDefinitions(input.eventDefinitions);
  // COLLECT-003: the owner's excluded IP addresses or ranges and countries.
  const excludeIps=cleanExcludedIps(input.excludeIps),excludeCountries=cleanExcludedCountries(input.excludeCountries);
- return {...(eventDefinitions.length?{eventDefinitions}:{}),paths,...(excludePaths.length?{excludePaths}:{}),...(rewrites.length?{rewrites}:{}),...(queryKeys.length?{queryKeys}:{}),...(sourceRules.length?{sourceRules}:{}),...(declinedCounter?{declinedCounter}:{}),goals,scrollGoals,consent,sampleRate,...retention,signalCounter,timeZone,currency,...(rates.length?{rates}:{}),...(origins.length?{origins}:{}),...(searchParam?{searchParam}:{}),...(publicReports.length?{publicReports,publicIndexing}:{}),...(autoEvents.length?{autoEvents}:{}),...(visitTimeout!==DEFAULT_VISIT_TIMEOUT?{visitTimeout}:{}),...(definitions.length?{definitions}:{}),...(excludeIps.length?{excludeIps}:{}),...(excludeCountries.length?{excludeCountries}:{}),...(funnels.length?{funnels}:{}),...(experiments.length?{experiments}:{})};
+ return {...(eventDefinitions.length?{eventDefinitions}:{}),paths,...(excludePaths.length?{excludePaths}:{}),...(rewrites.length?{rewrites}:{}),...(queryKeys.length?{queryKeys}:{}),...(sourceRules.length?{sourceRules}:{}),...(declinedCounter?{declinedCounter}:{}),goals,scrollGoals,consent,...consentRules,sampleRate,...retention,signalCounter,timeZone,currency,...(rates.length?{rates}:{}),...(origins.length?{origins}:{}),...(searchParam?{searchParam}:{}),...(publicReports.length?{publicReports,publicIndexing}:{}),...(autoEvents.length?{autoEvents}:{}),...(visitTimeout!==DEFAULT_VISIT_TIMEOUT?{visitTimeout}:{}),...(definitions.length?{definitions}:{}),...(excludeIps.length?{excludeIps}:{}),...(excludeCountries.length?{excludeCountries}:{}),...(funnels.length?{funnels}:{}),...(experiments.length?{experiments}:{})};
 }
 export function cleanSite(input:any) { const name=String(input.name??'').trim(); insist(name.length>0&&name.length<=80&&!/[<>@]/.test(name),'name','Enter a short site name, without personal details.'); const origin=browserOrigin(input.origin),config=cleanConfig(input.config??input); insist(!config.origins?.includes(origin),'origins','Extra origins must differ from the website origin.'); return {name,origin,config} }

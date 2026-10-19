@@ -1,4 +1,5 @@
 import { insist, site, siteOrigin, statement, VaneError, type Env } from './core'
+import { consentAccepted } from './consent'
 import { clock } from './clock'
 import { excludedTraffic } from './traffic'
 import { cleanProps, droppedStatement, eventName, propStatements } from './properties'
@@ -20,7 +21,7 @@ export async function customEventResponse(request:Request,env:Env):Promise<Respo
   const payload=JSON.parse(text),value=await site(env,String(payload?.siteId));
   const origin=siteOrigin(value,request);cors={...cors,'access-control-allow-origin':origin};
   insist(Object.keys(payload).every(key=>['id','siteId','page','name','props','items','currency','revenue','consent'].includes(key))&&/^[a-f0-9-]{36}$/.test(payload.id)&&/^[a-f0-9-]{36}$/.test(payload.page),'fields','Only the declared custom-event fields are accepted.');
-  insist(payload.consent===(value.config.consent==='required'?'granted':'not-required'),'consent','Consent is required for collection.',403);
+  insist(consentAccepted(value.config,request,payload.consent),'consent','Consent is required for collection.',403);
   const excluded=excludedTraffic(request,value.config,null);insist(!excluded,'excluded',`This traffic is excluded from collection (${excluded}).`,403);
   const name=eventName(payload.name),props=cleanProps(payload.props),{lines,currency}=cleanLines(name,payload.items,payload.currency),revenue=cleanRevenue(payload.revenue)??(name==='Purchase'&&lines.length?{micros:lines.reduce((n,l)=>n+l.quantity*l.priceMinor,0)*MICROS/10**minorDigits(currency!),currency:currency!}:null),id=value.id+':'+payload.id,pageId=value.id+':'+payload.page;
   const page=await env.DB.prepare("SELECT day FROM vane_events WHERE id=? AND kind='pageview' AND site_id=?").bind(pageId,value.id).first<{day:string}>();

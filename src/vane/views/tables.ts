@@ -11,7 +11,7 @@ export const decimal = (value: unknown) => value === null || value === undefined
 export const percent = (value: unknown) => value === null || value === undefined ? '—' : `${Number(value).toFixed(1)}%`
 export const duration = (value: unknown) => value === null || value === undefined ? '—' : `${Math.floor(Number(value) / 60)}m ${String(Number(value) % 60).padStart(2, '0')}s`
 // METRIC-004: every metric links to its definition on the public methodology page.
-export const definition = (anchor: string) => ` <a href="/methodology#${anchor}" data-definition="${anchor}">Definition</a>`
+export const definition = (anchor: string, text = 'Definition') => ` <a href="/methodology#${anchor}" data-definition="${anchor}">${escape(text)}</a>`
 export const tile = (title: string, value: string, help: string, anchor = '') => `<section class="vane-panel"><h2>${escape(title)}</h2><p class="vane-metric">${escape(value)}</p><p class="vane-help">${escape(help)}${anchor ? definition(anchor) : ''}</p></section>`
 
 // DASH-012: site search, shown when the owner names a search parameter.

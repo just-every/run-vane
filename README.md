@@ -75,7 +75,10 @@ per site per UTC day.
 ## Import, undo and portability
 
 The first move-in kit accepts **Umami v2 Events API** JSON pages. Read
-[the documented shape and limits](docs/umami-import.md). In a site's **History**,
+[the documented shape and limits](docs/umami-import.md). It also accepts a page of
+PostHog `$pageview` events as PostHog's events API returns them (`{"results": [...]}`,
+up to 500), and a page of Simple Analytics' data-point CSV export (with at least `added_iso`,
+`path` and `uuid`), keeping only each event's UTC day, path, source and campaign. In a site's **History**,
 upload, **Preview import**, inspect, then **Apply import**. Preview writes
 nothing. Apply records the owner, fingerprint and Base import-kit journal.
 Repeat the same reviewed page if processing remains. **Undo import** removes
@@ -113,6 +116,30 @@ The owner can **Prepare history erasure**, then approve the permanent deletion.
 **Apply retention** erases events older than the configured window: 30, 90 or 365 days, 13 or 25 months, or never on a keep-forever site.
 Retention is manual in this release. Repeat until imported rows are processed.
 Deletion retires affected import custody and records a deletion fence.
+
+## Exports and Looker Studio
+
+Every report table downloads as CSV, and **Whole site as a ZIP of CSVs** on a report gives every date in the layout of Plausible's export. In a site's settings the owner can schedule a daily export to their own Amazon S3 or Cloudflare R2 bucket: each ended date arrives as `daily_rollups/<date>.csv` and `events/<date>.csv`, without visitor hashes, in the schema published at `/api/v1/export-schema.json`. BigQuery and Snowflake load those files through their S3 stage.
+
+### Looker Studio
+
+`connectors/looker-studio` holds a community connector. Push it to a new Apps Script project with `clasp push`, deploy it from its manifest, then add it in Looker Studio with a site's Stats API key (Settings, API keys), the installation's address and the site ID.
+
+### Server-side and mobile events
+
+Create an **events token** for one site on the API keys page, then `POST /api/v1/events` with `Authorization: Bearer <token>` and one event (or `{"events": [...]}` with up to 100): the script's fields, `type` `pageview` or `event`, and the visitor's `client_ip` and `user_agent`, which are used only to count visitors and classify devices and are never stored. Send an `Idempotency-Key` header to make a retry safe for 24 hours.
+
+### Email reports
+
+In a site's settings anyone on the team subscribes to a daily, weekly or monthly report at an hour in the site's time zone; the owner can also add outside recipients. Each email has the headline figures with their comparison, top pages and sources, goals, revenue, coverage notes and what moved, and a one-click unsubscribe link. Mail goes through the installation's configured mail provider.
+
+### Webhooks
+
+In a site's settings an owner or administrator adds an https endpoint. Goal conversions arrive as signed JSON counts per goal and minute; check `Vane-Signature` (`t=<unix time>,v1=<HMAC-SHA256 of t.body>`) with the secret shown when you add it, and keep one copy per `Vane-Delivery`. The settings page lists every attempt.
+
+### Assistants (MCP)
+
+Point an MCP client at `POST <installation>/api/v1/mcp` with the header `Authorization: Bearer <Stats API key>`. Its `list_sites` and `query_stats` tools read the key's sites and answer exactly as `/api/v1/stats`; write tools are refused until agent grants exist.
 
 ## Commands and roles
 

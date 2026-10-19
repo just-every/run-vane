@@ -26,8 +26,8 @@
 /* Forms: thin quiet borders, a clear blue focus ring, labels above. */
 .rer-themed .vane-app form { display: grid; gap: 14px; margin: 0; }
 .rer-themed .vane-app label { display: grid; min-width: 0; gap: 6px; color: var(--body); font-size: 13.5px; font-weight: 500; }
-.rer-themed .vane-app input:not([type=checkbox]):not([type=hidden]):not([type=radio]), .vane-app textarea, .vane-app select { width: 100%; min-width: 0; min-height: 42px; margin: 0; padding: 9px 12px; border: 1px solid var(--rer-border); border-radius: 10px; background-color: var(--surface); color: var(--ink); font: inherit; font-size: 15px; line-height: 1.4; box-shadow: none; transition: border-color .12s, box-shadow .12s; }
-.rer-themed .vane-app input:not([type=checkbox]):not([type=hidden]):hover, .vane-app textarea:hover, .vane-app select:hover { border-color: #a9b6cb; }
+.rer-themed .vane-app input:not([type=checkbox]):not([type=hidden]):not([type=radio]), .vane-app textarea, .vane-app select { width: 100%; min-width: 0; min-height: 42px; margin: 0; padding: 9px 12px; border: 1px solid var(--vane-field); border-radius: 10px; background-color: var(--surface); color: var(--ink); font: inherit; font-size: 15px; line-height: 1.4; box-shadow: none; transition: border-color .12s, box-shadow .12s; }
+.rer-themed .vane-app input:not([type=checkbox]):not([type=hidden]):hover, .vane-app textarea:hover, .vane-app select:hover { border-color: var(--vane-field-hover); }
 .rer-themed .vane-app input:not([type=checkbox]):not([type=hidden]):focus-visible, .rer-themed .vane-app textarea:focus-visible, .rer-themed .vane-app select:focus-visible { border-color: var(--blue); outline: 0; box-shadow: 0 0 0 3px rgba(29, 88, 240, .2); }
 /* Base #247: every single-choice select draws its chevron 14px in from the right border with 40px of end padding,
    as two gradient strokes (the theme CSP allows no data: images); multiple and size>1 lists keep their native look. */
@@ -36,9 +36,10 @@
 .vane-app textarea { min-height: 92px; resize: vertical; font-family: var(--font-mono); font-size: 13.5px; }
 .vane-app input[type=file] { max-width: 100%; padding: 7px 10px; overflow-wrap: anywhere; font-size: 14px; }
 .vane-app input::placeholder, .vane-app textarea::placeholder { color: var(--soft); opacity: 1; }
-.rer-themed .vane-app label.vane-check { display: flex; align-items: flex-start; gap: 10px; color: var(--ink); font-size: 14px; font-weight: 400; }
-.rer-themed .vane-app input[type=checkbox], .rer-themed .vane-app input[type=radio] { flex: none; width: 18px; height: 18px; min-height: 0; margin: 2px 0 0; padding: 0; border: 0; accent-color: var(--blue); }
-.rer-themed .vane-app label:has(> input[type=radio]) { display: flex; align-items: flex-start; gap: 10px; color: var(--ink); font-size: 14px; font-weight: 400; }
+.rer-themed .vane-app label.vane-check { display: flex; align-items: center; gap: 10px; color: var(--ink); font-size: 14px; font-weight: 400; }
+/* MOBILE-001 (WCAG 2.2 AA 2.5.8): every checkbox and radio is a 24 px target. */
+.rer-themed .vane-app input[type=checkbox], .rer-themed .vane-app input[type=radio] { flex: none; width: 24px; height: 24px; min-height: 0; margin: 0; padding: 0; border: 0; accent-color: var(--blue); }
+.rer-themed .vane-app label:has(> input[type=radio]) { display: flex; align-items: center; gap: 10px; color: var(--ink); font-size: 14px; font-weight: 400; }
 .vane-app fieldset { min-width: 0; margin: 0; padding: 16px; border: 1px solid var(--line); border-radius: 12px; display: grid; gap: 10px; }
 .vane-app legend { padding: 0 6px; color: var(--ink); font-weight: 600; font-size: 14px; }
 .vane-form-footer { display: grid; gap: 12px; padding-top: 6px; }
@@ -50,22 +51,22 @@
 /* Buttons: near-black pills for the main action, white outlined for the rest. */
 .rer-themed .vane-app button, .rer-themed .vane-app .vane-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: fit-content; max-width: 100%; min-height: 42px; margin: 0; padding: 9px 22px; border: 1px solid var(--button); border-radius: 999px; background: var(--button); color: #fff; font: inherit; font-size: 14.5px; font-weight: 500; line-height: 1.2; text-decoration: none; white-space: nowrap; cursor: pointer; box-shadow: none; }
 .rer-themed .vane-app button:hover, .rer-themed .vane-app .vane-button:hover { background: var(--button-hover); border-color: var(--button-hover); }
-.rer-themed .vane-app .vane-secondary, .rer-themed .vane-app button.vane-secondary { border-color: var(--rer-border); background: var(--surface); color: var(--ink); }
-.rer-themed .vane-app .vane-secondary:hover { border-color: #a9b6cb; background: #f7f9fc; }
+.rer-themed .vane-app .vane-secondary, .rer-themed .vane-app button.vane-secondary { border-color: var(--vane-edge); background: var(--surface); color: var(--ink); }
+.rer-themed .vane-app .vane-secondary:hover { border-color: var(--vane-field); background: #f7f9fc; }
 .rer-themed .vane-app .vane-danger { border-color: var(--rer-danger); background: var(--surface); color: var(--rer-danger); }
 .rer-themed .vane-app .vane-danger:hover { background: #fdf1f3; }
 .vane-actions { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 10px; margin-top: 14px; }
 .vane-inline-form { display: inline; margin-left: 8px; }
-.rer-themed .vane-app .vane-inline-form button { min-height: 30px; padding: 4px 12px; border-color: var(--rer-border); background: var(--surface); color: var(--ink); font-size: 13px; }
+.rer-themed .vane-app .vane-inline-form button { min-height: 30px; padding: 4px 12px; border-color: var(--vane-edge); background: var(--surface); color: var(--ink); font-size: 13px; }
 
 /* Dense tables with hairlines and tabular figures. */
 .vane-table-scroll { position: relative; max-width: 100%; overflow-x: auto; }
-/* Tables take the width their columns need (up to a readable cell) and scroll inside their region beyond it. */
-.vane-table-scroll > table { width: max-content; min-width: 100%; }
-.vane-table-scroll th, .vane-table-scroll td { max-width: 30em; overflow-wrap: break-word; }
 .vane-app table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
 .vane-app caption { padding-bottom: 10px; color: var(--body); font-size: 13px; text-align: left; }
-.vane-app th, .vane-app td { padding: 9px 10px; border-bottom: 1px solid var(--line-soft); vertical-align: top; overflow-wrap: anywhere; }
+.vane-app th, .vane-app td { padding: 9px 10px; border-bottom: 1px solid var(--line-soft); vertical-align: top; overflow-wrap: break-word; }
+/* M3: a table is as wide as its words need (never narrower than its longest word) and scrolls inside its region beyond
+   that; the label column (path, hostname, source) stays on one line, so rows stay dense. */
+.vane-table-scroll tbody th[scope=row], .vane-table-scroll thead th:first-child { white-space: nowrap; }
 .vane-app th { font-weight: 400; color: var(--ink); }
 .vane-app thead th { padding-top: 0; border-bottom-color: var(--line); color: var(--body); font-size: 12.5px; font-weight: 500; }
 .vane-app th:first-child, .vane-app td:first-child { padding-left: 0; }
@@ -95,3 +96,4 @@
 .vane-annotations { margin: 8px 0; padding-left: 18px; font-size: 14px; }
 .vane-annotations li { margin-bottom: 4px; }
 .vane-csv-links { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 0; padding: 0; list-style: none; font-size: 14px; }
+.vane-csv-links a { display: inline-flex; align-items: center; min-height: 24px; }

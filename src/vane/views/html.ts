@@ -46,9 +46,23 @@ export function breakdown(title: string, rows: {label: string; count: number; pr
 const calendar = (iso: string) => new Date(`${iso.slice(0, 10)}T00:00:00Z`)
 export const shortDay = (iso: string) => calendar(iso).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' })
 export const monthDay = (iso: string) => calendar(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })
-/** The range from a first day to an exclusive end, as people read it: "Oct 13 to 19" or "Sep 28 to Oct 4". */
-export function rangeText(from: string, to: string): string {
+// S1: Vane's own text names US dates and never a range's exclusive end: "Oct 14, 2026", "Oct 13 – 19, 2026".
+export const usDay = (iso: string) => calendar(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
+export function usRange(from: string, to: string, year = true): string {
   const last = new Date(calendar(to).getTime() - 86400000).toISOString().slice(0, 10)
-  if (last <= from) return monthDay(from)
-  return from.slice(0, 7) === last.slice(0, 7) ? `${monthDay(from)} to ${Number(last.slice(8, 10))}` : `${monthDay(from)} to ${monthDay(last)}`
+  if (last <= from) return year ? usDay(from) : monthDay(from)
+  if (from.slice(0, 4) !== last.slice(0, 4)) return year ? `${usDay(from)} – ${usDay(last)}` : `${monthDay(from)} – ${monthDay(last)}`
+  const tail = year ? `, ${last.slice(0, 4)}` : ''
+  return from.slice(0, 7) === last.slice(0, 7) ? `${monthDay(from)} – ${Number(last.slice(8, 10))}${tail}` : `${monthDay(from)} – ${monthDay(last)}${tail}`
+}
+/** The range control's short form: "Oct 13 – 19" or "Sep 28 – Oct 4". */
+export const rangeText = (from: string, to: string) => usRange(from, to, false)
+export const zoneName = (timeZone: string) => new Intl.DateTimeFormat('en-US', { timeZone, timeZoneName: 'longGeneric' }).formatToParts(0).find(part => part.type === 'timeZoneName')?.value ?? timeZone
+export const timeOfDay = (at: number, timeZone: string) => new Date(at).toLocaleTimeString('en-US', { timeZone, hour: 'numeric', minute: '2-digit' })
+// A chart bucket as people read it: "Tue, Oct 13", "Oct 19, 9 AM CDT", "Week of Oct 12" or "Oct 2026".
+export function bucketText(interval: string, label: string): string {
+  if (interval === 'day') return shortDay(label)
+  if (interval === 'hour') { const hour = Number(label.slice(11, 13)); return `${monthDay(label.slice(0, 10))}, ${hour % 12 || 12} ${hour < 12 ? 'AM' : 'PM'}${label.slice(16)}` }
+  if (interval === 'week') return `Week of ${monthDay(label.slice(8))}`
+  return calendar(`${label}-01`).toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' })
 }

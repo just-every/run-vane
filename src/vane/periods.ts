@@ -56,3 +56,14 @@ export function comparisonRange(mode:Comparison,from:string,to:string,weekdays:b
  const back=weekdays?(weekday(custom.from!)-weekday(from)+7)%7:0
  return {from:shift(custom.from!,-back),to:shift(custom.to!,-back)}
 }
+// DASH-008, like with like: while a range ends with the day still running (every preset that runs through today, and a
+// custom range whose last day is today), whose figures are what has arrived so far, the compared period stops at the same
+// moment of its matching day, so a morning's part of a day is never set against a whole day. Other ranges compare whole.
+export interface RunningCut { day:string; at:number; thenDay:string; thenAt:number }
+export function runningCut(now:number,timeZone:string,from:string,to:string,previousFrom:string):RunningCut|null {
+ const today=localDay(now,timeZone);if(shift(today,1)!==to||today<from)return null
+ const thenDay=shift(previousFrom,Math.round((Date.parse(today)-Date.parse(from))/DAY))
+ return {day:today,at:now,thenDay,thenAt:localMidnight(thenDay,timeZone)+(now-localMidnight(today,timeZone))}
+}
+// An event source up to a moment: the days before it whole, its own day up to that instant (imported rows carry no time).
+export const upTo=(events:string,through:string,at:number)=>`(SELECT * FROM ${events} WHERE day<'${through}' OR (day='${through}' AND (at IS NULL OR at<=${Math.floor(at)})))`

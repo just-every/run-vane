@@ -1,5 +1,8 @@
 /* The app shell: a slim white rail (mark, site switcher, destinations, account) beside the workspace.
    Below 900px the rail becomes a top bar whose menu opens from a native disclosure. */
+/* Vane's own tokens; the brand file (rer-theme.css) stays as the brand set it. Fields take a 1 px edge at about 3:1 on
+   white (WCAG 1.4.11); quiet outlined buttons keep the hairline; the coral pair marks a day outside normal variation. */
+.vane-app { --vane-field: #8592a8; --vane-field-hover: #6b7896; --vane-edge: #c5cfdd; --coral-ink: #c42c4c; --coral-tint: #fdeef1; }
 .rer-themed body.vane-app { margin: 0; padding: 0; min-height: 100vh; background: var(--rer-page); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
 .rer-themed body.vane-shell { display: grid; grid-template-columns: 210px minmax(0, 1fr); align-items: start; }
 .vane-app *, .vane-app *::before, .vane-app *::after { box-sizing: border-box; }
@@ -16,16 +19,18 @@
 .vane-menu-body { display: flex; flex-direction: column; flex: 1; }
 
 .vane-switcher { position: relative; margin-bottom: 14px; }
-.vane-app .vane-switcher > summary { display: grid; gap: 6px; padding: 11px 36px 11px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: 0 1px 2px rgba(16, 32, 72, .04); cursor: pointer; list-style: none; background-image: linear-gradient(to top right, transparent calc(50% - 1.1px), var(--body) calc(50% - .55px), var(--body) calc(50% + .55px), transparent calc(50% + 1.1px)), linear-gradient(to top left, transparent calc(50% - 1.1px), var(--body) calc(50% - .55px), var(--body) calc(50% + .55px), transparent calc(50% + 1.1px)); background-repeat: no-repeat; background-position: right 20px 19px, right 14px 19px; background-size: 6px 6px; }
+.vane-app .vane-switcher > summary { display: grid; gap: 6px; padding: 11px 36px 11px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: 0 1px 2px rgba(16, 32, 72, .04); cursor: pointer; list-style: none; background-image: linear-gradient(to top right, transparent calc(50% - 1.1px), var(--body) calc(50% - .55px), var(--body) calc(50% + .55px), transparent calc(50% + 1.1px)), linear-gradient(to top left, transparent calc(50% - 1.1px), var(--body) calc(50% - .55px), var(--body) calc(50% + .55px), transparent calc(50% + 1.1px)); background-repeat: no-repeat; background-position: right 20px center, right 14px center; background-size: 6px 6px; }
 .vane-switcher > summary::-webkit-details-marker { display: none; }
 .vane-switcher-name { overflow: hidden; color: var(--ink); font-size: 15px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 .vane-live, .vane-live-quiet { display: flex; align-items: center; gap: 8px; color: var(--body); font-size: 12.5px; }
 .vane-live i { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 3px var(--green-tint); }
-.vane-switcher ul { position: absolute; z-index: 20; top: calc(100% + 6px); left: 0; right: -40px; margin: 0; padding: 6px; list-style: none; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: var(--card-shadow); }
+/* The open list stays inside the rail (whose overflow scrolls), so nothing of it is ever cut off. */
+.vane-switcher ul { position: absolute; z-index: 20; top: calc(100% + 6px); left: 0; right: 0; margin: 0; padding: 6px; list-style: none; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: var(--card-shadow); }
 .rer-themed .vane-switcher ul a { display: grid; gap: 1px; padding: 8px 10px; border-radius: 8px; color: var(--ink); text-decoration: none; }
 .vane-switcher ul a:hover, .vane-switcher ul a[aria-current] { background: var(--blue-tint); }
 .vane-switcher ul strong { font-size: 14px; font-weight: 600; }
-.vane-switcher ul small { color: var(--body); font-size: 12px; overflow-wrap: anywhere; }
+.vane-switcher ul strong, .vane-switcher ul small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vane-switcher ul small { color: var(--body); font-size: 12px; }
 
 .vane-nav { display: grid; gap: 2px; }
 .vane-nav + .vane-nav { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
@@ -52,7 +57,8 @@ body:has(.vane-group:target) .vane-nav a[data-group="overview"] .vane-icon { col
 .vane-skip { position: fixed; left: 16px; top: -120px; z-index: 40; padding: 12px 20px; border: 2px solid var(--rer-focus); border-radius: 10px; background: var(--surface); }
 .vane-skip:focus { top: 16px; }
 .vane-sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
-.rer-themed body.vane-empty-sites .vane-workspace::after { content: ''; display: block; height: 150px; margin: 0 -24px; background: url('/brand/band.svg') center bottom / 100% auto no-repeat; opacity: .55; }
+/* The band runs edge to edge of the workspace: its negative margins equal the workspace's padding (no sideways scroll). */
+.rer-themed body.vane-empty-sites .vane-workspace::after { content: ''; display: block; height: 150px; margin: 0 -14px; background: url('/brand/band.svg') center bottom / 100% auto no-repeat; opacity: .55; }
 
 @media (max-width: 900px) {
   .rer-themed body.vane-shell { display: block; }

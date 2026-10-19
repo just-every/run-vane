@@ -16,8 +16,8 @@
 .vane-sites li:first-child { padding-top: 4px; }
 .vane-sites li:last-child { padding-bottom: 0; border-bottom: 0; }
 .vane-sites li > div { flex: 1; min-width: 0; }
-.vane-sites li > a { flex: none; font-size: 14px; text-decoration: none; }
-.rer-themed .vane-site-name { color: var(--ink); font-size: 16px; font-weight: 600; text-decoration: none; }
+.vane-sites li > a { display: inline-flex; align-items: center; flex: none; min-height: 24px; font-size: 14px; text-decoration: none; }
+.rer-themed .vane-site-name { display: inline-flex; align-items: center; min-height: 24px; color: var(--ink); font-size: 16px; font-weight: 600; text-decoration: none; }
 .rer-themed .vane-sites p { margin: 3px 0 0; color: var(--body); font-size: 13.5px; overflow-wrap: anywhere; }
 .vane-site-stats [data-change^="-"] { color: var(--coral-ink); }
 .vane-sparkline { flex: none; width: 104px; height: 28px; color: var(--blue); }
@@ -40,7 +40,7 @@
 .rer-themed body.vane-app:not(.vane-shell) .rer-brand { margin-bottom: 24px; font-family: var(--font-head); font-size: 22px; font-weight: 700; }
 .rer-themed body.vane-app:not(.vane-shell) h1 { margin-bottom: 20px; }
 /* SHARE-001: a shared link opened with ?theme=dark. */
-.vane-dark { --rer-page: #0f131c; --rer-surface: #171c27; --rer-text: #eef2f8; --rer-muted: #aab4c8; --rer-border: #5b6680; --rer-accent: #7ea2ff; --rer-accent-text: #0b0d14; --rer-link: #eef2f8; --rer-tint: #1f2a44; --paper: #0f131c; --surface: #171c27; --ink: #eef2f8; --body: #aab4c8; --line: #2a3142; --line-soft: #222838; --track: #2a3142; --blue-ink: #9db8ff; background: var(--rer-page); color: var(--rer-text); }
+.vane-dark { --rer-page: #0f131c; --rer-surface: #171c27; --rer-text: #eef2f8; --rer-muted: #aab4c8; --rer-border: #5b6680; --rer-accent: #7ea2ff; --rer-accent-text: #0b0d14; --rer-link: #eef2f8; --rer-tint: #1f2a44; --paper: #0f131c; --surface: #171c27; --ink: #eef2f8; --body: #aab4c8; --line: #2a3142; --line-soft: #222838; --track: #2a3142; --blue-ink: #9db8ff; --vane-field: #7884a0; --vane-field-hover: #9aa5bd; --vane-edge: #5b6680; background: var(--rer-page); color: var(--rer-text); }
 .vane-dark .vane-panel { background: var(--surface); }
 
 @media (max-width: 1100px) {

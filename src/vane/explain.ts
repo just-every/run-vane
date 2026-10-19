@@ -47,6 +47,8 @@ export function movers(dimension:string,unit:string,rows:{label:string,now:numbe
  return rows.filter(r=>r.now!==r.then).sort((a,b)=>Math.abs(b.now-b.then)-Math.abs(a.now-a.then)||a.label.localeCompare(b.label)).slice(0,2).map(r=>({dimension,label:r.label,unit,now:r.now,then:r.then,totalNow,totalThen}))
 }
 const signed=(n:number)=>`${n>0?'+':n<0?'−':''}${Math.abs(n).toLocaleString('en-US')}`
-export const moverText=(m:Mover)=>`${m.dimension} ${m.label}: ${m.then.toLocaleString('en-US')} → ${m.now.toLocaleString('en-US')} ${m.unit} (${signed(m.now-m.then)}${m.then?`, ${signed(Math.round((m.now-m.then)/m.then*1000)/10)}%`:', new'}), of ${m.totalThen.toLocaleString('en-US')} → ${m.totalNow.toLocaleString('en-US')} ${m.unit} in all`
+// A count's unit agrees with the count it follows: 1 visit, 2 visits.
+export const unitOf=(n:number,unit:string)=>n===1?unit.replace(/s$/,''):unit
+export const moverText=(m:Mover)=>`${m.dimension} ${m.label}: ${m.then.toLocaleString('en-US')} → ${m.now.toLocaleString('en-US')} ${unitOf(m.now,m.unit)} (${signed(m.now-m.then)}${m.then?`, ${signed(Math.round((m.now-m.then)/m.then*1000)/10)}%`:', new'}), of ${m.totalThen.toLocaleString('en-US')} → ${m.totalNow.toLocaleString('en-US')} ${unitOf(m.totalNow,m.unit)} in all`
 export interface CoverageChange { label:string; now:number; then:number }
 export interface Explanation { movers:Mover[]; annotations:Annotation[]; coverage:CoverageChange[]; variation:VariationDay[]|null }

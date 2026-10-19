@@ -13,7 +13,7 @@
   --rer-surface: #ffffff;
   --rer-text: #0b0d14;
   --rer-muted: #5d6783;
-  --rer-border: #c5cfdd;
+  --rer-border: #8e9ab0;
   --rer-accent: #1d58f0;
   --rer-accent-text: #ffffff;
   --rer-focus: var(--rer-accent);
@@ -47,8 +47,6 @@
   --green-ink: #16884f;
   --green-tint: #e3f5ec;
   --coral: #f0506e;
-  --coral-ink: #c42c4c;
-  --coral-tint: #fdeef1;
   --orange: #f7931e;
   --orange-ink: #c8641a;
   --orange-tint: #fdeee3;
@@ -77,7 +75,7 @@ html.rer-themed body:has(>main>.brand)::after, html.rer-themed body:has(>main>fo
 }
 html.rer-themed body:has(>main>.brand) main, html.rer-themed body:has(>main>form[action="/setup"]) main {
   box-sizing: border-box; width: 100%; max-width: 510px; margin: 0 auto; padding: 44px;
-  border: 1px solid var(--line); border-radius: var(--rer-radius); background: var(--rer-surface); box-shadow: var(--rer-shadow);
+  border: 1px solid var(--rer-border); border-radius: var(--rer-radius); background: var(--rer-surface); box-shadow: var(--rer-shadow);
 }
 html.rer-themed body:has(>main>.brand) .brand, html.rer-themed body:has(>main>form[action="/setup"]) .rer-brand {
   justify-content: center; gap: 12px; margin: 0 0 44px; color: var(--rer-text); font-size: 24px; font-weight: 600;
@@ -100,15 +98,15 @@ html.rer-themed body:has(>main>form[action="/setup"]) p { color: var(--rer-muted
 html.rer-themed body:has(>main>form[action="/setup"]) .rer-brand { justify-content: flex-start; margin-bottom: 32px; }
 html.rer-themed body:has(>main>form[action="/setup"]) h1 { margin-bottom: 16px; }
 html.rer-themed body:has(>main>form[action="/setup"]) dl { grid-template-columns: 80px minmax(0,1fr); gap: 0; margin-bottom: 24px; }
-html.rer-themed body:has(>main>form[action="/setup"]) dt, html.rer-themed body:has(>main>form[action="/setup"]) dd { padding: 16px 0; border-top: 1px solid var(--line); }
-html.rer-themed body:has(>main>form[action="/setup"]) dd:last-child, html.rer-themed body:has(>main>form[action="/setup"]) dt:nth-last-child(2) { border-bottom: 1px solid var(--line); }
+html.rer-themed body:has(>main>form[action="/setup"]) dt, html.rer-themed body:has(>main>form[action="/setup"]) dd { padding: 16px 0; border-top: 1px solid var(--rer-border); }
+html.rer-themed body:has(>main>form[action="/setup"]) dd:last-child, html.rer-themed body:has(>main>form[action="/setup"]) dt:nth-last-child(2) { border-bottom: 1px solid var(--rer-border); }
 html.rer-themed body:has(>main>form[action="/setup"]) form p { margin: 0; }
 html.rer-themed body:has(>main>form[action="/setup"]) label { font-weight: 400; font-size: 15px; }
-html.rer-themed body:has(>main>form[action="/setup"]) input[type=checkbox] { accent-color: var(--rer-accent); }
+html.rer-themed body:has(>main>form[action="/setup"]) input[type=checkbox] { width: 24px; height: 24px; margin: 0; accent-color: var(--rer-accent); }
 html.rer-themed body:has(>main>.brand) .notice { border-color: var(--rer-accent); background: var(--rer-tint); }
 /* The installed Lobby shares the sign-in register and the quiet floor chart. */
 html body .door { background: var(--rer-page); padding-top: max(100px, 20vh); }
-html body .door-card { width: min(510px,100%); padding: 44px; border: 1px solid var(--line); border-radius: var(--rer-radius); background: var(--rer-surface); box-shadow: var(--rer-shadow); }
+html body .door-card { width: min(510px,100%); padding: 44px; border: 1px solid var(--rer-border); border-radius: var(--rer-radius); background: var(--rer-surface); box-shadow: var(--rer-shadow); }
 html body .door-card h1 { font-size: 32px; }
 html body .door-card .mark { width: 1.56em; height: 1.16em; }
 html body .door-card .line { font-size: 18px; margin-top: 24px; }

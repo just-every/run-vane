@@ -11,6 +11,13 @@
   Base's two-gradient select chevron on every screen, at 1440 and 390 px.
 - Load nine weeks of US demo traffic with devices, channels, returning visitors
   and one annotated day when the shop's page loads went unrecorded.
+- Compare like with like while today is running: the compared period stops at
+  the same time of day on its matching day, for the cards, the sites list's
+  change and the What changed evidence; Today's chart stops at the current hour
+  and its panel says the day is still running instead of judging it.
+- US dates in the app's own text, readable names in Approvals and Audit history,
+  one-line labels in report tables, 24 px checkboxes, and field borders at
+  about 3:1 without changing the brand file's tokens.
 
 ## Unreleased — 16 October 2026
 

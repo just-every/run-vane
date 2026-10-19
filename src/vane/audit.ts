@@ -10,7 +10,8 @@ export const audit=(env:Env,actor:string,action:string,subject:string,detail='')
 
 export async function auditLog(env:Env,actor:Actor) {
  role(actor,['owner','admin']);
- return rows(env,'SELECT a.id,a.at,a.actor,COALESCE(o.display_name,a.actor) AS actorName,a.action,a.subject,a.detail FROM vane_audit a LEFT JOIN oa_operators o ON o.id=a.actor ORDER BY a.at DESC,a.id LIMIT 500');
+ // The subject is named where it is a person, a site or a proposal; the view never shows a bare id.
+ return rows(env,'SELECT a.id,a.at,a.actor,COALESCE(o.display_name,a.actor) AS actorName,o.display_name AS actorKnown,a.action,a.subject,COALESCE(so.display_name,vs.name) AS subjectName,vp.command AS subjectCommand,a.detail FROM vane_audit a LEFT JOIN oa_operators o ON o.id=a.actor LEFT JOIN oa_operators so ON so.id=a.subject LEFT JOIN vane_sites vs ON vs.id=a.subject LEFT JOIN vane_proposals vp ON vp.id=a.subject ORDER BY a.at DESC,a.id LIMIT 500');
 }
 export async function apply(env:Env,actor:Actor,input:Parameters<typeof applyImport>[2]) {
  const result=await applyImport(env,actor,input);await audit(env,actor.id,'import.apply',input.siteId,`job ${result.job.id}, ${result.complete?'complete':'in progress'}`);return result;

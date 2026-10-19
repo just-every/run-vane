@@ -1,4 +1,5 @@
 import { insist, site, siteOrigin, VaneError, type Env } from './core'
+import { consentAccepted } from './consent'
 import { clock } from './clock'
 import { localDay } from './visitors'
 import { excludedTraffic } from './traffic'
@@ -28,7 +29,7 @@ export async function autoEventResponse(request:Request,env:Env):Promise<Respons
   const origin=siteOrigin(value,request);cors={...cors,'access-control-allow-origin':origin};
   insist(Object.keys(payload).every(key=>['id','siteId','kind','prop','consent'].includes(key))&&/^[a-f0-9-]{36}$/.test(payload.id)&&typeof payload.prop==='string','fields','Only the declared automatic-event fields are accepted.');
   insist((value.config.autoEvents??[]).includes(payload.kind),'kind','This automatic event is not turned on for the site.',403);
-  insist(payload.consent===(value.config.consent==='required'?'granted':'not-required'),'consent','Consent is required for collection.',403);
+  insist(consentAccepted(value.config,request,payload.consent),'consent','Consent is required for collection.',403);
   // COLLECT-003: excluded traffic is refused here too; its page load was already counted by reason.
   const excluded=excludedTraffic(request,value.config,null);insist(!excluded,'excluded',`This traffic is excluded from collection (${excluded}).`,403);
   const now=clock();

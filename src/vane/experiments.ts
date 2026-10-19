@@ -1,4 +1,5 @@
 import { insist, site, siteOrigin, statement, VaneError, type Env } from './core'
+import { consentAccepted } from './consent'
 import { clock } from './clock'
 import { excludedTraffic } from './traffic'
 import { goalApplies } from './goals'
@@ -35,7 +36,7 @@ export async function exposureResponse(request:Request,env:Env):Promise<Response
   const payload=JSON.parse(text),value=await site(env,String(payload?.siteId));
   cors={...cors,'access-control-allow-origin':siteOrigin(value,request)};
   insist(Object.keys(payload).every(key=>['page','siteId','experiment','consent'].includes(key))&&/^[a-f0-9-]{36}$/.test(payload.page),'fields','Only the declared exposure fields are accepted.');
-  insist(payload.consent===(value.config.consent==='required'?'granted':'not-required'),'consent','Consent is required for collection.',403);
+  insist(consentAccepted(value.config,request,payload.consent),'consent','Consent is required for collection.',403);
   const excluded=excludedTraffic(request,value.config,null);insist(!excluded,'excluded',`This traffic is excluded from collection (${excluded}).`,403);
   const experiment=(value.config.experiments??[]).find(x=>x.name===payload.experiment);insist(experiment,'experiment','This site runs no such experiment.',404);
   const pageId=value.id+':'+payload.page,load=await env.DB.prepare("SELECT day,visitor,path,hostname FROM vane_events WHERE id=? AND kind='pageview' AND site_id=?").bind(pageId,value.id).first<any>();

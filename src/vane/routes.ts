@@ -3,6 +3,10 @@ import { everySite, inScope, insist, role, rows, site, sites, VaneError, type Ac
 import { invite, regrant, remove, team, teamActor, transferOwnership } from './team'
 import { apiKeys, createKey, revokeKey } from './api-keys'
 import { csvTables, toCsv } from './csv'
+import { siteZip } from './site-zip'
+import { deleteExport, exportOf, runExportNow, saveExport } from './warehouse'
+import { createWebhook, deleteWebhook, deliveryLog, webhooks } from './webhooks'
+import { reportSends, reportSubscriptions, subscribe, unsubscribe } from './email-reports'
 import { createInsightsService } from './reports'
 import { prepare } from './commands'
 import { preview, journal, MoveinError } from './movein/index'
@@ -37,7 +41,7 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
  const scopedRollup=async(id:string)=>{const r=await rollup(env,id);for(const s of r.sites)inScope(actor!,s.id);return r};
  async function view(siteId?:string,extra:Partial<ViewData>={}) {
   const selected=siteId?await site(env,siteId):undefined;
-  const proposals=actor!.role==='member'?[]:visibleProposals(await rows(env,'SELECT * FROM vane_proposals ORDER BY created_at DESC LIMIT 100'));
+  const proposals=actor!.role==='member'?[]:visibleProposals(await rows(env,'SELECT p.*,po.display_name AS prepared_name,ao.display_name AS approved_name FROM vane_proposals p LEFT JOIN oa_operators po ON po.id=p.prepared_by LEFT JOIN oa_operators ao ON ao.id=p.approved_by ORDER BY p.created_at DESC LIMIT 100'));
   // An error page passes section undefined, so a refused section is not rendered again.
   const asked='section' in extra?extra.section:url.searchParams.get('section');
   const audit=!selected&&asked==='audit'?(everySite(actor!),await auditLog(env,actor!)):undefined;
@@ -46,8 +50,8 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
   const imports=selected&&actor!.role==='owner'?await rows(env,'SELECT j.id,j.state,(SELECT COUNT(*) FROM ik_provenance p WHERE p.job_id=j.id) AS count FROM ik_jobs j JOIN vane_import_approvals a ON a.job_id=j.id WHERE a.site_id=? ORDER BY a.approved_at DESC',selected.id):[];
   const all=(await sites(env)).filter(s=>open(s.id)),list=!selected&&!extra.rollup&&!extra.error&&(url.searchParams.get('section')??'report')==='report'?await overview(env,all,clock(),{period:url.searchParams.get('period'),sort:url.searchParams.get('sort'),q:url.searchParams.get('q')}):undefined;
   const live=selected&&url.searchParams.get('section')==='realtime';
-  const settings=selected&&(extra.section??url.searchParams.get('section'))==='settings',hook=settings?(await rows<{created_at:number}>(env,'SELECT created_at FROM vane_annotation_hooks WHERE site_id=?',selected.id))[0]??null:undefined,github=settings?(await rows<{created_at:number}>(env,'SELECT created_at FROM vane_github_keys WHERE site_id=?',selected.id))[0]??null:undefined;
-  return renderApp({actor:actor as ViewData['actor'],origin:env.AUTH_ORIGIN,store:await storeUse(env),sites:all,overview:list,rollups:(await rollups(env)).filter(r=>r.sites.every((s:any)=>open(s.id))),site:selected,hook,github,shares:settings?await shareLinks(env,selected.id):undefined,segments:selected&&!live?await segments(env,selected.id):undefined,live:live?await realtime(env,selected,clock()):undefined,liveVisitors:selected?await currentVisitors(env,selected,clock()):undefined,report:selected&&!live?await createInsightsService(env,selected,clock(),range).list():undefined,proposals,imports,audit,people,apiKeys:keys,section:url.searchParams.get('section')??undefined,notice:url.searchParams.get('notice')??undefined,...extra});
+  const settings=selected&&(extra.section??url.searchParams.get('section'))==='settings',hook=settings?(await rows<{created_at:number}>(env,'SELECT created_at FROM vane_annotation_hooks WHERE site_id=?',selected.id))[0]??null:undefined,github=settings?(await rows<{created_at:number}>(env,'SELECT created_at FROM vane_github_keys WHERE site_id=?',selected.id))[0]??null:undefined,warehouse=settings&&actor!.role==='owner'?await exportOf(env,selected.id):undefined,hooks=settings&&['owner','admin'].includes(actor!.role)?{webhooks:await webhooks(env,selected.id),webhookLog:await deliveryLog(env,selected.id)}:{},reports=settings?{reportSubscriptions:(await reportSubscriptions(env,selected.id)).filter(s=>['owner','admin'].includes(actor!.role)||s.operator_id===actor!.id),reportSends:['owner','admin'].includes(actor!.role)?await reportSends(env,selected.id):[]}:{};
+  return renderApp({actor:actor as ViewData['actor'],origin:env.AUTH_ORIGIN,store:await storeUse(env),sites:all,overview:list,rollups:(await rollups(env)).filter(r=>r.sites.every((s:any)=>open(s.id))),site:selected,hook,github,...hooks,...reports,warehouse:warehouse?{endpoint:warehouse.endpoint,bucket:warehouse.bucket,region:warehouse.region,prefix:warehouse.prefix,accessKeyId:warehouse.access_key_id,lastDay:warehouse.last_day,lastResult:warehouse.last_result,createdAt:warehouse.created_at}:warehouse,shares:settings?await shareLinks(env,selected.id):undefined,segments:selected&&!live?await segments(env,selected.id):undefined,live:live?await realtime(env,selected,clock()):undefined,liveVisitors:selected?await currentVisitors(env,selected,clock()):undefined,report:selected&&!live?await createInsightsService(env,selected,clock(),range).list():undefined,proposals,imports,audit,people,apiKeys:keys,section:url.searchParams.get('section')??undefined,notice:url.searchParams.get('notice')??undefined,...extra});
  }
  try {
   const session=await operatorAuth(env).getSession(request);
@@ -62,6 +66,8 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
    if(path==='/api/vane/summary')return json(await createInsightsService(env,await site(env,url.searchParams.get('siteId')??''),clock(),range).list());
    // API-002: one report table as CSV, with the dashboard's range, comparison, filters and segment.
    if(path==='/api/vane/csv'){const value=await site(env,url.searchParams.get('siteId')??''),report=await createInsightsService(env,value,clock(),range).list() as Record<string,any>,table=url.searchParams.get('table')??'';insist(csvTables(report).includes(table),'table','Choose one of the report’s tables.',404);return new Response(toCsv(report[table]),{headers:{...headers,'content-type':'text/csv; charset=utf-8','content-disposition':`attachment; filename="vane-${value.id}-${table}-${report.from}-${report.to}.csv"`}})}
+   // API-002: the whole site as a ZIP of CSVs in Plausible's export layout, for anyone who may open the site.
+   if(path==='/api/vane/site-zip'){const value=await site(env,url.searchParams.get('siteId')??''),file=await siteZip(env,value,clock());return new Response(file.bytes,{headers:{...headers,'content-type':'application/zip','content-disposition':`attachment; filename="${file.name}"`}})}
    if(path==='/api/vane/realtime')return json(await realtime(env,await site(env,url.searchParams.get('siteId')??''),clock()));
    if(path==='/api/vane/inventory')return json(inventory(await site(env,url.searchParams.get('siteId')??'')));
    if(path==='/api/vane/audit'){everySite(actor);return json(await auditLog(env,actor));}
@@ -103,6 +109,16 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
     // API-001: a new key is rendered once in this response, never put in a redirect URL.
     if(p.operation==='apikey.create')return view(undefined,{section:'api',notice:'Key created. Copy it now: it is not shown again.',apiToken:await createKey(env,actor,p)});
     if(p.operation==='apikey.revoke'){await revokeKey(env,actor,String(p.id??''));return redirect('/app?'+new URLSearchParams({section:'api',notice:'Key revoked. It is refused from now on.'}))}
+    // REPORT-001: email report subscriptions.
+    if(p.operation==='report.subscribe'){const made=await subscribe(env,actor,p);return redirect(`/app/sites/${encodeURIComponent(made.siteId)}?${new URLSearchParams({section:'settings',notice:'Subscribed to the email report.'})}`)}
+    if(p.operation==='report.unsubscribe'){const id=await unsubscribe(env,actor,String(p.id??''));return redirect(`/app/sites/${encodeURIComponent(id)}?${new URLSearchParams({section:'settings',notice:'Unsubscribed from the email report.'})}`)}
+    // API-003: a signing secret is rendered once in this response, never put in a redirect URL.
+    if(p.operation==='webhook.create'){const made=await createWebhook(env,actor,p);return view(made.siteId,{section:'settings',notice:'Webhook added. Copy its signing secret now: it is not shown again.',webhookSecret:made.secret})}
+    if(p.operation==='webhook.delete'){const id=await deleteWebhook(env,actor,String(p.id??''));return redirect(`/app/sites/${encodeURIComponent(id)}?${new URLSearchParams({section:'settings',notice:'Webhook deleted; its pending deliveries are dropped.'})}`)}
+    // API-002: the owner's scheduled warehouse export.
+    if(p.operation==='export.save'){const id=await saveExport(env,actor,p);return redirect(`/app/sites/${encodeURIComponent(id)}?${new URLSearchParams({section:'settings',notice:'Scheduled export saved. The secret key is sealed and not shown again.'})}`)}
+    if(p.operation==='export.delete'){const id=await deleteExport(env,actor,String(p.siteId??''));return redirect(`/app/sites/${encodeURIComponent(id)}?${new URLSearchParams({section:'settings',notice:'Scheduled export stopped and its key erased.'})}`)}
+    if(p.operation==='export.run'){const sent=await runExportNow(env,actor,String(p.siteId??''));return redirect(`/app/sites/${encodeURIComponent(String(p.siteId))}?${new URLSearchParams({section:'settings',notice:sent.length?`Exported ${sent.join(', ')}.`:'Nothing new to export, or the bucket refused it: see the last result.'})}`)}
     if(p.operation==='rollup.create')return redirect('/app/rollups/'+encodeURIComponent(await createRollup(env,actor,p))+'?'+new URLSearchParams({notice:'Roll-up created.'}));
     const result=await action(env,actor,p),query=new URLSearchParams({notice:result.notice,...(result.section?{section:result.section}:{})});
     // DASH-009: a new annotation secret is rendered once in this response, never put in a redirect URL.

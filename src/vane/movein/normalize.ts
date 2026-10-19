@@ -6,6 +6,8 @@ import { goalApplies } from '../goals';
 import { hostOf, keptValue, pathAllowed, storedPath, visitSource } from '../paths';
 import { mappingVersion, namespace } from './policy.ts';
 import { validateCarry } from './carry.ts';
+import { isPosthogPage, posthogEvents } from './posthog.ts';
+import { isSimpleCsv, simpleEvents } from './simple.ts';
 
 const known = new Set(['id','websiteId','sessionId','createdAt','urlPath','urlQuery','referrerPath','referrerQuery','referrerDomain','pageTitle','eventType','eventName']);
 const present = (value: unknown) => value !== undefined && value !== null && value !== '';
@@ -13,6 +15,7 @@ const text = (value: unknown) => typeof value === 'string' ? value : '';
 
 export function normalize(document: unknown, site: ImportSite, policy: SitePolicy) {
   let input: any = document;
+  if (isSimpleCsv(document)) { if (new TextEncoder().encode(document as string).length > 2_000_000) throw new MoveinError('DOCUMENT_TOO_LARGE'); const page = simpleEvents(document as string, site, policy); return normalizedSource(page.events, page.discarded, site); }
   if (typeof document === 'string') {
     if (new TextEncoder().encode(document).length > 2_000_000) throw new MoveinError('DOCUMENT_TOO_LARGE');
     try { input = JSON.parse(document); } catch { throw new MoveinError('INVALID_JSON'); }
@@ -21,6 +24,7 @@ export function normalize(document: unknown, site: ImportSite, policy: SitePolic
     const carry = validateCarry(input,policy);
     return normalizedSource(carry.events,carry.discarded,site);
   }
+  if (isPosthogPage(input)) { const page = posthogEvents(input, site, policy); return normalizedSource(page.events, page.discarded, site); }
   if (!input || typeof input !== 'object' || !Array.isArray(input.data) || !Number.isSafeInteger(input.count) || input.count < input.data.length || !Number.isSafeInteger(input.page) || input.page < 1 || !Number.isSafeInteger(input.pageSize) || input.pageSize < input.data.length || input.pageSize < 1) throw new MoveinError('UMAMI_EVENTS_PAGE_REQUIRED');
   if (!input.data.length || input.data.length > 500) throw new MoveinError('IMPORT_PAGE_REQUIRES_1_TO_500_EVENTS');
   const discarded: DiscardedCounts = { sessionIds: 0, pageTitles: 0, websiteIds: 0, sourceEventIds: 0, rawQueries: 0, referrerPaths: 0, referrerQueries: 0, excludedPaths: 0, extraFields: 0 };
