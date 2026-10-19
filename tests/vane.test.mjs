@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
+import { createHash } from 'node:crypto'
 import { installation } from './harness.mjs'
 const fixture=JSON.parse(await readFile(new URL('./fixtures/umami-events.json',import.meta.url),'utf8'))
 async function withApp(t){const app=await installation();t.after(()=>app.close());return app}
@@ -82,7 +83,8 @@ test('complete history restores atomically into an empty installation, rejects c
  const corrupt=structuredClone(archive);corrupt.payload.tables.vane_events[0].path='/changed'
  assert.equal((await b.post('/api/vane/restore',{archive:corrupt},b.owner)).status,400)
  assert.equal((await b.archive()).payload.tables.vane_sites.length,0)
- const result=await b.post('/api/vane/restore',{archive},b.owner);assert.equal(result.status,200,await result.clone().text())
+ const earlier=structuredClone(archive);delete earlier.payload.tables.vane_signals;delete earlier.payload.tables.vane_audit;earlier.sha256=createHash('sha256').update(JSON.stringify(earlier.payload)).digest('hex')
+ const result=await b.post('/api/vane/restore',{archive:earlier},b.owner);assert.equal(result.status,200,await result.clone().text())
  const restored=await b.archive();assert.deepEqual(restored.payload.tables.vane_events,archive.payload.tables.vane_events);assert.deepEqual(restored.payload.tables.vane_import_events,archive.payload.tables.vane_import_events)
  assert.equal((await b.post('/api/vane/restore',{archive},b.owner)).status,409)
  const undone=await b.post('/api/vane/import-undo',{siteId:id,jobId:imported.applied.job.id},b.owner);assert.equal(undone.status,200,await undone.clone().text())

@@ -19,8 +19,10 @@ async function checked(value:any):Promise<Archive> {
  return value;
 }
 export async function restoreHistory(env:Env,actor:Actor,input:any,journal?:any) {
- role(actor);const archive=await checked(input),later=journal?await checked(journal):null,names=await tableNames(env),data=archive.payload.tables;
- insist(Object.keys(data).sort().join('|')===names.sort().join('|'),'schema','Archive schema does not match this Vane release.');
+ role(actor);const archive=await checked(input),later=journal?await checked(journal):null,names=await tableNames(env);
+ // An archive from an earlier release lacks tables added since (privacy-signal counts, audit); they restore empty.
+ insist(Object.keys(archive.payload.tables).every(name=>names.includes(name))&&['vane_sites','vane_events','vane_deletions'].every(name=>Object.hasOwn(archive.payload.tables,name)),'schema','Archive schema does not match this Vane release.');
+ const data:Record<string,Record<string,any>[]>=Object.fromEntries(names.map(name=>[name,archive.payload.tables[name]??[]]));
  const existing=(await rows(env,'SELECT COUNT(*) AS n FROM vane_sites'))[0];insist(Number(existing.n)===0,'not_empty','Restore into an empty analytics installation. Owner sign-in is preserved.',409);
  const fences=[...(later?.payload.tables.vane_deletions??[]),...await rows(env,'SELECT * FROM vane_deletions')];
  const contained=new Set((data.vane_deletions??[]).map(r=>r.id));
