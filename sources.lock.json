@@ -87,7 +87,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "106f66d7ca696b03e24d07ef7bf6447435992b262ccf09b9ae1f05856e4c5915",
+      "sha256": "9f4d3a722b4a75da1f75bf6bd211e4fd816fa4e274bd4973e9c10f2a2518a5b1",
       "executable": false
     },
     "DEMO.md": {
@@ -355,7 +355,7 @@
       "executable": false
     },
     "migrations/core/0054_vane_search.sql": {
-      "sha256": "e5dfa9cb1f8de8e319a79acecc4df4fcccae1318d1f89b49b26817fc97626187",
+      "sha256": "fe6c7a7d4d41c80786e7b81a6ae12f985089a820a743bb613a9842e90031a3d4",
       "executable": false
     },
     "ONBOARDING.md": {
@@ -635,7 +635,7 @@
       "executable": false
     },
     "README.md": {
-      "sha256": "ed3296c4c053ea27f4df1999641494093c6b5eb2f1036bbfe06948ebea4c98d2",
+      "sha256": "e7ae0b4fc1819d939682e99fab982de4a19089c05821af4fe901b96be68a944e",
       "executable": false
     },
     "rer-project.json": {
@@ -2711,7 +2711,7 @@
       "executable": false
     },
     "src/vane/movein/index.ts": {
-      "sha256": "7964eb26ced9068ab89d999d3ff5c642a2eb9349c384ef70f100772d442443a8",
+      "sha256": "321ad2fb7a738006b074d692819c9c7c1e53f84f79074bb88f25fecc96d4761b",
       "executable": false
     },
     "src/vane/movein/matomo-reader.ts": {
@@ -2831,7 +2831,7 @@
       "executable": false
     },
     "src/vane/search-console/google.ts": {
-      "sha256": "c869a29120ec0f3514275c15df2f33b482de1b7c5d1b260d495254e8fac6ea34",
+      "sha256": "7ce19fb28453f83ec5f617ac1fe202a538434c7a2c8dd9db791fda896d25f363",
       "executable": false
     },
     "src/vane/search-console/index.ts": {
@@ -2843,7 +2843,7 @@
       "executable": false
     },
     "src/vane/search-console/oauth.ts": {
-      "sha256": "930f3ed6e8e982929dfc5db3d76b0bdfde512739262232e6c9b5e5faaeec77f9",
+      "sha256": "4158af740d6f0268a3da8bf86cd5372111828cc009188f63525f062ae1e68c0f",
       "executable": false
     },
     "src/vane/search-console/report.ts": {
@@ -3015,7 +3015,7 @@
       "executable": false
     },
     "src/vane/views/search-connections.ts": {
-      "sha256": "4ee789299d165f38c1985bbe5dd8398becb352462af6a2e49e2204d322cc9c03",
+      "sha256": "628ae5e0ba045e2b4586765ed9666af152c43b84c742dadca5fdf27087b17b30",
       "executable": false
     },
     "src/vane/views/search-keywords.ts": {
@@ -3115,7 +3115,7 @@
       "executable": false
     },
     "tests/search-console.test.mjs": {
-      "sha256": "59e71efac58eac98f6f448fed486db04d8f9f330afe1549157c16c467b59ef0a",
+      "sha256": "90994a1c7718d71419c916ebd6e0f22f64ea310f382467490012534f304642e8",
       "executable": false
     },
     "tests/site.test.mjs": {

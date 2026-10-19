@@ -2,6 +2,7 @@ import { planD1Import, createD1ImportJob, readD1ImportJob } from '../../modules/
 import { applyD1ImportBatches } from '../../modules/import-kit/src/d1/apply.ts';
 import { undoD1Import } from '../../modules/import-kit/src/d1/reverse.ts';
 import { atomic } from '../../modules/import-kit/src/d1/database.ts';
+import { retirementScope, headerAbsence } from '../../modules/import-kit/src/d1/retirement-scope.ts';
 import { retireD1ImportCustody } from '../../modules/import-kit/src/d1/retirement.ts';
 import type { D1Sql } from '../../modules/import-kit/src/d1/types.ts';
 import type { MoveinEnvironment, MoveinActor } from './types.ts';
@@ -74,16 +75,24 @@ export async function undo(env: MoveinEnvironment, actor: MoveinActor, input: Jo
 export async function eraseSite(env: MoveinEnvironment, actor: MoveinActor, siteId: string, nativeStatements: D1Sql[] = []) {
   requireOwner(actor);
   const { site } = await loadSite(env,actor,siteId);
-  return retireD1ImportCustody({ values:[namespace(siteId)] },[
+  const statements:D1Sql[]=[
     { sql:'DELETE FROM vane_import_revisions WHERE event_id IN (SELECT id FROM vane_import_events WHERE site_id=? UNION ALL SELECT id FROM vane_import_reports WHERE site_id=?)',params:[siteId,siteId] },
     { sql:'DELETE FROM vane_import_reports WHERE site_id=?',params:[siteId] },
     { sql:'DELETE FROM vane_import_events WHERE site_id=?',params:[siteId] },
     { sql:'DELETE FROM vane_import_approvals WHERE site_id=?',params:[siteId] },
     ...nativeStatements,
-  ],context(env,actor,site),[
+  ];
+  const checkpoint:D1Sql[]=[
     { sql:`INSERT INTO vane_import_erasure_fences(site_id,generation,erased_at) VALUES(?,1,?)
       ON CONFLICT(site_id) DO UPDATE SET generation=generation+1,erased_at=excluded.erased_at`,params:[siteId,new Date().toISOString()] },
-  ]);
+  ];
+  const scope=await retirementScope(env.DB,siteId,[namespace(siteId)]);
+  if(Object.values(scope).every(ids=>ids.length===0)) {
+    // Native or transferred history can exist before any import job. Prove custody is still absent at commit.
+    await atomic(context(env,actor,site),'erase',[...headerAbsence(siteId,[namespace(siteId)]),...statements,...checkpoint]);
+    return;
+  }
+  return retireD1ImportCustody({values:[namespace(siteId)]},statements,context(env,actor,site),checkpoint);
 }
 
 /** One expired target per call keeps each Worker request inside D1's query budget. */

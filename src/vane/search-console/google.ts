@@ -18,7 +18,7 @@ export function credentials(env:SearchEnv) {
 }
 export async function googleFetch(url:string,init:RequestInit,label:string):Promise<Response> {
  let response:Response;
- try {response=await fetch(url,{...init,redirect:'error',signal:AbortSignal.timeout(30000)});}
+ try {response=await fetch(url,{...init,redirect:'manual',signal:AbortSignal.timeout(30000)});}
  catch {throw new VaneError('search_google_unavailable',`Google ${label} could not be reached.`,502);}
  // Never surface Google's body: OAuth and API errors may reflect tokens, codes or source labels.
  insist(response.ok,'search_google_error',`Google ${label} returned HTTP ${response.status}.`,502);

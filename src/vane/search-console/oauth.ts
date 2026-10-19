@@ -55,6 +55,8 @@ export async function callback(request:Request,env:Env,actor:Actor):Promise<Resp
 export async function selectProperty(env:Env,actor:Actor,p:{siteId:string;property:string}):Promise<void> {
  role(actor);inScope(actor,p.siteId);await site(env,p.siteId);
  const c=await connection(env,p.siteId);insist(c,'search_connection','Connect Google Search Console first.');
+ const history=await env.DB.prepare('SELECT property FROM vane_search_days WHERE site_id=? LIMIT 1').bind(p.siteId).first<{property:string}>();
+ insist(!history||history.property===p.property,'search_property_history','This site has history from another Google property. Use that property, or erase its history through the reviewed erasure proposal first.',409);
  const previous=JSON.parse(c.properties_json) as {siteUrl:string}[];
  insist(previous.some(v=>v.siteUrl===p.property),'search_property','Choose a property returned by Google.');
  const allowed=await listProperties(await accessToken(env,c));await current(env,c);
@@ -63,8 +65,6 @@ export async function selectProperty(env:Env,actor:Actor,p:{siteId:string;proper
  // A new generation fences any in-flight read of the previously selected property.
  const generation=uid(),tokens=await readTokens(env,(await connection(env,p.siteId))!);
  await env.DB.batch([
-  statement(env,'DELETE FROM vane_search_rows WHERE site_id=? AND EXISTS(SELECT 1 FROM vane_search_connections WHERE site_id=? AND generation=?)',p.siteId,p.siteId,c.generation),
-  statement(env,'DELETE FROM vane_search_days WHERE site_id=? AND EXISTS(SELECT 1 FROM vane_search_connections WHERE site_id=? AND generation=?)',p.siteId,p.siteId,c.generation),
   statement(env,'UPDATE vane_search_connections SET generation=?,sealed_tokens=?,property=?,properties_json=?,last_sync=NULL,next_sync=?,last_error=NULL,lock_id=NULL,lock_until=NULL WHERE site_id=? AND generation=?',generation,await sealTokens(env,p.siteId,generation,tokens),p.property,JSON.stringify(allowed),clock(),p.siteId,c.generation),
   auditStatement(env,actor.id,'search.property',p.siteId,'Owner selected an allowed Google Search Console property')
  ]);

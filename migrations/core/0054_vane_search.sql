@@ -27,6 +27,6 @@ CREATE TABLE vane_search_rows (
  grain TEXT NOT NULL CHECK(grain IN ('overall','query','page','query_page')),
  query TEXT NOT NULL DEFAULT '', page TEXT NOT NULL DEFAULT '', path TEXT NOT NULL DEFAULT '',
  clicks REAL NOT NULL, impressions REAL NOT NULL, ctr REAL NOT NULL, position REAL NOT NULL,
- PRIMARY KEY(snapshot_id,grain,query,page)
+ PRIMARY KEY(site_id,day,snapshot_id,grain,query,page)
 );
 CREATE INDEX vane_search_rows_site_day ON vane_search_rows(site_id,day);
