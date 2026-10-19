@@ -87,7 +87,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "b7436dbe2bd1767e75ee97a180f68cae545a6093787d4cf025c813def26ca708",
+      "sha256": "abf6609d368464c087f5079b21f61e0f4498f9fab1de87e710458e75744e1865",
       "executable": false
     },
     "DEMO.md": {
@@ -311,11 +311,11 @@
       "executable": false
     },
     "package.json": {
-      "sha256": "df94e2f89d440ea01e9aa31301a4c20e1674f1d6178dfcb44fecb48a18b2bce0",
+      "sha256": "dcaf3314a7e11b5805ab7caa01ca9e88aab85a268b32080b2121dbfef40f753c",
       "executable": false
     },
     "pnpm-lock.yaml": {
-      "sha256": "a22baa4f4f366f84a77bca3cbebdefbe0b58d426edb87a6f43c95c8d4442c50c",
+      "sha256": "30034909cc70629e930bc96a5b494de34ca91c057e65f42ea793598f336c3787",
       "executable": false
     },
     "public/apple-touch-icon.png": {
@@ -547,7 +547,7 @@
       "executable": false
     },
     "public/vane.css": {
-      "sha256": "e3b9bed1e4b00563d11aa1dfbf045128ecbdbd640365da039ea369782102aaf2",
+      "sha256": "634598ab3aa07eb2d5064a11a67ad78271352fff69b5dc2426378a8e8e9d1097",
       "executable": false
     },
     "README.md": {
@@ -2859,7 +2859,7 @@
       "executable": false
     },
     "tests/vane.test.mjs": {
-      "sha256": "483c3d87f0919bfdf6ca27f3064aff50d44fa5cb43cdd70b3885166d43ea8aad",
+      "sha256": "c00a8462a7d56cb0b7ebbdd6fbaf7c28552ec2f3a518463ca0376d489c7ef225",
       "executable": false
     },
     "tsconfig.json": {

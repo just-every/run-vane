@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { createHash, createHmac } from 'node:crypto'
 import { crc32 } from 'node:zlib'
+import { createRequire } from 'node:module'
 import { installation } from './harness.mjs'
 import { appsScript } from './apps-script.mjs'
 const fixture=JSON.parse(await readFile(new URL('./fixtures/umami-events.json',import.meta.url),'utf8'))
@@ -1539,4 +1540,40 @@ test('API-002 a whole-site ZIP in Plausible\'s layout, the Looker Studio connect
  assert.equal(a.egress.length,sent,'held back after a refusal');assert.ok((await runs()).some(([action,detail])=>action==='export.fail'&&detail.startsWith('2026-03-11 refused: HTTP 403')&&detail.includes('0 rows sent')))
  refuse=false;await a.clock(Date.parse('2026-03-12T02:01:00Z'));await a.scheduled();assert.ok(objects[`${prefix}/events/2026-03-11.csv`],'retried after an hour')
  assert.ok(a.egress.slice(before).every(url=>url.startsWith('https://acct.r2.fixture.example/')),'the export talks only to the owner\'s bucket')
+})
+test('MOBILE-001 at 390 and 1440 px the site, approval, report and filter journeys complete by keyboard, every page passing an automated WCAG 2.2 AA scan with no horizontal scroll',async t=>{
+ const a=await withApp(t),axe=await readFile(createRequire(import.meta.url).resolve('axe-core'),'utf8'),{context}=await browse(t,a)
+ await context.addCookies(a.owner.split('; ').map(pair=>{const [name,...value]=pair.split('=');return {name,value:value.join('='),url:a.origin}}))
+ // Playwright does not route the request that follows a fulfilled redirect, so a form's 303 is followed as a navigation.
+ await context.route(a.origin+'/app/action',async route=>{const request=route.request(),response=await a.request('/app/action',{method:'POST',headers:request.headers(),body:request.postData()??undefined}),location=response.headers.get('location');if(response.status!==303||!location)return route.fulfill({status:response.status,headers:Object.fromEntries(response.headers),body:Buffer.from(await response.arrayBuffer())});return route.fulfill({status:200,contentType:'text/html',body:`<!doctype html><title>Redirecting</title><meta http-equiv="refresh" content="0;url=${location.replaceAll('&','&amp;').replaceAll('"','&quot;')}">`})})
+ const page=await context.newPage()
+ // Keyboard only: Tab moves focus until it reaches the control, then keys type into it and Enter submits.
+ const tabTo=async selector=>{for(let i=0;i<400;i++){await page.keyboard.press('Tab');if(await page.evaluate(s=>document.activeElement?.matches(s)??false,selector))return}assert.fail('Tab never reached '+selector)}
+ const submit=async url=>{await Promise.all([page.waitForURL(url),page.keyboard.press('Enter')]);await page.waitForLoadState()}
+ // The scan runs axe-core in the page (the page's own CSP stays on) for WCAG 2.0-2.2 A and AA.
+ const scanned=async label=>{
+  const violations=await page.evaluate(`${axe}\n;axe.run(document,{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21a','wcag21aa','wcag22aa']}}).then(r=>r.violations.map(v=>v.id+': '+v.nodes.map(n=>n.target.join(' ')).join(', ')))`)
+  assert.deepEqual(violations,[],label);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`${label} scrolls sideways`)
+ }
+ for(const width of [390,1440]){
+  await page.setViewportSize({width,height:900});const origin=`https://fern${width}.example`
+  // Site: the Add a site form, then its approval.
+  await page.goto(a.origin+'/app');await scanned(`${width} sites`)
+  await tabTo('input[name="name"]');await page.keyboard.type(`Fern ${width}`);await tabTo('input[name="origin"]');await page.keyboard.type(origin);await submit(/section=approvals/)
+  await scanned(`${width} approvals`)
+  await tabTo('form:has(input[value="proposal.approve"]) button[type="submit"]');await submit(/\/app\/sites\/[\w-]+\?/)
+  const id=(await a.dump()).vane_sites.find(s=>s.name===`Fern ${width}`)?.id;assert.ok(id,'the approved site exists')
+  for(const path of ['/','/pricing','/thanks'])assert.equal((await a.collect(a.event(id,{path,consent:'granted'}),origin)).status,202)
+  // Report: change the range from the keyboard.
+  await page.goto(`${a.origin}/app/sites/${id}?section=report`);await scanned(`${width} report`)
+  await tabTo('select[name="period"]');await page.keyboard.type('Last 30');assert.equal(await page.evaluate(()=>document.activeElement.value),'30d')
+  await tabTo('form:has(select[name="period"]) button[type="submit"]');await submit(/period=30d/);await scanned(`${width} report, last 30 days`)
+  // Filter: Page is /thanks.
+  await tabTo('select[name="filterDimension"]');await page.keyboard.type('Page');assert.equal(await page.evaluate(()=>document.activeElement.value),'page')
+  await tabTo('input[name="filterValue"]');await page.keyboard.type('/thanks');await submit(/filterValue=%2Fthanks|filter=page/)
+  assert.match(await page.locator('[data-active-filters]').textContent(),/\/thanks/);await scanned(`${width} filtered report`)
+  for(const section of ['settings','history','realtime']){await page.goto(`${a.origin}/app/sites/${id}?section=${section}`);await scanned(`${width} ${section}`)}
+  for(const section of ['team','api','audit']){await page.goto(`${a.origin}/app?section=${section}`);await scanned(`${width} ${section}`)}
+ }
+ await context.close()
 })

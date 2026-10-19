@@ -181,3 +181,5 @@
 .vane-table-scroll table[data-live], .vane-table-scroll table[data-funnel], .vane-table-scroll table[data-variation] { min-width: 520px; }
 /* SHARE-001: a shared link opened with ?theme=dark. */
 .vane-dark { --rer-page: #0f131c; --rer-surface: #171c27; --rer-text: #eef2f8; --rer-muted: #aab4c8; --rer-border: #5b6680; --rer-accent: #7ea2ff; --rer-accent-text: #0b0d14; --rer-link: #eef2f8; --rer-tint: #1f2a44; --paper: #0f131c; --surface: #171c27; --ink: #eef2f8; --body: #aab4c8; --line: #2a3142; --line-soft: #222838; --track: #2a3142; background: var(--rer-page); color: var(--rer-text); }
+/* MOBILE-001: every checkbox is at least a 24 px target (WCAG 2.2 AA, 2.5.8). */
+.vane-app input[type=checkbox] { width: 24px; height: 24px; flex: none; }
