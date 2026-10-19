@@ -413,7 +413,7 @@ test('DASH-006 iPhone Safari, Android Chrome, Windows Edge and an iPad fill the 
  assert.deepEqual(pick(r.browsers),[['Safari',2,2],['Chrome',1,1],['Edge',1,1]]);assert.deepEqual(pick(r.browserVersions),[['Safari 17',2,2],['Chrome 126',1,1],['Edge 126',1,1]])
  assert.deepEqual(pick(r.systems),[['Android',1,1],['Windows',1,1],['iOS',1,1],['iPadOS',1,1]]);assert.deepEqual(pick(r.systemVersions),[['Android 14',1,1],['Windows 10/11',1,1],['iOS 17.4',1,1],['iPadOS 17.0',1,1]])
  assert.deepEqual(pick(r.screens),[['Mobile (under 576 px)',2,2],['Desktop (1440 px and wider)',1,1],['Tablet (576–991 px)',1,1]])
- const page=await (await a.request(`/app/sites/${id}?section=report`,owner)).text();for(const html of ['<h2>Devices</h2>','<th scope="row">iPadOS 17.0</th><td class="vane-number">1</td>','<h2>Screen sizes</h2>'])assert.ok(page.includes(html),html)
+ const page=unlinked(await (await a.request(`/app/sites/${id}?section=report`,owner)).text());for(const html of ['<h2>Devices</h2>','<th scope="row">iPadOS 17.0</th><td class="vane-number">1</td>','<h2>Screen sizes</h2>'])assert.ok(page.includes(html),html)
  // In a browser at phone width, the script sends its viewport width and the page load lands in the phone class.
  const other=await a.addSite({origin:'https://oak.example'}),{context}=await browse(t,a,{'https://oak.example/':`<!doctype html><title>Oak</title><script src="${a.origin}/vane.js" data-site="${other}"></script>`},{viewport:{width:390,height:844}}),tab=await context.newPage()
  const sent=tab.waitForResponse(response=>new URL(response.url()).pathname==='/api/vane/collect'&&response.request().method()==='POST');await tab.goto('https://oak.example/');const response=await sent
@@ -434,7 +434,7 @@ test('DASH-012 with a named search parameter, a term two visitors searched is re
  assert.deepEqual([r.searches,r.searchVisits,r.searchesPerVisit,r.exitAfterSearch],[4,3,1.33,66.7])
  assert.deepEqual(r.terms,[{term:'returns',searches:2,visitors:2,previous:0}],'shipping (one visitor) and the email-like term stay hidden')
  assert.deepEqual(r.startPages.map(p=>[p.path,p.searches]),[['/',2],['(entry)',1],['/search',1]])
- const page=await (await a.request(`/app/sites/${id}?section=report&from=2026-03-11&to=2026-03-12`,owner)).text()
+ const page=unlinked(await (await a.request(`/app/sites/${id}?section=report&from=2026-03-11&to=2026-03-12`,owner)).text())
  for(const html of ['<h2>Site search</h2>','<th scope="row">returns</th><td class="vane-number">2</td><td class="vane-number">2</td>','<dt>Visits that exit after searching</dt><dd>66.7%</dd>'])assert.ok(page.includes(html),html)
  assert.equal(page.includes('shipping'),false)
  // In a browser the script sends the named parameter's term, lowercased.
@@ -1041,7 +1041,7 @@ test('PERF-001 in a browser a page whose hero image arrives 3 seconds late repor
  assert.ok(slow.lcp>2500&&slow.load>2500,`slow page LCP ${slow.lcp} ms`);assert.ok(fast.lcp<2500,`fast page LCP ${fast.lcp} ms`)
  const summary=await (await a.request('/api/vane/summary?siteId='+id,owner)).json(),pages=Object.fromEntries(summary.perf.pages.map(r=>[r.label,r]))
  assert.ok(pages['/slow'].lcp>2500&&pages['/fast'].lcp<2500,'LCP p75 is above 2.5 s on the slow page only');assert.deepEqual(summary.perf.devices.map(r=>[r.label,r.measured,r.lcp]),[['desktop',2,pages['/slow'].lcp]],'with two loads, nearest-rank p75 is the slower one')
- const html=await (await a.request(`/app/sites/${id}?section=report`,owner)).text();assert.ok(html.includes(`<th scope="row">/slow</th><td class="vane-number">1</td><td class="vane-number" data-lcp="${pages['/slow'].lcp}">${(pages['/slow'].lcp/1000).toFixed(1)} s</td>`))
+ const html=unlinked(await (await a.request(`/app/sites/${id}?section=report`,owner)).text());assert.ok(html.includes(`<th scope="row">/slow</th><td class="vane-number">1</td><td class="vane-number" data-lcp="${pages['/slow'].lcp}">${(pages['/slow'].lcp/1000).toFixed(1)} s</td>`))
  assert.equal((await a.post('/api/vane/perf',{siteId:id,id:slow.id,lcp:100,url:'https://fern.example/slow'},'',{origin:'https://fern.example'})).status,400,'a report carries no other field')
  assert.equal((await a.post('/api/vane/perf',{siteId:id,id:crypto.randomUUID(),lcp:100},'',{origin:'https://fern.example'})).status,404,'a report names an existing page load')
  await context.close()
@@ -1057,7 +1057,7 @@ test('DASH-007 filtering the report by Organic Search, mobile and not /blog/* ke
  const range='from=2026-03-03&to=2026-03-04',summary=async query=>(await a.request(`/api/vane/summary?siteId=${id}&${range}&${query}`,owner)).json(),totals=r=>[r.visits,r.pageviews,r.goals,r.visitors]
  const all=await summary('');assert.deepEqual(totals(all),[6,12,2,6]);assert.deepEqual(all.funnels[0].steps.map(s=>s.visits),[4,2])
  // Each comparison keeps whole visits: acquisition and device by the first page load, page and goal by any page load (or none).
- for(const [filter,visits] of [['channel:is:Organic Search',5],['source:is:Google',5],['utm_medium:is:email',1],['device:is_not:desktop',5],['entry:is:/pricing',1],['page:contains:BLOG',2],['page:not_contains:blog',4],['page:matches:^/blog/[a-z]+$',1],['page:is:/blog/**',2],['goal:is:signup',2]])assert.equal((await summary('filter='+encodeURIComponent(filter))).visits,visits,filter)
+ for(const [filter,visits] of [['channel:is:Organic Search',5],['source:is:Google',5],['utm_medium:is:email',1],['device:is_not:desktop',5],['entry:is:/pricing',1],['page:contains:BLOG',2],['page:not_contains:blog',4],['page:matches:^/blog/[a-z]+$',1],['page:is:/blog/**',2],['goal:is:signup',2],['hostname:is:fern.example',6],['browser_version:matches:^Chrome ',1],['os_version:contains:ios',5]])assert.equal((await summary('filter='+encodeURIComponent(filter))).visits,visits,filter)
  assert.equal((await a.request(`/api/vane/summary?siteId=${id}&filter=${encodeURIComponent('page:matches:(')}`,owner)).status,400,'an invalid regular expression is refused')
  // In the browser: click Organic Search in the channel table, add the device and page filters, and save the segment.
  const {context}=await browse(t,a,{},{viewport:{width:1440,height:900}});await context.addCookies(a.owner.split('; ').map(pair=>{const [name,...value]=pair.split('=');return {name,value:value.join('='),url:a.origin}}))

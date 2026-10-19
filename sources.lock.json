@@ -55,7 +55,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "8449cd64c823c54016a5bdfd5c47d4cdb81cb323c449004f5d6db35861a96465",
+      "sha256": "0bf7c8f2170a7434db92a7f4d4c0b3abb0e53114994551b3315557112880eb20",
       "executable": false
     },
     "AGENTS.md": {
@@ -79,7 +79,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "5cea4aeaff04c5b40cf0bc40b1e0d7b27715c822a79baac1a6164d3439ecdea0",
+      "sha256": "4e27bd92dc234d938d64abe480fef1b8c559f56899599c0234d1f22205547ca7",
       "executable": false
     },
     "DEMO.md": {
@@ -2579,7 +2579,7 @@
       "executable": false
     },
     "src/vane/segments.ts": {
-      "sha256": "589a33fbc70f9624b37a4505559c916aca422cccf44869bcbfcf63df49d771e0",
+      "sha256": "80ff31a5b52ca8dce669c8f17c687d1ef7481db065b4f6297008f2f7888a3d1a",
       "executable": false
     },
     "src/vane/series.ts": {
@@ -2615,7 +2615,7 @@
       "executable": false
     },
     "src/vane/views/filters.ts": {
-      "sha256": "189ab4e2bb17fe35585af9b10575d9bf1e2c660192bc6928b6ec439b54b19063",
+      "sha256": "ea5b1ed4080fdf7eff4860dcd9234f7e98296aaec611bffdfeed8eb34c92cc85",
       "executable": false
     },
     "src/vane/views/history.ts": {
@@ -2639,7 +2639,7 @@
       "executable": false
     },
     "src/vane/views/report.ts": {
-      "sha256": "a75a681c3135989d7ca199aecfe99c6841dae0f81d4878114da9b4e4a5f59305",
+      "sha256": "5a36d29aa030cc97c6efdc7038ee29110949232671fba0ad9a7d5b86a6c6b704",
       "executable": false
     },
     "src/vane/views/rollup.ts": {
@@ -2663,7 +2663,7 @@
       "executable": false
     },
     "src/vane/views/tables.ts": {
-      "sha256": "80ca37eb81381aa37784ea126e842201599cb170e21886eb340df41ab75c4aa3",
+      "sha256": "6c3005400748f470b89c5a34e090c7cdf6d0d64f12c613224b2af2f2241c59a9",
       "executable": false
     },
     "src/vane/views/types.ts": {
@@ -2707,7 +2707,7 @@
       "executable": false
     },
     "tests/vane.test.mjs": {
-      "sha256": "5cf531342e545979b936796c5151baa6a821cd190440452583adf8a8b023f8d2",
+      "sha256": "d0133586f8afe1041cb90d30472afec9901bb9ed563b6d82db2516dfdf32cbe6",
       "executable": false
     },
     "tsconfig.json": {

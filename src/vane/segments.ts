@@ -7,7 +7,7 @@ import { sourceNameSql, type SourceRule } from './sources'
 // DASH-007: filters and saved segments. A filter keeps or drops whole visits, so every total, table, chart, funnel
 // and explanation of a filtered report is computed over the page loads (and their goal events) of the kept visits.
 // Acquisition and device dimensions judge each visit's first page load, as the channel and source tables do (DASH-004);
-// page, hostname and goal dimensions match a visit when any of its page loads matches (is, contains, matches) or when
+// page, hostname, site-search term and goal dimensions match a visit when any of its page loads matches (is, contains, matches) or when
 // none does (is not, does not contain). Filters combine with AND, with the Hostname filter (DASH-013) applied first.
 // is and is not compare exactly, and on Page and Entry page they take the goal wildcards (CONV-001); contains and
 // does not contain ignore ASCII case; matches is a JavaScript regular expression tested against each distinct value.
@@ -21,8 +21,8 @@ const column=(name:string)=>(row:string)=>`${row}.${name}`
 export const DIMENSIONS:Record<string,{label:string,scope:Scope,sql?:(row:string)=>string}>={
  channel:{label:'Channel',scope:'first',sql:column('channel')},source:{label:'Source',scope:'first'},referrer:{label:'Referring page',scope:'first',sql:column('referrer')},
  utm_source:{label:'UTM source',scope:'first',sql:column('utm_source')},utm_medium:{label:'UTM medium',scope:'first',sql:column('utm_medium')},utm_campaign:{label:'UTM campaign',scope:'first',sql:row=>`NULLIF(${row}.campaign,'none')`},utm_term:{label:'UTM term',scope:'first',sql:column('utm_term')},utm_content:{label:'UTM content',scope:'first',sql:column('utm_content')},
- entry:{label:'Entry page',scope:'first',sql:column('path')},page:{label:'Page',scope:'any',sql:column('path')},hostname:{label:'Hostname',scope:'any',sql:column('hostname')},goal:{label:'Goal',scope:'goal',sql:column('kind')},
- device:{label:'Device',scope:'first',sql:column('device')},browser:{label:'Browser',scope:'first',sql:column('browser')},os:{label:'Operating system',scope:'first',sql:column('os')},screen:{label:'Screen size',scope:'first',sql:column('screen')},
+ entry:{label:'Entry page',scope:'first',sql:column('path')},page:{label:'Page',scope:'any',sql:column('path')},hostname:{label:'Hostname',scope:'any',sql:column('hostname')},goal:{label:'Goal',scope:'goal',sql:column('kind')},search:{label:'Site search term',scope:'any',sql:column('search')},
+ device:{label:'Device',scope:'first',sql:column('device')},browser:{label:'Browser',scope:'first',sql:column('browser')},browser_version:{label:'Browser version',scope:'first',sql:row=>`trim(${row}.browser||' '||COALESCE(${row}.browser_version,''))`},os:{label:'Operating system',scope:'first',sql:column('os')},os_version:{label:'Operating system version',scope:'first',sql:row=>`trim(${row}.os||' '||COALESCE(${row}.os_version,''))`},screen:{label:'Screen size',scope:'first',sql:column('screen')},
 }
 export interface Filter { dimension:string; op:Op; value:string }
 export const MAX_FILTERS=10,MAX_MATCHED_VALUES=500
