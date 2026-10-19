@@ -1,0 +1,13 @@
+import { date, escape, field, operation, panel } from './html'
+import type { ViewData } from './types'
+// API-002: the owner's scheduled warehouse export. The secret key is entered, sealed and never shown again; the page
+// names the destination, the last exported date and the newest run's outcome.
+export function exportPanel(data: ViewData): string {
+  if (data.actor.role !== 'owner' || data.warehouse === undefined) return ''
+  const site = data.site, w = data.warehouse
+  const status = w
+    ? `<p data-export-status>Daily export to <code>${escape(new URL(w.endpoint).host)}/${escape(w.bucket)}/${escape(w.prefix)}vane/${escape(site.id)}/</code> (region ${escape(w.region)}, key ${escape(w.accessKeyId)}), set up ${date(w.createdAt)}. Exported through ${escape(w.lastDay)}.${w.lastResult ? ` Last run: ${escape(w.lastResult)}.` : ''}</p><form action="/app/action" method="post">${operation('export.run', site.id)}<button>Run now</button></form><form action="/app/action" method="post">${operation('export.delete', site.id)}<button>Stop and erase the key</button></form>`
+    : '<p>No scheduled export yet.</p>'
+  const form = `<form action="/app/action" method="post" class="vane-config-form">${operation('export.save', site.id)}<div class="vane-form-grid">${field('Endpoint', 'endpoint', w?.endpoint ?? '', 'type="url" required placeholder="https://<account>.r2.cloudflarestorage.com"')}${field('Bucket', 'bucket', w?.bucket ?? '', 'required maxlength="63"')}</div><div class="vane-form-grid">${field('Region', 'region', w?.region ?? 'auto', 'required maxlength="32"')}${field('Prefix (optional)', 'prefix', w?.prefix ?? '', 'maxlength="200" placeholder="analytics/"')}</div><div class="vane-form-grid">${field('Access key ID', 'accessKeyId', w?.accessKeyId ?? '', 'required maxlength="128" autocomplete="off"')}${field('Secret access key', 'secretAccessKey', '', 'type="password" required maxlength="256" autocomplete="off"')}</div><div class="vane-form-grid">${field('First date to export (optional)', 'from', '', 'type="date"')}</div><button>${w ? 'Replace the export settings' : 'Schedule the export'}</button></form>`
+  return panel('Scheduled warehouse export', `${status}${form}<p class="vane-help">Each day, after the site’s date ends, Vane puts two CSV files into your Amazon S3 or Cloudflare R2 bucket: the day’s dashboard totals and every stored event row, never the visitor hash. BigQuery and Snowflake load them from the bucket through their S3 stage. The columns are published at <a href="/api/v1/export-schema.json">/api/v1/export-schema.json</a>. The endpoint must be https and public; the secret key is sealed and not shown again, and every run is in the audit log with its row counts.</p>`)
+}

@@ -3,15 +3,13 @@ import { auditStatement } from './audit'
 import { clock } from './clock'
 import { localDay } from './visitors'
 import { HOOK_LIMIT_PER_HOUR } from './annotation-door'
+import { seal as sealWith, unseal as unsealWith } from './sealed'
 // DASH-009: GitHub releases as chart annotations (ct 06:40Z). GitHub signs each delivery with X-Hub-Signature-256, an
 // HMAC that needs the key itself, so the site's GitHub key is a separate owner-created secret kept encrypted with
 // AES-GCM under a key derived from the installation's session secret, shown once and revocable. The door accepts
 // release events only (and GitHub's ping), and a published release is its only annotation.
+const PURPOSE='vane-github-key-v1',seal=(env:Env,siteId:string,key:string)=>sealWith(env,PURPOSE,siteId,key),unseal=(env:Env,siteId:string,sealed:string)=>unsealWith(env,PURPOSE,siteId,sealed)
 const utf8=new TextEncoder(),hex=(bytes:ArrayBuffer|Uint8Array)=>Array.from(new Uint8Array(bytes),b=>b.toString(16).padStart(2,'0')).join('')
-const b64=(bytes:ArrayBuffer|Uint8Array)=>btoa(String.fromCharCode(...new Uint8Array(bytes))),unb64=(value:string)=>Uint8Array.from(atob(value),c=>c.charCodeAt(0))
-const sealingKey=async(env:Env)=>crypto.subtle.importKey('raw',await crypto.subtle.digest('SHA-256',utf8.encode(`vane-github-key-v1\0${env.SESSION_SECRET}`)),'AES-GCM',false,['encrypt','decrypt'])
-async function seal(env:Env,siteId:string,key:string){const iv=crypto.getRandomValues(new Uint8Array(12));return `${b64(iv)}.${b64(await crypto.subtle.encrypt({name:'AES-GCM',iv,additionalData:utf8.encode(siteId)},await sealingKey(env),utf8.encode(key)))}`}
-async function unseal(env:Env,siteId:string,sealed:string){const [iv,data]=sealed.split('.');return new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(iv!),additionalData:utf8.encode(siteId)},await sealingKey(env),unb64(data!)))}
 const headers={'cache-control':'no-store','x-content-type-options':'nosniff'}
 export async function githubReleaseDoor(request:Request,env:Env):Promise<Response|null> {
  const match=new URL(request.url).pathname.match(/^\/api\/vane\/annotations\/github\/([\w-]+)$/);

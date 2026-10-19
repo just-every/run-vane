@@ -2,6 +2,7 @@ import { runtimeBindings, type Bindings } from '../auth.server'
 import { site, VaneError } from './core'
 import { ApiRefusal, keyOf, keySites } from './api-keys'
 import { openApi, plausibleQuery, statsV1 } from './stats-api'
+import { exportSchema } from './warehouse'
 import { provisionGoal, provisionSharedLink, provisionSite } from './provisioning'
 // API-001: the key-authenticated doors. They take no session cookie and set none; every answer is JSON and uncached.
 const headers={'cache-control':'no-store','x-content-type-options':'nosniff'}
@@ -13,6 +14,8 @@ export async function apiDoor(request:Request,original:Bindings):Promise<Respons
  const env=runtimeBindings(original);
  try {
   if(path==='/api/v1/openapi.json'&&request.method==='GET')return json(openApi(env.AUTH_ORIGIN));
+  // API-002: the warehouse export's published schema.
+  if(path==='/api/v1/export-schema.json'&&request.method==='GET')return json(exportSchema());
   if(path==='/api/v1/stats'&&request.method==='GET'){const key=await keyOf(env,request,'stats');keySites(key,url.searchParams.get('site_id')??'');return json(await statsV1(env,url))}
   if(path==='/api/v2/query'&&request.method==='POST'){const key=await keyOf(env,request,'stats');return json(await plausibleQuery(env,await body(request),id=>keySites(key,id)))}
   if(path==='/api/v1/sites'&&request.method==='POST'){const key=await keyOf(env,request,'provisioning');return json(await provisionSite(env,key,await body(request)),201)}

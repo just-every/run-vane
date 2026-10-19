@@ -1,8 +1,10 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
-import { createHash } from 'node:crypto'
+import { createHash, createHmac } from 'node:crypto'
+import { crc32 } from 'node:zlib'
 import { installation } from './harness.mjs'
+import { appsScript } from './apps-script.mjs'
 const fixture=JSON.parse(await readFile(new URL('./fixtures/umami-events.json',import.meta.url),'utf8'))
 // DASH-007 makes report row values links that filter by them; assertions on a row's cells read past the link.
 const unlinked=html=>html.replace(/<a href="[^"]*" data-filter-link>([^<]*)<\/a>/g,'$1')
@@ -132,7 +134,7 @@ test('TRAFFIC-001 the default seven-day report compares totals and every breakdo
 })
 test('PRIVACY-005 visitor data stays in the installation: the script talks only to its own origin, and collection, reports, import and export make no outbound request',async t=>{
  const a=await withApp(t),id=await a.addSite(),before=a.egress.length,seed=JSON.parse(await readFile(new URL('../seed.json',import.meta.url),'utf8'))
- assert.deepEqual(seed.externals.map(external=>external.id),['cloudflare'])
+ assert.deepEqual(seed.externals.filter(external=>external.required).map(external=>external.id),['cloudflare'])
  const {context,requests}=await browse(t,a,{'https://fern.example/thanks':`<!doctype html><title>Fern Studio</title><h1>Thanks</h1><script src="${a.origin}/vane.js" data-site="${id}"></script>`})
  const page=await context.newPage(),collected=page.waitForResponse(response=>new URL(response.url()).pathname==='/api/vane/collect'&&response.request().method()==='POST')
  await page.goto('https://fern.example/thanks')
@@ -1455,4 +1457,86 @@ test('API-002 every table of a filtered, compared report downloads as CSV with t
  // A viewer of another site gets 403, and a table the report does not have 404.
  assert.equal((await a.form({operation:'team.invite',email:'viewer@example.test',role:'viewer',scope:'chosen',[`site_${other}`]:'on'},a.owner)).status,303);const viewer=await a.accept('viewer@example.test')
  assert.equal((await a.request(links[0][1],{headers:{cookie:viewer}})).status,403);assert.equal((await a.request(`/api/vane/csv?siteId=${id}&table=nope`,owner)).status,404)
+})
+// A stored ZIP's entries by name, each checked against its CRC-32.
+function unzip(bytes){const b=Buffer.from(bytes),end=b.lastIndexOf(Buffer.from([0x50,0x4b,5,6])),files={};let at=b.readUInt32LE(end+16)
+ for(let i=0;i<b.readUInt16LE(end+10);i++){const size=b.readUInt32LE(at+20),length=b.readUInt16LE(at+28),name=b.toString('utf8',at+46,at+46+length),offset=b.readUInt32LE(at+42),start=offset+30+b.readUInt16LE(offset+26)+b.readUInt16LE(offset+28),data=b.subarray(start,start+size);assert.equal(crc32(data),b.readUInt32LE(at+16),name);files[name]=data.toString('utf8');at+=46+length+b.readUInt16LE(at+30)+b.readUInt16LE(at+32)}
+ return files}
+const csvRows=text=>{const [head,...rows]=text.trim().split('\r\n');const columns=head.split(',');return Object.assign(rows.map(r=>Object.fromEntries(r.split(',').map((v,i)=>[columns[i],v]))),{columns})}
+const sumBy=(rows,key,field)=>rows.reduce((m,r)=>({...m,[r[key]]:(m[r[key]]??0)+Number(r[field])}),{})
+test('API-002 a whole-site ZIP in Plausible\'s layout, the Looker Studio connector and a scheduled R2 export each match the dashboard and the declared schema; only the owner sets the export, with a sealed key, a public https endpoint and every run audited',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({paths:[],goals:{signup:'/thanks'}}),other=await a.addSite({name:'Oak Store',origin:'https://oak.example'})
+ const desktop='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',iphone='Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1'
+ const google={referrer:'https://www.google.com/'},email={campaign:'spring',utm:{source:'newsletter',medium:'email'}}
+ const visit=async(at,n,agent,first,paths)=>{for(const [i,path] of paths.entries()){await a.clock(at+n*600000+i*60000);assert.equal((await a.post('/api/vane/collect',a.event(id,{source:undefined,campaign:undefined,...(i?{}:first),path}),'',{origin:'https://fern.example','cf-connecting-ip':'203.0.113.'+n,'user-agent':agent})).status,202)}}
+ const day1=Date.parse('2026-03-09T10:00:00Z'),day2=Date.parse('2026-03-10T10:00:00Z')
+ for(const [n,agent,first,paths] of [[1,desktop,google,['/','/pricing']],[2,iphone,email,['/']]])await visit(day1,n,agent,first,paths)
+ for(const [n,agent,first,paths] of [[1,desktop,google,['/','/pricing']],[2,desktop,google,['/pricing','/thanks']],[3,desktop,email,['/','/pricing']],[4,iphone,google,['/pricing']],[5,desktop,email,['/']],[6,desktop,{},['/pricing']]])await visit(day2,n,agent,first,paths)
+ const summary=async query=>(await a.request(`/api/vane/summary?siteId=${id}&${query}`,owner)).json()
+ const both=await summary('from=2026-03-09&to=2026-03-11'),tenth=await summary('from=2026-03-10&to=2026-03-11')
+ // The site ZIP: Plausible's file names and columns, every date, and sums equal to the dashboard's.
+ const html=await (await a.request(`/app/sites/${id}?section=report`,owner)).text(),href=html.match(/href="([^"]+)" data-site-zip/)[1].replaceAll('&amp;','&')
+ const zipped=await a.request(href,owner);assert.equal(zipped.status,200);assert.equal(zipped.headers.get('content-type'),'application/zip');assert.match(zipped.headers.get('content-disposition'),new RegExp(`attachment; filename="vane-${id}_20260309_20260310.zip"`))
+ const files=unzip(await zipped.arrayBuffer()),file=name=>csvRows(files[`imported_${name}_20260309_20260310.csv`])
+ assert.deepEqual(Object.keys(files).sort(),['browsers','custom_events','devices','entry_pages','exit_pages','operating_systems','pages','sources','visitors'].map(name=>`imported_${name}_20260309_20260310.csv`))
+ const visitors=file('visitors');assert.deepEqual(visitors.columns,['date','visitors','pageviews','bounces','visits','visit_duration']);assert.deepEqual(visitors.map(r=>r.date),['2026-03-09','2026-03-10'])
+ const total=field=>visitors.reduce((n,r)=>n+Number(r[field]),0)
+ assert.deepEqual([total('visitors'),total('visits'),total('pageviews'),Math.round(total('bounces')/total('visits')*1000)/10],[both.visitors,both.visits,both.pageviews,both.bounceRate])
+ const row10=visitors.find(r=>r.date==='2026-03-10');assert.deepEqual([+row10.visitors,+row10.visits,+row10.pageviews],[tenth.visitors,tenth.visits,tenth.pageviews])
+ const sources=file('sources');assert.deepEqual(sources.columns,['date','source','referrer','utm_source','utm_medium','utm_campaign','utm_content','utm_term','pageviews','visitors','visits','visit_duration','bounces'])
+ assert.deepEqual(Object.fromEntries(Object.entries(sumBy(sources,'source','visits')).map(([k,v])=>[k||'direct',v])),Object.fromEntries(both.sourceVisits.map(r=>[r.label,r.visits])))
+ assert.deepEqual(sumBy(file('devices'),'device','visits'),Object.fromEntries(both.deviceVisits.map(r=>[r.label,r.visits])))
+ assert.deepEqual(sumBy(file('entry_pages'),'entry_page','entrances'),Object.fromEntries(both.entryPages.map(r=>[r.path,r.visits])))
+ assert.deepEqual(sumBy(file('pages'),'page','pageviews'),Object.fromEntries(both.topPages.map(r=>[r.path,r.pageviews])))
+ assert.equal((await a.form({operation:'team.invite',email:'viewer@example.test',role:'viewer',scope:'chosen',[`site_${other}`]:'on'},a.owner)).status,303);const viewer=await a.accept('viewer@example.test')
+ assert.equal((await a.request(href,{headers:{cookie:viewer}})).status,403,'the ZIP follows the viewer\'s site scope')
+ // The Looker Studio connector, run as Apps Script against the Stats API with a site's Stats API key.
+ const key=(await (await a.form({operation:'apikey.create',kind:'stats',label:'Looker Studio',[`site_${id}`]:'on'},a.owner)).text()).match(/data-api-key>(vane_k_[0-9a-f]{64})</)[1]
+ const looker=appsScript(await readFile(new URL('../connectors/looker-studio/Code.gs',import.meta.url),'utf8'),async(url,options)=>{const u=new URL(url);assert.equal(u.origin,a.origin);const r=await a.request(u.pathname+u.search,{headers:{authorization:options.headers.Authorization}});return {status:r.status,body:await r.text()}});t.after(()=>looker.close())
+ assert.equal((await looker.call('getAuthType')).type,'KEY');assert.equal((await looker.call('setCredentials',{key:'nope'})).errorCode,'INVALID_CREDENTIALS');assert.equal((await looker.call('setCredentials',{key})).errorCode,'NONE');assert.equal(await looker.call('isAuthValid'),true)
+ assert.equal((await looker.call('getConfig')).dateRangeRequired,true);const schema=(await looker.call('getSchema')).schema;assert.ok(['channel','page','visitors','bounce_rate'].every(name=>schema.some(f=>f.name===name)))
+ const request={configParams:{origin:a.origin,site_id:id},dateRange:{startDate:'2026-03-10',endDate:'2026-03-10'}}
+ const byChannel=await looker.call('getData',{...request,fields:[{name:'channel'},{name:'visitors'},{name:'visits'},{name:'bounce_rate'}]})
+ assert.deepEqual(byChannel.schema.map(f=>f.name),['channel','visitors','visits','bounce_rate']);assert.deepEqual(byChannel.rows.map(r=>r.values),tenth.channels.map(r=>[r.label,r.visitors,r.visits,r.bounceRate===null?null:r.bounceRate/100]))
+ const totals=await looker.call('getData',{...request,dateRange:{startDate:'2026-03-09',endDate:'2026-03-10'},fields:[{name:'visitors'},{name:'pageviews'}]});assert.deepEqual(totals.rows,[{values:[both.visitors,both.pageviews]}])
+ assert.ok(looker.fetches.every(f=>new URL(f.url).pathname==='/api/v1/stats'&&f.options.headers.Authorization==='Bearer '+key))
+ // The published schema of the warehouse export.
+ const published=await (await a.request('/api/v1/export-schema.json')).json(),columns=name=>published.objects[name].columns.map(c=>c.name)
+ assert.ok(published.never.includes('visitor hash')&&!columns('events').includes('visitor'))
+ // Only the owner schedules an export, to a public https endpoint.
+ const admin=await a.invite('admin@example.test','admin'),input={operation:'export.save',siteId:id,endpoint:'https://acct.r2.fixture.example',bucket:'vane-export',region:'auto',prefix:'analytics',accessKeyId:'FIXTUREKEY0001',secretAccessKey:'fixture-secret-'+crypto.randomUUID(),from:'2026-03-09'}
+ assert.equal((await a.form(input,admin)).status,403)
+ for(const endpoint of ['http://acct.r2.fixture.example','https://127.0.0.1','https://10.0.0.5','https://192.168.1.4','https://169.254.169.254','https://localhost','https://[::1]','https://metadata.internal','https://printer.local','https://bucket'])assert.equal((await a.form({...input,endpoint},a.owner)).status,400,endpoint)
+ const objects={};let refuse=false
+ a.fixtureSites['https://acct.r2.fixture.example']=async request=>{
+  const u=new URL(request.url),body=await request.text(),auth=request.headers.get('authorization').match(/^AWS4-HMAC-SHA256 Credential=([^/]+)\/(\d{8})\/auto\/s3\/aws4_request, SignedHeaders=([^,]+), Signature=([0-9a-f]{64})$/)
+  // The fixture checks the Signature Version 4 itself, so a PUT signed without the owner's secret key is refused.
+  const headers={'content-type':request.headers.get('content-type'),host:u.host,'x-amz-content-sha256':request.headers.get('x-amz-content-sha256'),'x-amz-date':request.headers.get('x-amz-date')},hash=createHash('sha256').update(body).digest('hex')
+  const canonical=['PUT',u.pathname,'',...auth[3].split(';').map(name=>`${name}:${headers[name]}`),'',auth[3],hash].join('\n'),scope=`${auth[2]}/auto/s3/aws4_request`
+  let signing=createHmac('sha256','AWS4'+input.secretAccessKey).update(auth[2]).digest();for(const part of ['auto','s3','aws4_request'])signing=createHmac('sha256',signing).update(part).digest()
+  const valid=request.method==='PUT'&&auth[1]===input.accessKeyId&&headers['x-amz-content-sha256']===hash&&createHmac('sha256',signing).update(['AWS4-HMAC-SHA256',headers['x-amz-date'],scope,createHash('sha256').update(canonical).digest('hex')].join('\n')).digest('hex')===auth[4]
+  if(!valid||refuse)return new Response('<Error><Code>AccessDenied</Code></Error>',{status:403})
+  objects[decodeURIComponent(u.pathname)]=body;return new Response(null,{status:200})
+ }
+ assert.equal((await a.form(input,a.owner)).status,303)
+ const settings=await (await a.request(`/app/sites/${id}?section=settings`,owner)).text();assert.match(settings,/data-export-status>Daily export to <code>acct\.r2\.fixture\.example\/vane-export\/analytics\/vane\//)
+ assert.ok(!settings.includes(input.secretAccessKey)&&!JSON.stringify(await a.dump()).includes(input.secretAccessKey),'the key is sealed');assert.ok(!('vane_exports' in (await a.archive()).payload.tables),'the export and its key are left out of history archives')
+ assert.ok(!(await (await a.request(`/app/sites/${id}?section=settings`,{headers:{cookie:admin}})).text()).includes('value="export.save"'),'an admin sees no export form')
+ // The scheduled run after both dates end: two objects per date, the rollup equal to that date's dashboard.
+ const before=a.egress.length;await a.clock(Date.parse('2026-03-11T01:00:00Z'));await a.scheduled()
+ const prefix=`/vane-export/analytics/vane/${id}`
+ assert.deepEqual(Object.keys(objects).sort(),[`${prefix}/daily_rollups/2026-03-09.csv`,`${prefix}/daily_rollups/2026-03-10.csv`,`${prefix}/events/2026-03-09.csv`,`${prefix}/events/2026-03-10.csv`])
+ const rollup=csvRows(objects[`${prefix}/daily_rollups/2026-03-10.csv`]);assert.deepEqual(rollup.columns,columns('daily_rollups'))
+ assert.deepEqual(rollup.map(r=>[r.date,r.site_id,+r.visitors,+r.visits,+r.pageviews,+r.bounce_rate,+r.visit_duration]),[['2026-03-10',id,tenth.visitors,tenth.visits,tenth.pageviews,tenth.bounceRate,tenth.averageDuration]])
+ const dump=await a.dump(),events=csvRows(objects[`${prefix}/events/2026-03-10.csv`]);assert.deepEqual(events.columns,columns('events'))
+ assert.deepEqual(events.map(r=>r.id).sort(),dump.vane_events.filter(e=>e.site_id===id&&e.day==='2026-03-10').map(e=>e.id).sort())
+ for(const hash of new Set(dump.vane_events.map(e=>e.visitor).filter(Boolean)))assert.ok(Object.values(objects).every(text=>!text.includes(hash)),'no visitor hash leaves')
+ const runs=()=>a.dump().then(d=>d.vane_audit.filter(e=>e.action.startsWith('export.')&&e.action!=='export.configure').map(e=>[e.action,e.detail]))
+ assert.deepEqual((await runs()).map(([action,detail])=>[action,detail.match(/^(\S+): 1 rollup row and (\d+) event rows/)?.slice(1)]).sort(),[['export.run',['2026-03-09','3']],['export.run',['2026-03-10',String(events.length)]]])
+ await a.scheduled();assert.equal(Object.keys(objects).length,4,'each date is exported once')
+ // A refused upload is audited with no rows sent, keeps the date for later and holds the export back for an hour.
+ refuse=true;await a.clock(Date.parse('2026-03-12T01:00:00Z'));await a.scheduled();const sent=a.egress.length;await a.scheduled()
+ assert.equal(a.egress.length,sent,'held back after a refusal');assert.ok((await runs()).some(([action,detail])=>action==='export.fail'&&detail.startsWith('2026-03-11 refused: HTTP 403')&&detail.includes('0 rows sent')))
+ refuse=false;await a.clock(Date.parse('2026-03-12T02:01:00Z'));await a.scheduled();assert.ok(objects[`${prefix}/events/2026-03-11.csv`],'retried after an hour')
+ assert.ok(a.egress.slice(before).every(url=>url.startsWith('https://acct.r2.fixture.example/')),'the export talks only to the owner\'s bucket')
 })

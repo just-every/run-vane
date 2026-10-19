@@ -114,6 +114,14 @@ The owner can **Prepare history erasure**, then approve the permanent deletion.
 Retention is manual in this release. Repeat until imported rows are processed.
 Deletion retires affected import custody and records a deletion fence.
 
+## Exports and Looker Studio
+
+Every report table downloads as CSV, and **Whole site as a ZIP of CSVs** on a report gives every date in the layout of Plausible's export. In a site's settings the owner can schedule a daily export to their own Amazon S3 or Cloudflare R2 bucket: each ended date arrives as `daily_rollups/<date>.csv` and `events/<date>.csv`, without visitor hashes, in the schema published at `/api/v1/export-schema.json`. BigQuery and Snowflake load those files through their S3 stage.
+
+### Looker Studio
+
+`connectors/looker-studio` holds a community connector. Push it to a new Apps Script project with `clasp push`, deploy it from its manifest, then add it in Looker Studio with a site's Stats API key (Settings, API keys), the installation's address and the site ID.
+
 ## Commands and roles
 
 [Agent command protocol](docs/commands.md): authenticated administrators prepare

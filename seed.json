@@ -31,6 +31,16 @@
         "HTTP requests"
       ],
       "adapters": []
+    },
+    {
+      "id": "warehouse",
+      "required": false,
+      "why": "The owner's scheduled warehouse export (API-002) to their own Amazon S3 or Cloudflare R2 bucket",
+      "data": [
+        "Daily rollups",
+        "Event rows without the visitor hash"
+      ],
+      "adapters": []
     }
   ],
   "env": [],

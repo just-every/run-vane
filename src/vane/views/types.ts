@@ -10,6 +10,7 @@ export interface ViewData {
   live?: any
   hook?: { created_at: number } | null
   github?: { created_at: number } | null
+  warehouse?: { endpoint: string; bucket: string; region: string; prefix: string; accessKeyId: string; lastDay: string; lastResult: string | null; createdAt: number } | null
   secret?: string
   shares?: import('../share').ShareLink[]
   sharePath?: string

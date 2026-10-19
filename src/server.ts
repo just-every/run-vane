@@ -9,6 +9,7 @@ import { autoEventResponse } from './vane/auto-events'
 import { customEventResponse } from './vane/custom-events'
 import { exposureResponse } from './vane/experiments'
 import { expireSalts } from './vane/visitors'
+import { runExports } from './vane/warehouse'
 import { clock, clockResponse } from './vane/clock'
 import { vaneResponse } from './vane/routes'
 import { apiDoor } from './vane/api-door'
@@ -78,7 +79,9 @@ export default withDemo({
     return rejectedResponse(request, await dispatch(request, () => api.fetch(request, env, execution), async () => noTransform(await start.fetch(request))))
   },
   // METRIC-001: visitor salts are deleted 24 hours after creation, even when no page load arrives.
+  // API-002: each scheduled warehouse export sends the dates that have ended since its last run.
   async scheduled(_controller, env) {
     await expireSalts(runtimeBindings(env), clock())
+    await runExports(runtimeBindings(env), clock())
   },
 } satisfies ExportedHandler<Bindings>, { seed: seedDemo })

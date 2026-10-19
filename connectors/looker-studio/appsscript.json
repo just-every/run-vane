@@ -1,0 +1,14 @@
+{
+  "timeZone": "Etc/UTC",
+  "runtimeVersion": "V8",
+  "exceptionLogging": "STACKDRIVER",
+  "oauthScopes": ["https://www.googleapis.com/auth/script.external_request"],
+  "dataStudio": {
+    "name": "Vane",
+    "company": "Vane",
+    "logoUrl": "https://raw.githubusercontent.com/just-every/run-vane/main/public/brand/icon-192.png",
+    "addonUrl": "https://github.com/just-every/run-vane#looker-studio",
+    "supportUrl": "https://github.com/just-every/run-vane/issues",
+    "description": "Your Vane site's visitors, visits, pageviews, bounce rate and breakdowns, read with a Stats API key."
+  }
+}
