@@ -17,14 +17,16 @@ export async function seedDemo(env: Bindings, { ownerEmail, now }: { ownerEmail:
     const prepared = cleanSite({ ...input, sources: ['google.com', 'bing.com', 'instagram.com', 'pinterest.com'], consent: 'required', sampleRate: 100, retentionDays: 90 })
     const config = prepared.config
     statements.push(env.DB.prepare('INSERT INTO vane_sites(id,name,origin,config_json,created_at) VALUES(?,?,?,?,?) ON CONFLICT(id) DO NOTHING').bind(id, prepared.name, prepared.origin, JSON.stringify(config), at - (28 + index) * dayMs))
-    // Two comparable weeks of accepted page loads, with conversions and varied attribution.
+    // Two comparable weeks of accepted page loads, with conversions and varied attribution. Each day
+    // three readers make four visits: two pages with 45 engaged seconds, two pages, and two bounces.
     for (let n = 0; n < 84; n++) {
-      const day = new Date(at - (n % 14) * dayMs).toISOString().slice(0, 10)
+      const reader = Math.floor(n / 14) >> 1, time = at - 7200000 - (n % 14) * dayMs + [0, 240000, 600000, 780000, 1200000, 3600000][Math.floor(n / 14)]
+      const day = new Date(time).toISOString().slice(0, 10), visitor = `${id}-reader-${n % 14}-${reader}`, engaged = Math.floor(n / 14) === 1 ? time + 45000 : null
       const path = config.paths[n % config.paths.length]
       const source = ['google.com', 'direct', 'instagram.com', 'google.com', 'pinterest.com', 'bing.com'][n % 6]
       const campaign = n % 3 === 0 ? config.campaigns[n % 2] : 'none'
       const eventId = `${id}-visit-${n}`
-      statements.push(env.DB.prepare('INSERT INTO vane_events(id,site_id,day,kind,path,source,campaign,consent,sample_rate) VALUES(?,?,?,?,?,?,?,?,100) ON CONFLICT(id) DO NOTHING').bind(eventId, id, day, 'pageview', path, source, campaign, 'granted'))
+      statements.push(env.DB.prepare('INSERT INTO vane_events(id,site_id,day,kind,path,source,campaign,consent,sample_rate,visitor,at,engaged_at) VALUES(?,?,?,?,?,?,?,?,100,?,?,?) ON CONFLICT(id) DO NOTHING').bind(eventId, id, day, 'pageview', path, source, campaign, 'granted', visitor, time, engaged))
       const goal = Object.entries(config.goals).find(([, goalPath]) => goalPath === path)?.[0]
       if (goal) statements.push(env.DB.prepare('INSERT INTO vane_events(id,site_id,day,kind,path,source,campaign,consent,sample_rate) VALUES(?,?,?,?,?,?,?,?,100) ON CONFLICT(id) DO NOTHING').bind(`${eventId}-goal`, id, day, goal, path, source, campaign, 'granted'))
     }

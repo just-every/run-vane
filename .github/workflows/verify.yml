@@ -34,3 +34,30 @@ jobs:
       - run: pnpm exec rer check --profile first-party
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm run verify
+
+  # DEMO-001: starts `rer demo` on the checkout's own set-up data, walks the demo in a browser and stops
+  # it. It runs only here: shared development machines never run `rer demo --stop`.
+  demo:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      CI: 'true'
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1; action runtime Node 24
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0; action runtime Node 24
+        with:
+          node-version: '22.20.0'
+          package-manager-cache: false
+      - run: npm install --global pnpm@10.12.4
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: Set up the checkout's own owner and data
+        run: |
+          mkdir -p .cache
+          (umask 077; printf '{"OWNER_EMAIL":"owner@example.test"}' > .cache/setup-answers.json)
+          pnpm exec rer setup --answers .cache/setup-answers.json --non-interactive
+      - name: DEMO-001 journey
+        run: node --test tests/demo.journey.mjs

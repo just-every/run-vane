@@ -4,8 +4,9 @@ Run `rer demo` for a fresh, signed-in Vane Demo. Stop it with `rer demo --stop`.
 The demo uses `.rer/demo/`, leaves `.wrangler/state` alone, and deletes its data
 on stop. Another start gets a new workspace. There is no demo bar or outbox.
 
-Three configured websites have two weeks of recent page loads, sources, campaigns
-and goals, approved site history and a pending campaign change to review.
+Three configured websites have two weeks of recent page loads, visits (with
+engagement and bounces), sources, campaigns and goals, approved site history and
+a pending campaign change to review.
 `src/demo.ts` loads real records with fixed IDs and never fetches.
 
 Base's v2 guard allows public reads and mocks effects on people and third-party

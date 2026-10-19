@@ -43,7 +43,7 @@
       "executable": false
     },
     ".github/workflows/verify.yml": {
-      "sha256": "64f20d493d3e29523eae105ddce4ba15a008ffece8a27797c5cb8c3c7e7cc3c2",
+      "sha256": "f45835f0cbb2f16eddded4700cd5089c77662b0f080876d3b84550b27de9860f",
       "executable": false
     },
     ".gitignore": {
@@ -83,7 +83,7 @@
       "executable": false
     },
     "DEMO.md": {
-      "sha256": "b75d90ae3be0557913b0562c88fb1cb17255a3e7b9faeb64a31e7d4ef318044d",
+      "sha256": "f68661926e730177b764dc47e82c5049c1aaa569085173d2133b3049e6a1bf09",
       "executable": false
     },
     "deploy-demo.json": {
@@ -655,7 +655,7 @@
       "executable": false
     },
     "src/demo.ts": {
-      "sha256": "367306fa177f7a185fc7a62b8cc1da2bdd0f0005f1a564ca9b675a198f985b64",
+      "sha256": "0473784f6507f7ae5efa346a61f7c856dc94660e7d792037a6dc70d58a00192a",
       "executable": false
     },
     "src/dev-personas.ts": {
@@ -2484,6 +2484,10 @@
     },
     "test-budget.json": {
       "sha256": "5fa1935b1a699949f390edbfa32bc23ee4fd732833ac3aac3c8d4725bded1c67",
+      "executable": false
+    },
+    "tests/demo.journey.mjs": {
+      "sha256": "4c38592d251089ef172e431a52ea9ad010517e2cccda70501f2c94e6c6c1283b",
       "executable": false
     },
     "tests/email-link.mjs": {
