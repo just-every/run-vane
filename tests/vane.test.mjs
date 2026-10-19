@@ -831,3 +831,31 @@ test('DASH-011 visits through home → pricing → signup and home → blog → 
  assert.match(page,/<a href="\?section=report&amp;journey=%2Fblog&amp;journeyMode=entry&amp;period=today#journeys" aria-label="Journeys entering at \/blog">/)
  for(const [steps,visits] of [['/pricing → /signup → (exit)',2],['/blog → (exit)',1]])assert.ok(page.includes(`<tr><th scope="row">${steps.replaceAll('>','&gt;')}</th><td class="vane-number">${visits}</td>`)||page.includes(`<tr><th scope="row">${steps}</th><td class="vane-number">${visits}</td>`),steps)
 })
+test('DASH-001 in a browser the real-time view shows current visitors, pageviews per minute and live pages and sources against 30 minutes earlier, updates within 15 seconds without a reload, and drops visitors idle for 5 minutes',async t=>{
+ const a=await withApp(t),id=await a.addSite({paths:['/','/pricing','/thanks']}),owner={headers:{cookie:a.owner}},T=Date.parse('2026-03-02T15:00:30Z'),loads={}
+ const load=async(at,n,extra)=>{await a.clock(at);const e=a.event(id,{source:undefined,...extra});loads[n]=e.id;assert.equal((await a.post('/api/vane/collect',e,'',{origin:'https://fern.example','cf-connecting-ip':'203.0.113.'+n,'user-agent':'Synthetic Browser '+n})).status,202)}
+ // 32 minutes earlier, one visitor from Google on /pricing: the compared window.
+ await load(T-32*60000,1,{path:'/pricing',referrer:'https://www.google.com/'});await a.clock(T)
+ const {context}=await browse(t,a,{},{viewport:{width:1440,height:900}});await context.addCookies(a.owner.split('; ').map(pair=>{const [name,...value]=pair.split('=');return {name,value:value.join('='),url:a.origin}}))
+ const tab=await context.newPage(),response=await tab.goto(`${a.origin}/app/sites/${id}?section=realtime`),policy=response.headers()['content-security-policy']
+ assert.match(policy,/script-src 'nonce-[\w-]+'; connect-src 'self';/);assert.match((await a.request(`/app/sites/${id}?section=report`,owner)).headers.get('content-security-policy'),/script-src 'none'; connect-src 'none';/)
+ const text=selector=>tab.evaluate(s=>document.querySelector(s)?.textContent??null,selector),rowsOf=title=>tab.evaluate(t=>[...document.querySelectorAll(`table[data-live="${t}"] tbody tr`)].map(r=>[...r.children].map(c=>c.textContent)),title)
+ assert.equal(await text('[data-current-visitors]'),'0');assert.deepEqual(await rowsOf('Live pages'),[['/pricing','0','1','-1 (-100.0%)']])
+ await tab.evaluate(()=>{window.vaneSameDocument=true})
+ await load(T,2,{path:'/',referrer:'https://news.ycombinator.com/item?id=1'});await load(T,3,{path:'/pricing',referrer:'https://www.google.com/'});await load(T+20000,2,{path:'/pricing'})
+ const sent=Date.now();await tab.waitForFunction(()=>document.querySelector('[data-current-visitors]')?.textContent==='2',null,{timeout:15000});assert.ok(Date.now()-sent<=15000)
+ assert.equal(await tab.evaluate(()=>window.vaneSameDocument),true,'the view refreshed without a reload')
+ assert.deepEqual(await rowsOf('Live pages'),[['/pricing','2','1','+1 (+100.0%)']])
+ assert.deepEqual(await rowsOf('Live sources'),[['Google','1','1','0 (0.0%)'],['Hacker News','1','0','+1 (new)']])
+ assert.equal(await text('[data-live-pageviews]'),'3');assert.deepEqual(await tab.evaluate(()=>[...document.querySelectorAll('[data-minute-pageviews]')].map(c=>c.textContent).slice(-2)),['0','3'])
+ const live=await (await a.request('/api/vane/realtime?siteId='+id,owner)).json();assert.deepEqual([live.currentVisitors,live.previousCurrentVisitors,live.pageviews,live.previousPageviews,live.minutes.length,live.minutes.at(-1).label,live.minutes.at(-1).pageviews],[2,1,3,1,30,'15:00',3])
+ assert.equal((await a.request('/api/vane/realtime?siteId='+id)).status,401)
+ // An engagement ping keeps visitor 3 current; at 5 minutes idle the others drop.
+ await a.clock(T+4*60000);assert.equal((await a.post('/api/vane/engage',{siteId:id,id:loads[3],scroll:40},'',{origin:'https://fern.example'})).status,202)
+ await a.clock(T+20000+5*60000);await tab.waitForFunction(()=>document.querySelector('[data-current-visitors]')?.textContent==='1',null,{timeout:15000})
+ assert.deepEqual(await rowsOf('Live pages'),[['/pricing','1','0','+1 (new)']]);assert.deepEqual(await rowsOf('Live sources'),[['Google','1','0','+1 (new)']])
+ await a.clock(T+9*60000+1000);await tab.waitForFunction(()=>document.querySelector('[data-current-visitors]')?.textContent==='0',null,{timeout:15000})
+ assert.deepEqual([await rowsOf('Live pages'),await rowsOf('Live sources')],[[],[]])
+ await tab.setViewportSize({width:390,height:844});assert.ok(await tab.evaluate(()=>document.documentElement.scrollWidth<=390),'no horizontal scroll at 390 px')
+ await context.close()
+})

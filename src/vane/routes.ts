@@ -14,6 +14,7 @@ import { inventory } from './inventory'
 import { storeUse } from './capacity'
 import { createRollup, rollup, rollupReport, rollups } from './rollups'
 import { overview } from './overview'
+import { realtime } from './realtime'
 const headers={'cache-control':'no-store','x-content-type-options':'nosniff','referrer-policy':'same-origin'};
 const json=(value:unknown,status=200)=>Response.json(value,{status,headers});
 const redirect=(path:string)=>new Response(null,{status:303,headers:{...headers,location:path}});
@@ -29,7 +30,8 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
   const audit=!selected&&url.searchParams.get('section')==='audit'?await auditLog(env,actor!):undefined;
   const imports=selected&&actor!.role==='owner'?await rows(env,'SELECT j.id,j.state,(SELECT COUNT(*) FROM ik_provenance p WHERE p.job_id=j.id) AS count FROM ik_jobs j JOIN vane_import_approvals a ON a.job_id=j.id WHERE a.site_id=? ORDER BY a.approved_at DESC',selected.id):[];
   const all=await sites(env),list=!selected&&!extra.rollup&&!extra.error&&(url.searchParams.get('section')??'report')==='report'?await overview(env,all,clock(),{period:url.searchParams.get('period'),sort:url.searchParams.get('sort'),q:url.searchParams.get('q')}):undefined;
-  return renderApp({actor:actor as ViewData['actor'],origin:env.AUTH_ORIGIN,store:await storeUse(env),sites:all,overview:list,rollups:await rollups(env),site:selected,report:selected?await createInsightsService(env,selected,clock(),range).list():undefined,proposals,imports,audit,section:url.searchParams.get('section')??undefined,notice:url.searchParams.get('notice')??undefined,...extra});
+  const live=selected&&url.searchParams.get('section')==='realtime';
+  return renderApp({actor:actor as ViewData['actor'],origin:env.AUTH_ORIGIN,store:await storeUse(env),sites:all,overview:list,rollups:await rollups(env),site:selected,live:live?await realtime(env,selected,clock()):undefined,report:selected&&!live?await createInsightsService(env,selected,clock(),range).list():undefined,proposals,imports,audit,section:url.searchParams.get('section')??undefined,notice:url.searchParams.get('notice')??undefined,...extra});
  }
  try {
   const session=await operatorAuth(env).getSession(request);
@@ -40,6 +42,7 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
    if(path==='/api/vane/sites')return json(await sites(env));
    if(path==='/api/vane/summary'&&url.searchParams.has('rollupId'))return json(await rollupReport(env,await rollup(env,url.searchParams.get('rollupId')!),range,url.searchParams.get('split')==='site'));
    if(path==='/api/vane/summary')return json(await createInsightsService(env,await site(env,url.searchParams.get('siteId')??''),clock(),range).list());
+   if(path==='/api/vane/realtime')return json(await realtime(env,await site(env,url.searchParams.get('siteId')??''),clock()));
    if(path==='/api/vane/inventory')return json(inventory(await site(env,url.searchParams.get('siteId')??'')));
    if(path==='/api/vane/audit')return json(await auditLog(env,actor));
    if(path==='/api/vane/proposals') {role(actor,['owner','admin']);return json(await rows(env,'SELECT * FROM vane_proposals ORDER BY created_at DESC'));}

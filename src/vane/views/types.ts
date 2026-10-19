@@ -4,6 +4,7 @@ export interface ViewData {
   sites: any[]
   site?: any
   report?: any
+  live?: any
   proposals?: any[]
   imports?: any[]
   notice?: string
