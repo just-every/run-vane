@@ -13,17 +13,19 @@ import { gapSql } from './definitions'
 // DASH-004: channel, source, referrer and UTM tables attribute each visit to its first page load's values.
 // CONV-004: so do the device class's visits and conversions, and every one of these rows, like the page rows, carries
 // its conversions (visits with the selected goal, or with any goal) beside the conversion rate.
+// CONV-006: a visit's revenue is the converted revenue (revenue.ts) of the custom events on its page loads; a row's
+// revenue is that of its visits, all of it with no goal selected and only converting visits' with one.
 // METRIC-003: an engagement ping counts up to 30 minutes after its page load, whatever the visit timeout.
 export const ENGAGEMENT_WINDOW_MS=1800000
 export const ENGAGED_AFTER_MS=10000
-export const timedFrom=(events:string)=>`WITH e AS (SELECT l.id,l.day,l.visitor,l.hostname,l.device,l.path,l.at,l.engaged_at,l.scroll,l.channel,l.source,l.referrer,l.utm_source,l.utm_medium,l.campaign,l.utm_term,l.utm_content,EXISTS(SELECT 1 FROM ${events} c WHERE c.id>l.id||':' AND c.id<l.id||';' AND (?4 IS NULL OR c.kind=?4)) AS converted,LAG(l.at) OVER w AS prev_at,LEAD(l.at) OVER w AS next_at,${gapSql('l')} AS gap FROM ${events} l WHERE l.site_id IN (SELECT value FROM json_each(?1)) AND l.day>=?2 AND l.day<?3 AND l.kind='pageview' AND l.visitor IS NOT NULL AND l.at IS NOT NULL WINDOW w AS (PARTITION BY l.day,l.visitor ORDER BY l.at,l.id)),
+export const timedFrom=(events:string,revenue='NULL')=>`WITH e AS (SELECT l.id,l.day,l.visitor,l.hostname,l.device,l.path,l.at,l.engaged_at,l.scroll,l.channel,l.source,l.referrer,l.utm_source,l.utm_medium,l.campaign,l.utm_term,l.utm_content,EXISTS(SELECT 1 FROM ${events} c WHERE c.id>l.id||':' AND c.id<l.id||';' AND (?4 IS NULL OR c.kind=?4)) AS converted,${revenue==='NULL'?'NULL':`(SELECT SUM(${revenue}) FROM vane_custom_events ce WHERE ce.page_id=l.id)`} AS revenue,LAG(l.at) OVER w AS prev_at,LEAD(l.at) OVER w AS next_at,${gapSql('l')} AS gap FROM ${events} l WHERE l.site_id IN (SELECT value FROM json_each(?1)) AND l.day>=?2 AND l.day<?3 AND l.kind='pageview' AND l.visitor IS NOT NULL AND l.at IS NOT NULL WINDOW w AS (PARTITION BY l.day,l.visitor ORDER BY l.at,l.id)),
 p AS (SELECT *,CASE WHEN prev_at IS NULL OR at-prev_at>gap THEN 1 ELSE 0 END AS starts,CASE WHEN next_at IS NULL OR next_at-at>gap THEN 1 ELSE 0 END AS ends,CASE WHEN next_at IS NOT NULL AND next_at-at<=gap THEN next_at-at ELSE COALESCE(engaged_at-at,0) END AS on_page FROM e),
 q AS (SELECT *,SUM(starts) OVER (PARTITION BY day,visitor ORDER BY at,id ROWS UNBOUNDED PRECEDING) AS visit FROM p),
-v AS (SELECT day,visitor,visit,COUNT(*)=1 AND MAX(engaged_at IS NOT NULL)=0 AS bounce,MAX(converted) AS visit_converted,MAX(MAX(at,COALESCE(engaged_at,at)))-MIN(at) AS duration,MIN(at) AS started FROM q GROUP BY day,visitor,visit)`
+v AS (SELECT day,visitor,visit,COUNT(*)=1 AND MAX(engaged_at IS NOT NULL)=0 AS bounce,MAX(converted) AS visit_converted,SUM(revenue) AS visit_revenue,MAX(MAX(at,COALESCE(engaged_at,at)))-MIN(at) AS duration,MIN(at) AS started FROM q GROUP BY day,visitor,visit)`
 const middle=(r:string,c:string)=>`${r} IN ((${c}+1)/2,(${c}+2)/2)`
 const seconds=(ms:unknown)=>ms===null||ms===undefined?null:Math.round(Number(ms)/1000)
 const rate=(part:number,whole:number)=>whole?Math.round(part/whole*1000)/10:null
-export interface PageRow { path:string; visitors:number; pageviews:number; visits:number; bounceRate:number|null; conversions:number; conversionRate:number|null; medianDuration:number|null; averageDuration:number|null; medianTimeOnPage:number|null; averageTimeOnPage:number|null; averageScrollDepth:number|null; reached75Share:number|null }
+export interface PageRow { path:string; visitors:number; pageviews:number; visits:number; bounceRate:number|null; conversions:number; conversionRate:number|null; revenue:number; medianDuration:number|null; averageDuration:number|null; medianTimeOnPage:number|null; averageTimeOnPage:number|null; averageScrollDepth:number|null; reached75Share:number|null }
 export interface PageGroup { pattern:string; label:string }
 // A group is an exact path or a prefix ending in *, optionally renamed: /blog/* or /blog/*=/articles.
 export function pageGroups(value:string|null|undefined):PageGroup[] {
@@ -34,36 +36,36 @@ export function pageGroups(value:string|null|undefined):PageGroup[] {
 const labelSql=(groups:PageGroup[])=>groups.length?`CASE ${groups.map((_,i)=>`WHEN ${groups[i]!.pattern.endsWith('*')?`substr(path,1,length(?${5+i*2}))=?${5+i*2}`:`path=?${5+i*2}`} THEN ?${6+i*2}`).join(' ')} ELSE path END`:'path'
 const groupValues=(groups:PageGroup[])=>groups.flatMap(g=>[g.pattern.endsWith('*')?g.pattern.slice(0,-1):g.pattern,g.label])
 // DASH-013: on a site with more than one hostname, page rows are hostname + path, so the same path on two hostnames is two rows.
-function table(env:Env,args:(string|null)[],groups:PageGroup[],where:string,events:string,label=labelSql(groups)) {
- return env.DB.prepare(`${timedFrom(events)},
-x AS (SELECT ${label} AS label,q.day,q.visitor,q.visit,q.on_page,q.scroll,v.bounce,v.visit_converted,v.duration FROM q JOIN v USING(day,visitor,visit) WHERE ${where}),
+function table(env:Env,args:(string|null)[],groups:PageGroup[],where:string,events:string,label=labelSql(groups),revenue='NULL') {
+ return env.DB.prepare(`${timedFrom(events,revenue)},
+x AS (SELECT ${label} AS label,q.day,q.visitor,q.visit,q.on_page,q.scroll,v.bounce,v.visit_converted,v.visit_revenue,v.duration FROM q JOIN v USING(day,visitor,visit) WHERE ${where}),
 xr AS (SELECT *,ROW_NUMBER() OVER (PARTITION BY label ORDER BY on_page) AS r,COUNT(*) OVER (PARTITION BY label) AS c FROM x),
-vd AS (SELECT DISTINCT label,day,visitor,visit,bounce,visit_converted,duration FROM x),
+vd AS (SELECT DISTINCT label,day,visitor,visit,bounce,visit_converted,visit_revenue,duration FROM x),
 vdr AS (SELECT *,ROW_NUMBER() OVER (PARTITION BY label ORDER BY duration) AS r,COUNT(*) OVER (PARTITION BY label) AS c FROM vd)
-SELECT a.*,b.visits,b.bounces,b.conversions,b.duration_average,b.duration_median FROM (SELECT label,COUNT(DISTINCT day||' '||visitor) AS visitors,COUNT(*) AS pageviews,AVG(on_page) AS time_average,AVG(CASE WHEN ${middle('r','c')} THEN on_page END) AS time_median,AVG(scroll) AS scroll,AVG(CASE WHEN scroll IS NULL THEN NULL WHEN scroll>=75 THEN 100.0 ELSE 0 END) AS deep FROM xr GROUP BY label) a
-JOIN (SELECT label,COUNT(*) AS visits,SUM(bounce) AS bounces,SUM(visit_converted) AS conversions,AVG(duration) AS duration_average,AVG(CASE WHEN ${middle('r','c')} THEN duration END) AS duration_median FROM vdr GROUP BY label) b USING(label) ORDER BY a.pageviews DESC,a.label`).bind(...args,...groupValues(groups))
+SELECT a.*,b.visits,b.bounces,b.conversions,b.revenue,b.duration_average,b.duration_median FROM (SELECT label,COUNT(DISTINCT day||' '||visitor) AS visitors,COUNT(*) AS pageviews,AVG(on_page) AS time_average,AVG(CASE WHEN ${middle('r','c')} THEN on_page END) AS time_median,AVG(scroll) AS scroll,AVG(CASE WHEN scroll IS NULL THEN NULL WHEN scroll>=75 THEN 100.0 ELSE 0 END) AS deep FROM xr GROUP BY label) a
+JOIN (SELECT label,COUNT(*) AS visits,SUM(bounce) AS bounces,SUM(visit_converted) AS conversions,COALESCE(SUM(CASE WHEN ?4 IS NULL OR visit_converted=1 THEN visit_revenue END),0) AS revenue,AVG(duration) AS duration_average,AVG(CASE WHEN ${middle('r','c')} THEN duration END) AS duration_median FROM vdr GROUP BY label) b USING(label) ORDER BY a.pageviews DESC,a.label`).bind(...args,...groupValues(groups))
 }
-const row=(r:any):PageRow=>({path:r.label,visitors:Number(r.visitors),pageviews:Number(r.pageviews),visits:Number(r.visits),bounceRate:rate(Number(r.bounces),Number(r.visits)),conversions:Number(r.conversions),conversionRate:rate(Number(r.conversions),Number(r.visits)),medianDuration:seconds(r.duration_median),averageDuration:seconds(r.duration_average),medianTimeOnPage:seconds(r.time_median),averageTimeOnPage:seconds(r.time_average),averageScrollDepth:r.scroll===null?null:Math.round(Number(r.scroll)),reached75Share:r.deep===null?null:Math.round(Number(r.deep)*10)/10})
-export async function visitMetrics(env:Env,siteId:string,from:string,to:string,groups:PageGroup[]=[],goal:string|null=null,events='vane_events',hosts=false) {
+const row=(r:any):PageRow=>({path:r.label,visitors:Number(r.visitors),pageviews:Number(r.pageviews),visits:Number(r.visits),bounceRate:rate(Number(r.bounces),Number(r.visits)),conversions:Number(r.conversions),conversionRate:rate(Number(r.conversions),Number(r.visits)),revenue:Number(r.revenue)/1e6,medianDuration:seconds(r.duration_median),averageDuration:seconds(r.duration_average),medianTimeOnPage:seconds(r.time_median),averageTimeOnPage:seconds(r.time_average),averageScrollDepth:r.scroll===null?null:Math.round(Number(r.scroll)),reached75Share:r.deep===null?null:Math.round(Number(r.deep)*10)/10})
+export async function visitMetrics(env:Env,siteId:string,from:string,to:string,groups:PageGroup[]=[],goal:string|null=null,events='vane_events',hosts=false,revenue='NULL') {
  const args=[siteId,from,to,goal],timed=timedFrom(events),label=hosts?`COALESCE(hostname,'')||${labelSql(groups)}`:labelSql(groups)
  const [all,top,entry,exit,hostnames]=await env.DB.batch<any>([
   env.DB.prepare(`${timed},vr AS (SELECT duration,ROW_NUMBER() OVER (ORDER BY duration) AS r,COUNT(*) OVER () AS c FROM v) SELECT (SELECT COUNT(*) FROM v) AS visits,(SELECT COUNT(*) FROM q) AS pageviews,(SELECT SUM(bounce) FROM v) AS bounces,(SELECT AVG(duration) FROM v) AS average,(SELECT AVG(duration) FROM vr WHERE ${middle('r','c')}) AS median`).bind(...args),
-  table(env,args,groups,'1',events,label),table(env,args,groups,'q.starts=1',events,label),table(env,args,groups,'q.ends=1',events,label),
-  table(env,args,[],'q.hostname IS NOT NULL',events,'q.hostname'),
+  table(env,args,groups,'1',events,label,revenue),table(env,args,groups,'q.starts=1',events,label,revenue),table(env,args,groups,'q.ends=1',events,label,revenue),
+  table(env,args,[],'q.hostname IS NOT NULL',events,'q.hostname',revenue),
  ])
  const total=all.results[0],visits=Number(total.visits),pageviews=Number(total.pageviews),bounces=Number(total.bounces??0)
  return {visits,timedPageviews:pageviews,pagesPerVisit:visits?Math.round(pageviews/visits*100)/100:null,bounces,bounceRate:rate(bounces,visits),medianDuration:seconds(total.median),averageDuration:seconds(total.average),topPages:top.results.map(row),entryPages:entry.results.map(row),exitPages:exit.results.map(row),hostnames:hostnames.results.map(row)}
 }
 
-export interface VisitRow { label:string; visitors:number; visits:number; bounceRate:number|null; medianDuration:number|null; averageDuration:number|null; conversions:number; conversionRate:number|null }
+export interface VisitRow { label:string; visitors:number; visits:number; bounceRate:number|null; medianDuration:number|null; averageDuration:number|null; conversions:number; conversionRate:number|null; revenue:number }
 export const ENTRY_DIMENSIONS={channels:'channel',sourceVisits:'source',referrers:'referrer',utmSources:'utm_source',utmMediums:'utm_medium',utmCampaigns:"NULLIF(campaign,'none')",utmTerms:'utm_term',utmContents:'utm_content',deviceVisits:'device'} as const
 // DASH-014: sources are labelled by the named-source SQL; the drill-down lists each source's raw referrers.
-export async function entryMetrics(env:Env,siteId:string,from:string,to:string,goal:string|null,sourceName:string,events='vane_events'):Promise<Record<keyof typeof ENTRY_DIMENSIONS,VisitRow[]>&{sourceReferrers:{source:string,referrer:string,visits:number}[]}> {
- const timed=timedFrom(events),names=Object.keys(ENTRY_DIMENSIONS) as (keyof typeof ENTRY_DIMENSIONS)[],label=(name:keyof typeof ENTRY_DIMENSIONS)=>name==='sourceVisits'?sourceName:ENTRY_DIMENSIONS[name]
+export async function entryMetrics(env:Env,siteId:string,from:string,to:string,goal:string|null,sourceName:string,events='vane_events',revenue='NULL'):Promise<Record<keyof typeof ENTRY_DIMENSIONS,VisitRow[]>&{sourceReferrers:{source:string,referrer:string,visits:number}[]}> {
+ const timed=timedFrom(events,revenue),names=Object.keys(ENTRY_DIMENSIONS) as (keyof typeof ENTRY_DIMENSIONS)[],label=(name:keyof typeof ENTRY_DIMENSIONS)=>name==='sourceVisits'?sourceName:ENTRY_DIMENSIONS[name]
  const results=await env.DB.batch<any>(names.map(name=>env.DB.prepare(`${timed},
 x AS (SELECT ${label(name)} AS label,v.* FROM q JOIN v USING(day,visitor,visit) WHERE q.starts=1),
 xr AS (SELECT *,ROW_NUMBER() OVER (PARTITION BY label ORDER BY duration) AS r,COUNT(*) OVER (PARTITION BY label) AS c FROM x WHERE label IS NOT NULL)
-SELECT label,COUNT(DISTINCT day||' '||visitor) AS visitors,COUNT(*) AS visits,SUM(bounce) AS bounces,SUM(visit_converted) AS conversions,AVG(duration) AS average,AVG(CASE WHEN ${middle('r','c')} THEN duration END) AS median FROM xr GROUP BY label ORDER BY visits DESC,label`).bind(siteId,from,to,goal)).concat(env.DB.prepare(`${timed} SELECT ${sourceName} AS source,lower(source) AS referrer,COUNT(*) AS visits FROM q WHERE starts=1 AND source<>'direct' GROUP BY 1,2 ORDER BY 1,visits DESC,2`).bind(siteId,from,to,goal)))
- const tables=Object.fromEntries(names.map((name,i)=>[name,results[i]!.results.map((r:any):VisitRow=>({label:r.label,visitors:Number(r.visitors),visits:Number(r.visits),bounceRate:rate(Number(r.bounces),Number(r.visits)),medianDuration:seconds(r.median),averageDuration:seconds(r.average),conversions:Number(r.conversions),conversionRate:rate(Number(r.conversions),Number(r.visits))}))]))
+SELECT label,COUNT(DISTINCT day||' '||visitor) AS visitors,COUNT(*) AS visits,SUM(bounce) AS bounces,SUM(visit_converted) AS conversions,COALESCE(SUM(CASE WHEN ?4 IS NULL OR visit_converted=1 THEN visit_revenue END),0) AS revenue,AVG(duration) AS average,AVG(CASE WHEN ${middle('r','c')} THEN duration END) AS median FROM xr GROUP BY label ORDER BY visits DESC,label`).bind(siteId,from,to,goal)).concat(env.DB.prepare(`${timed} SELECT ${sourceName} AS source,lower(source) AS referrer,COUNT(*) AS visits FROM q WHERE starts=1 AND source<>'direct' GROUP BY 1,2 ORDER BY 1,visits DESC,2`).bind(siteId,from,to,goal)))
+ const tables=Object.fromEntries(names.map((name,i)=>[name,results[i]!.results.map((r:any):VisitRow=>({label:r.label,visitors:Number(r.visitors),visits:Number(r.visits),bounceRate:rate(Number(r.bounces),Number(r.visits)),medianDuration:seconds(r.median),averageDuration:seconds(r.average),conversions:Number(r.conversions),conversionRate:rate(Number(r.conversions),Number(r.visits)),revenue:Number(r.revenue)/1e6}))]))
  return {...tables,sourceReferrers:results[names.length]!.results.map((r:any)=>({source:r.source,referrer:r.referrer,visits:Number(r.visits)}))} as any
 }

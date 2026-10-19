@@ -1134,6 +1134,45 @@ test('CONV-002 Signup with plan=pro and plan=free through vane() and CSS classes
  assert.ok((await (await a.request('/api/vane/inventory?siteId='+id,owner)).json()).fields.some(f=>f.table==='vane_event_props'))
  const published=await (await a.request(`/stats/${id}?from=${day}&to=${new Date(Date.parse(day)+86400000).toISOString().slice(0,10)}`)).text();assert.ok(published.includes('/essay')&&!/Signup|Callback|Event properties|Page properties/.test(published),'public stats show no custom event or property')
 })
+test('CONV-006 USD and CAD purchases returning from Stripe Checkout total in USD at the owner-entered rate with credit to the original source, revenue joins the chart, comparisons, channel rows and roll-ups, and unconverted revenue is listed apart',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({paths:[],goals:{purchase:'/thanks',signup:'/signup'},rates:'CAD 0.73 from 2026-03-01',publicReports:['totals','pages','devices']}),oak=await a.addSite({name:'Oak Books',origin:'https://oak.example',paths:[]})
+ const agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36'
+ const google={source:undefined,campaign:undefined,referrer:'https://www.google.com/'},email={source:undefined,campaign:'spring',utm:{source:'newsletter',medium:'email'}},stripe={source:undefined,campaign:undefined,referrer:'https://checkout.stripe.com/c/pay/cs_test_a1'},inside={source:undefined,campaign:undefined}
+ const load=async(n,at,first,path,site=id,origin='https://fern.example')=>{await a.clock(Date.parse(at));const event=a.event(site,{...first,path});assert.equal((await a.post('/api/vane/collect',event,'',{origin,'cf-connecting-ip':'203.0.113.'+n,'user-agent':agent})).status,202);return event.id}
+ const pay=async(page,revenue,name='Purchase',site=id,origin='https://fern.example')=>{const r=await a.post('/api/vane/custom',{id:crypto.randomUUID(),siteId:site,page,name,revenue,consent:'not-required'},'',{origin});assert.equal(r.status,202,await r.clone().text())}
+ // The day before: one USD 20 purchase, for the comparison.
+ await pay(await load(9,'2026-03-09T12:00:00Z',google,'/thanks'),{amount:20,currency:'USD'})
+ // A Google visitor returns from Stripe Checkout after the visit timeout (a new visit) and pays USD 100; a newsletter
+ // visitor returns within the visit and pays CAD 50 (CAD 0.73 from 1 March: USD 36.50); a Google visitor signs up and
+ // donates EUR 10, which no rate converts; a fourth visitor buys nothing.
+ await load(1,'2026-03-10T10:00:00Z',google,'/pricing');await pay(await load(1,'2026-03-10T10:40:00Z',stripe,'/thanks'),{amount:100,currency:'USD'})
+ await load(2,'2026-03-10T11:00:00Z',email,'/pricing');await pay(await load(2,'2026-03-10T11:05:00Z',stripe,'/thanks'),{amount:50,currency:'cad'})
+ await load(3,'2026-03-10T12:00:00Z',google,'/');await pay(await load(3,'2026-03-10T12:02:00Z',inside,'/signup'),{amount:10,currency:'EUR'},'Donate')
+ await load(4,'2026-03-10T13:00:00Z',google,'/')
+ await pay(await load(5,'2026-03-10T14:00:00Z',google,'/',oak,'https://oak.example'),{amount:5,currency:'USD'},'Purchase',oak,'https://oak.example')
+ for(const revenue of [{amount:-1,currency:'USD'},{amount:5,currency:'XYZ'},{amount:5},{amount:5,currency:'USD',note:'x'}])assert.equal((await a.post('/api/vane/custom',{id:crypto.randomUUID(),siteId:id,page:(await a.dump()).vane_events.find(e=>e.kind==='pageview').id.split(':')[1],name:'Purchase',revenue,consent:'not-required'},'',{origin:'https://fern.example'})).status,400,JSON.stringify(revenue))
+ await a.clock(Date.parse('2026-03-10T20:00:00Z'))
+ const summary=async query=>(await a.request(`/api/vane/summary?from=2026-03-10&to=2026-03-11&${query}`,owner)).json(),all=await summary('siteId='+id)
+ assert.deepEqual([all.revenue.currency,all.revenue.total,all.revenue.orders,all.revenue.averageOrderValue,all.revenue.perVisitor,all.revenue.previous],['USD',136.5,2,68.25,34.13,20],'USD 100 + CAD 50 at 0.73; the compared day had USD 20')
+ assert.deepEqual(all.revenue.unconverted,[{currency:'EUR',amount:10,orders:1}]);assert.deepEqual(all.revenue.rates.map(r=>[r.currency,r.rate,r.from]),[['CAD',0.73,'2026-03-01']])
+ // Attribution: no Stripe source; the checkout returns keep Google and the newsletter.
+ assert.ok(!JSON.stringify([all.sources,all.sourceVisits,all.referrers]).toLowerCase().includes('stripe'),'Stripe never takes credit')
+ const pick=rows=>Object.fromEntries(rows.map(r=>[r.label??r.path,[r.visits,r.conversions,r.revenue]]))
+ const purchase=await summary(`siteId=${id}&goal=purchase`),signup=await summary(`siteId=${id}&goal=signup`)
+ assert.deepEqual(pick(purchase.channels),{'Organic Search':[4,1,100],Email:[1,1,36.5]});assert.deepEqual(pick(purchase.sourceVisits),{Google:[4,1,100],newsletter:[1,1,36.5]})
+ assert.deepEqual(pick(signup.channels),{'Organic Search':[4,1,0],Email:[1,0,0]},'the signup visit carried only unconverted revenue');assert.deepEqual(pick(all.channels),{'Organic Search':[4,2,100],Email:[1,1,36.5]})
+ assert.deepEqual([pick(purchase.entryPages)['/thanks'],pick(purchase.topPages)['/thanks'],purchase.devices.map(r=>[r.label,r.revenue,r.revenuePerVisitor])],[[1,1,100],[2,2,136.5],[['desktop',136.5,34.13]]])
+ // DASH-002 and DASH-008: the revenue chart and its data table, with the compared day.
+ const chart=await summary(`siteId=${id}&metric=revenue&interval=day`);assert.deepEqual([chart.series.map(b=>b.revenue),chart.previousSeries.map(b=>b.revenue)],[[136.5],[20]])
+ const html=unlinked(await (await a.request(`/app/sites/${id}?section=report&from=2026-03-10&to=2026-03-11&goal=purchase&metric=revenue&interval=day`,owner)).text())
+ for(const text of ['data-revenue>$136.50','+$116.50 against $20.00','data-aov>$68.25','data-rpv>$34.13','Exchange rates (owner-entered)','1 CAD = 0.73 USD from 2026-03-01','€10.00 from 1 event','<td class="vane-number" data-metric="revenue">$136.50</td>','<th scope="row">Organic Search</th>','<td class="vane-number">$100.00</td><td class="vane-number">$33.33</td>','href="/methodology#revenue"'])assert.ok(html.includes(text),text)
+ // DASH-010: a roll-up adds revenue as an exact sum.
+ const created=await a.form({operation:'rollup.create',name:'Fern and Oak',[`site_${id}`]:'on',[`site_${oak}`]:'on'},a.owner),rollupId=created.headers.get('location').match(/^\/app\/rollups\/([\w-]+)\?/)[1]
+ assert.equal((await summary('rollupId='+rollupId)).revenue.total,(await summary('siteId='+id)).revenue.total+(await summary('siteId='+oak)).revenue.total);assert.equal((await summary('rollupId='+rollupId)).revenue.total,141.5)
+ const methodology=await (await a.request('/methodology')).text()
+ for(const rule of ['id="revenue"','an exchange rate the owner entered','never fetched','Stripe Checkout: checkout.stripe.com','adds revenue as an exact sum'])assert.ok(methodology.includes(rule),rule)
+ assert.ok(!(await (await a.request(`/stats/${id}?from=2026-03-10&to=2026-03-11`)).text()).includes('Revenue'),'revenue is never public')
+})
 test('CONV-007 a test purchase through the standard ecommerce events fills the ready-made ecommerce funnel and the product report with the product, quantity and revenue, and malformed or personal product lines are refused',async t=>{
  const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({paths:[]})
  const page=title=>`<!doctype html><title>${title}</title><script src="${a.origin}/vane.js" data-site="${id}"></script>`,pages=Object.fromEntries(['product','cart','thanks'].map(p=>[`https://fern.example/${p}`,page(p)]))
