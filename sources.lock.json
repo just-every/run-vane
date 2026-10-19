@@ -87,7 +87,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "37f7617518b26dc374b3c7c6e4bbb28d0c112ee1ee21aa343082c0116a7305ca",
+      "sha256": "f081319a1e7f45c406784d129e574ff697a51011b2b1a03ca099ae0c261a71c3",
       "executable": false
     },
     "DEMO.md": {
@@ -2883,7 +2883,7 @@
       "executable": false
     },
     "src/vane/views/approvals.ts": {
-      "sha256": "4cd3513439b4ad4cd51570858cb38b3490d2fedfc0a915f2d3594fe4e784f2b5",
+      "sha256": "0273c290adf7e7608631a98006221c94f219908747bfd1cb24a235cb2ba12f2b",
       "executable": false
     },
     "src/vane/views/audit.ts": {
@@ -3063,7 +3063,7 @@
       "executable": false
     },
     "tests/matomo.test.mjs": {
-      "sha256": "12c3d917b032e4f4e8da8754123ffbaeecc7737a3a2f29e74046a11a7bbd1b55",
+      "sha256": "d26ceb0ea85d6fd91ba085029dd442cabce91101499a72781b40aa4387f17bc8",
       "executable": false
     },
     "tests/site.test.mjs": {

@@ -20,6 +20,7 @@ const label = (key: string) => LABELS[key] ?? key.replace(/([a-z])([A-Z])/g, '$1
 function plain(key: string, value: unknown): string {
   if (value === null || value === undefined || value === '') return 'None'
   if (typeof value === 'boolean') return value ? 'On' : 'Off'
+  if(key==='customGoals'&&typeof value==='object')return Object.entries(value as Record<string,any>).map(([name,g])=>`${name}: ${g.path?`page path equals ${g.path}`:`custom event equals ${g.event}`}${g.revenue?`; revenue required in ${g.currency}`:''}`).join('; ')||'None'
   if (key === 'sampleRate') return `${value}%`
   if (key === 'retentionDays') return `${value} days`
   if (key === 'consent') return value === 'not-required' ? 'Not required' : 'Required'
