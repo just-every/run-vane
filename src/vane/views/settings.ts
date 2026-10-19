@@ -1,9 +1,11 @@
 import { PUBLIC_REPORTS } from '../public-reports'
-import { canPrepare, escape, field, operation, panel, siteLink, textarea } from './html'
+import { canPrepare, changeText, count, escape, field, operation, panel, siteLink, textarea } from './html'
 import type { ViewData } from './types'
 import { copyableScript } from './script-copy'
 import { stance } from '../privacy-signals'
 import { inventory } from '../inventory'
+import { PERIODS } from '../periods'
+import { SORTS } from '../overview'
 import { RETENTION_CHOICES, retentionChoice } from '../retention'
 
 function select(label: string, name: string, value: number, options: number[]): string {
@@ -35,9 +37,17 @@ export function configForm(site?: any): string {
   </form>`
 }
 
+// DASH-010: each site's visitors, change and sparkline for the chosen range, sortable and searchable.
+function sparkline(values: number[]): string {
+  const max = Math.max(1, ...values), x = (i: number) => values.length < 2 ? 50 : (i * 100) / (values.length - 1), y = (v: number) => 22 - (v / max) * 20
+  return `<svg class="vane-sparkline" viewBox="0 0 100 24" role="img" aria-label="Visitors trend: ${escape(values.join(', '))}"><polyline points="${values.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ')}"/></svg>`
+}
+
 export function sitesPage(data: ViewData): string {
-  const listing = data.sites.length ? `<ul class="vane-sites">${data.sites.map(site => `<li><div><a class="vane-site-name" href="${siteLink(site.id)}">${escape(site.name)}</a>${site.awaitingFirstEvent ? ' <span class="vane-badge">Awaiting first event</span>' : ''}<p>${escape(site.origin)}</p></div><a href="${siteLink(site.id)}">Open report<span class="vane-sr-only"> for ${escape(site.name)}</span> →</a></li>`).join('')}</ul>` : '<div class="vane-sites-empty"><svg aria-hidden="true" width="40" height="40" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 5h13l7 7v23H11z"/><path d="M24 5v8h7M16 20h10M16 25h10M16 30h10"/></svg><p class="vane-empty">No sites yet. Prepare a site and have its configuration approved to begin collecting visits.</p></div>'
-  return `<div class="vane-heading vane-sites-heading"><div><p class="vane-eyebrow">Analytics</p><h1>Your sites</h1><p>See which pages, sources and campaigns lead to your goals.</p></div></div><div class="vane-sites-layout">${panel('Sites', listing)}${canPrepare(data.actor.role) ? panel('Add a site', configForm()) : '<p>An administrator or owner can prepare a site for collection.</p>'}</div>${(data.proposals ?? []).length ? `<p><a href="/app?section=approvals">Review proposed changes (${data.proposals!.length})</a></p>` : ''}${canPrepare(data.actor.role) ? '<p><a href="/app?section=audit">Audit history</a></p>' : ''}`
+  const overview = data.overview, shown = overview ? overview.rows : data.sites.map(site => ({ site, visitors: 0, previous: 0, sparkline: [] as number[] }))
+  const controls = overview && data.sites.length ? `<form method="get" class="vane-filter" role="search"><label>Range<select name="period" aria-label="Range">${Object.entries(PERIODS).map(([key, title]) => `<option value="${key}"${key === overview.period ? ' selected' : ''}>${escape(title)}</option>`).join('')}</select></label><label>Sort by<select name="sort" aria-label="Sort by">${Object.entries(SORTS).map(([key, title]) => `<option value="${key}"${key === overview.sort ? ' selected' : ''}>${escape(title)}</option>`).join('')}</select></label>${field('Search sites', 'q', overview.q, 'type="search" placeholder="Name or origin"')}<button type="submit">Update</button></form><p class="vane-help">Unique visitors in each site’s own time zone; the change compares the previous period of the same length.</p>` : ''
+  const listing = shown.length ? `${controls}<ul class="vane-sites">${shown.map(({ site, visitors, previous, sparkline: trend }) => `<li data-site="${escape(site.id)}"><div><a class="vane-site-name" href="${siteLink(site.id)}">${escape(site.name)}</a>${site.awaitingFirstEvent ? ' <span class="vane-badge">Awaiting first event</span>' : ''}<p>${escape(site.origin)}</p>${overview ? `<p class="vane-site-stats"><span data-visitors="${visitors}">${count(visitors)} visitors</span> · <span data-change="${visitors - previous}">${escape(changeText(visitors, previous))}</span></p>` : ''}</div>${overview ? sparkline(trend) : ''}<a href="${siteLink(site.id)}">Open report<span class="vane-sr-only"> for ${escape(site.name)}</span> →</a></li>`).join('')}</ul>` : overview && data.sites.length ? `${controls}<p class="vane-empty">No site matches this search.</p>` : '<div class="vane-sites-empty"><svg aria-hidden="true" width="40" height="40" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 5h13l7 7v23H11z"/><path d="M24 5v8h7M16 20h10M16 25h10M16 30h10"/></svg><p class="vane-empty">No sites yet. Prepare a site and have its configuration approved to begin collecting visits.</p></div>'
+  return `<div class="vane-heading vane-sites-heading"><div><p class="vane-eyebrow">Analytics</p><h1>Your sites</h1><p>See which pages, sources and campaigns lead to your goals.</p></div></div><div class="vane-sites-layout">${panel('Sites', listing)}${canPrepare(data.actor.role) ? panel('Add a site', configForm()) : '<p>An administrator or owner can prepare a site for collection.</p>'}</div>${(data.proposals ?? []).length ? `<p><a href="/app?section=approvals">Review proposed changes (${data.proposals!.length})</a></p>` : ''}${rollupPanel(data)}${canPrepare(data.actor.role) ? '<p><a href="/app?section=audit">Audit history</a></p>' : ''}`
 }
 
 export function settingsPage(data: ViewData): string {
@@ -55,4 +65,11 @@ function inventoryPanel(site: any): string {
   const rows = data.fields.map(field => `<tr><th scope="row">${escape(field.name)}</th><td>${escape(field.description)}</td><td><code>${escape(field.table)}: ${escape(field.columns.join(', '))}</code></td></tr>`).join('')
   const list = (items: string[]) => `<ul>${items.map(item => `<li>${escape(item)}</li>`).join('')}</ul>`
   return panel('Data inventory', `<div class="vane-table-scroll" role="region" aria-label="Collected fields" tabindex="0"><table><caption class="vane-sr-only">Collected fields</caption><thead><tr><th scope="col">Collected</th><th scope="col">What it holds</th><th scope="col">Stored as</th></tr></thead><tbody>${rows}</tbody></table></div><h3>Derived, then discarded</h3>${list(data.discarded)}<h3>Identifiers</h3>${list(data.identifiers)}<dl><dt>Salt rotation</dt><dd>${escape(data.salt)}</dd><dt>Retention</dt><dd>${escape(data.retention)}</dd><dt>Processors</dt><dd>${escape(data.processors.join('; '))}</dd></dl><h3>Privacy-policy text</h3><p class="vane-help">Paste this into your privacy policy. It changes when these settings change.</p><textarea readonly rows="8" aria-label="Privacy-policy text" class="vane-policy-text">${escape(data.policyText.join('\n\n'))}</textarea>`)
+}
+
+// DASH-010: roll-ups combine several sites in one report; only the owner creates them.
+function rollupPanel(data: ViewData): string {
+  const list = (data.rollups ?? []).length ? `<ul class="vane-sites">${data.rollups!.map(r => `<li><div><a class="vane-site-name" href="/app/rollups/${encodeURIComponent(r.id)}">${escape(r.name)}</a><p>${escape(r.sites.map(s => s.name).join(' + '))}</p></div><a href="/app/rollups/${encodeURIComponent(r.id)}">Open roll-up<span class="vane-sr-only"> ${escape(r.name)}</span> →</a></li>`).join('')}</ul>` : '<p class="vane-empty">No roll-ups yet.</p>'
+  const form = data.actor.role === 'owner' && data.sites.length >= 2 ? `<form action="/app/action" method="post">${operation('rollup.create')}${field('Roll-up name', 'name', '', 'required maxlength="80" placeholder="Marketing and store"')}<fieldset><legend>Sites to combine</legend>${data.sites.map(site => `<label class="vane-check"><input type="checkbox" name="site_${escape(site.id)}" value="on"> ${escape(site.name)}</label>`).join('')}</fieldset><p class="vane-help">Visitors and visits are summed per site: one person on two sites counts once per site. <a href="/methodology#roll-ups">How roll-ups combine</a></p><button type="submit">Create roll-up</button></form>` : ''
+  return data.sites.length >= 2 || (data.rollups ?? []).length ? panel('Roll-ups', list + form) : ''
 }

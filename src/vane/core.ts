@@ -11,7 +11,7 @@ export const uid = () => crypto.randomUUID()
 export const day = (time=clock()) => new Date(time).toISOString().slice(0,10)
 export async function rows<T=Record<string,any>>(env:Env,sql:string,...values:any[]):Promise<T[]> { return (await env.DB.prepare(sql).bind(...values).all<T>()).results }
 export async function site(env:Env,id:string):Promise<Site> { const value=await env.DB.prepare('SELECT * FROM vane_sites WHERE id=?').bind(id).first<any>(); insist(value,'site_missing','Site not found.',404); return {...value,config:JSON.parse(value.config_json)} }
-export async function sites(env:Env) { return (await rows(env,'SELECT s.*,NOT EXISTS(SELECT 1 FROM vane_events e WHERE e.site_id=s.id) AS awaiting FROM vane_sites s ORDER BY s.created_at')).map(({awaiting,...value})=>({...value,config:JSON.parse(value.config_json),awaitingFirstEvent:Boolean(awaiting)})) }
+export async function sites(env:Env) { return (await rows<any>(env,'SELECT s.*,NOT EXISTS(SELECT 1 FROM vane_events e WHERE e.site_id=s.id) AS awaiting FROM vane_sites s ORDER BY s.created_at')).map(({awaiting,...value}):Site&{awaitingFirstEvent:boolean}=>({...value,config:JSON.parse(value.config_json),awaitingFirstEvent:Boolean(awaiting)})) }
 // SITE-001: browser events come from the site's origin or one of its extra allowed origins (www and apex, subdomains).
 export function siteOrigin(value:Site,request:Request):string { const origin=request.headers.get('origin')??''; insist([value.origin,...(value.config.origins??[])].includes(origin),'origin','Origin is not registered for this site.',403); return origin }
 export const statement=(env:Env,sql:string,...values:any[])=>env.DB.prepare(sql).bind(...values)

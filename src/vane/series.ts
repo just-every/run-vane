@@ -12,7 +12,7 @@ export async function timeSeries(env:Env,siteId:string,from:string,to:string,int
  // An hour's key is its index from the range's first local midnight, bound as the last parameter.
  const hour=interval==='hour',start=hour?[localMidnight(from,timeZone)]:[]
  const [events,visits]=await env.DB.batch<any>([
-  env.DB.prepare(`SELECT ${bucketSql(interval,'?4')} AS k,SUM(kind='pageview') AS pageviews,SUM(kind!='pageview') AS conversions,COUNT(DISTINCT CASE WHEN kind='pageview' AND visitor IS NOT NULL THEN day||' '||visitor END) AS visitors FROM ${hour?`(SELECT * FROM ${ev} WHERE at IS NOT NULL)`:eventSet} WHERE site_id=?1 AND day>=?2 AND day<?3 GROUP BY k`).bind(siteId,from,to,...start),
+  env.DB.prepare(`SELECT ${bucketSql(interval,'?4')} AS k,SUM(kind='pageview') AS pageviews,SUM(kind!='pageview') AS conversions,COUNT(DISTINCT CASE WHEN kind='pageview' AND visitor IS NOT NULL THEN day||' '||visitor END) AS visitors FROM ${hour?`(SELECT * FROM ${ev} WHERE at IS NOT NULL)`:eventSet} WHERE site_id IN (SELECT value FROM json_each(?1)) AND day>=?2 AND day<?3 GROUP BY k`).bind(siteId,from,to,...start),
   env.DB.prepare(`${timedFrom(ev)} SELECT ${bucketSql(interval,'?5','started')} AS k,COUNT(*) AS visits,SUM(bounce) AS bounces,AVG(duration) AS duration FROM v GROUP BY k`).bind(siteId,from,to,null,...start),
  ])
  const by=(result:any)=>new Map<string,any>(result.results.map((r:any)=>[String(r.k),r]))

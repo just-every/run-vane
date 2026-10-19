@@ -12,6 +12,8 @@ import { clock } from './clock'
 import { exportSite, importSite } from './transfer'
 import { inventory } from './inventory'
 import { storeUse } from './capacity'
+import { createRollup, rollup, rollupReport, rollups } from './rollups'
+import { overview } from './overview'
 const headers={'cache-control':'no-store','x-content-type-options':'nosniff','referrer-policy':'same-origin'};
 const json=(value:unknown,status=200)=>Response.json(value,{status,headers});
 const redirect=(path:string)=>new Response(null,{status:303,headers:{...headers,location:path}});
@@ -26,7 +28,8 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
   const proposals=actor!.role==='member'?[]:await rows(env,'SELECT * FROM vane_proposals ORDER BY created_at DESC LIMIT 100');
   const audit=!selected&&url.searchParams.get('section')==='audit'?await auditLog(env,actor!):undefined;
   const imports=selected&&actor!.role==='owner'?await rows(env,'SELECT j.id,j.state,(SELECT COUNT(*) FROM ik_provenance p WHERE p.job_id=j.id) AS count FROM ik_jobs j JOIN vane_import_approvals a ON a.job_id=j.id WHERE a.site_id=? ORDER BY a.approved_at DESC',selected.id):[];
-  return renderApp({actor:actor as ViewData['actor'],origin:env.AUTH_ORIGIN,store:await storeUse(env),sites:await sites(env),site:selected,report:selected?await createInsightsService(env,selected,clock(),range).list():undefined,proposals,imports,audit,section:url.searchParams.get('section')??undefined,notice:url.searchParams.get('notice')??undefined,...extra});
+  const all=await sites(env),list=!selected&&!extra.rollup&&!extra.error&&(url.searchParams.get('section')??'report')==='report'?await overview(env,all,clock(),{period:url.searchParams.get('period'),sort:url.searchParams.get('sort'),q:url.searchParams.get('q')}):undefined;
+  return renderApp({actor:actor as ViewData['actor'],origin:env.AUTH_ORIGIN,store:await storeUse(env),sites:all,overview:list,rollups:await rollups(env),site:selected,report:selected?await createInsightsService(env,selected,clock(),range).list():undefined,proposals,imports,audit,section:url.searchParams.get('section')??undefined,notice:url.searchParams.get('notice')??undefined,...extra});
  }
  try {
   const session=await operatorAuth(env).getSession(request);
@@ -35,6 +38,7 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
   if(request.method==='POST')insist(request.headers.get('origin')===env.AUTH_ORIGIN&&request.headers.get('sec-fetch-site')!=='cross-site','origin','Same-origin approval is required.',403);
   if(request.method==='GET') {
    if(path==='/api/vane/sites')return json(await sites(env));
+   if(path==='/api/vane/summary'&&url.searchParams.has('rollupId'))return json(await rollupReport(env,await rollup(env,url.searchParams.get('rollupId')!),range,url.searchParams.get('split')==='site'));
    if(path==='/api/vane/summary')return json(await createInsightsService(env,await site(env,url.searchParams.get('siteId')??''),clock(),range).list());
    if(path==='/api/vane/inventory')return json(inventory(await site(env,url.searchParams.get('siteId')??'')));
    if(path==='/api/vane/audit')return json(await auditLog(env,actor));
@@ -44,6 +48,7 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
    if(path==='/api/vane/export')return new Response(JSON.stringify(await exportHistory(env,actor),null,2),{headers:{...headers,'content-type':'application/json','content-disposition':'attachment; filename="vane-history.json"'}});
    if(path==='/app')return view();
    const match=path.match(/^\/app\/sites\/([\w-]+)$/);if(match)return view(match[1]);
+   const rolled=path.match(/^\/app\/rollups\/([\w-]+)$/);if(rolled){const r=await rollup(env,rolled[1]!);return view(undefined,{rollup:r,report:await rollupReport(env,r,range,url.searchParams.get('split')==='site')})}
   }
   if(request.method==='POST') {
    const p=await input(request);
@@ -62,6 +67,7 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
      const result=await preview(env,actor,{siteId:p.siteId,document:p.document});
      return view(p.siteId,{section:'history',importPreview:{fingerprint:result.fingerprint,count:result.normalized.length,warnings:['Visitor identifiers, titles and raw URLs were discarded before custody. Historical consent and sampling are unknown.'],rows:result.normalized.map(e=>({date:e.day,path:e.path,visits:e.kind==='pageview'?1:0,source:e.source,campaign:e.campaign,goal:e.kind==='pageview'?'':e.kind}))},importCarry:JSON.stringify(result.carry)});
     }
+    if(p.operation==='rollup.create')return redirect('/app/rollups/'+encodeURIComponent(await createRollup(env,actor,p))+'?'+new URLSearchParams({notice:'Roll-up created.'}));
     const result=await action(env,actor,p),query=new URLSearchParams({notice:result.notice,...(result.section?{section:result.section}:{})});
     return redirect((result.siteId?'/app/sites/'+encodeURIComponent(result.siteId):'/app')+'?'+query);
    }

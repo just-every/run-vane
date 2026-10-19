@@ -172,3 +172,6 @@
 .vane-chart-compare-point { fill: var(--rer-muted); }
 .vane-chart-key { display: inline-block; width: 16px; height: 0; border-top: 2px solid var(--rer-accent); vertical-align: middle; }
 .vane-chart-key-compare { border-top: 2px dashed var(--rer-muted); }
+.vane-sparkline { flex: none; width: 96px; height: 24px; color: var(--rer-accent); }
+.vane-sparkline polyline { fill: none; stroke: currentColor; stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.vane-site-stats { font-size: 14px; color: var(--rer-muted); }

@@ -25,11 +25,12 @@ export function textarea(label: string, name: string, value: unknown, help: stri
 }
 
 // DASH-008: a row's change against the compared period, absolute and in percent (none when it had nothing then).
-export function change(current: unknown, previous: unknown): string {
+export function changeText(current: unknown, previous: unknown): string {
   const now = Number(current) || 0, then = Number(previous) || 0, difference = now - then
   const percent = then ? `${difference > 0 ? '+' : ''}${((difference / then) * 100).toFixed(1)}%` : now ? 'new' : 'no change'
-  return `<td class="vane-number" data-change="${difference}">${difference > 0 ? '+' : ''}${count(difference)} (${percent})</td>`
+  return `${difference > 0 ? '+' : ''}${count(difference)} (${percent})`
 }
+export const change = (current: unknown, previous: unknown) => `<td class="vane-number" data-change="${(Number(current) || 0) - (Number(previous) || 0)}">${changeText(current, previous)}</td>`
 export const changeHead = '<th scope="col" class="vane-number">Change</th>'
 
 export function breakdown(title: string, rows: {label: string; count: number; previous: number}[] = []): string {

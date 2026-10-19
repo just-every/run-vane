@@ -776,3 +776,37 @@ test('RETENTION-002 a keep-forever site keeps 30 months of imported history and 
  for(let n=0;n<5;n++,sent++)assert.equal((await b.collect(b.event(small))).status,202,'nothing is turned away at 80%')
  assert.equal((await (await b.request(`/api/vane/summary?siteId=${small}&period=today`,{headers:{cookie:b.owner}})).json()).pageviews,sent,'every event is kept')
 })
+test('DASH-010 three sites sort by change and search on the overview, and a roll-up of two sums visitors and visits per site with the cross-site note, exact pageview and conversion sums, a recomputed bounce rate and a split by site',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}}
+ await a.clock(Date.parse('2026-10-10T12:00:00Z'))
+ const fern=await a.addSite(),oak=await a.addSite({name:'Oak Books',origin:'https://oak.example'}),elm=await a.addSite({name:'Elm Bakery',origin:'https://elm.example'})
+ const visit=async(siteId,origin,ip,path='/')=>assert.equal((await a.post('/api/vane/collect',a.event(siteId,{path}),'',{origin,'cf-connecting-ip':ip,'user-agent':'Synthetic Browser'})).status,202)
+ // Previous seven days: five Elm visitors and one Oak visitor.
+ for(const n of [11,12,13,14,15])await visit(elm,'https://elm.example',`198.51.100.${n}`);await visit(oak,'https://oak.example','198.51.100.16')
+ // Today: one person (same IP and user agent) on Fern and Oak, a second Fern visitor who converts five minutes later, a second Oak visitor and one Elm visitor.
+ await a.clock(Date.parse('2026-10-17T14:00:00Z'))
+ await visit(fern,'https://fern.example','203.0.113.1');await visit(oak,'https://oak.example','203.0.113.1');await visit(fern,'https://fern.example','203.0.113.2');await visit(oak,'https://oak.example','203.0.113.3');await visit(elm,'https://elm.example','203.0.113.4')
+ await a.clock(Date.parse('2026-10-17T14:05:00Z'));await visit(fern,'https://fern.example','203.0.113.2','/thanks')
+ await a.clock(Date.parse('2026-10-17T15:00:00Z'))
+ const listed=async query=>{const html=await (await a.request('/app'+query,owner)).text();return [...html.matchAll(/<li data-site="([^"]+)">.*?data-visitors="(\d+)".*?data-change="(-?\d+)">([^<]*)<\/span>.*?<svg class="vane-sparkline"[^>]*aria-label="Visitors trend: ([^"]*)"/g)].map(m=>[m[1],Number(m[2]),m[4],m[5].split(', ').length])}
+ assert.deepEqual(await listed('?sort=change'),[[fern,2,'+2 (new)',7],[oak,2,'+1 (+100.0%)',7],[elm,1,'-4 (-80.0%)',7]],'sorted by change, largest increase first, each with a seven-day sparkline')
+ assert.deepEqual((await listed('?sort=visitors&q=OAK')).map(r=>r[0]),[oak],'search matches names and origins, ignoring case')
+ // Only the owner creates a roll-up.
+ const admin=await a.invite('admin@example.test','admin')
+ assert.equal((await a.form({operation:'rollup.create',name:'Marketing and store',[`site_${fern}`]:'on',[`site_${oak}`]:'on'},admin)).status,403)
+ const created=await a.form({operation:'rollup.create',name:'Marketing and store',[`site_${fern}`]:'on',[`site_${oak}`]:'on'},a.owner);assert.equal(created.status,303)
+ const rollupId=created.headers.get('location').match(/^\/app\/rollups\/([\w-]+)\?/)[1]
+ const summary=async query=>(await (await a.request(`/api/vane/summary?${query}`,owner)).json())
+ const r=await summary(`rollupId=${rollupId}&period=today`),f=await summary(`siteId=${fern}&period=today`),o=await summary(`siteId=${oak}&period=today`)
+ assert.deepEqual([r.visitors,r.visits,r.pageviews,r.goals,r.bounces,r.bounceRate],[4,4,5,1,3,75],'4 visitors and 4 visits summed per site, exact sums, and 3 bounced of 4 summed visits')
+ assert.deepEqual([r.visitors,r.visits,r.pageviews,r.goals],[f.visitors+o.visitors,f.visits+o.visits,f.pageviews+o.pageviews,f.goals+o.goals])
+ // Split by site: each row is one site's own figures.
+ const split=await summary(`rollupId=${rollupId}&period=today&split=site`),pick=rows=>rows.map(row=>[row.path,row.visitors,row.pageviews,row.bounceRate])
+ assert.deepEqual(pick(split.topPages),[...pick(f.topPages).map(([p,...x])=>['Fern Studio · '+p,...x]),...pick(o.topPages).map(([p,...x])=>['Oak Books · '+p,...x])])
+ assert.deepEqual(split.channels.map(row=>[row.label,row.visitors,row.visits]),[...f.channels.map(row=>['Fern Studio · '+row.label,row.visitors,row.visits]),...o.channels.map(row=>['Oak Books · '+row.label,row.visitors,row.visits])])
+ const page=await (await a.request(`/app/rollups/${rollupId}?period=today`,owner)).text()
+ for(const text of ['<h2>Unique visitors (summed per site)</h2>','<h2>Visits (summed per site)</h2>','counts once per site','<a href="/methodology#roll-ups">'])assert.ok(page.includes(text),text)
+ assert.match(page,/<p class="vane-metric">4<\/p>/)
+ const methodology=await (await a.request('/methodology')).text()
+ for(const rule of ['id="roll-ups"','sum of each site’s own counts','labelled summed per site','Pageviews, goal conversions and other events are exact sums','recomputed from the summed visits and conversions, never averaged across sites'])assert.ok(methodology.includes(rule),rule)
+})
