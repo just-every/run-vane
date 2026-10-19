@@ -61,7 +61,7 @@ export function openApi(origin:string) {
   paths:{
    '/api/v1/stats':{get:{summary:'Totals, an optional breakdown and the compared period, as the dashboard shows them',parameters:[
     {name:'site_id',in:'query',required:true,schema:{type:'string'}},{name:'metrics',in:'query',schema:{type:'string',description:`Comma-separated: ${Object.keys(METRICS).join(', ')}`}},
-    {name:'search_query',in:'query',schema:{type:'string',description:'A fetched source query label; selects native organic landing visits, not individual searchers'}},{name:'search_provider',in:'query',schema:{type:'string',enum:['google','bing']}},
+    {name:'search_query',in:'query',schema:{type:'string',description:'A fetched source query label; selects native organic landing visits, not individual searchers'}},{name:'search_provider',in:'query',schema:{type:'string',enum:['google']}},
     {name:'dimension',in:'query',schema:{type:'string',enum:Object.keys(BREAKDOWNS)}},{name:'period',in:'query',schema:{type:'string',enum:Object.keys(PERIODS)}},
     {name:'from',in:'query',schema:{type:'string',format:'date'}},{name:'to',in:'query',schema:{type:'string',format:'date',description:'Exclusive, in the site time zone'}},
     {name:'compare',in:'query',schema:{type:'string',enum:['previous','year','custom']}},{name:'compare_from',in:'query',schema:{type:'string',format:'date'}},{name:'compare_to',in:'query',schema:{type:'string',format:'date'}},

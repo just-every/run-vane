@@ -2891,7 +2891,7 @@
       "executable": false
     },
     "src/vane/stats-api.ts": {
-      "sha256": "a679212f3de93cf11beea0e81500218ce3e936944f06a1d989ae575441463045",
+      "sha256": "14b5e8e9ada4f83bc46925e0da47a0e01a46d1815db9f65591d65eaba7e892fc",
       "executable": false
     },
     "src/vane/team.ts": {
