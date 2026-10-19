@@ -2819,7 +2819,7 @@
       "executable": false
     },
     "src/vane/routes.ts": {
-      "sha256": "60df3127477b7a35b0de5c6a59c30694b129aabf1d04503646824ed9527fcd65",
+      "sha256": "ecd3adf318f1539c4fcedb177fea985c901c69567c5ec5dee79ebaa4a864d1d3",
       "executable": false
     },
     "src/vane/sealed.ts": {
@@ -3115,7 +3115,7 @@
       "executable": false
     },
     "tests/search-console.test.mjs": {
-      "sha256": "2a53ed2096151d0fe1856c0268f7e5ebf545a76e797a341a02063f560cd4ed39",
+      "sha256": "59e71efac58eac98f6f448fed486db04d8f9f330afe1549157c16c467b59ef0a",
       "executable": false
     },
     "tests/site.test.mjs": {

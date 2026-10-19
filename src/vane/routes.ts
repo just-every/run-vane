@@ -72,7 +72,7 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
   // TEAM-001: every door that names a site, by query, path or form, answers only for a site the person may open.
   const named=url.searchParams.get('siteId')??path.match(/^\/app\/sites\/([\w-]+)$/)?.[1];if(named)inScope(actor,named);
   if(request.method==='GET') {
-   if(path===searchConsole.CALLBACK_PATH)return searchConsole.callback(request,env,actor);
+   if(path===searchConsole.CALLBACK_PATH)return await searchConsole.callback(request,env,actor);
    if(path==='/api/vane/search-console/report'){
     const source=await searchConsole.report(env,actor,url.searchParams.get('siteId')??'',url.searchParams.get('from')??'',url.searchParams.get('to')??'');
     if(url.searchParams.get('format')==='csv'){const table=url.searchParams.get('table')??'queries';insist(['queries','pages','queryPages','days','landingPages'].includes(table),'table','Choose a search report table.');const native=table==='landingPages'?await createInsightsService(env,await site(env,url.searchParams.get('siteId')??''),clock(),range).list():null;const data=table==='landingPages'?source.queryPages.filter(r=>r.query===range.searchQuery).map(r=>({...r,vaneVisitors:r.path?native!.entryPages!.find(p=>p.path===r.path)?.visitors??0:null})):source[table as 'queries'];return new Response(toCsv(data),{headers:{...headers,'content-type':'text/csv; charset=utf-8','content-disposition':`attachment; filename="google-${table}-${source.from}-${source.to}.csv"`}})}
@@ -118,7 +118,7 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
      const result=await preview(env,actor,{siteId:p.siteId,document:p.operation==='import.matomo.preview'?await readMatomo(env,actor,p):p.operation==='import.matomo.csv.preview'?{format:'vane-matomo-reports/1',day:p.day,currency:p.currency,reports:{[String(p.report)]:p.document}}:p.document});
      return view(p.siteId,{section:'history',importPreview:{fingerprint:result.fingerprint,count:result.normalized.length+result.aggregates.length,aggregates:result.aggregates,warnings:['Visitor identifiers, titles and raw URLs were discarded before custody. Historical consent and sampling are unknown.'],rows:result.normalized.map(e=>({date:e.day,path:e.path,visits:e.kind==='pageview'?1:0,source:e.source,campaign:e.campaign,goal:e.kind==='pageview'?'':e.kind}))},importCarry:JSON.stringify(result.carry)});
     }
-    if(p.operation==='search.google.begin')return searchConsole.begin(request,env,actor,String(p.siteId));
+    if(p.operation==='search.google.begin')return await searchConsole.begin(request,env,actor,String(p.siteId));
     if(p.operation==='search.google.property'){await searchConsole.selectProperty(env,actor,{siteId:String(p.siteId),property:String(p.property)});await searchConsole.runNow(env,actor,String(p.siteId));return redirect(`/app/sites/${encodeURIComponent(p.siteId)}?section=settings&notice=Google+property+connected.`)}
     if(p.operation==='search.google.sync'){await searchConsole.runNow(env,actor,String(p.siteId),p.from&&p.to?{from:p.from,to:p.to}:undefined);return redirect(`/app/sites/${encodeURIComponent(p.siteId)}?section=settings&notice=Google+source+checked.`)}
     if(p.operation==='search.google.disconnect'){await searchConsole.disconnect(env,actor,String(p.siteId));return redirect(`/app/sites/${encodeURIComponent(p.siteId)}?section=settings&notice=Google+disconnected.`)}
