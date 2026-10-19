@@ -36,10 +36,10 @@ roles. Never use the review identity as your production owner.
 ## First website
 
 1. In **Add a site**, enter a name and exact origin, such as
-   `https://fern.example`. Enter `/`, `/pricing` and `/thanks` as allowed paths, one per line;
-   `signup=/thanks` as a goal; `launch` as a campaign; and `search.example` as a
-   referring hostname. Choose consent mode. List only public static paths and
-   labels, never names, addresses or customer identifiers.
+   `https://fern.example`. Leave the include paths empty to collect every page, and enter
+   `signup=/thanks` as a goal. Choose consent mode. Emails, UUIDs, long numbers
+   and tokens in paths are replaced before storage, and query strings are dropped
+   except UTM fields, `ref`, `source` and the parameters you keep.
 2. **Prepare site**, review the complete proposal in **Approvals**, then
    **Approve change** as owner. Administrators prepare; only the owner approves.
    Both actor and time are recorded.
@@ -47,7 +47,7 @@ roles. Never use the review identity as your production owner.
    consent-required sites, load it after consent and set
    `window.vaneConsent = true` before it runs. If your site has a CSP, allow
    Vane's origin in `script-src` and `connect-src`.
-4. Visit an allowed page, then `/thanks?utm_campaign=launch`. **Report** shows
+4. Visit a page, then `/thanks?utm_campaign=launch`. **Report** shows
    page loads, the matching goal, sources and campaigns, and compares the current
    seven UTC days against the preceding seven days.
 
@@ -65,8 +65,9 @@ stores no IP address, user agent, visitor ID, full URL or arbitrary properties.
 Owner sign-in data is separate.
 
 Sampling is 10%, 25%, 50% or 100% of eligible loads. Counts are observed, never
-scaled estimates. Unknown sources/campaigns become `other`; no referrer becomes
-`direct`. Consent exclusions, blockers and unlisted pages are invisible, so
+scaled estimates. A visit's source is its `utm_source`, `ref` or `source` parameter or
+referring hostname; no referrer becomes `direct`. Consent exclusions, blockers
+and excluded pages are invisible, so
 Vane does not claim complete traffic coverage or inferred causes. Non-browser
 senders can spoof the public collector. Admission is capped at 10,000 page loads
 per site per UTC day.

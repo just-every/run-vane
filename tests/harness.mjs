@@ -36,7 +36,7 @@ export async function installation({setup=true}={}) {
   throw new Error('Invitation not found in local outbox')
  }
  async function addSite(overrides={}) {
-  const input={name:'Fern Studio',origin:'https://fern.example',paths:['/','/thanks'],goals:{signup:'/thanks'},campaigns:['launch'],sources:['search.example'],consent:'not-required',sampleRate:100,retentionDays:90,...overrides}
+  const input={name:'Fern Studio',origin:'https://fern.example',paths:['/','/thanks'],goals:{signup:'/thanks'},consent:'not-required',sampleRate:100,retentionDays:90,...overrides}
   const proposed=await post('/api/vane/commands',{command:'site.create',input},owner);assert.equal(proposed.status,201,await proposed.clone().text());const p=await proposed.json()
   const approval=await form({operation:'proposal.approve',id:p.id},owner);assert.equal(approval.status,303,await approval.clone().text());return p.payload.siteId
  }

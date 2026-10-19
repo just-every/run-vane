@@ -3,6 +3,7 @@ import type { SourceBundle, ImportMapping, Json } from '../../modules/import-kit
 import type { DiscardedCounts, ImportSite, SafeEvent, SitePolicy } from './types.ts';
 import { MoveinError } from './types.ts';
 import { goalMatches } from '../goals';
+import { hostOf, keptValue, pathAllowed, storedPath, visitSource } from '../paths';
 import { mappingVersion, namespace } from './policy.ts';
 import { validateCarry } from './carry.ts';
 
@@ -22,14 +23,17 @@ export function normalize(document: unknown, site: ImportSite, policy: SitePolic
   }
   if (!input || typeof input !== 'object' || !Array.isArray(input.data) || !Number.isSafeInteger(input.count) || input.count < input.data.length || !Number.isSafeInteger(input.page) || input.page < 1 || !Number.isSafeInteger(input.pageSize) || input.pageSize < input.data.length || input.pageSize < 1) throw new MoveinError('UMAMI_EVENTS_PAGE_REQUIRED');
   if (!input.data.length || input.data.length > 500) throw new MoveinError('IMPORT_PAGE_REQUIRES_1_TO_500_EVENTS');
-  const discarded: DiscardedCounts = { sessionIds: 0, pageTitles: 0, websiteIds: 0, sourceEventIds: 0, rawQueries: 0, referrerPaths: 0, referrerQueries: 0, unapprovedSources: 0, unapprovedCampaigns: 0, extraFields: 0 };
-  const events: SafeEvent[] = input.data.map((raw: any, index: number) => {
+  const discarded: DiscardedCounts = { sessionIds: 0, pageTitles: 0, websiteIds: 0, sourceEventIds: 0, rawQueries: 0, referrerPaths: 0, referrerQueries: 0, excludedPaths: 0, extraFields: 0 };
+  const own = [site.origin, ...(policy.origins ?? [])].map(hostOf);
+  // COLLECT-002: imported rows get the same path redaction, rewrites, include/exclude lists and source rule as collection.
+  const rows: any[] = input.data.filter((raw: any) => { const kept = !raw || typeof raw !== 'object' || typeof raw.urlPath !== 'string' || !/^\/(?!\/)[^?#\s]*$/.test(raw.urlPath) || pathAllowed(policy, storedPath(policy, raw.urlPath)); discarded.excludedPaths += Number(!kept); return kept; });
+  const events: SafeEvent[] = rows.map((raw: any, index: number) => {
     const invalid = (code: string): never => { throw new MoveinError(`ROW_${index + 1}_${code}`); };
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return invalid('INVALID_EVENT');
     if (typeof raw.id !== 'string' || !raw.id || raw.id.length > 256) return invalid('EVENT_ID_REQUIRED');
     if (raw.eventType !== 1 && raw.eventType !== 2) return invalid('UNSUPPORTED_EVENT_TYPE');
-    const path = text(raw.urlPath);
-    if (!policy.paths.includes(path) || !/^\/(?!\/)[^?#\s]*$/.test(path)) return invalid('PATH_NOT_APPROVED');
+    if (!/^\/(?!\/)[^?#\s]*$/.test(text(raw.urlPath))) return invalid('INVALID_PATH');
+    const path = storedPath(policy, text(raw.urlPath));
     let kind = 'pageview';
     if (raw.eventType === 2) {
       if (typeof raw.eventName !== 'string' || !Object.hasOwn(policy.goals, raw.eventName) || raw.eventName === 'pageview') return invalid('GOAL_NOT_APPROVED');
@@ -41,11 +45,9 @@ export function normalize(document: unknown, site: ImportSite, policy: SitePolic
     const day = new Date(created).toISOString().slice(0, 10);
     if (day !== created.slice(0,10)) return invalid('INVALID_TIMESTAMP');
     const domain = text(raw.referrerDomain).toLowerCase();
-    const source = !domain ? 'direct' : policy.sources.includes(domain) && /^[a-z0-9.-]+$/.test(domain) ? domain : 'other';
-    const query = text(raw.urlQuery);
-    const campaignValues = new URLSearchParams(query.startsWith('?') ? query.slice(1) : query).getAll('utm_campaign');
-    const token = campaignValues.length === 1 ? campaignValues[0] : '';
-    const campaign = campaignValues.length === 0 ? 'none' : token && policy.campaigns.includes(token) && /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}$/.test(token) ? token : 'other';
+    const query = text(raw.urlQuery), params = new URLSearchParams(query.startsWith('?') ? query.slice(1) : query);
+    const source = visitSource(keptValue(params.get('utm_source')), keptValue(params.get('ref') ?? params.get('source')), domain, own);
+    const campaign = keptValue(params.get('utm_campaign')) ?? 'none';
     discarded.sessionIds += Number(present(raw.sessionId));
     discarded.pageTitles += Number(present(raw.pageTitle));
     discarded.websiteIds += Number(present(raw.websiteId));
@@ -53,8 +55,6 @@ export function normalize(document: unknown, site: ImportSite, policy: SitePolic
     discarded.rawQueries += Number(present(raw.urlQuery));
     discarded.referrerPaths += Number(present(raw.referrerPath));
     discarded.referrerQueries += Number(present(raw.referrerQuery));
-    discarded.unapprovedSources += Number(source === 'other');
-    discarded.unapprovedCampaigns += Number(campaign === 'other');
     discarded.extraFields += Object.keys(raw).filter(key => !known.has(key)).length;
     return { id: sha256(canonicalJson(['vane-umami-event', site.id, raw.id])), day, kind, path, source, campaign, consent: null, sample_rate: null };
   });

@@ -1,4 +1,5 @@
 import { role, site, type Actor, type Env, type Site } from './core'
+import { pathAllowed, storedPath } from './paths'
 // Verify installation (INSTALL-001): load the site's homepage server-side, find this
 // installation's script and name the exact cause of any failure, then wait up to
 // 60 seconds for a first event from that page.
@@ -37,7 +38,7 @@ export async function verifyInstallation(env:Env,actor:Actor,siteId:string,waitM
  try { loaded=await load(value.origin+'/') } catch { return fail('unreachable',`The homepage ${value.origin}/ could not be loaded.`) }
  const page=new URL(loaded.url);
  if(!loaded.response.ok)return fail('unreachable',`The homepage ${page.href} answered ${loaded.response.status}.`);
- if(page.origin!==value.origin)return fail('origin_mismatch',`The homepage moved to ${page.origin}, but this site is registered for ${value.origin}. Events from ${page.origin} are refused; register that origin instead.`);
+ if(![value.origin,...(value.config.origins??[])].includes(page.origin))return fail('origin_mismatch',`The homepage moved to ${page.origin}, but this site is registered for ${value.origin}. Events from ${page.origin} are refused; register that origin instead.`);
  const html=await loaded.response.text();
  const scripts=[...html.matchAll(/<script\b[^>]*>/gi)].map(m=>m[0]).flatMap(tag=>{const src=attribute(tag,'src');if(!src)return[];try{const url=new URL(src,page);return url.origin===installation&&url.pathname==='/vane.js'?[{tag,url}]:[]}catch{return[]}});
  if(!scripts.length)return fail('script_missing',`No script from ${installation}/vane.js was found on ${page.href}. Add the snippet from these settings.`);
@@ -47,9 +48,10 @@ export async function verifyInstallation(env:Env,actor:Actor,siteId:string,waitM
   if(!allows(policy,['script-src-elem','script-src','default-src'],scripts[0]!.url,page))return fail('csp_blocked',`The page's Content Security Policy does not allow scripts from ${installation}. Add it to script-src.`);
   if(!allows(policy,['connect-src','default-src'],new URL(installation),page))return fail('csp_blocked',`The page's Content Security Policy does not allow connections to ${installation}. Add it to connect-src.`);
  }
- if(!value.config.paths.includes(page.pathname))return fail('path_excluded',`The homepage path ${page.pathname} is not an allowed path for this site, so its page loads are not collected.`);
+ const path=storedPath(value.config,page.pathname);
+ if(!pathAllowed(value.config,path))return fail('path_excluded',`The homepage path ${page.pathname} is left out by this site's include or exclude paths, so its page loads are not collected.`);
  if(value.config.consent==='required'&&!html.includes('vaneConsent'))return fail('consent_missing',`This site requires consent, but ${page.href} never sets window.vaneConsent, so no page load is sent.`);
- const arrived=()=>env.DB.prepare('SELECT 1 FROM vane_events WHERE site_id=? AND path=? LIMIT 1').bind(value.id,page.pathname).first();
+ const arrived=()=>env.DB.prepare('SELECT 1 FROM vane_events WHERE site_id=? AND path=? LIMIT 1').bind(value.id,path).first();
  for(const until=Date.now()+waitMs;;await new Promise(done=>setTimeout(done,1000))) {
   if(await arrived())return {state:'verified',cause:'verified',message:`Installation verified: the script is on ${page.href} and its first event has arrived.`};
   if(Date.now()>=until)return fail('blocker_suspected',`The script is installed correctly on ${page.href}, but no event arrived within ${Math.round(waitMs/1000)} seconds of the check. Open the page in a browser without a content blocker, Do Not Track or Global Privacy Control, then verify again.`);

@@ -27,10 +27,10 @@ test('DEMO-001 rer demo opens a signed-in Vane with three example sites, two wee
  }
  const fern=sites.find(s=>s.name==='Fern & Field')
  await page.goto(`${ready}/app/sites/${fern.id}?section=approvals`)
- await page.locator('article.vane-proposal',{hasText:'demo-summer-campaign'}).getByRole('button',{name:'Approve change'}).click()
+ await page.locator('article.vane-proposal',{hasText:'demo-exclude-previews'}).getByRole('button',{name:'Approve change'}).click()
  await page.waitForURL(url=>url.searchParams.has('notice'))
- assert.ok((await json('/api/vane/sites')).find(s=>s.id===fern.id).config.campaigns.includes('summer-preview'),'the approved change applied')
- assert.equal((await json('/api/vane/proposals')).find(p=>p.id==='demo-summer-campaign').state,'approved')
+ assert.ok((await json('/api/vane/sites')).find(s=>s.id===fern.id).config.excludePaths?.includes('/preview/**'),'the approved change applied')
+ assert.equal((await json('/api/vane/proposals')).find(p=>p.id==='demo-exclude-previews').state,'approved')
  rer('demo','--stop');stopped=true
  assert.equal(existsSync(state),false,'the demo data folder is deleted');assert.deepEqual(readdirSync('.rer/demo'),[])
  assert.deepEqual(files('.wrangler/state'),own,'the checkout\'s own data is untouched')

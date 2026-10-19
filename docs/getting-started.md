@@ -16,24 +16,23 @@ In **Add a site**, give the site a name and its exact origin. For a website name
 | --- | --- |
 | Site name | Fern |
 | Website origin | `https://fern.example` |
-| Allowed paths | `/`, `/pricing`, `/thanks` — one per line |
+| Include paths | leave empty to collect every page |
 | Goals | `signup=/thanks` |
-| Campaign labels | `launch` |
-| Referring hostnames | `search.example` |
+| Rewrite rules | `/orders/*=/orders/:id` (optional) |
 
-List public static paths and labels. Leave names, addresses and customer identifiers out. Choose the site's consent mode, sample rate and retention window.
+Emails, UUIDs, long numbers and tokens in paths are replaced before storage, and query strings are dropped except UTM fields, `ref`, `source` and the parameters you keep. Choose the site's consent mode, sample rate and retention window.
 
 Select **Prepare site**. The owner reviews the proposal in **Approvals** and selects **Approve change**. Administrators can prepare changes; the owner decides. Members can read reports.
 
 ## Install the script
 
-Open your site, then **Settings**. Copy the tag under **Install the script** into the allowed pages on your website.
+Open your site, then **Settings**. Copy the tag under **Install the script** into every page of your website.
 
 When consent is required, load the script after consent and set `window.vaneConsent = true` before it runs. If your website uses a Content Security Policy, allow your Vane origin in `script-src` and `connect-src`.
 
 Owners and administrators can then choose **Verify installation**. Vane loads your homepage, checks the script, its site ID, your origin, your Content Security Policy, the consent flag and the path, and names the exact cause of any failure. It then waits up to 60 seconds for the homepage's first page load, so open it in another tab while it waits. Until a first page load arrives, the site shows **Awaiting first event** on the sites overview.
 
-Visit an allowed page, then `/thanks?utm_campaign=launch`. A load of `/thanks` counts as the `signup` goal. You do not need a second event script.
+Visit a page, then `/thanks?utm_campaign=launch`. A load of `/thanks` counts as the `signup` goal. You do not need a second event script.
 
 ## Read the report
 

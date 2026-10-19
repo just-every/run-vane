@@ -12,14 +12,13 @@ export async function loadSite(env: MoveinEnvironment, actor: MoveinActor, siteI
   requireOwner(actor);
   const owner = await env.DB.prepare("SELECT id FROM oa_operators WHERE id=? AND role='owner' AND status='active'").bind(actor.id).first();
   if (!owner) throw new MoveinError('OWNER_REQUIRED', 403);
-  const site = await env.DB.prepare('SELECT id,config_json,version FROM vane_sites WHERE id=?').bind(siteId).first<ImportSite>();
+  const site = await env.DB.prepare('SELECT id,origin,config_json,version FROM vane_sites WHERE id=?').bind(siteId).first<ImportSite>();
   if (!site) throw new MoveinError('SITE_NOT_FOUND', 404);
   let policy: SitePolicy;
   try { policy = JSON.parse(site.config_json); } catch { throw new MoveinError('SITE_POLICY_INVALID'); }
-  if (!policy || !Array.isArray(policy.paths) || !Array.isArray(policy.sources) || !Array.isArray(policy.campaigns) || !policy.goals || Array.isArray(policy.goals) || typeof policy.goals !== 'object') throw new MoveinError('SITE_POLICY_INVALID');
+  if (!policy || !Array.isArray(policy.paths) || !policy.goals || Array.isArray(policy.goals) || typeof policy.goals !== 'object') throw new MoveinError('SITE_POLICY_INVALID');
   for (const path of [...policy.paths, ...Object.values(policy.goals)]) if (typeof path !== 'string' || !/^\/(?!\/)[^?#\s]*$/.test(path)) throw new MoveinError('SITE_POLICY_INVALID');
-  if ([...policy.campaigns, ...Object.keys(policy.goals)].some(value => typeof value !== 'string' || !/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}$/.test(value))) throw new MoveinError('SITE_POLICY_INVALID');
-  if (policy.sources.some(value => typeof value !== 'string' || !/^[a-z0-9.-]+$/.test(value) || value.length > 253)) throw new MoveinError('SITE_POLICY_INVALID');
+  if (Object.keys(policy.goals).some(value => typeof value !== 'string' || !/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}$/.test(value))) throw new MoveinError('SITE_POLICY_INVALID');
   return { site, policy };
 }
 export function context(env: MoveinEnvironment, actor: MoveinActor, site: ImportSite, jobId?: string): D1ImportContext {

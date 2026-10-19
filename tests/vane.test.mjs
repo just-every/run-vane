@@ -38,7 +38,7 @@ test('HTTP-001 and ACCESS-002: one Worker serves honest public doors; every priv
 })
 test('administrator prepares, owner approves once, members only read and revoked operators lose access',async t=>{
  const a=await withApp(t),admin=await a.invite('admin@example.test','admin'),member=await a.invite('member@example.test','member')
- const input={name:'Oak Books',origin:'https://oak.example',paths:['/'],goals:{},sources:[],campaigns:[],consent:'required',sampleRate:100,retentionDays:30}
+ const input={name:'Oak Books',origin:'https://oak.example',paths:['/'],goals:{},consent:'required',sampleRate:100,retentionDays:30}
  assert.equal((await a.post('/api/vane/commands',{command:'site.create',input},member)).status,403)
  const p=await (await a.post('/api/vane/commands',{command:'site.create',input},admin)).json()
  assert.equal((await a.form({operation:'proposal.approve',id:p.id},admin)).status,403)
@@ -124,7 +124,7 @@ test('TRAFFIC-001 the default seven-day report compares totals and every breakdo
  const page=await (await a.request('/app/sites/'+id+'?section=report',{headers:{cookie:a.owner}})).text()
  assert.match(page,/-33\.3%<\/span> compared with the previous period \(3\)/)
  assert.match(page,/<th scope="row">direct<\/th><td class="vane-number">0<\/td><td class="vane-number">2<\/td><td class="vane-number">-2<\/td>/)
- for(const limit of ['Sample rate</dt><dd>100% of eligible page loads','Consent</dt><dd>Not required','Allowed paths</dt><dd>/, /thanks','Imported activity</dt><dd>1','Unknown coverage</dt><dd>1','Blocked scripts, missing consent, sampling and unconfigured paths'])assert.ok(page.includes(limit),limit)
+ for(const limit of ['Sample rate</dt><dd>100% of eligible page loads','Consent</dt><dd>Not required','Allowed paths</dt><dd>/, /thanks','Imported activity</dt><dd>1','Unknown coverage</dt><dd>1','Blocked scripts, missing consent, sampling and excluded paths'])assert.ok(page.includes(limit),limit)
 })
 test('PRIVACY-005 visitor data stays in the installation: the script talks only to its own origin, and collection, reports, import and export make no outbound request',async t=>{
  const a=await withApp(t),id=await a.addSite(),before=a.egress.length,seed=JSON.parse(await readFile(new URL('../seed.json',import.meta.url),'utf8'))
@@ -189,7 +189,7 @@ test('INSTALL-001 Verify installation names the exact cause of each failure and 
  const consentSite=await a.addSite({origin:'https://consent.example',consent:'required'}),pathSite=await a.addSite({origin:'https://paths.example',paths:['/thanks'],goals:{}})
  a.fixtureSites['https://consent.example']=home(script(consentSite));a.fixtureSites['https://paths.example']=home(script(pathSite))
  assert.match(await verify(consentSite),/requires consent, but https:\/\/consent\.example\/ never sets window\.vaneConsent/)
- assert.match(await verify(pathSite),/homepage path \/ is not an allowed path/)
+ assert.match(await verify(pathSite),/homepage path \/ is left out by this site's include or exclude paths/)
  a.fixtureSites['https://fern.example']=home(script(),{'content-security-policy':`script-src 'self' ${a.origin}; connect-src ${a.origin}`})
  const pending=verify();await new Promise(done=>setTimeout(done,1500))
  assert.equal((await a.collect(a.event(id))).status,202)
@@ -244,10 +244,10 @@ test('COLLECT-001 in a browser a default-mode pageview leaves no cookie or stora
 })
 test('AUDIT-001 every audited action is recorded with actor, time and subject, shown in the audit view, exported, and kept without erased data',async t=>{
  const a=await withApp(t),b=await withApp(t),admin=await a.invite('admin@example.test','admin'),member=await a.invite('member@example.test','member'),owner={headers:{cookie:a.owner}}
- const input={name:'Fern Studio',origin:'https://fern.example',paths:['/','/thanks'],goals:{signup:'/thanks'},campaigns:['launch'],sources:['search.example'],consent:'not-required',sampleRate:100,retentionDays:90}
+ const input={name:'Fern Studio',origin:'https://fern.example',paths:['/','/thanks'],goals:{signup:'/thanks'},consent:'not-required',sampleRate:100,retentionDays:90}
  const created=await (await a.post('/api/vane/commands',{command:'site.create',input},admin)).json(),id=created.payload.siteId
  assert.equal((await a.form({operation:'proposal.approve',id:created.id},a.owner)).status,303)
- assert.equal((await a.form({operation:'config.prepare',siteId:id,...input,name:'Fern Studio US',paths:'/\n/thanks',goals:'signup=/thanks',campaigns:'launch',sources:'search.example'},admin)).status,303)
+ assert.equal((await a.form({operation:'config.prepare',siteId:id,...input,name:'Fern Studio US',paths:'/\n/thanks',goals:'signup=/thanks'},admin)).status,303)
  const configured=(await (await a.request('/api/vane/proposals',owner)).json()).find(p=>p.state==='pending');assert.equal((await a.form({operation:'proposal.approve',id:configured.id},a.owner)).status,303)
  const imported=await movein(a,id);assert.equal((await a.post('/api/vane/import-undo',{siteId:id,jobId:imported.applied.job.id},a.owner)).status,200)
  assert.equal((await a.form({operation:'history.retention',siteId:id},a.owner)).status,303)
@@ -278,7 +278,7 @@ test('METRIC-001 unique visitors are distinct daily salted hashes summed over da
  const first=localDay('Pacific/Pago_Pago'),second=localDay('Pacific/Kiritimati');assert.notEqual(first,second)
  await visit(id,'https://fern.example',people[0]);await visit(id,'https://fern.example',people[0],'/thanks');await visit(id,'https://fern.example',people[1])
  // The site's time zone moves from UTC-11 to UTC+14: its local date, and so its salt, rotates to the next day.
- const input={siteId:id,name:'Fern Studio',origin:'https://fern.example',paths:['/','/thanks'],goals:{signup:'/thanks'},campaigns:['launch'],sources:['search.example'],consent:'not-required',sampleRate:100,retentionDays:90,timeZone:'Pacific/Kiritimati'}
+ const input={siteId:id,name:'Fern Studio',origin:'https://fern.example',paths:['/','/thanks'],goals:{signup:'/thanks'},consent:'not-required',sampleRate:100,retentionDays:90,timeZone:'Pacific/Kiritimati'}
  const moved=await (await a.post('/api/vane/commands',{command:'site.configure',input},a.owner)).json();assert.equal((await a.form({operation:'proposal.approve',id:moved.id},a.owner)).status,303)
  await visit(id,'https://fern.example',people[0]);await visit(id,'https://fern.example',people[1]);await visit(other,'https://oak.example',people[0])
  const summary=async query=>(await a.request(`/api/vane/summary?siteId=${id}${query}`,owner)).json()
@@ -444,13 +444,13 @@ test('DASH-012 with a named search parameter, a term two visitors searched is re
 test('SHARE-002 a site made public with two reports shows only those to a signed-out reader at its stable URL, honours the indexing choice, and turning it off returns 404',async t=>{
  const a=await withApp(t),id=await a.addSite()
  for(const path of ['/','/thanks'])assert.equal((await a.collect(a.event(id,{path}))).status,202)
- const configure=async extra=>{const input={siteId:id,name:'Fern Studio',origin:'https://fern.example',paths:['/','/thanks'],goals:{signup:'/thanks'},campaigns:['launch'],sources:['search.example'],consent:'not-required',sampleRate:100,retentionDays:90,...extra};const p=await (await a.post('/api/vane/commands',{command:'site.configure',input},a.owner)).json();assert.equal((await a.form({operation:'proposal.approve',id:p.id},a.owner)).status,303)}
+ const configure=async extra=>{const input={siteId:id,name:'Fern Studio',origin:'https://fern.example',paths:['/','/thanks'],goals:{signup:'/thanks'},consent:'not-required',sampleRate:100,retentionDays:90,...extra};const p=await (await a.post('/api/vane/commands',{command:'site.configure',input},a.owner)).json();assert.equal((await a.form({operation:'proposal.approve',id:p.id},a.owner)).status,303)}
  const stats=()=>a.request('/stats/'+id)
  assert.equal((await stats()).status,404,'not public until the owner approves it')
  await configure({publicReports:['totals','pages']})
  let page=await stats(),html=await page.text();assert.equal(page.status,200)
  for(const part of ['<h2>Unique visitors</h2>','<h2>Pageviews</h2><p class="vane-metric">2</p>','<h2>Top pages</h2>','<h2>Exit pages</h2>','<meta name="robots" content="noindex, nofollow">'])assert.ok(html.includes(part),part)
- for(const part of ['Referring hostnames','<h2>Goals</h2>','Campaigns','Devices','Site search','search.example'])assert.equal(html.includes(part),false,part)
+ for(const part of ['<h2>Sources</h2>','<h2>Goals</h2>','Campaigns','Devices','Site search','search.example'])assert.equal(html.includes(part),false,part)
  assert.equal(page.headers.get('x-robots-tag'),'noindex, nofollow');assert.equal(page.headers.getSetCookie().length,0)
  assert.ok((await (await a.request(`/app/sites/${id}?section=settings`,{headers:{cookie:a.owner}})).text()).includes(`/stats/${id}`))
  await configure({publicReports:['totals','pages'],publicIndexing:true})
@@ -488,7 +488,7 @@ test('SITE-001 a site with apex and www origins counts both, changes time zone a
  const summary=async(app,siteId=id)=>(await get(app,'/api/vane/summary?siteId='+siteId)).json(),before=await summary(a);assert.equal(before.pageviews,2)
  const config=async app=>(await (await get(app,'/api/vane/sites')).json()).find(s=>s.id===id)?.config
  assert.deepEqual([(await config(a)).origins,(await config(a)).currency,(await config(a)).timeZone],[['https://www.fern.example'],'EUR','UTC'])
- const input={siteId:id,name:'Fern Studio',origin:'https://fern.example',origins:'https://www.fern.example',paths:['/','/thanks'],goals:{signup:'/thanks'},campaigns:['launch'],sources:['search.example'],consent:'not-required',timeZone:'America/Chicago',currency:'USD'}
+ const input={siteId:id,name:'Fern Studio',origin:'https://fern.example',origins:'https://www.fern.example',paths:['/','/thanks'],goals:{signup:'/thanks'},consent:'not-required',timeZone:'America/Chicago',currency:'USD'}
  assert.equal((await a.post('/api/vane/commands',{command:'site.configure',input:{...input,currency:'XYZ'}},a.owner)).status,400)
  const change=await (await a.post('/api/vane/commands',{command:'site.configure',input},a.owner)).json()
  assert.equal((await config(a)).currency,'EUR')
@@ -518,4 +518,36 @@ test('SITE-001 a site with apex and www origins counts both, changes time zone a
  const dump=await a.dump();for(const name of ['vane_sites','vane_events','vane_signals','vane_auto_events','vane_admission','vane_salts','vane_import_events'])assert.equal(dump[name].filter(row=>JSON.stringify(row).includes(id)).length,0,name)
  assert.ok(dump.vane_audit.some(row=>row.action==='site.delete'&&row.subject===id)&&dump.vane_audit.some(row=>row.action==='site.export')&&(await b.dump()).vane_audit.some(row=>row.action==='site.import'))
  assert.equal((await a.post('/api/vane/site-import',{archive},a.owner)).status,409)
+})
+test('COLLECT-002 in a browser every page is collected with its hostname, paths are redacted and rewritten, UTM values, ref/source sources and the paid-click flag are kept, and titles and other queries never stored',async t=>{
+ const a=await withApp(t),id=await a.addSite({paths:[],excludePaths:['/admin/**'],rewrites:['/orders/*=/orders/:id'],queryKeys:['plan'],origins:['https://www.fern.example']})
+ const page=title=>`<!doctype html><title>${title}</title><script src="${a.origin}/vane.js" data-site="${id}"></script>`
+ const urls={
+  'https://fern.example/users/jo%40example.com?utm_source=google&utm_medium=cpc&utm_campaign=spring&utm_term=pour-over&utm_content=hero&gclid=gclid-secret-1&ref=x':'/users/:email',
+  'https://fern.example/reset/eyJhbGciOiJIUzI1NiJ9xQ2/confirm?fbclid=fb-secret-2':'/reset/:token/confirm',
+  'https://fern.example/orders/1234567':'/orders/:id','https://fern.example/orders/42':'/orders/:id',
+  'https://fern.example/invoices/0b8e4c1a-2f3d-4e5f-8a9b-1c2d3e4f5a6b':'/invoices/:uuid',
+  'https://fern.example/blog/top-10-brews-2024':'/blog/top-10-brews-2024',
+  'https://fern.example/?ref=producthunt':'/',
+  'https://www.fern.example/?source=newsletter&plan=pro&secret=private-value':'/',
+ }
+ const {context}=await browse(t,a,Object.fromEntries([...Object.keys(urls),'https://fern.example/admin/panel'].map(url=>[url,page('Order 1234567 for jo@example.com')]))),tab=await context.newPage()
+ for(const url of Object.keys(urls)){const sent=tab.waitForResponse(r=>new URL(r.url()).pathname==='/api/vane/collect');await tab.goto(url);assert.equal((await sent).status(),202,url)}
+ const excluded=tab.waitForResponse(r=>new URL(r.url()).pathname==='/api/vane/collect');await tab.goto('https://fern.example/admin/panel');assert.equal((await excluded).status(),403)
+ const dump=await a.dump(),rows=dump.vane_events.filter(e=>e.site_id===id&&e.kind==='pageview').sort((x,y)=>x.at-y.at||x.id.localeCompare(y.id))
+ assert.deepEqual(rows.map(e=>e.path).sort(),Object.values(urls).sort())
+ const first=rows.find(e=>e.path==='/users/:email')
+ assert.deepEqual([first.hostname,first.source,first.campaign,first.utm_source,first.utm_medium,first.utm_term,first.utm_content,first.paid_click],['fern.example','google','spring','google','cpc','pour-over','hero',1],'utm_source wins over ref, every UTM field and the paid-click flag are kept')
+ assert.equal(rows.find(e=>e.path==='/reset/:token/confirm').paid_click,1)
+ assert.equal(rows.find(e=>e.path==='/blog/top-10-brews-2024').paid_click,0)
+ const home=rows.filter(e=>e.path==='/').map(e=>[e.hostname,e.source,e.query])
+ assert.deepEqual(home,[['fern.example','producthunt',null],['www.fern.example','newsletter','plan=pro']])
+ const stored=JSON.stringify(dump)
+ for(const secret of ['jo@example.com','jo%40example.com','1234567','eyJhbGciOiJIUzI1NiJ9xQ2','0b8e4c1a','gclid-secret-1','fb-secret-2','private-value','Order ','/admin/panel'])assert.equal(stored.includes(secret),false,secret)
+ const r=await (await a.request('/api/vane/summary?siteId='+id,{headers:{cookie:a.owner}})).json()
+ assert.deepEqual(Object.fromEntries(r.sources.map(s=>[s.label,s.count])),{direct:5,google:1,producthunt:1,newsletter:1})
+ assert.deepEqual(r.topPages.map(p=>p.path).filter(p=>p.startsWith('/orders')),['/orders/:id'])
+ assert.equal(r.topPages.find(p=>p.path==='/orders/:id').pageviews,2)
+ // Direct posts get the same treatment: a query in the path is refused, and an unknown kept key or UTM field is refused.
+ for(const extra of [{path:'/thanks?email=x'},{query:{secret:'x'}},{utm:{campaign:'x'}}])assert.equal((await a.collect(a.event(id,extra))).status,400,JSON.stringify(extra))
 })

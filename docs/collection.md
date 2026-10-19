@@ -4,9 +4,11 @@ Vane records accepted page loads for the paths you approve. A goal is a load of 
 
 ## What is collected
 
-The script sends approved paths and labels, a fresh event ID and consent state. Analytics stores no IP address, user agent, visitor ID, full URL or arbitrary properties. The script uses no cookies or browser storage. Owner sign-in data is separate.
+The script sends the page path, the referring hostname, the UTM fields, the `ref` or `source` parameter, the query parameters the site keeps, a fresh event ID and consent state. Analytics stores no IP address, user agent, visitor ID, page title, full URL or arbitrary properties. The script uses no cookies or browser storage. Owner sign-in data is separate.
 
-Only allowed paths, configured campaign labels and referring hostnames enter analytics. Campaigns come from `utm_campaign`. Unknown sources and campaigns become `other`; no referrer becomes `direct`.
+Every page of the site is collected unless you list paths to include (then only those) or to exclude. Before storage, path segments holding an email address, a UUID, six or more digits in a row or a long token become `:email`, `:uuid`, `:number` or `:token`, and your rewrite rules (such as `/orders/*=/orders/:id`) group the rest. The page's hostname is stored beside its path and must be one of the site's origins.
+
+Query strings are dropped except the five UTM fields, `ref`, `source` and the parameters you choose to keep; a kept value that looks like an email address, a phone or account number or a web address is dropped. `gclid`, `fbclid` and `msclkid` only mark a paid click. A visit's source is its `utm_source`, else its `ref` or `source` parameter, else the referring hostname; no referrer becomes `direct`. Campaigns come from `utm_campaign`.
 
 ## Consent and browser signals
 

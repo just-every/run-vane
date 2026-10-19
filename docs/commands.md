@@ -4,7 +4,7 @@ Use an authenticated administrator session, kept private. POST JSON to
 `/api/vane/commands` with the exact installation Origin header:
 
 ```json
-{"command":"site.create","input":{"name":"Fern Studio","origin":"https://fern.example","paths":["/","/thanks"],"goals":{"signup":"/thanks"},"campaigns":["launch"],"sources":["search.example"],"consent":"required","sampleRate":100,"retentionDays":90}}
+{"command":"site.create","input":{"name":"Fern Studio","origin":"https://fern.example","paths":["/","/thanks"],"goals":{"signup":"/thanks"},"consent":"required","sampleRate":100,"retentionDays":90}}
 ```
 
 `site.configure` takes the same fields plus `siteId`. `history.erase` takes

@@ -6,7 +6,7 @@ on stop. Another start gets a new workspace. There is no demo bar or outbox.
 
 Three configured websites have two weeks of recent page loads, visits (with
 engagement and bounces), sources, campaigns and goals, approved site history and
-a pending campaign change to review.
+a pending settings change (excluding preview pages) to review.
 `src/demo.ts` loads real records with fixed IDs and never fetches. Verify's `demo`
 job (`tests/demo.journey.mjs`) starts `rer demo` in CI, opens each example site,
 approves the pending change, stops it and checks that its data is gone and the

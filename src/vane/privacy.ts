@@ -2,6 +2,7 @@ import { insist, type Config } from './core'
 import { goalMatches } from './goals'
 import { PUBLIC_REPORTS } from './public-reports'
 import { AUTO_EVENTS } from './auto-events'
+import { cleanRules } from './paths'
 // Adapted from Spool origins.ts at 9f75f060a66446f4c9dcf9cafddd0906d7698748.
 // An origin limits browser ingestion; it does not authenticate a visitor.
 export function browserOrigin(value:unknown):string {
@@ -12,16 +13,16 @@ export function browserOrigin(value:unknown):string {
 }
 const list=(value:unknown)=>Array.isArray(value)?value.map(String):String(value??'').split(/[\n,]/).map(x=>x.trim()).filter(Boolean)
 export function cleanConfig(input:any):Config {
- const paths=[...new Set(list(input.paths))],campaigns=[...new Set(list(input.campaigns))],sources=[...new Set(list(input.sources))];
+ // COLLECT-002: every path is collected unless an optional include list leaves it out or an exclude list names it.
+ const paths=[...new Set(list(input.paths))],excludePaths=[...new Set(list(input.excludePaths))],rewrites=cleanRules(input.rewrites),queryKeys=[...new Set(list(input.queryKeys).map(key=>key.toLowerCase()))];
  // A goal is a page load of a path (signup=/thanks) or, from METRIC-006's scroll depth, reaching N% of it (deep-read=/journal@75).
  const lines=typeof input.goals==='object'&&!Array.isArray(input.goals)&&input.goals?Object.entries(input.goals).map(([name,path])=>[name,String(path)]):list(input.goals).map(x=>x.split('=').map(v=>v.trim()));
  const scrollLines=input.scrollGoals&&typeof input.scrollGoals==='object'&&!Array.isArray(input.scrollGoals)?Object.entries(input.scrollGoals).map(([name,goal]:[string,any])=>[name,`${goal?.path}@${goal?.depth}`]):[];
  const goals:Record<string,string>={},scrollGoals:Record<string,{path:string,depth:number}>={},names:string[]=[];
  for(const [name,value] of [...lines,...scrollLines]){const scroll=String(value).match(/^(.*)@(\d{1,3})$/);names.push(String(name));if(scroll)scrollGoals[String(name)]={path:scroll[1]!,depth:Number(scroll[2])};else goals[String(name)]=String(value)}
- insist(paths.length>0&&paths.length<=50&&paths.every(p=>/^\/(?:[a-z0-9_-]+\/?)*$/.test(p)&&p.length<=120),'paths','Allow 1–50 static lowercase paths without queries, names or identifiers.');
- insist(campaigns.length<=30&&campaigns.every(c=>/^[a-z][a-z0-9-]{0,39}$/.test(c)),'campaigns','Campaigns must be short lowercase names.');
- insist(sources.length<=30&&sources.every(s=>/^(?:[a-z0-9-]+\.)+[a-z]{2,20}$/.test(s)&&s.length<=80),'sources','Sources must be public referring hostnames.');
- insist(names.length<=20&&new Set(names).size===names.length&&names.every(name=>/^[a-z][a-z0-9-]{0,39}$/.test(name)&&name!=='pageview')&&[...Object.values(goals),...Object.values(scrollGoals).map(goal=>goal.path)].every(path=>/^\/[a-z0-9_\-/*]{0,119}$/.test(path)&&paths.some(allowed=>goalMatches(path,allowed)))&&Object.values(scrollGoals).every(goal=>goal.depth>=1&&goal.depth<=100),'goals','Use goal-name=/path or a pattern such as /thanks/* (one segment) or /blog/** (any depth) that matches an allowed path, or add @75 for a scroll depth; one per line.');
+ insist([paths,excludePaths].every(group=>group.length<=50&&group.every(p=>/^\/[A-Za-z0-9_\-/*.:]{0,119}$/.test(p))),'paths','List up to 50 paths or patterns such as /blog/** to include, and up to 50 to exclude, without queries.');
+ insist(queryKeys.length<=10&&queryKeys.every(key=>/^[a-z][a-z0-9_-]{0,39}$/.test(key)&&!/^(utm_|ref$|source$|gclid$|fbclid$|msclkid$)/.test(key)),'query_keys','Name up to 10 other query parameters to keep, such as plan; UTM, ref and source are always kept.');
+ insist(names.length<=20&&new Set(names).size===names.length&&names.every(name=>/^[a-z][a-z0-9-]{0,39}$/.test(name)&&name!=='pageview')&&[...Object.values(goals),...Object.values(scrollGoals).map(goal=>goal.path)].every(path=>/^\/[a-z0-9_\-/*]{0,119}$/.test(path)&&(paths.length===0||paths.some(allowed=>goalMatches(path,allowed))))&&Object.values(scrollGoals).every(goal=>goal.depth>=1&&goal.depth<=100),'goals','Use goal-name=/path or a pattern such as /thanks/* (one segment) or /blog/** (any depth) that matches an included path, or add @75 for a scroll depth; one per line.');
  const consent=input.consent??'required',sampleRate=Number(input.sampleRate??100),retentionDays=Number(input.retentionDays??90);
  insist(['required','not-required'].includes(consent),'consent','Choose an explicit consent mode.');
  insist([10,25,50,100].includes(sampleRate),'sample_rate','Choose 10, 25, 50 or 100 percent.');
@@ -41,6 +42,6 @@ export function cleanConfig(input:any):Config {
  insist(origins.length<=10,'origins','Allow up to 10 extra origins.');
  insist(/^[A-Z]{3}$/.test(currency)&&Intl.supportedValuesOf('currency').includes(currency),'currency','Choose an ISO 4217 currency code, such as USD or EUR.');
  insist(/^[A-Za-z_]+(?:\/[A-Za-z0-9_+-]+)*$/.test(timeZone)&&(()=>{try{new Intl.DateTimeFormat('en-US',{timeZone}).format(0);return true}catch{return false}})(),'time_zone','Choose an IANA time zone, such as America/New_York.');
- return {paths,goals,scrollGoals,campaigns,sources,consent,sampleRate,retentionDays,signalCounter,timeZone,currency,...(origins.length?{origins}:{}),...(searchParam?{searchParam}:{}),...(publicReports.length?{publicReports,publicIndexing}:{}),...(autoEvents.length?{autoEvents}:{})};
+ return {paths,...(excludePaths.length?{excludePaths}:{}),...(rewrites.length?{rewrites}:{}),...(queryKeys.length?{queryKeys}:{}),goals,scrollGoals,consent,sampleRate,retentionDays,signalCounter,timeZone,currency,...(origins.length?{origins}:{}),...(searchParam?{searchParam}:{}),...(publicReports.length?{publicReports,publicIndexing}:{}),...(autoEvents.length?{autoEvents}:{})};
 }
 export function cleanSite(input:any) { const name=String(input.name??'').trim(); insist(name.length>0&&name.length<=80&&!/[<>@]/.test(name),'name','Enter a short site name, without personal details.'); const origin=browserOrigin(input.origin),config=cleanConfig(input.config??input); insist(!config.origins?.includes(origin),'origins','Extra origins must differ from the website origin.'); return {name,origin,config} }

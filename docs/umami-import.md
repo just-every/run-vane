@@ -14,8 +14,7 @@ Unknown paths, types, goals and goal/path mismatches stop the entire page with a
 explicit row-number error.
 
 The public `tests/fixtures/umami-events.json` is deliberately synthetic. To try
-it, approve paths `/` and `/thanks`, goal `signup` at `/thanks`, campaign `launch`,
-and source `search.example`. It demonstrates approved and discarded values; it
+it, add a site with goal `signup` at `/thanks`. It demonstrates kept and discarded values; it
 is not a customer export or evidence of real traffic.
 
 Preview shows normalized events, mapped/duplicate counts, discard counts and a
@@ -30,9 +29,10 @@ Only sanitized events enter Base import-kit source custody. Session IDs, page
 titles, website IDs, raw source event IDs, referrer paths/queries, unknown fields
 and raw URL queries are discarded before planning. Event identity is a stable
 hash of the destination site and source event ID; no visitor/session identity is
-kept. Only an approved `utm_campaign` token is extracted. Missing campaigns become
-`none`; unknown or ambiguous campaigns become `other`. Empty referrer domains
-become `direct`; approved hostnames remain; unknown domains become `other`.
+kept. Imported rows get collection's rules: paths are redacted and rewritten and
+rows on excluded paths are dropped and counted; the campaign is `utm_campaign`
+(else `none`); the source is `utm_source`, else `ref` or `source`, else the
+referrer domain, else `direct`.
 Neither raw upload nor original bytes are retained. Artifact hashes describe
 only sanitized values. Imported consent and sampling are unknown (`null`).
 
