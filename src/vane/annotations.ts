@@ -1,3 +1,4 @@
+import { alertName } from './traffic-alerts'
 import { allow, day as utcDay, inScope, insist, rows, site, statement, uid, type Actor, type Config, type Env } from './core'
 import { auditStatement } from './audit'
 import { clock } from './clock'
@@ -7,7 +8,7 @@ import { localDay } from './visitors'
 // integration events stored in vane_annotations, approved settings changes and completed imports and undos from the
 // audit trail, and visit-definition versions (METRIC-004). Every kind marks every chart of its site except a
 // definition version, which marks only the charts of visits, bounce rate and visit duration.
-export const ANNOTATION_KINDS={note:'Note',settings:'Settings change',definition:'Definition change',import:'Import',deploy:'Deploy',release:'Release',incident:'Uptime incident','error-spike':'Spool error spike',campaign:'Mango campaign send'} as const
+export const ANNOTATION_KINDS={note:'Note',settings:'Settings change',definition:'Definition change',import:'Import',deploy:'Deploy',release:'Release',incident:'Uptime incident','error-spike':'Spool error spike',campaign:'Mango campaign send',maintenance:'Uptime maintenance','alert-held':'Held alert'} as const
 export type AnnotationKind=keyof typeof ANNOTATION_KINDS
 export async function annotationsFor(env:Env,sites:{id:string,name:string,config:Config}[],from:string,to:string,named:boolean):Promise<Annotation[]> {
  const ids=JSON.stringify(sites.map(s=>s.id)),by=new Map(sites.map(s=>[s.id,s])),label=(id:string)=>named?{site:by.get(id)!.name}:{}
@@ -15,8 +16,11 @@ export async function annotationsFor(env:Env,sites:{id:string,name:string,config
   rows<{id:string,site_id:string,day:string,kind:AnnotationKind,text:string,url:string|null,author:string|null}>(env,'SELECT id,site_id,day,kind,text,url,author FROM vane_annotations WHERE site_id IN (SELECT value FROM json_each(?)) AND day>=? AND day<? ORDER BY day,at',ids,from,to),
   rows<{at:number,action:string,subject:string,detail:string}>(env,"SELECT at,action,subject,detail FROM vane_audit WHERE action IN ('settings.change','import.apply','import.undo') AND subject IN (SELECT value FROM json_each(?)) ORDER BY at",ids),
  ])
+ // ALERT-001: an alert held by scheduled maintenance, a US federal holiday or a closed day shows on the chart with its reason.
+ const held=(await rows<{site_id:string,metric:string,condition:string,direction:string,threshold:number,seen_at:number,outcome:string}>(env,"SELECT site_id,metric,condition,direction,threshold,seen_at,outcome FROM vane_alert_log WHERE site_id IN (SELECT value FROM json_each(?)) AND (outcome LIKE 'held: scheduled maintenance%' OR outcome LIKE 'held: %US federal holiday%' OR outcome LIKE 'held: %closed day%') ORDER BY seen_at",ids))
+  .map(r=>({day:localDay(r.seen_at,by.get(r.site_id)!.config.timeZone??'UTC'),kind:'alert-held' as AnnotationKind,text:`${alertName(r)} ${r.outcome.split(';')[0]}.`,...label(r.site_id)})).filter(a=>a.day>=from&&a.day<to)
  const fromAudit=audited.filter(r=>r.action==='settings.change'||r.detail.endsWith(', complete')).map(r=>({day:localDay(r.at,by.get(r.subject)!.config.timeZone??'UTC'),kind:(r.action==='settings.change'?'settings':'import') as AnnotationKind,text:r.action==='settings.change'?`Settings approved (${r.detail}).`:r.action==='import.apply'?`History imported (${r.detail.replace(/, complete$/,'')}).`:`Imported history removed (${r.detail.replace(/, complete$/,'')}).`,...label(r.subject)})).filter(a=>a.day>=from&&a.day<to)
- return [...stored.map(r=>({day:r.day,kind:r.kind,text:r.text,id:r.id,...(r.url?{url:r.url}:{}),...(r.author?{author:r.author}:{}),...label(r.site_id)})),...fromAudit,...definitionAnnotations(sites,from,to,named)].sort((a,b)=>a.day.localeCompare(b.day))
+ return [...stored.map(r=>({day:r.day,kind:r.kind,text:r.text,id:r.id,...(r.url?{url:r.url}:{}),...(r.author?{author:r.author}:{}),...label(r.site_id)})),...fromAudit,...held,...definitionAnnotations(sites,from,to,named)].sort((a,b)=>a.day.localeCompare(b.day))
 }
 
 // A plain-text line: no control characters or markup, at most `max` characters.

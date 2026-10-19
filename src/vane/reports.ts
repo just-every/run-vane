@@ -100,12 +100,13 @@ export function createInsightsService(env:Env,value:Site,now=clock(),range?:{fro
   const deviceRows=withPrevious(current.devices,before.devices,['label'],'visitors'),channelRows=withPrevious(current.entries.channels,before.entries.channels,['label'],'visits'),named=campaigns.filter(r=>r.label!=='none')
   const reasonsNow=new Map(exclusions.map(r=>[r.reason,Number(r.count)])),reasonsThen=new Map(previousExclusions.map(r=>[r.reason,Number(r.count)]))
   const coverageChanges=[...[...new Set([...reasonsNow.keys(),...reasonsThen.keys()])].sort().map(reason=>({label:reason,now:reasonsNow.get(reason)??0,then:reasonsThen.get(reason)??0})),{label:'privacy-signals',now:Number(signals[0].n),then:Number(previousSignals[0].n)},{label:'imported',now:Number(coverage[0].imported),then:Number(previousCoverage[0].imported)}].filter(c=>c.now!==c.then)
+  const closed=daily?Object.fromEntries((await rows<{day:string,label:string}>(env,'SELECT day,label FROM vane_closed_days WHERE site_id IN (SELECT value FROM json_each(?))',scope)).map(r=>[r.day,r.label])):{}
   const explain:Explanation={movers:[
    ...movers('Channel','visits',channelRows.map(r=>({label:r.label,now:r.visits,then:r.previous})),current.engagement.visits,before.engagement.visits),
    ...movers('Page','pageviews',pages.map(r=>({label:r.label,now:Number(r.count),then:Number(r.previous)})),pageviews,previousPageviews),
    ...movers('Campaign','pageviews',named.map(r=>({label:r.label,now:Number(r.count),then:Number(r.previous)})),named.reduce((n,r)=>n+Number(r.count),0),named.reduce((n,r)=>n+Number(r.previous),0)),
    ...movers('Device','unique visitors',deviceRows.map(r=>({label:r.label,now:Number(r.visitors),then:r.previous})),deviceRows.reduce((n,r)=>n+Number(r.visitors),0),deviceRows.reduce((n,r)=>n+r.previous,0)),
-  ],annotations,coverage:coverageChanges,variation:daily?variation(daily,from,to,firstDay[0]?.d??null):null};
+  ],annotations,coverage:coverageChanges,variation:daily?variation(daily,from,to,firstDay[0]?.d??null,closed):null};
   const {engagement,devices,browsers,browserVersions,systems,systemVersions,screens,siteSearch,entries,automaticEvents}=current,previousEngagement=before.engagement;
   const dimensions=Object.fromEntries((['devices','browsers','browserVersions','systems','systemVersions','screens'] as const).map(name=>[name,withPrevious(current[name],before[name],['label'],'visitors')]));
   // CONV-004: each device row also carries its visits, conversions and conversion rate (by each visit's first page load).

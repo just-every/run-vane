@@ -1886,7 +1886,7 @@ test('REPORT-001 two weekly subscribers get the Monday 8:00 New York report once
  assert.ok(to('down@client.example').length>4,'other addresses keep their reports')
  assert.ok(!JSON.stringify(await a.dump()).includes(link.pathname.split('/').pop()),'only the unsubscribe token\'s hash is kept')
 })
-test('ALERT-001 a current-visitors alert above 50 is sent by email within 15 minutes of the crossing with the crossing and send times logged, sends once while the value stays past it, is held by its cool-down when it crosses again, and only analysts and up set alerts',async t=>{
+test('ALERT-001 a current-visitors alert above 50 is sent by email within 15 minutes of the crossing with the crossing and send times logged, sends once while the value stays past it, is held by its cool-down when it crosses again, only analysts and up set alerts, goes to the chosen people and signed webhooks, sleeps in quiet hours, and a segment alert counts only the segment\'s visits',async t=>{
  const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({paths:[]}),T=Date.parse('2026-04-01T12:00:00Z')
  assert.equal((await a.form({operation:'team.invite',email:'analyst@example.test',role:'analyst',scope:'all'},a.owner)).status,303);assert.equal((await a.form({operation:'team.invite',email:'viewer@example.test',role:'viewer',scope:'all'},a.owner)).status,303)
  const analyst=await a.accept('analyst@example.test'),viewer=await a.accept('viewer@example.test'),add=(cookie,body={})=>a.form({operation:'alert.create',siteId:id,metric:'current',direction:'above',threshold:'50',cooldown:'6',...body},cookie)
@@ -1896,8 +1896,10 @@ test('ALERT-001 a current-visitors alert above 50 is sent by email within 15 min
  const alerts=()=>a.sentMail.filter(m=>/Current visitors above 50/.test(m.subject)),at=async ms=>{await a.clock(ms);await a.scheduled()}
  // 50 current visitors is not above 50; the 51st, at 12:01, crosses; the next 5-minute check sends it.
  await a.clock(T+60000);await visitors(1,50);await at(T+120000);assert.equal(alerts().length,0,'50 is not above 50')
+ // An automated browser is excluded: the coverage count that changes is named in the message.
+ await a.post('/api/vane/collect',a.event(id,{path:'/'}),'',{origin:'https://fern.example','cf-connecting-ip':'198.51.9.9','user-agent':'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.0.0 Safari/537.36'})
  await visitors(2,1);await at(T+300000);assert.equal(alerts().length,1);const [mail]=alerts()
- assert.deepEqual(mail.to,['analyst@example.test']);assert.match(mail.text,/Fern Studio: Current visitors above 50\. Now 51\./)
+ assert.deepEqual(mail.to,['analyst@example.test']);assert.match(mail.text,/Fern Studio: Current visitors above 50\. Now 51\. What moved against the same window a week before: .*Device desktop: 0 → 51 unique visitors/);assert.match(mail.text,/Coverage that day against a week before: [a-z -]+ 0 → 1\./)
  const settings=async()=>unlinked(await (await a.request(`/app/sites/${id}?section=settings`,owner)).text())
  assert.match(await settings(),/<tr><td>Apr 1, 2026, 12:05\sPM<\/td><td>Current visitors above 50<\/td><td class="vane-number">51<\/td><td>Apr 1, 2026, 12:05\sPM<\/td><td>sent: email accepted by the mail provider for one person; push accepted by 0 browsers<\/td><\/tr>/)
  const [log]=(await a.dump()).vane_alert_log;assert.ok(log.sent_at-(T+120000)<=15*60000,'sent within 15 minutes of the crossing')
@@ -1917,15 +1919,22 @@ test('ALERT-001 a current-visitors alert above 50 is sent by email within 15 min
  assert.equal(hooks.length,1);const hook=JSON.parse(hooks[0].body);assert.deepEqual([hooks[0].headers['vane-event'],hook.event,hook.alert,hook.value,hook.bound],['traffic.alert','traffic.alert','Pageviews in the last 60 minutes above 150',153,'150'])
  assert.match(hooks[0].headers['vane-signature'],/^t=\d+,v1=[0-9a-f]{64}$/);assert.deepEqual(Object.keys(hook).sort(),['alert','bound','condition','direction','event','metric','seen_at','site_id','value'],'no visitor field')
  assert.match(await settings(),/held: quiet hours \(12:00–13:00\)/)
+ // A segment alert counts only the segment's visits: 24 site visits cross 20 but 19 blog visits do not; 21 do.
+ const saved=await a.form({operation:'segment.save',siteId:id,name:'Blog readers',filters:'page:contains:/blog'},a.owner),segmentId=new URL(saved.headers.get('location'),a.origin).searchParams.get('segment')
+ assert.equal((await add(a.owner,{metric:'visits',threshold:'20',segment:segmentId})).status,303);assert.equal((await add(a.owner,{metric:'visits',threshold:'20'})).status,303)
+ const blog=async(from,n,path)=>{for(let i=0;i<n;i++)assert.equal((await a.post('/api/vane/collect',a.event(id,{path}),'',{origin:'https://fern.example','cf-connecting-ip':`198.51.${from}.${i}`,'user-agent':DESKTOP_CHROME})).status,202)}
+ await a.clock(T+2*3600000);await blog(5,19,'/blog/launch');await blog(7,5,'/pricing');await at(T+2*3600000+60000);assert.equal(a.sentMail.filter(m=>/Visits in the last 60 minutes above 20/.test(m.subject)).length,1,'the whole site crosses 20 visits; the segment does not')
+ await blog(6,2,'/blog/launch');await at(T+2*3600000+120000);assert.equal(a.sentMail.filter(m=>/Visits in the last 60 minutes above 20/.test(m.subject)).length,2,'21 blog visits cross the segment alert')
+ assert.match(a.sentMail.at(-1).text,/Now 21\. What moved/)
  const alert=(await a.dump()).vane_alerts[0];assert.equal((await a.form({operation:'alert.delete',id:alert.id},viewer)).status,403);assert.equal((await a.form({operation:'alert.delete',id:alert.id},analyst)).status,303)
  assert.ok((await a.dump()).vane_audit.some(e=>e.action==='alert.create')&&(await a.dump()).vane_audit.some(e=>e.action==='alert.delete'),'setting and deleting alerts are audited')
 })
-test('ALERT-001 against eight weeks of baseline traffic a 4x spike and a 70% drop alert once each against the same weekday and hour, the cool-down holds a repeat, a Thanksgiving dip is held, and a drop inside a recurring Saturday 2:00-3:00 maintenance window is held while the same drop at 4:00 alerts',async t=>{
+test('ALERT-001 against eight weeks of baseline traffic a 4x spike and a 70% drop alert once each against the same weekday and hour, the cool-down holds a repeat, a Thanksgiving dip is held, and a drop inside a recurring Saturday 2:00-3:00 maintenance window or an Uptime window is held while the same drop at 4:00 alerts, a closed day in the business calendar is held and left out of baselines, held drops show on the chart, and each message names its largest movers',async t=>{
  const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({paths:[]}),HOUR=3600000
  let ip=0;const pageviews=async(iso,n)=>{await a.clock(Date.parse(iso));for(let i=0;i<n;i++)assert.equal((await a.post('/api/vane/collect',a.event(id,{path:'/'}),'',{origin:'https://fern.example','cf-connecting-ip':`198.51.${100+(ip>>8)%50}.${ip++%256}`,'user-agent':DESKTOP_CHROME})).status,202)}
  const usual=[6,7,5,6,8,6,5,7],day=(from,weeks)=>new Date(Date.parse(from)+weeks*7*86400000).toISOString().slice(0,10)
  // Baselines: Thursdays 27 Aug to 19 Nov 2026 at 10:00 and 14:00 UTC, Saturdays 29 Aug to 17 Oct at 2:00 and 4:00.
- for(let w=0;w<13;w++){const d=day('2026-08-27',w);for(const h of ['10','14'])if(!(d==='2026-10-22'&&h==='10'||d==='2026-11-05'&&h==='14'))await pageviews(`${d}T${h}:10:00Z`,usual[w%8])}
+ for(let w=0;w<13;w++){const d=day('2026-08-27',w);for(const h of ['10','14'])if(!(d==='2026-10-22'&&h==='10'||['2026-11-05','2026-11-12'].includes(d)&&h==='14'))await pageviews(`${d}T${h}:10:00Z`,usual[w%8])}
  for(let w=0;w<8;w++)for(const h of ['02','04'])await pageviews(`${day('2026-08-29',w)}T${h}:10:00Z`,usual[w%8])
  await a.clock(Date.parse('2026-10-20T00:00:00Z'))
  const add=body=>a.form({operation:'alert.create',siteId:id,metric:'pageviews',condition:'anomaly',cooldown:'6',...body},a.owner)
@@ -1937,6 +1946,8 @@ test('ALERT-001 against eight weeks of baseline traffic a 4x spike and a 70% dro
  await a.clock(Date.parse('2026-10-22T10:00:00Z'));await at('2026-10-22T10:05:00Z');await pageviews('2026-10-22T10:20:00Z',24);await at('2026-10-22T10:25:00Z');await at('2026-10-22T10:30:00Z')
  assert.deepEqual(sent(),['Fern Studio: Pageviews above the usual range for the weekday and hour'],'the spike alerts once')
  assert.match(a.sentMail.at(-1).text,/24 pageviews so far in Thursday 2026-10-22 10:00–11:00 \(UTC\); the usual range for this weekday and hour is \d+(\.\d)? to \d+(\.\d)?\./)
+ // Like the report's explanation: the largest movers with their totals, against the same window a week before.
+ assert.match(a.sentMail.at(-1).text,/What moved against the same window a week before: .*Page \/: 7 → 24 pageviews \(\+17, \+242\.9%\), of 7 → 24 pageviews in all/);assert.match(a.sentMail.at(-1).text,/Coverage that day against a week before: no coverage count changed\./)
  // A second spike at 12:00 the same day is inside the 6-hour cool-down: held, not sent.
  await pageviews('2026-10-22T12:10:00Z',24);await at('2026-10-22T12:15:00Z');assert.equal(sent().length,1,'the cool-down suppresses a repeat')
  // Saturday 24 Oct: 1 pageview at 2:00 (inside the maintenance window) is held; the same drop at 4:00 alerts.
@@ -1944,9 +1955,25 @@ test('ALERT-001 against eight weeks of baseline traffic a 4x spike and a 70% dro
  await pageviews('2026-10-24T04:10:00Z',1);await at('2026-10-24T05:05:00Z');assert.deepEqual(sent().slice(1),['Fern Studio: Pageviews below the usual range for the weekday and hour'])
  // Thursday 5 Nov, 14:00: 2 pageviews (a 70% drop) alert when the hour ends; Thanksgiving's empty 14:00 is held.
  await pageviews('2026-11-05T14:10:00Z',2);await at('2026-11-05T15:05:00Z');assert.equal(sent().length,3,'the drop alerts')
+ // Uptime sends a maintenance window for Saturday 31 Oct 4:00-5:00 through the annotation door: the empty 4:00 is held.
+ const created=await a.form({operation:'annotation-hook.create',siteId:id},a.owner),secret=(await created.text()).match(/data-annotation-secret>(vane_ah_[0-9a-f]{64})</)[1]
+ const uptime=body=>a.request('/api/vane/annotations',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+secret},body:JSON.stringify({siteId:id,id:'uptime-mw-7',kind:'maintenance',title:'Database upgrade',...body})})
+ assert.equal((await uptime({at:'2026-10-31T04:00:00Z'})).status,400,'a maintenance window needs its end')
+ assert.equal((await uptime({at:'2026-10-31T04:00:00Z',until:'2026-10-31T05:00:00Z'})).status,201);assert.equal((await uptime({at:'2026-10-31T04:00:00Z',until:'2026-10-31T05:00:00Z'})).status,200,'a repeat is idempotent')
+ await at('2026-10-31T05:05:00Z');assert.equal(sent().length,3,'held in the Uptime window')
+ // Thursday 12 Nov is a closed day in the business calendar: its drop is held, and it leaves the baselines after it.
+ assert.equal((await a.form({operation:'calendar.close',siteId:id,day:'2026-11-12',label:'Staff retreat'},a.owner)).status,303)
+ await pageviews('2026-11-12T14:10:00Z',1);await at('2026-11-12T15:05:00Z');assert.equal(sent().length,3,'held on a closed day')
  await at('2026-11-26T15:05:00Z');assert.equal(sent().length,3,'the Thanksgiving dip does not alert')
  const log=unlinked(await (await a.request(`/app/sites/${id}?section=settings`,owner)).text())
  for(const outcome of ['held: cool-down of 6 h since the last send','held: scheduled maintenance (Saturdays 02:00–03:00)','held: Thanksgiving Day, a US federal holiday, is not judged against ordinary weeks'])assert.ok(log.includes(outcome),outcome)
  assert.match(log,/<td>Pageviews below the usual range for the weekday and hour<\/td><td class="vane-number">1<\/td><td>Oct 24, 2026, 5:05\sAM<\/td><td>sent: email accepted by the mail provider for one person; push accepted by 0 browsers; usual range [\d.]+ to [\d.]+ for Saturday 2026-10-24 04:00–05:00<\/td>/)
- assert.ok(log.includes('Saturdays 02:00–03:00'),'the window is listed');assert.equal((await a.dump()).vane_alert_log.length,6)
+ assert.ok(log.includes('Saturdays 02:00–03:00')&&log.includes('2026-10-31 04:00–05:00'),'both windows are listed');assert.equal((await a.dump()).vane_alert_log.length,8)
+ assert.ok(log.includes('held: Staff retreat, a closed day in the business calendar, is not judged against ordinary weeks'))
+ // REPORT-003's normal-variation judgment uses the same calendar: the closed day is not judged and leaves the next week's baseline.
+ const judged=(await (await a.request(`/api/vane/summary?siteId=${id}&from=2026-11-09&to=2026-11-21`,owner)).json()).explain.variation
+ assert.deepEqual([judged.find(d=>d.day==='2026-11-12').closed,judged.find(d=>d.day==='2026-11-19').baselineDays],['Staff retreat',7])
+ // Held drops show on the chart with their reason, beside Uptime's maintenance annotation.
+ const notes=(await (await a.request(`/api/vane/summary?siteId=${id}&from=2026-10-20&to=2026-11-02`,owner)).json()).explain.annotations
+ assert.deepEqual(notes.filter(n=>['alert-held','maintenance'].includes(n.kind)).map(n=>[n.day,n.kind,n.text]),[['2026-10-24','alert-held','Pageviews below the usual range for the weekday and hour held: scheduled maintenance (Saturdays 02:00–03:00).'],['2026-10-31','maintenance','Database upgrade'],['2026-10-31','alert-held','Pageviews below the usual range for the weekday and hour held: scheduled maintenance (2026-10-31 04:00–05:00).']])
 })

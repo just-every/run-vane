@@ -22,14 +22,16 @@ const holidayOf=(d:string)=>({...usHolidays(Number(d.slice(0,4))-1),...usHoliday
 
 export type Judged='visitors'|'visits'|'pageviews'
 export interface Interval { value:number; low:number; high:number; within:boolean }
-export interface VariationDay { day:string; holiday?:string; baselineDays:number; metrics?:Record<Judged,Interval> }
+export interface VariationDay { day:string; holiday?:string; closed?:string; baselineDays:number; metrics?:Record<Judged,Interval> }
 // The baseline of a day is the same weekday in the 8 weeks before it, leaving out US federal holidays and days
-// before the site's first event; with at least 4 such days, the interval is mean ± t·s·√(1 + 1/n).
-export function variation(daily:Bucket[],from:string,to:string,firstDay:string|null):VariationDay[] {
+// before the site's first event; with at least 4 such days, the interval is mean ± t·s·√(1 + 1/n). ALERT-001's business
+// calendar refines it the same way: a closed day is left out of baselines and not judged.
+export function variation(daily:Bucket[],from:string,to:string,firstDay:string|null,closed:Record<string,string>={}):VariationDay[] {
  const by=new Map(daily.map(b=>[b.key,b])),days:VariationDay[]=[]
  for(let d=from;d<to;d=shift(d,1)){
   const holiday=holidayOf(d);if(holiday){days.push({day:d,holiday,baselineDays:0});continue}
-  const base=Array.from({length:BASELINE_WEEKS},(_,i)=>shift(d,-7*(i+1))).filter(b=>!holidayOf(b)&&firstDay!==null&&b>=firstDay)
+  if(closed[d]){days.push({day:d,closed:closed[d],baselineDays:0});continue}
+  const base=Array.from({length:BASELINE_WEEKS},(_,i)=>shift(d,-7*(i+1))).filter(b=>!holidayOf(b)&&!closed[b]&&firstDay!==null&&b>=firstDay)
   if(base.length<MIN_BASELINE_DAYS){days.push({day:d,baselineDays:base.length});continue}
   const metrics=Object.fromEntries((['visitors','visits','pageviews'] as Judged[]).map(m=>{
    const xs=base.map(b=>Number(by.get(b)?.[m]??0)),n=xs.length,mean=xs.reduce((a,x)=>a+x,0)/n,sd=Math.sqrt(xs.reduce((a,x)=>a+(x-mean)**2,0)/(n-1)),half=T95[n-1]!*sd*Math.sqrt(1+1/n)

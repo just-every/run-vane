@@ -7,22 +7,31 @@ import { plainText } from './annotations'
 // sends (ct 06:25Z). A sender posts {siteId, id, kind, at, title, url?} with the site's secret as a bearer token. The
 // secret is created, replaced and revoked only by the owner, shown once and kept only as its SHA-256. The sender's
 // id makes a repeat idempotent; a site accepts at most 60 such annotations an hour; a URL keeps only origin and path.
-export const HOOK_KINDS=['deploy','release','incident','error-spike','campaign'] as const
+// ALERT-001: an Uptime maintenance window arrives the same way, as kind maintenance with an `until` time (at most 7 days
+// after `at`); it becomes one-off maintenance windows, one per local day it covers, that hold drop alerts.
+export const HOOK_KINDS=['deploy','release','incident','error-spike','campaign','maintenance'] as const
 export const HOOK_LIMIT_PER_HOUR=60
 const headers={'cache-control':'no-store','x-content-type-options':'nosniff'}
 const fail=(error:unknown)=>{const e=error instanceof VaneError?error:new VaneError('invalid_annotation','The annotation could not be accepted.');return Response.json({error:e.code,message:e.message},{status:e.status,headers})}
+// The local days a window covers, each with its local start and end minute (a day it runs through is 00:00-24:00).
+function maintenanceDays(zone:string,at:number,until:number) {
+ const minute=(t:number)=>{const p=Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:zone,hourCycle:'h23',hour:'2-digit',minute:'2-digit'}).formatToParts(t).map(x=>[x.type,x.value]));return +p.hour!*60+ +p.minute!}
+ const first=localDay(at,zone),last=localDay(until-1,zone),days=[]
+ for(let d=first;d<=last;d=new Date(Date.parse(d)+86400000).toISOString().slice(0,10))days.push({day:d,start:d===first?minute(at):0,end:d===last?(minute(until-1)+1):1440})
+ return days
+}
 export async function annotationDoor(request:Request,env:Env):Promise<Response|null> {
  if(new URL(request.url).pathname!=='/api/vane/annotations')return null;
  try {
   insist(request.method==='POST','method','POST required.',405);
   const text=await request.text();insist(text.length<=4096,'body','Annotation too large.',413);
   let p:any;try{p=JSON.parse(text)}catch{throw new VaneError('body','Send a JSON annotation.')}
-  insist(p&&typeof p==='object'&&Object.keys(p).every(k=>['siteId','id','kind','at','title','url'].includes(k)),'fields','An annotation carries siteId, id, kind, at, title and an optional url.');
+  insist(p&&typeof p==='object'&&Object.keys(p).every(k=>['siteId','id','kind','at','title','url','until'].includes(k)),'fields','An annotation carries siteId, id, kind, at, title and an optional url (and until, for maintenance).');
   const hook=(await rows<{secret_hash:string}>(env,'SELECT secret_hash FROM vane_annotation_hooks WHERE site_id=?',String(p.siteId)))[0],token=(request.headers.get('authorization')??'').match(/^Bearer (\S{20,200})$/)?.[1];
   insist(hook&&token&&await digest(token)===hook.secret_hash,'unauthorized','Send the site’s annotation secret as a bearer token.',401);
   const value=await site(env,String(p.siteId)),now=clock();
   insist(typeof p.id==='string'&&/^[A-Za-z0-9._:-]{1,100}$/.test(p.id),'id','Send your own ID for the annotation, up to 100 letters, digits and . _ : -.');
-  insist((HOOK_KINDS as readonly string[]).includes(p.kind),'kind','The kind is deploy, release, incident, error-spike or campaign.');
+  insist((HOOK_KINDS as readonly string[]).includes(p.kind),'kind','The kind is deploy, release, incident, error-spike, campaign or maintenance.');
   const at=typeof p.at==='number'?p.at:Date.parse(String(p.at));insist(Number.isSafeInteger(at)&&at>0,'at','Send the time as epoch milliseconds or an ISO 8601 timestamp.');
   const title=plainText(p.title,120,'title','Send a plain-text title of up to 120 characters.');
   let url:string|null=null;
@@ -31,7 +40,9 @@ export async function annotationDoor(request:Request,env:Env):Promise<Response|n
   if((await rows(env,'SELECT 1 FROM vane_annotations WHERE id=?',id)).length)return Response.json({accepted:true,duplicate:true},{headers});
   const recent=Number((await rows(env,"SELECT COUNT(*) AS n FROM vane_annotations WHERE site_id=? AND kind<>'note' AND at>?",value.id,now-3600000))[0].n);
   insist(recent<HOOK_LIMIT_PER_HOUR,'rate_limited','This site accepts at most 60 integration annotations an hour.',429);
-  await env.DB.prepare('INSERT OR IGNORE INTO vane_annotations(id,site_id,day,kind,text,url,author,at) VALUES(?,?,?,?,?,?,NULL,?)').bind(id,value.id,localDay(at,value.config.timeZone??'UTC'),p.kind,title,url,now).run();
+  const until=p.kind==='maintenance'?(typeof p.until==='number'?p.until:Date.parse(String(p.until))):null
+  insist(p.kind==='maintenance'?Number.isSafeInteger(until)&&until!>at&&until!-at<=7*86400000:p.until===undefined,'until','A maintenance window needs an until time after at, at most 7 days later; other kinds take none.')
+  await env.DB.batch([env.DB.prepare('INSERT OR IGNORE INTO vane_annotations(id,site_id,day,kind,text,url,author,at) VALUES(?,?,?,?,?,?,NULL,?)').bind(id,value.id,localDay(at,value.config.timeZone??'UTC'),p.kind,title,url,now),...(until?maintenanceDays(value.config.timeZone??'UTC',at,until).map(w=>env.DB.prepare("INSERT INTO vane_maintenance(id,site_id,kind,weekday,day,start_minute,end_minute,created_by,created_at) VALUES(?,?,'once',NULL,?,?,?,'uptime',?)").bind(`${id}:${w.day}`,value.id,w.day,w.start,w.end,now)):[])]);
   return Response.json({accepted:true},{status:201,headers});
  } catch(error) { return fail(error) }
 }
