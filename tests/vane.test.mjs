@@ -1022,3 +1022,23 @@ test('CONV-005 the funnel product → cart → checkout → purchase counts entr
  const link=html.match(/<a href="([^"]+)" aria-label="Journeys onward from \/cart">2<\/a>/)[1].replaceAll('&amp;','&');assert.match(link,/journey=%2Fcart/)
  assert.ok((await (await a.request(`/app/sites/${id}${link}`,owner)).text()).includes('passed through /cart'),'the drop-off opens the journeys through /cart')
 })
+test('PERF-001 in a browser a page whose hero image arrives 3 seconds late reports an LCP p75 above 2.5 s on that page only, per page and device class, with no identifier in the report',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({paths:[]}),{deflateSync,crc32}=await import('node:zlib'),{randomBytes}=await import('node:crypto')
+ // A 160×120 noise PNG: high entropy, so Chrome counts it as a contentful image.
+ const chunk=(type,data)=>{const head=Buffer.alloc(8);head.writeUInt32BE(data.length);head.write(type,4);const crc=Buffer.alloc(4);crc.writeUInt32BE(crc32(Buffer.concat([Buffer.from(type),data])));return Buffer.concat([head,data,crc])},ihdr=Buffer.alloc(13);ihdr.writeUInt32BE(160);ihdr.writeUInt32BE(120,4);ihdr[8]=8;ihdr[9]=2
+ const png=Buffer.concat([Buffer.from([137,80,78,71,13,10,26,10]),chunk('IHDR',ihdr),chunk('IDAT',deflateSync(Buffer.concat(Array.from({length:120},()=>Buffer.concat([Buffer.from([0]),randomBytes(480)]))))),chunk('IEND',Buffer.alloc(0))])
+ const script=`<script src="${a.origin}/vane.js" data-site="${id}"></script>`
+ const {context}=await browse(t,a,{'https://fern.example/slow':`<!doctype html><title>Slow</title><img src="https://fern.example/hero.png" width="640" height="480" alt="">${script}`,'https://fern.example/fast':`<!doctype html><title>Fast</title><h1>Fast page</h1><p>Plain text renders at once.</p>${script}`})
+ await context.route('https://fern.example/hero.png',async route=>{await new Promise(resolve=>setTimeout(resolve,3000));await route.fulfill({contentType:'image/png',body:png})})
+ const tab=await context.newPage(),hide=()=>tab.evaluate(()=>{Object.defineProperty(document,'visibilityState',{value:'hidden',configurable:true});document.dispatchEvent(new Event('visibilitychange'))})
+ const measure=async path=>{const collected=tab.waitForResponse(r=>new URL(r.url()).pathname==='/api/vane/collect');await tab.goto('https://fern.example'+path,{waitUntil:'load'});assert.equal((await collected).status(),202);await tab.waitForTimeout(300);const sent=tab.waitForRequest(r=>new URL(r.url()).pathname==='/api/vane/perf');await hide();const request=await sent;assert.equal((await request.response()).status(),202);return JSON.parse(request.postData())}
+ const slow=await measure('/slow'),fast=await measure('/fast')
+ for(const body of [slow,fast])assert.ok(Object.keys(body).every(k=>['siteId','id','lcp','inp','cls','load'].includes(k)),'only the IDs and figures are sent')
+ assert.ok(slow.lcp>2500&&slow.load>2500,`slow page LCP ${slow.lcp} ms`);assert.ok(fast.lcp<2500,`fast page LCP ${fast.lcp} ms`)
+ const summary=await (await a.request('/api/vane/summary?siteId='+id,owner)).json(),pages=Object.fromEntries(summary.perf.pages.map(r=>[r.label,r]))
+ assert.ok(pages['/slow'].lcp>2500&&pages['/fast'].lcp<2500,'LCP p75 is above 2.5 s on the slow page only');assert.deepEqual(summary.perf.devices.map(r=>[r.label,r.measured,r.lcp]),[['desktop',2,pages['/slow'].lcp]],'with two loads, nearest-rank p75 is the slower one')
+ const html=await (await a.request(`/app/sites/${id}?section=report`,owner)).text();assert.ok(html.includes(`<th scope="row">/slow</th><td class="vane-number">1</td><td class="vane-number" data-lcp="${pages['/slow'].lcp}">${(pages['/slow'].lcp/1000).toFixed(1)} s</td>`))
+ assert.equal((await a.post('/api/vane/perf',{siteId:id,id:slow.id,lcp:100,url:'https://fern.example/slow'},'',{origin:'https://fern.example'})).status,400,'a report carries no other field')
+ assert.equal((await a.post('/api/vane/perf',{siteId:id,id:crypto.randomUUID(),lcp:100},'',{origin:'https://fern.example'})).status,404,'a report names an existing page load')
+ await context.close()
+})

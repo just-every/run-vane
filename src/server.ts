@@ -1,6 +1,7 @@
 import { withDemo } from './modules/demo/index.mjs'
 import { seedDemo } from './demo'
 import { collector } from './vane/collect'
+import { perfResponse } from './vane/performance'
 import { methodologyResponse } from './vane/methodology'
 import { publicStatsResponse } from './vane/public'
 import { autoEventResponse } from './vane/auto-events'
@@ -40,6 +41,8 @@ export default withDemo({
     if (asset) return asset
     const automatic = await autoEventResponse(request, env)
     if (automatic) return automatic
+    const measured = await perfResponse(request, runtimeBindings(env))
+    if (measured) return measured
     const collected = await collector(request, env)
     if (collected) return collected
     const annotated = await annotationDoor(request, runtimeBindings(env))
