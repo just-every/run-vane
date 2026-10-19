@@ -15,6 +15,7 @@ import { storeUse } from './capacity'
 import { createRollup, rollup, rollupReport, rollups } from './rollups'
 import { overview } from './overview'
 import { realtime } from './realtime'
+import { saveSegment, segments } from './segments'
 const headers={'cache-control':'no-store','x-content-type-options':'nosniff','referrer-policy':'same-origin'};
 const json=(value:unknown,status=200)=>Response.json(value,{status,headers});
 const redirect=(path:string)=>new Response(null,{status:303,headers:{...headers,location:path}});
@@ -22,7 +23,7 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
  const url=new URL(request.url),path=url.pathname;
  if(path!=='/app'&&!path.startsWith('/app/')&&!path.startsWith('/api/vane/'))return null;
  const env=runtimeBindings(original);
- const range={from:url.searchParams.get('from'),to:url.searchParams.get('to'),journey:url.searchParams.get('journey'),journeyMode:url.searchParams.get('journeyMode'),period:url.searchParams.get('period'),compare:url.searchParams.get('compare'),compareFrom:url.searchParams.get('compareFrom'),compareTo:url.searchParams.get('compareTo'),weekdays:url.searchParams.get('weekdays'),interval:url.searchParams.get('interval'),metric:url.searchParams.get('metric'),group:url.searchParams.get('group'),goal:url.searchParams.get('goal'),host:url.searchParams.get('host'),hostOp:url.searchParams.get('hostOp')};
+ const range={from:url.searchParams.get('from'),to:url.searchParams.get('to'),journey:url.searchParams.get('journey'),journeyMode:url.searchParams.get('journeyMode'),period:url.searchParams.get('period'),compare:url.searchParams.get('compare'),compareFrom:url.searchParams.get('compareFrom'),compareTo:url.searchParams.get('compareTo'),weekdays:url.searchParams.get('weekdays'),interval:url.searchParams.get('interval'),metric:url.searchParams.get('metric'),group:url.searchParams.get('group'),goal:url.searchParams.get('goal'),host:url.searchParams.get('host'),hostOp:url.searchParams.get('hostOp'),filters:[...url.searchParams.getAll('filter'),...(url.searchParams.get('filterValue')?[`${url.searchParams.get('filterDimension')}:${url.searchParams.get('filterOp')}:${url.searchParams.get('filterValue')}`]:[])],segment:url.searchParams.get('segment')};
  let actor:Actor|undefined;
  async function view(siteId?:string,extra:Partial<ViewData>={}) {
   const selected=siteId?await site(env,siteId):undefined;
@@ -32,7 +33,7 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
   const all=await sites(env),list=!selected&&!extra.rollup&&!extra.error&&(url.searchParams.get('section')??'report')==='report'?await overview(env,all,clock(),{period:url.searchParams.get('period'),sort:url.searchParams.get('sort'),q:url.searchParams.get('q')}):undefined;
   const live=selected&&url.searchParams.get('section')==='realtime';
   const settings=selected&&(extra.section??url.searchParams.get('section'))==='settings',hook=settings?(await rows<{created_at:number}>(env,'SELECT created_at FROM vane_annotation_hooks WHERE site_id=?',selected.id))[0]??null:undefined,github=settings?(await rows<{created_at:number}>(env,'SELECT created_at FROM vane_github_keys WHERE site_id=?',selected.id))[0]??null:undefined;
-  return renderApp({actor:actor as ViewData['actor'],origin:env.AUTH_ORIGIN,store:await storeUse(env),sites:all,overview:list,rollups:await rollups(env),site:selected,hook,github,live:live?await realtime(env,selected,clock()):undefined,report:selected&&!live?await createInsightsService(env,selected,clock(),range).list():undefined,proposals,imports,audit,section:url.searchParams.get('section')??undefined,notice:url.searchParams.get('notice')??undefined,...extra});
+  return renderApp({actor:actor as ViewData['actor'],origin:env.AUTH_ORIGIN,store:await storeUse(env),sites:all,overview:list,rollups:await rollups(env),site:selected,hook,github,segments:selected&&!live?await segments(env,selected.id):undefined,live:live?await realtime(env,selected,clock()):undefined,report:selected&&!live?await createInsightsService(env,selected,clock(),range).list():undefined,proposals,imports,audit,section:url.searchParams.get('section')??undefined,notice:url.searchParams.get('notice')??undefined,...extra});
  }
  try {
   const session=await operatorAuth(env).getSession(request);
@@ -71,6 +72,8 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
      const result=await preview(env,actor,{siteId:p.siteId,document:p.document});
      return view(p.siteId,{section:'history',importPreview:{fingerprint:result.fingerprint,count:result.normalized.length,warnings:['Visitor identifiers, titles and raw URLs were discarded before custody. Historical consent and sampling are unknown.'],rows:result.normalized.map(e=>({date:e.day,path:e.path,visits:e.kind==='pageview'?1:0,source:e.source,campaign:e.campaign,goal:e.kind==='pageview'?'':e.kind}))},importCarry:JSON.stringify(result.carry)});
     }
+    // DASH-007: a saved segment reopens the report with it applied.
+    if(p.operation==='segment.save'){const saved=await saveSegment(env,actor,p);return redirect(`/app/sites/${encodeURIComponent(saved.siteId)}?${new URLSearchParams({section:'report',segment:saved.id,notice:'Segment saved for the team.'})}`)}
     if(p.operation==='rollup.create')return redirect('/app/rollups/'+encodeURIComponent(await createRollup(env,actor,p))+'?'+new URLSearchParams({notice:'Roll-up created.'}));
     const result=await action(env,actor,p),query=new URLSearchParams({notice:result.notice,...(result.section?{section:result.section}:{})});
     // DASH-009: a new annotation secret is rendered once in this response, never put in a redirect URL.

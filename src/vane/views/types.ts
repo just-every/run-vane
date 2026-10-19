@@ -8,6 +8,7 @@ export interface ViewData {
   hook?: { created_at: number } | null
   github?: { created_at: number } | null
   secret?: string
+  segments?: { id: string; name: string; filters: { dimension: string; op: string; value: string }[] }[]
   proposals?: any[]
   imports?: any[]
   notice?: string

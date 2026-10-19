@@ -4,6 +4,8 @@ import { readFile } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
 import { installation } from './harness.mjs'
 const fixture=JSON.parse(await readFile(new URL('./fixtures/umami-events.json',import.meta.url),'utf8'))
+// DASH-007 makes report row values links that filter by them; assertions on a row's cells read past the link.
+const unlinked=html=>html.replace(/<a href="[^"]*" data-filter-link>([^<]*)<\/a>/g,'$1')
 async function withApp(t){const app=await installation();t.after(()=>app.close());return app}
 // A real browser whose requests are all recorded: the built Worker serves the installation's origin, `pages` serves fixture pages, and anything else is refused.
 // Headless browsers are excluded as automation (COLLECT-003), so it presents a desktop Chrome user agent unless userAgent is null.
@@ -123,7 +125,7 @@ test('TRAFFIC-001 the default seven-day report compares totals and every breakdo
  for(const limit of ['Consent exclusions','blockers','sampling','imports','Collection coverage is not measured'])assert.ok(r.explanation.includes(limit),limit)
  const earlier=await (await a.request(`/api/vane/summary?siteId=${id}&from=${r.previousFrom}&to=${r.from}`,{headers:{cookie:a.owner}})).json()
  assert.deepEqual([earlier.pageviews,earlier.goals,earlier.imported,earlier.unknownCoverage],[3,1,4,4])
- const page=await (await a.request('/app/sites/'+id+'?section=report',{headers:{cookie:a.owner}})).text()
+ const page=unlinked(await (await a.request('/app/sites/'+id+'?section=report',{headers:{cookie:a.owner}})).text())
  assert.match(page,/-33\.3%<\/span> compared with the previous period \(3\)/)
  assert.match(page,/<th scope="row">direct<\/th><td class="vane-number">0<\/td><td class="vane-number">2<\/td><td class="vane-number" data-change="-2">-2 \(-100\.0%\)<\/td>/)
  for(const limit of ['Sample rate</dt><dd>100% of eligible page loads','Consent</dt><dd>Not required','Allowed paths</dt><dd>/, /thanks','Imported activity</dt><dd>1','Unknown coverage</dt><dd>1','Blocked scripts, missing consent, sampling and excluded paths'])assert.ok(page.includes(limit),limit)
@@ -396,7 +398,7 @@ test('CONV-001 /thanks/* converts on /thanks/pro only and /thanks** on every pag
  const r=await (await a.request(`/api/vane/summary?siteId=${id}&from=2026-03-10&to=2026-03-11`,owner)).json()
  assert.deepEqual([r.visitors,r.goals,r.converters,r.conversionRate],[6,6,4,66.7])
  assert.deepEqual(r.goalBreakdown.map(g=>[g.label,g.count,g.converters,g.conversionRate]),[['signup',4,3,50],['deep-read',1,1,16.7],['pro',1,1,16.7]],'/thanks/* stays within one segment; /thanks** reaches /thanks and /thanks/pro/annual')
- const page=await (await a.request(`/app/sites/${id}?section=report&from=2026-03-10&to=2026-03-11`,owner)).text()
+ const page=unlinked(await (await a.request(`/app/sites/${id}?section=report&from=2026-03-10&to=2026-03-11`,owner)).text())
  for(const html of ['<th scope="row">signup</th><td class="vane-number">4</td><td class="vane-number">3</td><td class="vane-number">50.0%</td>','Converting visitors: 4 (66.7% of unique visitors).'])assert.ok(page.includes(html),html)
  assert.ok((await (await a.request(`/app/sites/${id}?section=settings`,owner)).text()).includes('signup=/thanks**\npro=/thanks/*\ndeep-read=/blog/**@75'))
  assert.ok((await (await a.request('/methodology')).text()).includes('so /thanks/* covers /thanks/pro'))
@@ -579,7 +581,7 @@ test('DASH-004 Google organic and paid, Facebook, an email UTM, webmail, chatgpt
  // With any goal, every visit converts: each entered on / (the landing goal); the page tables follow the same choice.
  const any=await summary();assert.ok(any.channels.every(row=>row.conversionRate===100));assert.equal(any.topPages.find(p=>p.path==='/thanks').conversionRate,100);assert.equal(r.entryPages.find(p=>p.path==='/').conversionRate,11.1,'one of nine visits entering on / reached signup')
  assert.equal((await a.request(`/api/vane/summary?siteId=${id}&goal=nope`,owner)).status,400)
- const page=await (await a.request(`/app/sites/${id}?section=report&from=2026-03-10&to=2026-03-11`,owner)).text()
+ const page=unlinked(await (await a.request(`/app/sites/${id}?section=report&from=2026-03-10&to=2026-03-11`,owner)).text())
  assert.match(page,/<th scope="row">AI Assistants<\/th><td class="vane-number">1<\/td><td class="vane-number">1<\/td><td class="vane-number">100\.0%<\/td>/)
  // In a browser, a link followed from chatgpt.com reaches collection as its referring page and channel.
  const {context}=await browse(t,a,{'https://chatgpt.com/c/123?q=private':'<!doctype html><a href="https://fern.example/thanks?utm_medium=referral">Fern</a>','https://fern.example/thanks?utm_medium=referral':`<!doctype html><title>Journal</title><script src="${a.origin}/vane.js" data-site="${id}"></script>`}),tab=await context.newPage()
@@ -734,7 +736,7 @@ test('DASH-008 the last 30 days compared with the previous period, the same peri
  assert.equal((await a.request(`/api/vane/summary?siteId=${id}&compare=custom&compareFrom=2025-06-25&compareTo=2025-06-15`,owner)).status,400)
  // On the page: both series on the chart, and every table row carries its change, absolute and in percent.
  for(const [query,r,rows] of [['',previous,[['alpha.example','+1 (+50.0%)'],['beta.example','+1 (new)'],['gamma.example','-1 (-100.0%)']]],['&compare=year',year,[['alpha.example','+2 (+200.0%)'],['beta.example','-3 (-75.0%)'],['/pricing','+2 (+200.0%)'],['Referral','-1 (-20.0%)']]]]){
-  const html=await (await a.request(`/app/sites/${id}?section=report&period=30d&metric=pageviews${query}`,owner)).text()
+  const html=unlinked(await (await a.request(`/app/sites/${id}?section=report&period=30d&metric=pageviews${query}`,owner)).text())
   const values=kind=>[...html.matchAll(new RegExp(`<circle class="${kind}"[^>]*data-value="([^"]*)"`,'g'))].map(m=>Number(m[1]))
   assert.deepEqual([values('vane-chart-point'),values('vane-chart-compare-point')],[r.series.map(b=>b.pageviews),r.previousSeries.map(b=>b.pageviews)],query)
   assert.equal((html.match(/<polyline class="vane-chart-compare"/g)??[]).length,1,query)
@@ -962,7 +964,7 @@ test('CONV-004 conversions from Google and from email give every channel, source
  assert.deepEqual(pick(signup.entryPages),{'/':[3,1,33.3],'/pricing':[2,1,50]})
  assert.deepEqual(pick(signup.devices),{desktop:[4,2,50],mobile:[1,0,0]})
  const any=await summary();assert.deepEqual([pick(any.channels),pick(any.devices)],[{'Organic Search':[3,2,66.7],Email:[2,1,50]},{desktop:[4,2,50],mobile:[1,1,100]}])
- const html=await (await a.request(`/app/sites/${id}?section=report&from=2026-03-03&to=2026-03-04&goal=signup`,owner)).text()
+ const html=unlinked(await (await a.request(`/app/sites/${id}?section=report&from=2026-03-03&to=2026-03-04&goal=signup`,owner)).text())
  const row=label=>{const i=html.indexOf(`<th scope="row">${label}</th>`);return html.slice(i,html.indexOf('</tr>',i))}
  for(const [label,cells] of [['Email','<td class="vane-number">1</td><td class="vane-number">50.0%</td>'],['Organic Search','<td class="vane-number">1</td><td class="vane-number">33.3%</td>'],['mobile','<td class="vane-number">1</td><td class="vane-number">0</td><td class="vane-number">0.0%</td>']])assert.ok(row(label).includes(cells),label)
  assert.ok(html.includes('<th scope="col" class="vane-number">Conversions</th><th scope="col" class="vane-number">Conversion rate</th>'))
@@ -1043,4 +1045,39 @@ test('PERF-001 in a browser a page whose hero image arrives 3 seconds late repor
  assert.equal((await a.post('/api/vane/perf',{siteId:id,id:slow.id,lcp:100,url:'https://fern.example/slow'},'',{origin:'https://fern.example'})).status,400,'a report carries no other field')
  assert.equal((await a.post('/api/vane/perf',{siteId:id,id:crypto.randomUUID(),lcp:100},'',{origin:'https://fern.example'})).status,404,'a report names an existing page load')
  await context.close()
+})
+test('DASH-007 filtering the report by Organic Search, mobile and not /blog/* keeps hand-counted whole visits, saves a team segment that reopens in the report and the API and recomputes a funnel, and each comparison filters by visit',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({paths:[],goals:{signup:'/thanks'},funnels:'buy=/ > /pricing'})
+ const desktop='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',iphone='Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1'
+ const start=Date.parse('2026-03-03T10:00:00Z'),google={referrer:'https://www.google.com/'},email={campaign:'spring',utm:{source:'newsletter',medium:'email'}}
+ const visit=async(n,agent,first,paths)=>{for(const [i,path] of paths.entries()){await a.clock(start+n*600000+i*60000);assert.equal((await a.post('/api/vane/collect',a.event(id,{source:undefined,campaign:undefined,...(i?{}:first),path}),'',{origin:'https://fern.example','cf-connecting-ip':'203.0.113.'+n,'user-agent':agent})).status,202)}}
+ // Organic Search + mobile + not /blog/* keeps visits 1, 5 and 6: 2 has /blog/a, 3 is desktop, 4 came from email, and /blog/* (one segment) does not match /blog/deep/post.
+ await visit(1,iphone,google,['/','/pricing','/thanks']);await visit(2,iphone,google,['/blog/a','/pricing']);await visit(3,desktop,google,['/','/thanks'])
+ await visit(4,iphone,email,['/','/pricing']);await visit(5,iphone,google,['/pricing']);await visit(6,iphone,google,['/','/blog/deep/post'])
+ const range='from=2026-03-03&to=2026-03-04',summary=async query=>(await a.request(`/api/vane/summary?siteId=${id}&${range}&${query}`,owner)).json(),totals=r=>[r.visits,r.pageviews,r.goals,r.visitors]
+ const all=await summary('');assert.deepEqual(totals(all),[6,12,2,6]);assert.deepEqual(all.funnels[0].steps.map(s=>s.visits),[4,2])
+ // Each comparison keeps whole visits: acquisition and device by the first page load, page and goal by any page load (or none).
+ for(const [filter,visits] of [['channel:is:Organic Search',5],['source:is:Google',5],['utm_medium:is:email',1],['device:is_not:desktop',5],['entry:is:/pricing',1],['page:contains:BLOG',2],['page:not_contains:blog',4],['page:matches:^/blog/[a-z]+$',1],['page:is:/blog/**',2],['goal:is:signup',2]])assert.equal((await summary('filter='+encodeURIComponent(filter))).visits,visits,filter)
+ assert.equal((await a.request(`/api/vane/summary?siteId=${id}&filter=${encodeURIComponent('page:matches:(')}`,owner)).status,400,'an invalid regular expression is refused')
+ // In the browser: click Organic Search in the channel table, add the device and page filters, and save the segment.
+ const {context}=await browse(t,a,{},{viewport:{width:1440,height:900}});await context.addCookies(a.owner.split('; ').map(pair=>{const [name,...value]=pair.split('=');return {name,value:value.join('='),url:a.origin}}))
+ const tab=await context.newPage();await tab.goto(`${a.origin}/app/sites/${id}?section=report&${range}`)
+ await Promise.all([tab.waitForURL(/filter=channel/),tab.getByRole('link',{name:'Organic Search',exact:true}).first().click()])
+ for(const [dimension,op,value] of [['device','is','mobile'],['page','is_not','/blog/*']]){await tab.getByLabel('Filter dimension').selectOption(dimension);await tab.getByLabel('Filter comparison').selectOption(op);await tab.getByLabel('Filter value').fill(value);await Promise.all([tab.waitForURL(u=>new URL(u).searchParams.get('filterValue')===value),tab.getByRole('button',{name:'Add filter'}).click()])}
+ assert.deepEqual(await tab.locator('[data-active-filters] li').allTextContents(),['Channel is Organic Search Remove','Device is mobile Remove','Page is not /blog/* Remove'])
+ assert.equal(await tab.locator('.vane-metrics .vane-metric').nth(1).textContent(),'3','visits 1, 5 and 6')
+ // The save answers 303 to the report with the segment applied (the routed browser does not follow a fulfilled redirect).
+ await tab.getByLabel('Segment name').fill('Organic mobile');const [saved]=await Promise.all([tab.waitForResponse(r=>r.request().method()==='POST'),tab.getByRole('button',{name:'Save as segment'}).click()])
+ assert.equal(saved.status(),303);const segment=new URL(saved.headers().location,a.origin).searchParams.get('segment');assert.ok(segment)
+ await tab.setViewportSize({width:390,height:844});await tab.goto(`${a.origin}/app/sites/${id}?section=report&${range}&segment=${segment}`)
+ assert.equal(await tab.locator('[data-segment-applied]').textContent(),'Segment: Organic mobile.');assert.ok(await tab.locator('#filters').evaluate(e=>e.scrollWidth<=e.clientWidth),'the filters panel fits 390 px')
+ // Reopened in the report and the API, the segment's totals, tables and funnel equal the hand count.
+ const kept=await summary('segment='+segment);assert.deepEqual(totals(kept),[3,6,1,3]);assert.deepEqual(kept.channels.map(r=>[r.label,r.visits]),[['Organic Search',3]]);assert.deepEqual(kept.devices.map(r=>r.label),['mobile'])
+ assert.deepEqual(kept.funnels[0].steps.map(s=>s.visits),[2,1],'the funnel counts visits 1 and 6 entering and visit 1 reaching /pricing')
+ assert.deepEqual(totals(await summary(`segment=${segment}&filter=${encodeURIComponent('page:is:/pricing')}`)),[2,4,1,2],'an added filter narrows the segment')
+ // Members apply saved segments; only the owner and administrators save or delete them, and each change is audited.
+ const member=await a.invite('member@example.test','member');assert.equal((await (await a.request(`/api/vane/summary?siteId=${id}&${range}&segment=${segment}`,{headers:{cookie:member}})).json()).visits,3)
+ assert.equal((await a.form({operation:'segment.save',siteId:id,name:'Mine',filters:'channel:is:Email'},member)).status,403)
+ assert.ok((await (await a.request('/api/vane/audit',owner)).json()).some(e=>e.action==='segment.save'&&e.detail.includes('Organic mobile')))
+ assert.equal((await a.form({operation:'segment.delete',siteId:id,id:segment},a.owner)).status,303);assert.equal((await a.request(`/api/vane/summary?siteId=${id}&segment=${segment}`,owner)).status,404)
 })

@@ -29,7 +29,7 @@ export function rollupSite(r:Rollup):Site {
 }
 // Split by site: every table lists each member's own rows, labelled with the site's name, over the roll-up's dates.
 const TABLES:Record<string,string>={sources:'label',campaigns:'label',pages:'label',goalBreakdown:'label',devices:'label',browsers:'label',browserVersions:'label',systems:'label',systemVersions:'label',screens:'label',channels:'label',sourceVisits:'label',referrers:'label',utmSources:'label',utmMediums:'label',utmCampaigns:'label',utmTerms:'label',utmContents:'label',automaticEvents:'label',topPages:'path',entryPages:'path',exitPages:'path',hostnames:'path',sourceReferrers:'source'}
-export async function rollupReport(env:Env,r:Rollup,range:Record<string,string|null>,split:boolean) {
+export async function rollupReport(env:Env,r:Rollup,range:Record<string,any>,split:boolean) {
  insist(r.sites.length>0,'rollup_empty','This roll-up has no remaining sites.',404)
  const site=rollupSite(r),report:any=await createInsightsService(env,site,clock(),range as any,r.sites.map(s=>s.id)).list()
  if(!split)return {...report,rollup:{id:r.id,name:r.name,sites:r.sites.map(s=>({id:s.id,name:s.name})),split}}

@@ -50,7 +50,7 @@ export async function decide(env:Env,actor:Actor,id:string,approve:boolean) {
     {sql:'DELETE FROM vane_guard',params:[]},
    ]);
    if(!remove)return {id,state:'approved',siteId:current.id};
-   await atomic(env,actor,[guard,operations[1]!,...['vane_events','vane_signals','vane_exclusions','vane_auto_events','vane_import_events','vane_admission','vane_salts','vane_annotations','vane_annotation_hooks','vane_github_keys'].map(table=>statement(env,`DELETE FROM ${table} WHERE site_id=?`,current.id)),statement(env,'DELETE FROM vane_sites WHERE id=?',current.id),change,auditStatement(env,actor.id,'proposal.approve',id,`site.delete for site ${current.id}`),auditStatement(env,actor.id,'site.delete',current.id,`version ${payload.version}`)]);
+   await atomic(env,actor,[guard,operations[1]!,...['vane_events','vane_signals','vane_exclusions','vane_auto_events','vane_import_events','vane_admission','vane_salts','vane_annotations','vane_annotation_hooks','vane_github_keys','vane_segments'].map(table=>statement(env,`DELETE FROM ${table} WHERE site_id=?`,current.id)),statement(env,'DELETE FROM vane_sites WHERE id=?',current.id),change,auditStatement(env,actor.id,'proposal.approve',id,`site.delete for site ${current.id}`),auditStatement(env,actor.id,'site.delete',current.id,`version ${payload.version}`)]);
    return {id,state:'approved'};
   }
  }
