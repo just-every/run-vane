@@ -13,7 +13,9 @@ export interface Traffic {
 }
 type Row = (string | number | null)[]
 
-const random = (seed: number) => () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296 }
+// Mulberry32: successive draws are independent enough that each day's device, source and page mix holds steady (a plain
+// LCG's neighbouring draws are correlated, which swung one week's mobile share from 45% to 29% and read as a fall).
+const random = (seed: number) => () => { seed = (seed + 0x6d2b79f5) >>> 0; let t = seed; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296 }
 const pick = <T>(next: () => number, items: [T, number][]) => { let roll = next() * items.reduce((n, [, w]) => n + w, 0); for (const [item, w] of items) { roll -= w; if (roll < 0) return item } return items[items.length - 1]![0] }
 const DAY = 86400000
 

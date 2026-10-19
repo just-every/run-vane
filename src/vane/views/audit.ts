@@ -17,13 +17,19 @@ const ACTIONS: Record<string, string> = {
 const action = (slug: string) => ACTIONS[slug] ?? slug.replace(/[._-]+/g, ' ').replace(/^./, c => c.toUpperCase())
 const when = (at: number) => new Date(at).toLocaleString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })
 const subject = (entry: any) => entry.subjectName ?? (entry.subjectCommand ? commands[entry.subjectCommand] ?? 'A change' : entry.subject === 'installation' ? 'This installation' : /^[0-9a-f-]{20,}$/i.test(String(entry.subject ?? '')) ? '—' : entry.subject)
-function detail(text: unknown): string {
-  try { const value = JSON.parse(String(text)); if (value && typeof value === 'object') return Object.entries(value).map(([k, v]) => `${k.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase()}: ${Array.isArray(v) ? v.join(', ') : v && typeof v === 'object' ? Object.values(v).join(', ') : v}`).join('; ') } catch { /* plain text */ }
-  return String(text ?? '')
+// Details name things: a command by its label, a site by its name, and any other id (a note, link, job) by its kind alone.
+function detail(text: unknown, sites: { id: string; name: string }[]): string {
+  let plain = String(text ?? '')
+  try { const value = JSON.parse(plain); if (value && typeof value === 'object') plain = Object.entries(value).map(([k, v]) => `${k.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase()}: ${Array.isArray(v) ? v.join(', ') : v && typeof v === 'object' ? Object.values(v).join(', ') : v}`).join('; ') } catch { /* plain text */ }
+  return plain
+    .replace(/\b[a-z]+(?:\.[a-z]+)+\b(?= for site)/g, slug => commands[slug] ?? slug)
+    .replace(/\bsite ([\w-]{8,})/g, (_, id: string) => sites.find(s => s.id === id)?.name ?? 'a site no longer here')
+    .replace(/\b(note|link|job) [0-9a-f-]{8,}/gi, (_, kind: string) => kind)
+    .replace(/\barchive ([0-9a-f]{12})[0-9a-f]{52}\b/g, 'archive $1…')
 }
 
 export function auditPage(data: ViewData): string {
   const entries = data.audit ?? []
   if (!entries.length) return panel('Audit history', '<p class="vane-empty">No audited actions yet.</p>')
-  return panel('Audit history', `<div class="vane-table-scroll" role="region" aria-label="Audit history" tabindex="0"><table data-audit><caption class="vane-sr-only">Audit history</caption><thead><tr><th scope="col">Time (UTC)</th><th scope="col">By</th><th scope="col">Action</th><th scope="col">Subject</th><th scope="col">Detail</th></tr></thead><tbody>${entries.map(entry => `<tr><td>${escape(when(Number(entry.at)))}</td><td>${escape(entry.actorKnown ?? (/^[0-9a-f-]{20,}$/i.test(String(entry.actor)) ? 'Someone no longer on the team' : action(String(entry.actor))))}</td><th scope="row" data-action="${escape(entry.action)}">${escape(action(entry.action))}</th><td>${escape(subject(entry))}</td><td>${escape(detail(entry.detail))}</td></tr>`).join('')}</tbody></table></div>`, 'Every proposal and approval, setting change, import and undo, export, restore, erasure, retention run, sign-in and agent action. Entries survive history erasure and travel in the archive.')
+  return panel('Audit history', `<div class="vane-table-scroll" role="region" aria-label="Audit history" tabindex="0"><table data-audit><caption class="vane-sr-only">Audit history</caption><thead><tr><th scope="col">Time (UTC)</th><th scope="col">By</th><th scope="col">Action</th><th scope="col">Subject</th><th scope="col">Detail</th></tr></thead><tbody>${entries.map(entry => `<tr><td>${escape(when(Number(entry.at)))}</td><td>${escape(entry.actorKnown ?? (/^[0-9a-f-]{20,}$/i.test(String(entry.actor)) ? 'Someone no longer on the team' : action(String(entry.actor))))}</td><th scope="row" data-action="${escape(entry.action)}">${escape(action(entry.action))}</th><td>${escape(subject(entry))}</td><td>${escape(detail(entry.detail, data.sites ?? []))}</td></tr>`).join('')}</tbody></table></div>`, 'Every proposal and approval, setting change, import and undo, export, restore, erasure, retention run, sign-in and agent action. Entries survive history erasure and travel in the archive.')
 }

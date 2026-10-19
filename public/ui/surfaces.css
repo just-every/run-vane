@@ -96,4 +96,6 @@
 .vane-annotations { margin: 8px 0; padding-left: 18px; font-size: 14px; }
 .vane-annotations li { margin-bottom: 4px; }
 .vane-csv-links { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 0; padding: 0; list-style: none; font-size: 14px; }
-.vane-csv-links a { display: inline-flex; align-items: center; min-height: 24px; }
+.vane-csv-links a, .vane-page-link > a { display: inline-flex; align-items: center; min-height: 24px; }
+/* The data inventory's prose columns keep a readable width and scroll at phone width instead of stacking word by word. */
+.vane-table-scroll[aria-label="Collected fields"] table { min-width: 720px; }
