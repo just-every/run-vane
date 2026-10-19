@@ -19,7 +19,8 @@ export function cleanConfig(input:any):Config {
  insist(['required','not-required'].includes(consent),'consent','Choose an explicit consent mode.');
  insist([10,25,50,100].includes(sampleRate),'sample_rate','Choose 10, 25, 50 or 100 percent.');
  insist([30,90,365].includes(retentionDays),'retention','Choose 30, 90 or 365 days.');
- const signalCounter=input.signalCounter===true||input.signalCounter==='on';
- return {paths,goals,campaigns,sources,consent,sampleRate,retentionDays,signalCounter};
+ const signalCounter=input.signalCounter===true||input.signalCounter==='on',timeZone=String(input.timeZone||'UTC').trim();
+ insist(/^[A-Za-z_]+(?:\/[A-Za-z0-9_+-]+)*$/.test(timeZone)&&(()=>{try{new Intl.DateTimeFormat('en-US',{timeZone}).format(0);return true}catch{return false}})(),'time_zone','Choose an IANA time zone, such as America/New_York.');
+ return {paths,goals,campaigns,sources,consent,sampleRate,retentionDays,signalCounter,timeZone};
 }
 export function cleanSite(input:any) { const name=String(input.name??'').trim(); insist(name.length>0&&name.length<=80&&!/[<>@]/.test(name),'name','Enter a short site name, without personal details.'); return {name,origin:browserOrigin(input.origin),config:cleanConfig(input.config??input)} }

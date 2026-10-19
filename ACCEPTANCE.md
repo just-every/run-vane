@@ -39,7 +39,7 @@ Each clause in CONTRACT.md is accepted by the evidence below, run through a publ
 
 ## Visitors and engagement
 
-- `METRIC-001` Cookie-free unique visitors from daily-rotating salted hashes (missing): Send pageviews from two simulated visitors over two days. Unique visitors are 2 per day and the range shows 4 under the stated method. Show that the database, logs and archive hold no IP, no user agent and no salt older than 24 hours, and that the same visitor hashes differently on another site.
+- `METRIC-001` Cookie-free unique visitors from daily-rotating salted hashes (done): Send pageviews from two simulated visitors over two days. Unique visitors are 2 per day and the range shows 4 under the stated method. Show that the database, logs and archive hold no IP, no user agent and no salt older than 24 hours, and that the same visitor hashes differently on another site (`tests/vane.test.mjs`).
 - `METRIC-002` Visits and pages per visit (missing): Send one visitor's pageviews with gaps of 10, 40 and 5 minutes. The report shows 2 visits, 4 pageviews and 2 pages per visit.
 - `METRIC-003` Bounce rate and visit duration (missing): Simulate a quick bounce, a single-page visit with 45 seconds of engagement, and a three-page visit. The bounce rate, visit durations and per-page time match the definitions.
 - `METRIC-004` Methodology disclosed and versioned (partial): Open the methodology page signed out and follow each metric's definition link from the dashboard. The page states the roll-up rules and the two storage exceptions. Change the visit timeout and see a definition annotation dated on the charts.

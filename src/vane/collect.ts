@@ -1,6 +1,7 @@
 import { day, insist, site, statement, VaneError, type Env } from './core'
 import { tracker } from './tracker'
 import { signalResponse } from './privacy-signals'
+import { localDay, visitorHash } from './visitors'
 export async function collector(request:Request,env:Env):Promise<Response|null> {
  const url=new URL(request.url);
  const signal=await signalResponse(request,env);if(signal)return signal;
@@ -24,12 +25,13 @@ export async function collector(request:Request,env:Env):Promise<Response|null> 
   insist(['direct','other',...value.config.sources].includes(payload.source),'source','Source is not approved.');
   insist(['none','other',...value.config.campaigns].includes(payload.campaign),'campaign','Campaign is not approved.');
   insist(payload.consent===(value.config.consent==='required'?'granted':'not-required'),'consent','Consent is required for collection.',403);
-  const today=day(),eventId=value.id+':'+payload.id;
+  const today=localDay(Date.now(),value.config.timeZone??'UTC'),eventId=value.id+':'+payload.id;
   const prior=await env.DB.prepare('SELECT * FROM vane_events WHERE id=?').bind(eventId).first<any>();
   if(prior) { insist(prior.path===payload.path&&prior.source===payload.source&&prior.campaign===payload.campaign,'conflict','Event ID already has different data.',409); return Response.json({accepted:true,duplicate:true},{headers:cors}); }
+  const visitor=await visitorHash(env,value,request,today);
   const kinds=['pageview',...Object.entries(value.config.goals).filter(([,path])=>path===payload.path).map(([name])=>name)];
   const statements=[statement(env,'DELETE FROM vane_guard'),statement(env,'INSERT INTO vane_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM vane_sites WHERE id=? AND version=?) THEN 1 ELSE 0 END',value.id,value.version),statement(env,'INSERT INTO vane_admission(site_id,day,count) VALUES(?,?,1) ON CONFLICT(site_id,day) DO UPDATE SET count=count+1',value.id,today),statement(env,'INSERT INTO vane_guard(value) SELECT CASE WHEN count<=10000 THEN 1 ELSE 0 END FROM vane_admission WHERE site_id=? AND day=?',value.id,today)];
-  for(const kind of kinds)statements.push(statement(env,'INSERT INTO vane_events(id,site_id,day,kind,path,source,campaign,consent,sample_rate) VALUES(?,?,?,?,?,?,?,?,?)',kind==='pageview'?eventId:eventId+':'+kind,value.id,today,kind,payload.path,payload.source,payload.campaign,payload.consent,value.config.sampleRate));
+  for(const kind of kinds)statements.push(statement(env,'INSERT INTO vane_events(id,site_id,day,kind,path,source,campaign,consent,sample_rate,visitor) VALUES(?,?,?,?,?,?,?,?,?,?)',kind==='pageview'?eventId:eventId+':'+kind,value.id,today,kind,payload.path,payload.source,payload.campaign,payload.consent,value.config.sampleRate,visitor));
   statements.push(statement(env,'DELETE FROM vane_guard'));
   try{await env.DB.batch(statements)}catch { throw new VaneError('admission','Collection changed, the daily limit was reached, or this event was already admitted. Refresh before sending another page load.',409) }
   return Response.json({accepted:true},{status:202,headers:cors});

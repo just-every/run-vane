@@ -2,6 +2,7 @@ import { withDemo } from './modules/demo/index.mjs'
 import { seedDemo } from './demo'
 import { collector } from './vane/collect'
 import { methodologyResponse } from './vane/methodology'
+import { expireSalts } from './vane/visitors'
 import { vaneResponse } from './vane/routes'
 import { rejectedResponse } from './base/rejected-response'
 import start from '@tanstack/react-start/server-entry'
@@ -45,5 +46,9 @@ export default withDemo({
     const lobby = await lobbyResponse(request, runtimeBindings(env), identity)
     if (lobby) return lobby
     return rejectedResponse(request, await dispatch(request, () => api.fetch(request, env, execution), async () => noTransform(await start.fetch(request))))
+  },
+  // METRIC-001: visitor salts are deleted 24 hours after creation, even when no page load arrives.
+  async scheduled(_controller, env) {
+    await expireSalts(runtimeBindings(env))
   },
 } satisfies ExportedHandler<Bindings>, { seed: seedDemo })

@@ -332,7 +332,7 @@ The approved homepage (17 Oct 2026, `HOME-001`) states 80 capabilities in its co
 
 | # | Claim | Clause(s) | Status |
 | --- | --- | --- | --- |
-| 1 | Hero: "counts your visitors without cookies" | `METRIC-001`, `COLLECT-001` | partial |
+| 1 | Hero: "counts your visitors without cookies" | `METRIC-001`, `COLLECT-001` | done |
 | 2 | Hero: "shows where they came from" | `DASH-004`, `DASH-014` | partial |
 | 3 | Hero: "and what they did" | `DASH-003`, `CONV-001`, `CONV-002` | partial |
 | 4 | Hero: "tells you why the numbers moved" | `AGENT-002`, `REPORT-003` | partial |
@@ -344,16 +344,16 @@ The approved homepage (17 Oct 2026, `HOME-001`) states 80 capabilities in its co
 | 10 | Hero card: Why it moved · Brew guide on Hacker News | `AGENT-002` | missing |
 | 11 | Hero card: Wednesday dip: tracking script missing on /pricing · fixed | `AGENT-001`, `ALERT-002` | missing |
 | 12 | Hero card: No cookies · no banner | `COLLECT-001`, `CONSENT-001` | done |
-| 13 | Visitors: "counts unique visitors" | `METRIC-001` | missing |
+| 13 | Visitors: "counts unique visitors" | `METRIC-001` | done |
 | 14 | Visitors: "visits" | `METRIC-002` | missing |
 | 15 | Visitors: "bounce rate and visit duration" | `METRIC-003` | missing |
-| 16 | Visitors: "with a salted hash that resets every day" | `METRIC-001` | missing |
+| 16 | Visitors: "with a salted hash that resets every day" | `METRIC-001` | done |
 | 17 | Visitors: "No cookies, no banner" | `COLLECT-001`, `CONSENT-001` | done |
 | 18 | Visitors: "the method is published" | `METRIC-004` | partial |
 | 19 | Visitors card: "38 online now" | `DASH-001` | missing |
 | 20 | Visitors card: Unique visitors 28,416 ↑ 12%, Visits, Bounce rate, Visit duration tiles | `METRIC-001`, `METRIC-002`, `METRIC-003`, `DASH-008` | partial |
 | 21 | Visitors card: Seven-day line chart | `DASH-002` | partial |
-| 22 | Visitors chip: Salt rotated at midnight · yesterday's visitors can't be linked | `METRIC-001` | missing |
+| 22 | Visitors chip: Salt rotated at midnight · yesterday's visitors can't be linked | `METRIC-001` | done |
 | 23 | Sources: "Sources" | `DASH-004`, `DASH-014` | partial |
 | 24 | Sources: "pages" | `DASH-003` | partial |
 | 25 | Sources: "campaigns" | `DASH-004` | partial |
@@ -408,7 +408,7 @@ The approved homepage (17 Oct 2026, `HOME-001`) states 80 capabilities in its co
 | 74 | Quiet details: Stats API | `API-001` | partial |
 | 75 | Quiet details: Team access: "Viewers, analysts and admins for each site" | `TEAM-001` | partial |
 | 76 | Quiet details: Data retention: "Keep raw events as long as you choose" | `RETENTION-002` | partial |
-| 77 | Closing: "Open source website analytics without cookies" | `OPEN-001`, `COLLECT-001`, `METRIC-001` | partial |
+| 77 | Closing: "Open source website analytics without cookies" | `OPEN-001`, `COLLECT-001`, `METRIC-001` | done |
 | 78 | Closing: "Free and open source, MIT licensed" | `OPEN-001` | done |
 | 79 | Closing card: Today · 4,812 visitors | `METRIC-001`, `DASH-002` | partial |
 | 80 | Closing card: Weekly report sent | `REPORT-001` | missing |
@@ -420,8 +420,8 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 16 | 1 | 0 | 17 |
-| Target and push further | 5 | 22 | 64 | 91 |
-| All | 21 | 23 | 64 | 108 |
+| Target and push further | 6 | 22 | 63 | 91 |
+| All | 22 | 23 | 63 | 108 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -454,14 +454,14 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | `COLLECT-003` | Bot, referrer-spam and internal-traffic exclusion | target | missing |  | Only the browser-side Do Not Track and GPC skip exists; no bot, spam, IP, page, country or own-browser exclusion or exclusion report. |
 | `COLLECT-004` | Collection at small-business scale | target | partial | `src/vane/collect.ts` | Admission is atomic but capped at 10,000 events per site per day in D1; no rollups, analytical store, load test or published limits. |
 | `COVERAGE-001` | Coverage shown beside every number | target | partial | `src/vane/reports.ts`; `src/vane/views/report.ts`; `tests/vane.test.mjs` | Sampling, consent, path and imported unknown-coverage notes are shown; no declined-consent counter, exclusion shares, proxy share or zone comparison. |
-| `METRIC-001` | Cookie-free unique visitors from daily-rotating salted hashes | target | missing |  | Counts are page loads; no daily-salted visitor hash. |
+| `METRIC-001` | Cookie-free unique visitors from daily-rotating salted hashes | target | done | `src/vane/visitors.ts`; `src/vane/collect.ts`; `src/vane/reports.ts`; `src/vane/methodology.ts`; `src/server.ts`; `migrations/core/0018_vane_visitors.sql`; `tests/vane.test.mjs` |  |
 | `METRIC-002` | Visits and pages per visit | target | missing |  | No visits or pages per visit. |
 | `METRIC-003` | Bounce rate and visit duration | target | missing |  | No engagement ping, bounce rate or visit duration. |
-| `METRIC-004` | Methodology disclosed and versioned | target | partial | `src/vane/methodology.ts`; `src/vane/views/report.ts`; `src/vane/reports.ts` | A public `/methodology` page defines page loads, goals, sources and campaigns, the script's fields and the privacy-signal stance; no definitions of visitors, visits, bounce, duration, scroll depth or revenue, no hash recipe, and no versioned definition annotations. |
+| `METRIC-004` | Methodology disclosed and versioned | target | partial | `src/vane/methodology.ts`; `src/vane/views/report.ts`; `src/vane/reports.ts` | A public `/methodology` page defines page loads, unique visitors (hash recipe, salt lifetime, sum of daily uniques), goals, sources and campaigns, the script's fields, both storage exceptions and the privacy-signal stance; no definitions of visits, bounce, duration, scroll depth or revenue, and no versioned definition annotations. |
 | `METRIC-005` | Consented visitor mode: returning visitors and retention | target | missing |  | No consented mode, returning visitors or retention cohorts. |
 | `METRIC-006` | Scroll depth and time on page | target | missing |  | No scroll depth or time on page. |
 | `DASH-001` | Real-time dashboard | target | missing |  | No real-time view. |
-| `DASH-002` | Historical time series in the site's time zone | target | partial | `src/vane/reports.ts`; `src/vane/views/report.ts`; `tests/vane.test.mjs` | A custom date range in UTC days is tested; no chart, granularities, preset ranges, site time zone or data table. |
+| `DASH-002` | Historical time series in the site's time zone | target | partial | `src/vane/reports.ts`; `src/vane/views/report.ts`; `tests/vane.test.mjs` | A custom date range is tested, and reports use the site's local dates; no chart, granularities, preset ranges or data table. |
 | `DASH-003` | Page, entry and exit reports | target | partial | `src/vane/reports.ts`; `src/vane/views/report.ts` | A pages breakdown by page-load count exists; no entry or exit pages, per-page metrics or grouping. |
 | `DASH-004` | Channels, referrers and UTM campaigns | target | partial | `src/vane/tracker.ts`; `src/vane/collect.ts`; `tests/vane.test.mjs` | Referring hostnames from an allowlist and utm_campaign are reported; no channel definitions, other UTM fields, referrer URLs or per-row visitors, bounce rate and duration. |
 | `DASH-005` | Country, region and city | target | missing |  | No location dimensions. |
@@ -519,7 +519,7 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | `PRIVACY-004` | Data location choice | target | missing |  | No data location choice. |
 | `PRIVACY-005` | Visitor data stays in the owner's installation | target | done | `src/vane/tracker.ts`; `src/vane/collect.ts`; `seed.json`; `tests/harness.mjs`; `tests/vane.test.mjs` |  |
 | `AUDIT-001` | Durable audit of settings, data and agent actions | target | done | `migrations/core/0017_vane_audit.sql`; `src/vane/audit.ts`; `src/vane/commands.ts`; `src/vane/views/audit.ts`; `tests/vane.test.mjs` |  |
-| `SITE-001` | Site management | target | partial | `src/vane/commands.ts`; `src/vane/privacy.ts`; `tests/vane.test.mjs` | Sites are created and reconfigured through approval and history can be erased; one origin per site, no time zone, currency or site deletion. |
+| `SITE-001` | Site management | target | partial | `src/vane/commands.ts`; `src/vane/privacy.ts`; `tests/vane.test.mjs` | Sites are created and reconfigured through approval, including a time zone, and history can be erased; one origin per site, no currency or site deletion. |
 | `HOST-001` | Owner-run hosting with measured cost | target | partial | `deploy.json`; `wrangler.jsonc` | Owner-account deployment is declared; no measured cost per 100,000 pageviews or in-app cost panel. |
 | `HOST-002` | Runs on the owner's own computer | target | partial | `src/site/run.json`; `rer-project.json`; `tests/harness.mjs` | The built Worker runs locally under Miniflare with local D1 in every product test, and `/run` shows the one-line command; no test runs that command from an empty folder to a working report, offline, or moves a local installation to Cloudflare. |
 | `OPEN-001` | Free and open source under the MIT licence | target | done | `LICENSE`; `package.json` |  |
