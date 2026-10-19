@@ -1590,7 +1590,8 @@ test('MOBILE-001 the app installs as a PWA, a browser that turns on alerts recei
  assert.deepEqual((await cdp.send('Page.getInstallabilityErrors')).installabilityErrors,[])
  // Turning alerts on registers the service worker; the test then stands in for the browser's push service.
  await page.getByRole('button',{name:'Turn on alerts in this browser'}).click()
- await page.waitForFunction(async()=>Boolean((await navigator.serviceWorker.getRegistration('/'))?.active))
+ let active=false;for(let i=0;i<100&&!active;i++){active=await page.evaluate(async()=>Boolean((await navigator.serviceWorker.getRegistration('/'))?.active));if(!active)await page.waitForTimeout(100)}
+ assert.ok(active,'the service worker is installed and active')
  const {createECDH,createDecipheriv,createPublicKey,randomBytes,verify}=await import('node:crypto')
  const browser=createECDH('prime256v1');browser.generateKeys()
  const b64url=b=>Buffer.from(b).toString('base64url'),auth=randomBytes(16),key=await page.getAttribute('[data-push]','data-key')
@@ -1615,7 +1616,7 @@ test('MOBILE-001 the app installs as a PWA, a browser that turns on alerts recei
  assert.equal(JSON.parse(Buffer.from(claims,'base64url')).aud,'https://push.example')
  const alert=JSON.parse(decrypt(sent.body));assert.deepEqual(alert,{title:'Test alert',site:'Fern Studio',link:`${a.origin}/app/sites/${id}`},'only the title, site name and link')
  // The installed service worker shows the delivered alert as a notification.
- await cdp.send('ServiceWorker.enable');const registration=await new Promise(resolve=>{cdp.on('ServiceWorker.workerRegistrationUpdated',({registrations})=>{const r=registrations.find(r=>r.scopeURL===a.origin+'/'&&!r.isDeleted);if(r)resolve(r)})})
+ await cdp.send('ServiceWorker.enable');const registration=await Promise.race([new Promise(resolve=>{cdp.on('ServiceWorker.workerRegistrationUpdated',({registrations})=>{const r=registrations.find(r=>r.scopeURL===a.origin+'/'&&!r.isDeleted);if(r)resolve(r)})}),new Promise((_,reject)=>setTimeout(()=>reject(new Error('no service worker registration reported')),10000))])
  // The headless browser has no notification centre, so the worker's showNotification is recorded instead (the OS edge).
  const worker=context.serviceWorkers().find(w=>w.url()===a.origin+'/vane-sw.js');await worker.evaluate(()=>{self.shown=[];self.registration.showNotification=(title,options)=>{self.shown.push([title,options.body,options.data.link]);return Promise.resolve()}})
  await cdp.send('ServiceWorker.deliverPushMessage',{origin:a.origin,registrationId:registration.registrationId,data:decrypt(sent.body)})
