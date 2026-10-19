@@ -3119,7 +3119,7 @@
       "executable": false
     },
     "tests/bing.test.mjs": {
-      "sha256": "3f92b77dc37aa413ec3500ac4d74c7ccb99f242bbb475bcefa8fa8db51dfb58c",
+      "sha256": "b2059a284baa736d699284ffa69bf0b65251bb9f7cbdcffbffb9ca115b608e37",
       "executable": false
     },
     "tests/demo.journey.mjs": {

@@ -105,7 +105,7 @@ test('SEARCH-002 verified Bing connection, source keyword/page figures beside Go
  refuse=true;assert.equal((await op('search.bing.sync')).status,502)
  report=await source();assert.match(report.connection.error,/503/);assert.equal(report.queries.find(value=>value.query==='coffee guide').clicks,8,'a provider failure retains successful data, never fabricated zero')
  assert.ok(!JSON.stringify(report).includes(apiKey),'provider errors must not echo credential-bearing URLs')
- refuse=false;olderWindow=false;await a.clock(T+DAY+1000);await a.scheduled();report=await source()
+ refuse=false;olderWindow=false;await a.clock(report.connection.nextSyncAt+1);await a.scheduled();report=await source()
  assert.equal(report.connection.error,null);assert.equal(report.queries.find(value=>value.query==='coffee guide').clicks,8,'repeated source dates replace their snapshot rather than adding counts')
  assert.equal((await op('search.bing.disconnect')).status,303)
  assert.equal((await a.dump()).vane_bing_connections.length,0,'disconnect deletes the actual sealed credential record')
