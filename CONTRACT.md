@@ -146,7 +146,7 @@ These clauses restate what the released first contract and ACCEPTANCE.md promise
 
 - **DASH-013 — Hostnames and subdomains within one site.** A site that accepts several hostnames (`SITE-001`), for example `www.example.com`, `blog.example.com` and `app.example.com`, records the hostname of every pageview and event (`COLLECT-002`) as a dimension. The hostname is stored lowercased and without its port, and only when it is one of the site's allowed hostnames. A Hostnames report shows visitors, visits, pageviews, bounce rate and conversions per hostname. Page, entry and exit tables keep the same path on different hostnames apart (`DASH-003`). A Hostname filter (is, is not, contains, and matches with wildcards such as `*.example.com`) narrows every report, funnel, goal, alert, shared link, export and Stats API answer (`DASH-007`, `API-001`), and it can be saved in a segment. A goal or funnel step can be scoped to a hostname. **Acceptance evidence:** On one site with `www.` and `blog.` hostnames, send `/` and `/pricing` from each. The pages table shows four rows, each with its hostname. The Hostname filter `is blog.example.com` narrows the dashboard, the Stats API answer and a CSV export to the blog's events. `is not` and `contains` return the complements and matches, a wildcard matches both hostnames, and a segment saved with the filter gives the same totals in a scheduled report. An event from a hostname that is not allowed is refused.
 
-- **DASH-014 — Named sources for referrer domains and app referrers.** Every referrer is reported under a named source from a maintained source list that Vane publishes with its methodology (`METRIC-004`). Web and app referrers for the same service group together: `news.ycombinator.com` reports as Hacker News, `android-app://com.slack.android`, `slack.com` and `app.slack.com` as Slack, `l.facebook.com`, `m.facebook.com` and `android-app://com.facebook.katana` as Facebook, and `t.co` as X. The source feeds the channel definitions (`DASH-004`), and the referrer domains and app identifiers stay available as a drill-down beneath each source. A referrer that is not on the list reports under its own domain, and an owner can add grouping rules of their own through `APPROVE-001`. **Acceptance evidence:** Send visits with the referrers `https://news.ycombinator.com/item?id=1`, `android-app://com.slack.android`, `https://app.slack.com/` and `https://l.facebook.com/`, and an unlisted `https://brewblog.example/`. The sources table shows Hacker News, Slack with two visits, Facebook and `brewblog.example`, and Slack's drill-down lists both of its referrers. An approved owner rule naming `brewblog.example` as Brew Blog regroups that row, and the published source list names every grouping used.
+- **DASH-014 — Named sources for referrer domains and app referrers.** Every referrer is reported under a named source from a maintained source list that Vane publishes with its methodology (`METRIC-004`). Web and app referrers for the same service group together: `news.ycombinator.com` reports as Hacker News, `android-app://com.slack.android`, `slack.com` and `app.slack.com` as Slack, `l.facebook.com`, `m.facebook.com` and `android-app://com.facebook.katana` as Facebook, and `t.co` as X. The source feeds the channel definitions (`DASH-004`), and the referrer domains and app identifiers stay available as a drill-down beneath each source. A referrer that is not on the list reports under its own domain, and an owner can add grouping rules of their own through `APPROVE-001`. The exact rules: a list entry is a hostname (covering its subdomains, so `l.facebook.com` is Facebook), a hostname prefix ending in a dot (any top-level domain, with or without `www.`) or an `android-app://` app ID, and the first match wins; the site's approved grouping rules are tried before the list and regroup history already collected. Names a site sends itself as `utm_source`, `ref` or `source` are reported as sent (`COLLECT-002`); only referrer domains and app IDs are named. Each named source's kind (search engine, social network, AI assistant, email) feeds the channel definitions, and its drill-down lists the lowercased referrer domains and app IDs of the visits it names. **Acceptance evidence:** Send visits with the referrers `https://news.ycombinator.com/item?id=1`, `android-app://com.slack.android`, `https://app.slack.com/` and `https://l.facebook.com/`, and an unlisted `https://brewblog.example/`. The sources table shows Hacker News, Slack with two visits, Facebook and `brewblog.example`, and Slack's drill-down lists both of its referrers. An approved owner rule naming `brewblog.example` as Brew Blog regroups that row, and the published source list names every grouping used.
 
 - **PERF-001 — Page performance.** The script can report Core Web Vitals (LCP, INP, CLS) and page load time, without identifiers, and Vane shows them per page and device class at the 75th percentile. Performance alerting and synthetic checks belong to [Uptime](https://github.com/just-every/run-uptime), which can read these figures. **Acceptance evidence:** Load a fixture page with an artificially slow image and see its LCP p75 above 2.5 s on that page only.
 
@@ -333,13 +333,13 @@ The approved homepage (17 Oct 2026, `HOME-001`) states 80 capabilities in its co
 | # | Claim | Clause(s) | Status |
 | --- | --- | --- | --- |
 | 1 | Hero: "counts your visitors without cookies" | `METRIC-001`, `COLLECT-001` | done |
-| 2 | Hero: "shows where they came from" | `DASH-004`, `DASH-014` | partial |
+| 2 | Hero: "shows where they came from" | `DASH-004`, `DASH-014` | done |
 | 3 | Hero: "and what they did" | `DASH-003`, `CONV-001`, `CONV-002` | partial |
 | 4 | Hero: "tells you why the numbers moved" | `AGENT-002`, `REPORT-003` | partial |
 | 5 | Hero: "100% free, open source" | `OPEN-001` | done |
 | 6 | Hero: "alternative to Plausible, Fathom and Matomo" | `IMPORT-003`, `IMPORT-004`, `IMPORT-005`, `IMPORT-008` | missing |
 | 7 | Hero card: Visitors today · 4,812 · ↑ 23% with a sparkline | `METRIC-001`, `DASH-002`, `DASH-008` | partial |
-| 8 | Hero card: Top source · Hacker News · 1,904 visitors | `DASH-004`, `DASH-014` | partial |
+| 8 | Hero card: Top source · Hacker News · 1,904 visitors | `DASH-004`, `DASH-014` | done |
 | 9 | Hero card: Goal · Signups · 212 · ↑ 4.4% | `CONV-001`, `DASH-008` | partial |
 | 10 | Hero card: Why it moved · Brew guide on Hacker News | `AGENT-002` | missing |
 | 11 | Hero card: Wednesday dip: tracking script missing on /pricing · fixed | `AGENT-001`, `ALERT-002` | missing |
@@ -354,7 +354,7 @@ The approved homepage (17 Oct 2026, `HOME-001`) states 80 capabilities in its co
 | 20 | Visitors card: Unique visitors 28,416 ↑ 12%, Visits, Bounce rate, Visit duration tiles | `METRIC-001`, `METRIC-002`, `METRIC-003`, `DASH-008` | partial |
 | 21 | Visitors card: Seven-day line chart | `DASH-002` | partial |
 | 22 | Visitors chip: Salt rotated at midnight · yesterday's visitors can't be linked | `METRIC-001` | done |
-| 23 | Sources: "Sources" | `DASH-004`, `DASH-014` | partial |
+| 23 | Sources: "Sources" | `DASH-004`, `DASH-014` | done |
 | 24 | Sources: "pages" | `DASH-003` | done |
 | 25 | Sources: "campaigns" | `DASH-004` | done |
 | 26 | Sources: "countries" | `DASH-005` | missing |
@@ -364,7 +364,7 @@ The approved homepage (17 Oct 2026, `HOME-001`) states 80 capabilities in its co
 | 30 | Sources: "with filters" | `DASH-007` | missing |
 | 31 | Sources: "and comparisons" | `DASH-008` | partial |
 | 32 | Sources card: Country: United States filter | `DASH-005`, `DASH-007` | missing |
-| 33 | Sources chip: android-app://com.slack.android grouped as Slack | `DASH-014` | missing |
+| 33 | Sources chip: android-app://com.slack.android grouped as Slack | `DASH-014` | done |
 | 34 | Goals: "Goals" | `CONV-001` | done |
 | 35 | Goals: "funnels" (Checkout funnel card) | `CONV-005` | missing |
 | 36 | Goals: "revenue with real order values" (Revenue · $38,108.40) | `CONV-006`, `CONV-008` | missing |
@@ -420,8 +420,8 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 17 | 0 | 0 | 17 |
-| Target and push further | 19 | 17 | 55 | 91 |
-| All | 36 | 17 | 55 | 108 |
+| Target and push further | 20 | 17 | 54 | 91 |
+| All | 37 | 17 | 54 | 108 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -473,7 +473,7 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | `DASH-011` | Journeys and paths | target | missing |  | No journeys or paths. |
 | `DASH-012` | Site-search analytics | target | done | `src/vane/search.ts`; `src/vane/collect.ts`; `src/vane/tracker.ts`; `src/vane/privacy.ts`; `src/vane/views/report.ts`; `migrations/core/0022_vane_search.sql`; `tests/vane.test.mjs` |  |
 | `DASH-013` | Hostnames and subdomains within one site | target | missing |  | Each site has one registered origin and events carry only a path; no hostname dimension, Hostnames report or Hostname filter. |
-| `DASH-014` | Named sources for referrer domains and app referrers | target | missing |  | The source is the referring hostname when no UTM or ref/source parameter names one; no maintained source list, app-referrer grouping, named sources or owner grouping rules. |
+| `DASH-014` | Named sources for referrer domains and app referrers | target | done | `src/vane/sources.ts`; `src/vane/channels.ts`; `src/vane/reports.ts`; `tests/vane.test.mjs` |  |
 | `PERF-001` | Page performance | target | missing |  | No page performance collection. |
 | `HEAT-001` | Aggregate click and scroll maps | target | missing |  | No click or scroll maps. |
 | `CONV-001` | Pageview goals with patterns and conversion rates | target | done | `src/vane/goals.ts`; `src/vane/privacy.ts`; `src/vane/collect.ts`; `src/vane/reports.ts`; `src/vane/views/report.ts`; `tests/vane.test.mjs` |  |

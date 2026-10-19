@@ -3,6 +3,7 @@ import { goalMatches } from './goals'
 import { PUBLIC_REPORTS } from './public-reports'
 import { AUTO_EVENTS } from './auto-events'
 import { cleanRules } from './paths'
+import { cleanSourceRules } from './sources'
 // Adapted from Spool origins.ts at 9f75f060a66446f4c9dcf9cafddd0906d7698748.
 // An origin limits browser ingestion; it does not authenticate a visitor.
 export function browserOrigin(value:unknown):string {
@@ -14,7 +15,7 @@ export function browserOrigin(value:unknown):string {
 const list=(value:unknown)=>Array.isArray(value)?value.map(String):String(value??'').split(/[\n,]/).map(x=>x.trim()).filter(Boolean)
 export function cleanConfig(input:any):Config {
  // COLLECT-002: every path is collected unless an optional include list leaves it out or an exclude list names it.
- const paths=[...new Set(list(input.paths))],excludePaths=[...new Set(list(input.excludePaths))],rewrites=cleanRules(input.rewrites),queryKeys=[...new Set(list(input.queryKeys).map(key=>key.toLowerCase()))];
+ const paths=[...new Set(list(input.paths))],excludePaths=[...new Set(list(input.excludePaths))],rewrites=cleanRules(input.rewrites),sourceRules=cleanSourceRules(input.sourceRules),queryKeys=[...new Set(list(input.queryKeys).map(key=>key.toLowerCase()))];
  // A goal is a page load of a path (signup=/thanks) or, from METRIC-006's scroll depth, reaching N% of it (deep-read=/journal@75).
  const lines=typeof input.goals==='object'&&!Array.isArray(input.goals)&&input.goals?Object.entries(input.goals).map(([name,path])=>[name,String(path)]):list(input.goals).map(x=>x.split('=').map(v=>v.trim()));
  const scrollLines=input.scrollGoals&&typeof input.scrollGoals==='object'&&!Array.isArray(input.scrollGoals)?Object.entries(input.scrollGoals).map(([name,goal]:[string,any])=>[name,`${goal?.path}@${goal?.depth}`]):[];
@@ -42,6 +43,6 @@ export function cleanConfig(input:any):Config {
  insist(origins.length<=10,'origins','Allow up to 10 extra origins.');
  insist(/^[A-Z]{3}$/.test(currency)&&Intl.supportedValuesOf('currency').includes(currency),'currency','Choose an ISO 4217 currency code, such as USD or EUR.');
  insist(/^[A-Za-z_]+(?:\/[A-Za-z0-9_+-]+)*$/.test(timeZone)&&(()=>{try{new Intl.DateTimeFormat('en-US',{timeZone}).format(0);return true}catch{return false}})(),'time_zone','Choose an IANA time zone, such as America/New_York.');
- return {paths,...(excludePaths.length?{excludePaths}:{}),...(rewrites.length?{rewrites}:{}),...(queryKeys.length?{queryKeys}:{}),goals,scrollGoals,consent,sampleRate,retentionDays,signalCounter,timeZone,currency,...(origins.length?{origins}:{}),...(searchParam?{searchParam}:{}),...(publicReports.length?{publicReports,publicIndexing}:{}),...(autoEvents.length?{autoEvents}:{})};
+ return {paths,...(excludePaths.length?{excludePaths}:{}),...(rewrites.length?{rewrites}:{}),...(queryKeys.length?{queryKeys}:{}),...(sourceRules.length?{sourceRules}:{}),goals,scrollGoals,consent,sampleRate,retentionDays,signalCounter,timeZone,currency,...(origins.length?{origins}:{}),...(searchParam?{searchParam}:{}),...(publicReports.length?{publicReports,publicIndexing}:{}),...(autoEvents.length?{autoEvents}:{})};
 }
 export function cleanSite(input:any) { const name=String(input.name??'').trim(); insist(name.length>0&&name.length<=80&&!/[<>@]/.test(name),'name','Enter a short site name, without personal details.'); const origin=browserOrigin(input.origin),config=cleanConfig(input.config??input); insist(!config.origins?.includes(origin),'origins','Extra origins must differ from the website origin.'); return {name,origin,config} }

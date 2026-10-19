@@ -1,3 +1,4 @@
+import { SOURCES } from './sources'
 // DASH-004: every page load gets a channel at collection from its source, utm_medium and paid-click flag,
 // tried in this order (the methodology page publishes the same rules and lists):
 //   Affiliates      utm_medium is affiliate or affiliates
@@ -10,15 +11,12 @@
 //   Organic Social  a social network, or utm_medium social, social-network, social-media or sm
 //   Referral        any other source
 //   Direct          no source
-// A source matches a list by name (a utm_source or ref value such as google) or by hostname, ignoring a
-// leading www., m., l. or lm.; a hostname entry also covers its subdomains, and an entry ending in . any top-level domain.
+// A source matches a list by name (a utm_source or ref value such as google), by Android app referrer or by
+// hostname, ignoring a leading www., m., l. or lm.; a hostname covers its subdomains, and an entry ending in . any top-level domain.
 export const CHANNELS=['Direct','Organic Search','Paid Search','Organic Social','Paid Social','Email','Referral','AI Assistants','Affiliates','Display'] as const
-export const LISTS={
- ai:['chatgpt.com','chat.openai.com','perplexity.ai','claude.ai','gemini.google.com','copilot.microsoft.com','chatgpt','perplexity','claude','gemini','copilot'],
- email:['mail.google.com','outlook.live.com','outlook.office.com','outlook.office365.com','mail.yahoo.com','mail.aol.com','mail.proton.me','app.fastmail.com','mail.zoho.com','webmail','email','e-mail','newsletter'],
- search:['google.','bing.com','duckduckgo.com','search.yahoo.com','yandex.','baidu.com','ecosia.org','search.brave.com','startpage.com','qwant.com','google','bing','duckduckgo','yahoo','yandex','baidu','ecosia','brave','startpage','qwant'],
- social:['facebook.com','instagram.com','x.com','twitter.com','t.co','linkedin.com','lnkd.in','reddit.com','pinterest.com','tiktok.com','youtube.com','threads.net','bsky.app','news.ycombinator.com','mastodon.social','tumblr.com','quora.com','facebook','fb','instagram','ig','twitter','linkedin','reddit','pinterest','tiktok','youtube','threads','bluesky','hackernews'],
-}
+// The source lists come from the named sources (DASH-014), with the names a site may send as utm_source, ref or source.
+const of=(kind:string)=>SOURCES.filter(source=>source.kind===kind).flatMap(source=>[...source.match,...(source.names??[])])
+export const LISTS={ai:of('ai'),email:[...of('email'),'email','e-mail','newsletter'],search:of('search'),social:of('social')}
 const key=(source:string)=>source.toLowerCase().replace(/^(?:www|m|l|lm)\./,'')
 export const listed=(list:readonly string[],source:string)=>{const k=key(source);return list.some(entry=>entry.endsWith('.')?k.startsWith(entry):entry.includes('.')?k===entry||k.endsWith('.'+entry):k===entry)}
 const PAID=/^(?:cpc|ppc|cpm|cpv|cpa|paid.*|retargeting|paidsearch|paidsocial)$/

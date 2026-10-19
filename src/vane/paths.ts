@@ -38,7 +38,7 @@ export function visitSource(utmSource:string|null,ref:string|null,referrer:unkno
  if(utmSource)return utmSource;
  if(ref)return ref;
  const host=typeof referrer==='string'?referrer.toLowerCase():'';
- return /^(?:[a-z0-9-]+\.)+[a-z0-9-]{2,63}$/.test(host)&&host.length<=253&&!own.includes(host)?host:'direct';
+ return (/^(?:[a-z0-9-]+\.)+[a-z0-9-]{2,63}$/.test(host)||/^android-app:\/\/[a-z0-9._]{1,200}$/.test(host))&&host.length<=253&&!own.includes(host)?host:'direct';
 }
 export const hostOf=(origin:string)=>new URL(origin).hostname.toLowerCase()
 export function cleanRules(input:unknown):{from:string,to:string}[] {

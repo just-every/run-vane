@@ -50,11 +50,13 @@ export async function visitMetrics(env:Env,siteId:string,from:string,to:string,g
 
 export interface VisitRow { label:string; visitors:number; visits:number; bounceRate:number|null; medianDuration:number|null; averageDuration:number|null; conversionRate:number|null }
 export const ENTRY_DIMENSIONS={channels:'channel',sourceVisits:'source',referrers:'referrer',utmSources:'utm_source',utmMediums:'utm_medium',utmCampaigns:"NULLIF(campaign,'none')",utmTerms:'utm_term',utmContents:'utm_content'} as const
-export async function entryMetrics(env:Env,siteId:string,from:string,to:string,goal:string|null=null):Promise<Record<keyof typeof ENTRY_DIMENSIONS,VisitRow[]>> {
- const names=Object.keys(ENTRY_DIMENSIONS) as (keyof typeof ENTRY_DIMENSIONS)[]
+// DASH-014: sources are labelled by the named-source SQL; the drill-down lists each source's raw referrers.
+export async function entryMetrics(env:Env,siteId:string,from:string,to:string,goal:string|null,sourceName:string):Promise<Record<keyof typeof ENTRY_DIMENSIONS,VisitRow[]>&{sourceReferrers:{source:string,referrer:string,visits:number}[]}> {
+ const names=Object.keys(ENTRY_DIMENSIONS) as (keyof typeof ENTRY_DIMENSIONS)[],label=(name:keyof typeof ENTRY_DIMENSIONS)=>name==='sourceVisits'?sourceName:ENTRY_DIMENSIONS[name]
  const results=await env.DB.batch<any>(names.map(name=>env.DB.prepare(`${timed},
-x AS (SELECT ${ENTRY_DIMENSIONS[name]} AS label,v.* FROM q JOIN v USING(day,visitor,visit) WHERE q.starts=1),
+x AS (SELECT ${label(name)} AS label,v.* FROM q JOIN v USING(day,visitor,visit) WHERE q.starts=1),
 xr AS (SELECT *,ROW_NUMBER() OVER (PARTITION BY label ORDER BY duration) AS r,COUNT(*) OVER (PARTITION BY label) AS c FROM x WHERE label IS NOT NULL)
-SELECT label,COUNT(DISTINCT day||' '||visitor) AS visitors,COUNT(*) AS visits,SUM(bounce) AS bounces,SUM(visit_converted) AS conversions,AVG(duration) AS average,AVG(CASE WHEN ${middle('r','c')} THEN duration END) AS median FROM xr GROUP BY label ORDER BY visits DESC,label`).bind(siteId,from,to,goal)))
- return Object.fromEntries(names.map((name,i)=>[name,results[i]!.results.map((r:any):VisitRow=>({label:r.label,visitors:Number(r.visitors),visits:Number(r.visits),bounceRate:rate(Number(r.bounces),Number(r.visits)),medianDuration:seconds(r.median),averageDuration:seconds(r.average),conversionRate:rate(Number(r.conversions),Number(r.visits))}))])) as any
+SELECT label,COUNT(DISTINCT day||' '||visitor) AS visitors,COUNT(*) AS visits,SUM(bounce) AS bounces,SUM(visit_converted) AS conversions,AVG(duration) AS average,AVG(CASE WHEN ${middle('r','c')} THEN duration END) AS median FROM xr GROUP BY label ORDER BY visits DESC,label`).bind(siteId,from,to,goal)).concat(env.DB.prepare(`${timed} SELECT ${sourceName} AS source,lower(source) AS referrer,COUNT(*) AS visits FROM q WHERE starts=1 AND source<>'direct' GROUP BY 1,2 ORDER BY 1,visits DESC,2`).bind(siteId,from,to,goal)))
+ const tables=Object.fromEntries(names.map((name,i)=>[name,results[i]!.results.map((r:any):VisitRow=>({label:r.label,visitors:Number(r.visitors),visits:Number(r.visits),bounceRate:rate(Number(r.bounces),Number(r.visits)),medianDuration:seconds(r.median),averageDuration:seconds(r.average),conversionRate:rate(Number(r.conversions),Number(r.visits))}))]))
+ return {...tables,sourceReferrers:results[names.length]!.results.map((r:any)=>({source:r.source,referrer:r.referrer,visits:Number(r.visits)}))} as any
 }
