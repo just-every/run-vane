@@ -1005,3 +1005,20 @@ test('DASH-009 a member\'s note, an approved settings change, a deploy webhook, 
  assert.equal((await a.form({operation:'annotation-hook.revoke',siteId:id},a.owner)).status,303);assert.equal((await hook({id:'after',kind:'deploy',at:Date.now(),title:'After revoke'})).status,401)
  const audit=JSON.stringify(await (await a.request('/api/vane/audit',owner)).json());for(const action of ['annotation.add','annotation.delete','annotation-hook.create','annotation-hook.revoke','annotation-github.create'])assert.ok(audit.includes(action),action)
 })
+test('CONV-005 the funnel product → cart → checkout → purchase counts entrants, conversion, drop-off and median time per step against the compared day, the hostname filter recomputes it, and a drop-off opens the journeys',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({paths:[],origins:['https://shop.fern.example'],goals:{purchase:'/thanks'},funnels:'checkout=/product/* > /cart > /checkout > goal:purchase'})
+ assert.equal((await a.post('/api/vane/commands',{command:'site.configure',input:{siteId:id,name:'Fern Studio',origin:'https://fern.example',paths:[],goals:{purchase:'/thanks'},consent:'not-required',funnels:'short=/cart'}},a.owner)).status,400,'a funnel has 2 to 8 steps')
+ const visit=async(n,start,steps,origin='https://fern.example')=>{let at=Date.parse(start);for(const [path,after] of steps){at+=after*1000;await a.clock(at);assert.equal((await a.post('/api/vane/collect',a.event(id,{path,source:undefined,campaign:undefined}),'',{origin,'cf-connecting-ip':'203.0.113.'+n,'user-agent':'Synthetic Browser 5'})).status,202)}}
+ const d='2026-03-03T10:00:00Z'
+ await visit(1,d,[['/product/a',0],['/cart',30],['/checkout',90],['/thanks',60]]);await visit(2,d,[['/product/b',0],['/cart',40],['/checkout',30],['/thanks',120]])
+ await visit(3,d,[['/product/a',0],['/cart',50],['/checkout',60]]);await visit(4,d,[['/product/a',0],['/cart',60]]);await visit(5,d,[['/product/c',0]])
+ await visit(6,d,[['/cart',0],['/product/a',30]]);await visit(7,d,[['/product/a',0],['/cart',20]],'https://shop.fern.example');await visit(8,'2026-03-02T10:00:00Z',[['/product/a',0],['/cart',45]])
+ const funnel=async extra=>(await (await a.request(`/api/vane/summary?siteId=${id}&from=2026-03-03&to=2026-03-04${extra??''}`,owner)).json()).funnels[0]
+ const f=await funnel();assert.equal(f.entrants,7)
+ assert.deepEqual(f.steps.map(s=>[s.label,s.visits,s.conversionRate,s.stepRate,s.dropOff,s.medianSeconds,s.previous]),[['/product/*',7,100,null,2,null,1],['/cart',5,71.4,71.4,2,40,1],['/checkout',3,42.9,60,1,60,0],['goal:purchase',2,28.6,66.7,null,90,0]])
+ const shop=await funnel('&host=shop.fern.example');assert.deepEqual(shop.steps.map(s=>s.visits),[1,1,0,0],'the hostname filter recomputes the funnel')
+ const html=await (await a.request(`/app/sites/${id}?section=report&from=2026-03-03&to=2026-03-04`,owner)).text()
+ assert.ok(html.includes('<caption>checkout: 7 visits entered</caption>')&&html.includes('<th scope="row">2. /cart</th><td class="vane-number">5</td><td class="vane-number">71.4%</td><td class="vane-number">71.4%</td>'))
+ const link=html.match(/<a href="([^"]+)" aria-label="Journeys onward from \/cart">2<\/a>/)[1].replaceAll('&amp;','&');assert.match(link,/journey=%2Fcart/)
+ assert.ok((await (await a.request(`/app/sites/${id}${link}`,owner)).text()).includes('passed through /cart'),'the drop-off opens the journeys through /cart')
+})

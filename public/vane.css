@@ -178,3 +178,4 @@
 .vane-chart-annotation { stroke: var(--rer-accent); stroke-width: 1.5; stroke-dasharray: 2 3; }
 .vane-annotations { margin: 8px 0; padding-left: 20px; font-size: 14px; }
 .vane-inline-form { display: inline; margin-left: 8px; }
+.vane-table-scroll table[data-live], .vane-table-scroll table[data-funnel], .vane-table-scroll table[data-variation] { min-width: 520px; }
