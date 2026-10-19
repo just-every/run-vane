@@ -1,3 +1,4 @@
+import { runChatReports } from './vane/chat/delivery'
 import { sync as syncBing } from './vane/bing'
 import { withDemo } from './modules/demo/index.mjs'
 import { seedDemo } from './demo'
@@ -103,6 +104,7 @@ export default withDemo({
     await runWebhooks(runtimeBindings(env), clock())
     // REPORT-001: due email reports and their retries.
     await runReports(runtimeBindings(env), clock())
+    await runChatReports(runtimeBindings(env), clock())
     await runAlerts(runtimeBindings(env), clock())
     await runFollowUps(runtimeBindings(env), clock())
     } finally {

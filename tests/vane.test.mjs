@@ -1,3 +1,4 @@
+import './chat.test.mjs'
 import './bing.test.mjs'
 import './search-console.test.mjs'
 import './matomo.test.mjs'

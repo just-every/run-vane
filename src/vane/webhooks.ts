@@ -1,4 +1,4 @@
-import { allow, inScope, insist, rows, site, statement, uid, type Actor, type Env } from './core'
+import { allow, role, inScope, insist, rows, site, statement, uid, type Actor, type Env } from './core'
 import { auditStatement } from './audit'
 import { clock } from './clock'
 import { seal, unseal } from './sealed'
@@ -11,13 +11,14 @@ import { publicHttps } from './warehouse'
 // queues ended minutes and sends due deliveries every 5 minutes; a failed attempt is retried after 1, 5 and 30
 // minutes, 2 and 6 hours, then the delivery shows as failed. The log keeps each attempt's time, status and outcome.
 const PURPOSE='vane-webhook-secret-v1',MINUTE=60000,BACKOFF=[60000,300000,1800000,7200000,21600000]
-export const WEBHOOK_EVENTS={'goal.conversions':'Goal conversions, counted per minute','traffic.alert':'Traffic alerts that send to webhooks (ALERT-001)','follow.change':'Follow-up item changes (FOLLOW-001)'} as const
+export const WEBHOOK_EVENTS={'goal.conversions':'Goal conversions, counted per minute','traffic.alert':'Traffic alerts that send to webhooks (ALERT-001)','follow.change':'Follow-up item changes (FOLLOW-001)','report.generated':'Chat report generation (REPORT-002; owner-connected endpoints only)'} as const
 export interface Webhook { id:string; site_id:string; url:string; events_json:string; sealed_secret:string; last_minute:number; created_by:string; created_at:number }
 const hex=(bytes:ArrayBuffer|Uint8Array)=>Array.from(new Uint8Array(bytes),b=>b.toString(16).padStart(2,'0')).join('')
 export async function createWebhook(env:Env,actor:Actor,p:any) {
  allow(actor,'admin');const value=await site(env,String(p.siteId??''));inScope(actor,value.id)
  const url=publicHttps(String(p.url??'').trim(),true),events=Object.keys(WEBHOOK_EVENTS).filter(name=>p['event_'+name]==='on'||p.events?.includes?.(name))
  insist(url.pathname.length<=500&&String(p.url).length<=1000,'url','Enter an https address up to 1,000 characters.')
+ if(events.includes('report.generated'))role(actor)
  insist(events.length>0,'events','Choose at least one event.')
  const id=uid(),secret='vane_wh_'+hex(crypto.getRandomValues(new Uint8Array(32)))
  await env.DB.batch([statement(env,'INSERT INTO vane_webhooks(id,site_id,url,events_json,sealed_secret,last_minute,created_by,created_at) VALUES(?,?,?,?,?,?,?,?)',id,value.id,url.href,JSON.stringify(events),await seal(env,PURPOSE,id,secret),Math.floor(clock()/MINUTE)-1,actor.id,clock()),auditStatement(env,actor.id,'webhook.create',value.id,`${url.host} for ${events.join(', ')}`)])

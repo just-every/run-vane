@@ -1,3 +1,5 @@
+import * as chat from './chat/connections'
+import * as chatDelivery from './chat/delivery'
 import * as bing from './bing'
 import * as searchConsole from './search-console'
 import { operatorAuth, runtimeBindings, type Bindings } from '../auth.server'
@@ -61,10 +63,11 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
   const all=(await sites(env)).filter(s=>open(s.id)),list=!selected&&!extra.rollup&&!extra.error&&(url.searchParams.get('section')??'report')==='report'?await overview(env,all,clock(),{period:url.searchParams.get('period'),sort:url.searchParams.get('sort'),q:url.searchParams.get('q')}):undefined;
   const live=selected&&url.searchParams.get('section')==='realtime';
   const settings=selected&&(extra.section??url.searchParams.get('section'))==='settings',hook=settings?(await rows<{created_at:number}>(env,'SELECT created_at FROM vane_annotation_hooks WHERE site_id=?',selected.id))[0]??null:undefined,github=settings?(await rows<{created_at:number}>(env,'SELECT created_at FROM vane_github_keys WHERE site_id=?',selected.id))[0]??null:undefined,warehouse=settings&&actor!.role==='owner'?await exportOf(env,selected.id):undefined,hooks=settings&&['owner','admin'].includes(actor!.role)?{webhooks:await webhooks(env,selected.id),webhookLog:await deliveryLog(env,selected.id)}:{},reports=settings?{reportSubscriptions:(await reportSubscriptions(env,selected.id)).filter(s=>['owner','admin'].includes(actor!.role)||s.operator_id===actor!.id),reportSends:['owner','admin'].includes(actor!.role)?await reportSends(env,selected.id):[],mailEvents:eventsConnected(env)}:{};if(reports.reportSubscriptions)(reports as any).mailStops=await mailStops(env,reports.reportSubscriptions.map(s=>s.email));if(settings&&(['owner','admin'].includes(actor!.role)||actor!.access==='analyst'))Object.assign(reports,{alerts:await siteAlerts(env,selected.id),alertLog:await alertLog(env,selected.id),maintenance:await siteWindows(env,selected.id),closedDays:await closedDays(env,selected.id),followItems:await followItems(env,selected.id),followHistory:await followHistory(env,selected.id),followPolicy:await policyOf(env,selected.id),alertPeople:await sitePeople(env,selected.id)});
+  const chatData=settings?{connections:(await chat.connections(env,selected.id)).map(({sealed_secret,created_by,...c})=>c),schedules:await chatDelivery.schedules(env,selected.id),log:await chatDelivery.deliveryLog(env,selected.id)}:undefined;
   const report=selected&&!live?await createInsightsService(env,selected,clock(),range).list():undefined;
   const bingReport=selected&&!live?await bing.report(env,actor!,selected.id,report!.from,report!.to):undefined;
   const search=selected&&!live?await searchConsole.report(env,actor!,selected.id,report!.from,report!.to):undefined;
-  return renderApp({actor:actor as ViewData['actor'],origin:env.AUTH_ORIGIN,store:await storeUse(env),sites:all,overview:list,rollups:(await rollups(env)).filter(r=>r.sites.every((s:any)=>open(s.id))),site:selected,hook,github,...hooks,...reports,warehouse:warehouse?{endpoint:warehouse.endpoint,bucket:warehouse.bucket,region:warehouse.region,prefix:warehouse.prefix,accessKeyId:warehouse.access_key_id,lastDay:warehouse.last_day,lastResult:warehouse.last_result,createdAt:warehouse.created_at}:warehouse,shares:settings?await shareLinks(env,selected.id):undefined,segments:selected&&!live?await segments(env,selected.id):undefined,live:live?await realtime(env,selected,clock()):undefined,liveVisitors:selected?await currentVisitors(env,selected,clock()):undefined,report,bing:bingReport,bingKeywordPage:url.searchParams.get('bingKeywordPage'),searchConsole:search,googleKeywordPage:url.searchParams.get('googleKeywordPage'),proposals,imports,audit,people,apiKeys:keys,...push,section:url.searchParams.get('section')??undefined,notice:url.searchParams.get('notice')??undefined,...extra});
+  return renderApp({actor:actor as ViewData['actor'],origin:env.AUTH_ORIGIN,store:await storeUse(env),sites:all,overview:list,rollups:(await rollups(env)).filter(r=>r.sites.every((s:any)=>open(s.id))),site:selected,hook,github,...hooks,...reports,warehouse:warehouse?{endpoint:warehouse.endpoint,bucket:warehouse.bucket,region:warehouse.region,prefix:warehouse.prefix,accessKeyId:warehouse.access_key_id,lastDay:warehouse.last_day,lastResult:warehouse.last_result,createdAt:warehouse.created_at}:warehouse,shares:settings?await shareLinks(env,selected.id):undefined,segments:selected&&!live?await segments(env,selected.id):undefined,live:live?await realtime(env,selected,clock()):undefined,liveVisitors:selected?await currentVisitors(env,selected,clock()):undefined,report,chat:chatData,bing:bingReport,bingKeywordPage:url.searchParams.get('bingKeywordPage'),searchConsole:search,googleKeywordPage:url.searchParams.get('googleKeywordPage'),proposals,imports,audit,people,apiKeys:keys,...push,section:url.searchParams.get('section')??undefined,notice:url.searchParams.get('notice')??undefined,...extra});
  }
  try {
   const session=await operatorAuth(env).getSession(request);
@@ -74,6 +77,7 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
   // TEAM-001: every door that names a site, by query, path or form, answers only for a site the person may open.
   const named=url.searchParams.get('siteId')??path.match(/^\/app\/sites\/([\w-]+)$/)?.[1];if(named)inScope(actor,named);
   if(request.method==='GET') {
+   if(path===chat.CALLBACK)return await chat.callback(request,env,actor);
    if(path===searchConsole.CALLBACK_PATH)return await searchConsole.callback(request,env,actor);
    if(path==='/api/vane/bing/report'){
     const source=await bing.report(env,actor,url.searchParams.get('siteId')??'',url.searchParams.get('from')??'',url.searchParams.get('to')??'');
@@ -93,7 +97,7 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
    // API-002: the whole site as a ZIP of CSVs in Plausible's export layout, for anyone who may open the site.
    if(path==='/api/vane/site-zip'){const value=await site(env,url.searchParams.get('siteId')??''),file=await siteZip(env,value,clock());return new Response(file.bytes,{headers:{...headers,'content-type':'application/zip','content-disposition':`attachment; filename="${file.name}"`}})}
    if(path==='/api/vane/realtime')return json(await realtime(env,await site(env,url.searchParams.get('siteId')??''),clock()));
-   if(path==='/api/vane/inventory'){const id=url.searchParams.get('siteId')??'',value=await site(env,id),connected=Boolean((await rows(env,'SELECT 1 FROM vane_search_connections WHERE site_id=?',id)).length);const bingConnected=Boolean((await rows(env,'SELECT 1 FROM vane_bing_connections WHERE site_id=?',id)).length);return json(inventory(value,connected,bingConnected));}
+   if(path==='/api/vane/inventory'){const id=url.searchParams.get('siteId')??'',value=await site(env,id),connected=Boolean((await rows(env,'SELECT 1 FROM vane_search_connections WHERE site_id=?',id)).length);const bingConnected=Boolean((await rows(env,'SELECT 1 FROM vane_bing_connections WHERE site_id=?',id)).length);return json(inventory(value,connected,bingConnected,[...new Set((await chat.connections(env,id)).map(c=>c.provider))]));}
    if(path==='/api/vane/audit'){everySite(actor);return json(await auditLog(env,actor));}
    if(path==='/api/vane/proposals') {role(actor,['owner','admin']);return json(visibleProposals(await rows(env,'SELECT * FROM vane_proposals ORDER BY created_at DESC')));}
    if(path==='/api/vane/import-journal')return json(await journal(env,actor,{siteId:url.searchParams.get('siteId')??'',jobId:url.searchParams.get('jobId')??''}));
@@ -125,6 +129,12 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
      const result=await preview(env,actor,{siteId:p.siteId,document:p.operation==='import.matomo.preview'?await readMatomo(env,actor,p):p.operation==='import.matomo.csv.preview'?{format:'vane-matomo-reports/1',day:p.day,currency:p.currency,reports:{[String(p.report)]:p.document}}:p.document});
      return view(p.siteId,{section:'history',importPreview:{fingerprint:result.fingerprint,count:result.normalized.length+result.aggregates.length,aggregates:result.aggregates,warnings:['Visitor identifiers, titles and raw URLs were discarded before custody. Historical consent and sampling are unknown.'],rows:result.normalized.map(e=>({date:e.day,path:e.path,visits:e.kind==='pageview'?1:0,source:e.source,campaign:e.campaign,goal:e.kind==='pageview'?'':e.kind}))},importCarry:JSON.stringify(result.carry)});
     }
+    if(p.operation==='chat.slack.begin')return view(p.siteId,{section:'settings',chatAuthorize:await chat.begin(request,env,actor,p)});
+    if(p.operation==='chat.teams.connect'){const id=await chat.teams(env,actor,p);return redirect(chat.settings(id))}
+    if(p.operation==='chat.disconnect'){const result=await chat.disconnect(env,actor,String(p.id));return redirect(chat.settings(result.siteId).replace('#chat-reports','')+'&'+new URLSearchParams({notice:result.outcome})+'#chat-reports')}
+    if(p.operation==='chat.test'){const id=await chatDelivery.testDelivery(env,actor,String(p.id));return redirect(chat.settings(id))}
+    if(p.operation==='chat.schedule'){const id=await chatDelivery.subscribe(env,actor,p);return redirect(chat.settings(id))}
+    if(p.operation==='chat.unschedule'){const id=await chatDelivery.unsubscribe(env,actor,String(p.id));return redirect(chat.settings(id))}
     if(p.operation==='search.bing.connect'){await bing.connect(env,actor,{siteId:String(p.siteId),property:String(p.property),apiKey:String(p.apiKey)});return redirect(`/app/sites/${encodeURIComponent(p.siteId)}?section=settings&notice=Bing+connected.`)}
     if(p.operation==='search.bing.sync'){await bing.runNow(env,actor,String(p.siteId));return redirect(`/app/sites/${encodeURIComponent(p.siteId)}?section=settings&notice=Bing+source+checked.`)}
     if(p.operation==='search.bing.disconnect'){await bing.disconnect(env,actor,String(p.siteId));return redirect(`/app/sites/${encodeURIComponent(p.siteId)}?section=settings&notice=Bing+disconnected.`)}
@@ -183,7 +193,7 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
   const known=error instanceof VaneError||error instanceof MoveinError;
   const message=known?error.message:'The operation could not complete. Check the document and refresh before trying again.';
   const status=known?error.status:400;
-  if(path.startsWith('/app')&&actor) {const response=await view(undefined,{error:message,section:undefined});return new Response(response.body,{status,headers:response.headers});}
+  if((path.startsWith('/app')||path===chat.CALLBACK)&&actor) {const response=await view(undefined,{error:message,section:undefined});return new Response(response.body,{status,headers:response.headers});}
   return json({error:known?error.code:'invalid_operation',message},status);
  }
 }

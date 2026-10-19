@@ -12,6 +12,8 @@ const theme = { href: '/rer-theme.css', productName: branding.name, accentColor:
 
 export interface Bindings {
  /** SEARCH-001: optional installation-owned Google OAuth application credentials. */
+ SLACK_CLIENT_ID?:string
+ SLACK_CLIENT_SECRET?:string
  GOOGLE_CLIENT_ID?:string
  GOOGLE_CLIENT_SECRET?:string
  DB: D1Database

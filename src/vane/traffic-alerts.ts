@@ -1,3 +1,4 @@
+import { alertDestinations, sendChatAlert } from './chat/delivery'
 import { allow, inScope, insist, rows, site, statement, uid, type Actor, type Env, type Site } from './core'
 import { auditStatement } from './audit'
 import { clock } from './clock'
@@ -49,7 +50,7 @@ export async function createAlert(env:Env,actor:Actor,p:any) {
  insist(people.every(id=>allowed.some(a=>a.id===id)),'recipients','Choose people who can open this site.');if(hooks)allow(actor,'admin')
  const quiet=[p.quietFrom,p.quietTo].map(v=>String(v??'')),[quietFrom,quietTo]=quiet.map(minutesOf)
  insist(quiet.every(v=>v==='')||Number.isInteger(quietFrom)&&Number.isInteger(quietTo)&&quietFrom!==quietTo,'quiet','Enter both quiet-hour times as HH:MM, or neither.')
- const recipients=JSON.stringify({people:people.length?[...new Set(people)]:[actor.id],webhooks:hooks})
+ const recipients=JSON.stringify({people:people.length?[...new Set(people)]:[actor.id],webhooks:hooks,chat:await alertDestinations(env,actor,value.id,p)})
  await env.DB.batch([statement(env,'INSERT INTO vane_alerts(id,site_id,metric,condition,direction,threshold,cooldown_hours,recipients_json,quiet_from,quiet_to,segment_id,goal,created_by,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)',uid(),value.id,metric,condition,direction,threshold,cooldown,recipients,quiet[0]?quietFrom:null,quiet[0]?quietTo:null,segmentId,goal,actor.id,clock()),auditStatement(env,actor.id,'alert.create',value.id,alertName({metric,condition,direction,threshold,goal}))])
  return value.id
 }
@@ -72,6 +73,7 @@ async function notify(env:Env,alert:Alert,value:Site,text:string,now:number,coun
  // API-003: one signed delivery per webhook that takes traffic alerts, with the alert's figures and no visitor field.
  const hooks=chosen.webhooks?(await rows<{id:string,events_json:string}>(env,'SELECT id,events_json FROM vane_webhooks WHERE site_id=?',value.id)).filter(h=>JSON.parse(h.events_json).includes('traffic.alert')):[]
  if(hooks.length)await env.DB.batch(hooks.map(h=>statement(env,"INSERT INTO vane_webhook_deliveries(id,webhook_id,site_id,event,payload,state,attempts,next_at,created_at) VALUES(?,?,?,'traffic.alert',?,'pending',0,?,?)",uid(),h.id,value.id,JSON.stringify({event:'traffic.alert',site_id:value.id,alert:title,metric:alert.metric,condition:alert.condition,direction:alert.direction,value:count,bound,seen_at:new Date(now).toISOString()}),now,now)))
+ await sendChatAlert(env,alert,title,count,bound,now)
  const n=(k:number,one:string,many:string)=>k===1?`one ${one}`:`${k} ${many}`
  return `sent: email accepted by the mail provider for ${n(emailed,'person','people')}; push accepted by ${n(pushed,'browser','browsers')}${chosen.webhooks?`; queued for ${n(hooks.length,'webhook','webhooks')}`:''}`
 }

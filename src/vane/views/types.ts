@@ -9,6 +9,8 @@ export interface ViewData {
   sites: any[]
   site?: any
   searchConsole?:any
+  chatAuthorize?:string
+  chat?: {connections:Omit<import('../chat/connections').Connection,'sealed_secret'|'created_by'>[];schedules:import('../chat/delivery').Schedule[];log:any[]}
   bing?:any
   googleKeywordPage?:string|null
   bingKeywordPage?:string|null

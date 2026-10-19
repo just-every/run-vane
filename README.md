@@ -284,3 +284,32 @@ Search history stays bound to its source property. Disconnect and reconnect to t
 
 The owner supplies a Bing Webmaster Tools API key and an exact verified property URL in site settings. Vane reads only Microsoft’s fixed official Webmaster JSON endpoints. The key is sealed, excluded from archives and deleted on disconnect; already fetched aggregate history remains exportable. Bing’s source query/page sets are weekly top rows, with separate daily site totals across search verticals. Dates retain the source’s calendar label; absent rows never imply measured zero.
 
+
+### Slack and Teams reports
+
+In a site's Settings, open **Chat reports**. Only the owner connects a destination or
+sets a daily, weekly or monthly report; administrators and analysts can select an
+owner-connected destination in their site's traffic-alert form. Reports use the
+site's time zone and optionally a saved segment. The settings log records each
+test and scheduled delivery, including authorization failures and uncertain
+results; a period is attempted once and never automatically resent.
+
+For Slack, create your Slack app with the bot scope `chat:write` only, configure
+`SLACK_CLIENT_ID` and `SLACK_CLIENT_SECRET` as installation secrets, and register
+`<installation origin>/api/vane/chat/slack/callback` as its OAuth redirect. Enter
+the channel ID, invite the app's bot to that channel, choose **Connect Slack**, then follow **Continue to Slack**.
+Disconnect calls Slack's `auth.revoke` and erases the local sealed token; if Slack
+does not confirm revocation the notice says so. Expired or rotated credentials
+show as delivery failures: reconnect the app when necessary.
+
+For Teams, create a workflow that posts an Adaptive Card when a webhook request
+is received. Enter its webhook URL under **Connect Teams**. Vane seals the URL
+and never displays it again. A successful response means **accepted by workflow**;
+it does not prove the workflow posted to its channel. Both integrations receive
+only aggregate figures and a private filtered dashboard link, with no visitor
+records. Connection credentials and schedules are excluded from history archives.
+
+REPORT-002 remains partial: Nook delivery needs Nook's scoped integration token,
+and owner-entered destination URLs await Base's resolved-address/pinned egress
+door. Today these URLs must be public HTTPS names/address literals, without URL
+credentials or redirects, under API-002's host rules.

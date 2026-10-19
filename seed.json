@@ -89,6 +89,25 @@
         "Source aggregate query, page and date figures returned; no collected Vane visits sent"
       ],
       "adapters": []
+    },
+    {
+      "id": "slack",
+      "required": false,
+      "why": "Owner-approved Slack bot OAuth and aggregate chat reports/alerts (REPORT-002)",
+      "data": [
+        "OAuth code at fixed Slack endpoints; chat:write bot credential",
+        "Aggregate figures and private filtered dashboard link; no visitor records"
+      ],
+      "adapters": []
+    },
+    {
+      "id": "teams-workflow",
+      "required": false,
+      "why": "Owner-connected Microsoft Teams workflow webhook for aggregate reports/alerts (REPORT-002)",
+      "data": [
+        "Aggregate figures and private filtered dashboard link; no visitor records"
+      ],
+      "adapters": []
     }
   ],
   "env": [],
