@@ -6,11 +6,14 @@ import { jsonValue } from './input'
 import { deletionFence } from './deletion-fence'
 import { verifyInstallation } from './install-check'
 import { clock } from './clock'
+import { importSite } from './transfer'
 export async function action(env:Env,actor:Actor,p:any):Promise<{siteId?:string;notice:string;section?:string}> {
  let siteId=p.siteId;
  switch(p.operation) {
   case 'site.prepare': await prepare(env,actor,'site.create',p,'app');return {notice:'Site prepared. Review and approve its settings.',section:'approvals'};
   case 'config.prepare': await prepare(env,actor,'site.configure',p,'app');return {siteId,notice:'Settings prepared for approval.',section:'approvals'};
+  case 'site.delete.prepare': await prepare(env,actor,'site.delete',p,'app');return {siteId,notice:'Site deletion prepared. Review the permanent deletion before approving.',section:'approvals'};
+  case 'site.import': {const result=await importSite(env,actor,jsonValue(p.archive));return {siteId:result.siteId,notice:'Site transferred with its history.'};}
   case 'history.erase.prepare': await prepare(env,actor,'history.erase',p,'app');return {siteId,notice:'Erasure prepared. Review the permanent deletion before approving.',section:'approvals'};
   case 'proposal.approve': case 'proposal.reject': { const result=await decide(env,actor,p.id,p.operation==='proposal.approve');return {siteId:result.siteId,notice:result.state==='approved'?'Change approved and applied.':'Proposal rejected.',section:'approvals'}; }
   case 'history.restore':await restoreHistory(env,actor,jsonValue(p.archive),p.journal?jsonValue(p.journal):undefined);return {notice:'History restored. Your sign-in account is unchanged.'};

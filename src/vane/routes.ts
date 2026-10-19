@@ -9,6 +9,7 @@ import { input } from './input'
 import { action } from './actions'
 import { verifyInstallation } from './install-check'
 import { clock } from './clock'
+import { exportSite, importSite } from './transfer'
 const headers={'cache-control':'no-store','x-content-type-options':'nosniff','referrer-policy':'same-origin'};
 const json=(value:unknown,status=200)=>Response.json(value,{status,headers});
 const redirect=(path:string)=>new Response(null,{status:303,headers:{...headers,location:path}});
@@ -36,6 +37,7 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
    if(path==='/api/vane/audit')return json(await auditLog(env,actor));
    if(path==='/api/vane/proposals') {role(actor,['owner','admin']);return json(await rows(env,'SELECT * FROM vane_proposals ORDER BY created_at DESC'));}
    if(path==='/api/vane/import-journal')return json(await journal(env,actor,{siteId:url.searchParams.get('siteId')??'',jobId:url.searchParams.get('jobId')??''}));
+   if(path==='/api/vane/export'&&url.searchParams.has('siteId')) { const id=url.searchParams.get('siteId')!; return new Response(JSON.stringify(await exportSite(env,actor,id),null,2),{headers:{...headers,'content-type':'application/json','content-disposition':`attachment; filename="vane-site-${id}.json"`}}); }
    if(path==='/api/vane/export')return new Response(JSON.stringify(await exportHistory(env,actor),null,2),{headers:{...headers,'content-type':'application/json','content-disposition':'attachment; filename="vane-history.json"'}});
    if(path==='/app')return view();
    const match=path.match(/^\/app\/sites\/([\w-]+)$/);if(match)return view(match[1]);
@@ -47,6 +49,7 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
    if(path==='/api/vane/import-apply')return json(await apply(env,actor,{siteId:p.siteId,document:p.document,fingerprint:p.fingerprint}));
    if(path==='/api/vane/import-undo')return json(await undo(env,actor,{siteId:p.siteId,jobId:p.jobId}));
    if(path==='/api/vane/install-check')return json(await verifyInstallation(env,actor,p.siteId));
+   if(path==='/api/vane/site-import')return json(await importSite(env,actor,p.archive),201);
    if(path==='/api/vane/restore')return json(await restoreHistory(env,actor,p.archive,p.journal));
    if(path==='/app/action') {
     // Approval has a deliberately separate human form surface. The command API

@@ -1,4 +1,4 @@
-import { day, insist, site, statement, VaneError, type Env } from './core'
+import { day, insist, site, siteOrigin, statement, VaneError, type Env } from './core'
 import { tracker } from './tracker'
 import { signalResponse } from './privacy-signals'
 import { localDay, visitorHash } from './visitors'
@@ -22,8 +22,7 @@ export async function collector(request:Request,env:Env):Promise<Response|null> 
   // Preflight advertises no read privilege and never admits an event.
   if(request.method==='OPTIONS')return new Response(null,{status:204,headers:{...cors,'access-control-allow-origin':request.headers.get('origin')??'null','access-control-allow-methods':'POST','access-control-allow-headers':'content-type','access-control-max-age':'600'}});
   const value=await site(env,String(id));
-  insist(request.headers.get('origin')===value.origin,'origin','Origin is not registered for this site.',403);
-  cors={...cors,'access-control-allow-origin':value.origin};
+  cors={...cors,'access-control-allow-origin':siteOrigin(value,request)};
   if(match) { insist(request.method==='GET','method','GET required.',405); return Response.json(value.config,{headers:cors}); }
   if(engage) {
    // METRIC-003: a ping names only the site and its own page load, at least 10 seconds and at most

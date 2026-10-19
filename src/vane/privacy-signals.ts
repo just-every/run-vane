@@ -1,4 +1,4 @@
-import { insist, site, VaneError, type Env } from './core'
+import { insist, site, siteOrigin, VaneError, type Env } from './core'
 import { localDay } from './visitors'
 import { clock } from './clock'
 // PRIVACY-002: Global Privacy Control and Do Not Track stop collection. When the owner
@@ -23,8 +23,7 @@ export async function signalResponse(request:Request,env:Env):Promise<Response|n
  try {
   insist(request.method==='POST','method','POST required.',405);
   const value=await site(env,match[1]!);
-  insist(request.headers.get('origin')===value.origin,'origin','Origin is not registered for this site.',403);
-  cors={...cors,'access-control-allow-origin':value.origin};
+  cors={...cors,'access-control-allow-origin':siteOrigin(value,request)};
   insist(value.config.signalCounter===true,'signal_counter_off','This site does not count privacy signals.',403);
   insist((await request.text())==='','fields','The privacy-signal count carries no fields.');
   await env.DB.prepare('INSERT INTO vane_signals(site_id,day,count) VALUES(?,?,1) ON CONFLICT(site_id,day) DO UPDATE SET count=count+1 WHERE count<100000').bind(value.id,localDay(clock(),value.config.timeZone??'UTC')).run();

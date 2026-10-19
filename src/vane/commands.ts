@@ -6,7 +6,7 @@ import { auditSql, auditStatement } from './audit'
 // The command API is the agent door: proposals it prepares are audited as agent actions.
 export async function prepare(env:Env,actor:Actor,command:string,input:any,channel:'app'|'command API') {
  role(actor,['owner','admin']);
- insist(['site.create','site.configure','history.erase'].includes(command),'command','Unknown preparation command.');
+ insist(['site.create','site.configure','history.erase','site.delete'].includes(command),'command','Unknown preparation command.');
  let payload:any;
  if(command==='site.create')payload={...cleanSite(input),siteId:uid()};
  else { const value=await site(env,String(input.siteId)); payload={siteId:value.id,version:value.version,...(command==='site.configure'?cleanSite(input):{})}; }
@@ -27,7 +27,11 @@ export async function decide(env:Env,actor:Actor,id:string,approve:boolean) {
   const current=await site(env,payload.siteId); insist(current.version===payload.version,'stale','Site settings changed; prepare a new proposal.',409);
   operations.push(statement(env,'INSERT INTO vane_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM vane_sites WHERE id=? AND version=?) THEN 1 ELSE 0 END',current.id,payload.version));
   if(p.command==='site.configure')operations.push(statement(env,'UPDATE vane_sites SET name=?,origin=?,config_json=?,version=version+1 WHERE id=?',payload.name,payload.origin,JSON.stringify(payload.config),current.id));
-  if(p.command==='history.erase') {
+  // SITE-001: deleting a site first erases its history exactly as history.erase does, then removes the site with its
+  // counters and salts. Import custody checks the site at the end of its erasure, so the site goes in a second batch;
+  // until it commits the proposal stays pending and approving again finishes the deletion.
+  if(p.command==='history.erase'||p.command==='site.delete') {
+   const remove=p.command==='site.delete';
    await eraseSite(env,actor,current.id,[
     ...await deletionFence(env),
     {sql:"INSERT INTO vane_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM vane_proposals WHERE id=? AND state='pending') THEN 1 ELSE 0 END",params:[id]},
@@ -35,13 +39,13 @@ export async function decide(env:Env,actor:Actor,id:string,approve:boolean) {
     {sql:'DELETE FROM vane_events WHERE site_id=?',params:[current.id]},
     {sql:'DELETE FROM vane_signals WHERE site_id=?',params:[current.id]},
     {sql:'DELETE FROM vane_auto_events WHERE site_id=?',params:[current.id]},
-    auditSql(actor.id,'proposal.approve',id,`history.erase for site ${current.id}`),
-    auditSql(actor.id,'history.erase',current.id,`version ${payload.version}`),
-    {sql:'INSERT INTO vane_deletions(id,site_id,before_day,at,actor,reason) VALUES(?,?,?,?,?,?)',params:[uid(),current.id,day(at+86400000),at,actor.id,'owner-erasure']},
-    {sql:"UPDATE vane_proposals SET state='approved',approved_by=?,approved_at=? WHERE id=? AND state='pending'",params:[actor.id,at,id]},
+    ...(remove?[]:[auditSql(actor.id,'proposal.approve',id,`history.erase for site ${current.id}`),auditSql(actor.id,'history.erase',current.id,`version ${payload.version}`),{sql:"UPDATE vane_proposals SET state='approved',approved_by=?,approved_at=? WHERE id=? AND state='pending'",params:[actor.id,at,id]}]),
+    {sql:'INSERT INTO vane_deletions(id,site_id,before_day,at,actor,reason) VALUES(?,?,?,?,?,?)',params:[uid(),current.id,day(at+86400000),at,actor.id,remove?'site-deletion':'owner-erasure']},
     {sql:'DELETE FROM vane_guard',params:[]},
    ]);
-   return {id,state:'approved',siteId:current.id};
+   if(!remove)return {id,state:'approved',siteId:current.id};
+   await atomic(env,actor,[guard,operations[1]!,...['vane_events','vane_signals','vane_auto_events','vane_import_events','vane_admission','vane_salts'].map(table=>statement(env,`DELETE FROM ${table} WHERE site_id=?`,current.id)),statement(env,'DELETE FROM vane_sites WHERE id=?',current.id),change,auditStatement(env,actor.id,'proposal.approve',id,`site.delete for site ${current.id}`),auditStatement(env,actor.id,'site.delete',current.id,`version ${payload.version}`)]);
+   return {id,state:'approved'};
   }
  }
  operations.push(change,auditStatement(env,actor.id,approve?'proposal.approve':'proposal.reject',id,`${p.command} for site ${payload.siteId}`));

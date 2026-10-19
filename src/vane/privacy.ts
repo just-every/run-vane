@@ -36,7 +36,11 @@ export function cleanConfig(input:any):Config {
  // CONV-003: automatic events the site turns on.
  const autoEvents:string[]=Array.isArray(input.autoEvents)?[...new Set<string>(input.autoEvents.map(String))]:AUTO_EVENTS.filter(kind=>input['auto_'+kind]==='on');
  insist(autoEvents.every(kind=>(AUTO_EVENTS as readonly string[]).includes(kind)),'auto_events','Choose automatic events from outbound, download, 404 and form.');
+ // SITE-001: extra allowed origins (such as www beside the apex) and the ISO 4217 currency revenue is reported in.
+ const origins=[...new Set(list(input.origins))].map(browserOrigin),currency=String(input.currency||'USD').trim().toUpperCase();
+ insist(origins.length<=10,'origins','Allow up to 10 extra origins.');
+ insist(/^[A-Z]{3}$/.test(currency)&&Intl.supportedValuesOf('currency').includes(currency),'currency','Choose an ISO 4217 currency code, such as USD or EUR.');
  insist(/^[A-Za-z_]+(?:\/[A-Za-z0-9_+-]+)*$/.test(timeZone)&&(()=>{try{new Intl.DateTimeFormat('en-US',{timeZone}).format(0);return true}catch{return false}})(),'time_zone','Choose an IANA time zone, such as America/New_York.');
- return {paths,goals,scrollGoals,campaigns,sources,consent,sampleRate,retentionDays,signalCounter,timeZone,...(searchParam?{searchParam}:{}),...(publicReports.length?{publicReports,publicIndexing}:{}),...(autoEvents.length?{autoEvents}:{})};
+ return {paths,goals,scrollGoals,campaigns,sources,consent,sampleRate,retentionDays,signalCounter,timeZone,currency,...(origins.length?{origins}:{}),...(searchParam?{searchParam}:{}),...(publicReports.length?{publicReports,publicIndexing}:{}),...(autoEvents.length?{autoEvents}:{})};
 }
-export function cleanSite(input:any) { const name=String(input.name??'').trim(); insist(name.length>0&&name.length<=80&&!/[<>@]/.test(name),'name','Enter a short site name, without personal details.'); return {name,origin:browserOrigin(input.origin),config:cleanConfig(input.config??input)} }
+export function cleanSite(input:any) { const name=String(input.name??'').trim(); insist(name.length>0&&name.length<=80&&!/[<>@]/.test(name),'name','Enter a short site name, without personal details.'); const origin=browserOrigin(input.origin),config=cleanConfig(input.config??input); insist(!config.origins?.includes(origin),'origins','Extra origins must differ from the website origin.'); return {name,origin,config} }
