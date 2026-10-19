@@ -2591,7 +2591,7 @@
       "executable": false
     },
     "src/vane/custom-events.ts": {
-      "sha256": "8ba4f85e16bc8f3915db07a93e068005e5341978429696f7151156adee64f6b2",
+      "sha256": "ddc2d145abd9d0eeb9d1afe2f72c80fc76197c14a1c2e59a3f9e6515846b81dd",
       "executable": false
     },
     "src/vane/custom-reports.ts": {
@@ -3063,7 +3063,7 @@
       "executable": false
     },
     "tests/matomo.test.mjs": {
-      "sha256": "d26ceb0ea85d6fd91ba085029dd442cabce91101499a72781b40aa4387f17bc8",
+      "sha256": "b343d01c3ed177a43ab7968de31311b9319daf5d5d056e9075f7d3e1128e781a",
       "executable": false
     },
     "tests/site.test.mjs": {
