@@ -1,4 +1,5 @@
 import { cleanDefinitions, cleanVisitTimeout, DEFAULT_VISIT_TIMEOUT } from './definitions'
+import { cleanExcludedCountries, cleanExcludedIps } from './traffic'
 import { insist, type Config } from './core'
 import { goalMatches, goalPath } from './goals'
 import { PUBLIC_REPORTS } from './public-reports'
@@ -46,6 +47,8 @@ export function cleanConfig(input:any):Config {
  insist(/^[A-Za-z_]+(?:\/[A-Za-z0-9_+-]+)*$/.test(timeZone)&&(()=>{try{new Intl.DateTimeFormat('en-US',{timeZone}).format(0);return true}catch{return false}})(),'time_zone','Choose an IANA time zone, such as America/New_York.');
  // METRIC-004: the owner-approved visit timeout and the site's dated definition versions.
  const visitTimeout=cleanVisitTimeout(input),definitions=cleanDefinitions(input.definitions);
- return {paths,...(excludePaths.length?{excludePaths}:{}),...(rewrites.length?{rewrites}:{}),...(queryKeys.length?{queryKeys}:{}),...(sourceRules.length?{sourceRules}:{}),...(declinedCounter?{declinedCounter}:{}),goals,scrollGoals,consent,sampleRate,...retention,signalCounter,timeZone,currency,...(origins.length?{origins}:{}),...(searchParam?{searchParam}:{}),...(publicReports.length?{publicReports,publicIndexing}:{}),...(autoEvents.length?{autoEvents}:{}),...(visitTimeout!==DEFAULT_VISIT_TIMEOUT?{visitTimeout}:{}),...(definitions.length?{definitions}:{})};
+ // COLLECT-003: the owner's excluded IP addresses or ranges and countries.
+ const excludeIps=cleanExcludedIps(input.excludeIps),excludeCountries=cleanExcludedCountries(input.excludeCountries);
+ return {paths,...(excludePaths.length?{excludePaths}:{}),...(rewrites.length?{rewrites}:{}),...(queryKeys.length?{queryKeys}:{}),...(sourceRules.length?{sourceRules}:{}),...(declinedCounter?{declinedCounter}:{}),goals,scrollGoals,consent,sampleRate,...retention,signalCounter,timeZone,currency,...(origins.length?{origins}:{}),...(searchParam?{searchParam}:{}),...(publicReports.length?{publicReports,publicIndexing}:{}),...(autoEvents.length?{autoEvents}:{}),...(visitTimeout!==DEFAULT_VISIT_TIMEOUT?{visitTimeout}:{}),...(definitions.length?{definitions}:{}),...(excludeIps.length?{excludeIps}:{}),...(excludeCountries.length?{excludeCountries}:{})};
 }
 export function cleanSite(input:any) { const name=String(input.name??'').trim(); insist(name.length>0&&name.length<=80&&!/[<>@]/.test(name),'name','Enter a short site name, without personal details.'); const origin=browserOrigin(input.origin),config=cleanConfig(input.config??input); insist(!config.origins?.includes(origin),'origins','Extra origins must differ from the website origin.'); return {name,origin,config} }

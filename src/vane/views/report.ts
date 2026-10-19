@@ -9,7 +9,7 @@ import { RETENTION_CHOICES, retentionChoice } from '../retention'
 import { JOURNEY_MODES } from '../journeys'
 import { moverText, type Explanation, type Judged } from '../explain'
 
-const reasons: Record<string, string> = { 'consent-declined': 'Declined consent', 'excluded-path': 'Excluded paths', 'privacy-signals': 'Privacy signals', imported: 'Imported events' }
+const reasons: Record<string, string> = { 'consent-declined': 'Declined consent', 'excluded-path': 'Excluded paths', 'excluded-ip': 'Excluded IP addresses', 'excluded-country': 'Excluded countries', bot: 'Bots and automation', 'data-centre': 'Data-centre networks', 'referrer-spam': 'Referrer spam', 'own-browser': 'Own browser (opted out)', 'privacy-signals': 'Privacy signals', imported: 'Imported events' }
 
 // REPORT-003: what moved, with denominators, the range's annotations, coverage changes and normal variation.
 function explanationPanel(report: any): string {

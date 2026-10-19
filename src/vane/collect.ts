@@ -10,6 +10,7 @@ import { searchTerm } from './search'
 import { hostOf, keptValue, pathAllowed, redactPath, storedPath, visitSource } from './paths'
 import { channelOf, webmail } from './channels'
 import { countExclusion, declinedResponse } from './exclusions'
+import { excludedTraffic } from './traffic'
 export async function collector(request:Request,env:Env):Promise<Response|null> {
  const url=new URL(request.url);
  const signal=await signalResponse(request,env)??await declinedResponse(request,env);if(signal)return signal;
@@ -60,6 +61,9 @@ export async function collector(request:Request,env:Env):Promise<Response|null> 
   let referrer:URL|null=null;
   if(payload.referrer!==undefined){try{referrer=new URL(String(payload.referrer))}catch{}insist(referrer&&['http:','https:','android-app:'].includes(referrer.protocol)&&!referrer.username&&!referrer.password&&String(payload.referrer).length<=1100,'referrer','Send the referring page as a web address without credentials.')}
   const own=[value.origin,...(value.config.origins??[])].map(hostOf),refHost=referrer?(referrer.protocol==='android-app:'?'android-app://':'')+referrer.hostname.toLowerCase():payload.source,mail=typeof refHost==='string'&&webmail(refHost),kept=Object.keys(query).sort().flatMap(key=>{const v=keptValue(query[key]);return v===null?[]:[key+'='+v]});
+  // COLLECT-003: owner-excluded IPs and countries, bots, data-centre networks and referrer spam are counted by reason and refused.
+  const excluded=excludedTraffic(request,value.config,typeof refHost==='string'&&!refHost.startsWith('android-app://')?refHost:null);
+  if(excluded){await countExclusion(env,value.id,localDay(clock(),value.config.timeZone??'UTC'),excluded).run();throw new VaneError('excluded',`This traffic is excluded from collection (${excluded}).`,403)}
   const e={hostname:hostOf(origin),path,source:mail&&!utmSource&&!keptValue(payload.ref)?'webmail':visitSource(utmSource,keptValue(payload.ref),refHost,own),referrer:referrer&&referrer.protocol!=='android-app:'&&!mail&&!own.includes(referrer.hostname.toLowerCase())?referrer.hostname.toLowerCase()+redactPath(referrer.pathname||'/'):null,campaign:keptValue(payload.campaign)??'none',utmSource,utmMedium:keptValue(utm.medium),utmTerm:keptValue(utm.term),utmContent:keptValue(utm.content),paidClick:payload.click?1:0,query:kept.length?kept.join('&'):null};
   insist(payload.consent===(value.config.consent==='required'?'granted':'not-required'),'consent','Consent is required for collection.',403);
   const now=clock(),today=localDay(now,value.config.timeZone??'UTC'),eventId=value.id+':'+payload.id;

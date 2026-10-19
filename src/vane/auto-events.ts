@@ -1,6 +1,7 @@
 import { insist, site, siteOrigin, VaneError, type Env } from './core'
 import { clock } from './clock'
 import { localDay } from './visitors'
+import { excludedTraffic } from './traffic'
 // CONV-003: automatic events, each turned on per site. Outbound links record the destination without its
 // query, downloads the file URL for common document and media extensions, 404 pages (marked by the site
 // with <meta name="vane-404">) the missing path, and form submissions the form's ID or action path, never
@@ -28,6 +29,8 @@ export async function autoEventResponse(request:Request,env:Env):Promise<Respons
   insist(Object.keys(payload).every(key=>['id','siteId','kind','prop','consent'].includes(key))&&/^[a-f0-9-]{36}$/.test(payload.id)&&typeof payload.prop==='string','fields','Only the declared automatic-event fields are accepted.');
   insist((value.config.autoEvents??[]).includes(payload.kind),'kind','This automatic event is not turned on for the site.',403);
   insist(payload.consent===(value.config.consent==='required'?'granted':'not-required'),'consent','Consent is required for collection.',403);
+  // COLLECT-003: excluded traffic is refused here too; its page load was already counted by reason.
+  const excluded=excludedTraffic(request,value.config,null);insist(!excluded,'excluded',`This traffic is excluded from collection (${excluded}).`,403);
   const now=clock();
   await env.DB.prepare('INSERT OR IGNORE INTO vane_auto_events(id,site_id,day,kind,prop,at,hostname) VALUES(?,?,?,?,?,?,?)').bind(value.id+':'+payload.id,value.id,localDay(now,value.config.timeZone??'UTC'),payload.kind,detail(payload.kind,payload.prop,[value.origin,...(value.config.origins??[])]),now,new URL(origin).hostname.toLowerCase()).run();
   return Response.json({accepted:true},{status:202,headers:cors});

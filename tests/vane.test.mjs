@@ -6,9 +6,11 @@ import { installation } from './harness.mjs'
 const fixture=JSON.parse(await readFile(new URL('./fixtures/umami-events.json',import.meta.url),'utf8'))
 async function withApp(t){const app=await installation();t.after(()=>app.close());return app}
 // A real browser whose requests are all recorded: the built Worker serves the installation's origin, `pages` serves fixture pages, and anything else is refused.
-async function browse(t,a,pages={},options={}){
+// Headless browsers are excluded as automation (COLLECT-003), so it presents a desktop Chrome user agent unless userAgent is null.
+const DESKTOP_CHROME='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36'
+async function browse(t,a,pages={},{userAgent=DESKTOP_CHROME,...options}={}){
  const {chromium}=await import('@playwright/test'),browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']});t.after(()=>browser.close())
- const context=await browser.newContext(options),requests=[]
+ const context=await browser.newContext(userAgent===null?options:{...options,userAgent}),requests=[]
  await context.route('**/*',async route=>{
   const request=route.request(),url=new URL(request.url());requests.push(url.origin)
   if(pages[url.href])return route.fulfill({contentType:'text/html',body:pages[url.href]})
@@ -889,6 +891,59 @@ test('METRIC-004 the signed-out methodology page defines every metric the dashbo
  const created=await a.form({operation:'rollup.create',name:'Both',[`site_${id}`]:'on',[`site_${oak}`]:'on'},a.owner),rollup=created.headers.get('location').match(/\/app\/rollups\/([\w-]+)/)[1]
  const rolled=await (await a.request(`/api/vane/summary?rollupId=${rollup}&from=2026-03-01&to=2026-03-08`,owner)).json();assert.equal(rolled.visits,6)
  assert.ok((await (await a.request(`/app/rollups/${rollup}?from=2026-03-01&to=2026-03-08&metric=visits`,owner)).text()).includes(`<time datetime="2026-03-05">2026-03-05</time> Fern Studio: ${note}`))
+})
+test('COLLECT-003 a headless browser, crawlers, referrer spam, excluded IP ranges, an excluded country and the owner\'s opted-out browser are refused and counted by reason beside real visits, and no visitor IP, country or user agent is stored',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({excludeIps:'198.51.100.0/24\n2001:db8::/32',excludeCountries:'ca',autoEvents:['outbound']})
+ const chrome='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',googlebot='Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)'
+ const send=(headers,extra={})=>a.post('/api/vane/collect',a.event(id,extra),'',{origin:'https://fern.example','user-agent':chrome,'cf-connecting-ip':'203.0.113.20',...headers})
+ // A real headless browser's page load is refused as automation.
+ const {context}=await browse(t,a,{'https://fern.example/':`<!doctype html><title>Fern</title><script src="${a.origin}/vane.js" data-site="${id}"></script>`},{userAgent:null}),tab=await context.newPage()
+ const refused=tab.waitForResponse(r=>new URL(r.url()).pathname==='/api/vane/collect');await tab.goto('https://fern.example/');assert.equal((await refused).status(),403);await context.close()
+ // The owner's opted-out browser sends only an empty count.
+ const own=await browse(t,a,{'https://fern.example/':`<!doctype html><title>Fern</title><script src="${a.origin}/vane.js" data-site="${id}"></script>`}),ownTab=await own.context.newPage(),sent=[];ownTab.on('request',r=>sent.push(new URL(r.url()).pathname))
+ const ignored=ownTab.waitForRequest(r=>new URL(r.url()).pathname==='/api/vane/ignored/'+id);await ownTab.goto('https://fern.example/#vane-ignore=on');const count=await ignored
+ assert.equal(count.postData()??'','');assert.equal((await count.response()).status(),202);await ownTab.waitForTimeout(500);assert.ok(!sent.includes('/api/vane/collect'),'nothing is collected');await own.context.close()
+ assert.equal((await a.post('/api/vane/ignored/'+id,{path:'/'},'',{origin:'https://fern.example'})).status,400,'the count carries no fields')
+ // Real visits, one from an address just outside the excluded range.
+ for(const ip of ['203.0.113.20','198.51.101.7'])assert.equal((await send({'cf-connecting-ip':ip})).status,202)
+ for(const [headers,extra,reason] of [[{'user-agent':googlebot},{},'bot'],[{'user-agent':'curl/8.4.0'},{},'bot'],[{},{referrer:'https://semalt.com/'},'referrer-spam'],[{'cf-connecting-ip':'198.51.100.7'},{},'excluded-ip'],[{'cf-connecting-ip':'2001:db8::5'},{},'excluded-ip'],[{'cf-ipcountry':'CA'},{},'excluded-country']]){const r=await send(headers,extra);assert.equal(r.status,403,reason);assert.ok((await r.json()).message.endsWith(`(${reason}).`),reason)}
+ const event=headers=>a.post('/api/vane/event',{id:crypto.randomUUID(),siteId:id,kind:'outbound',prop:'https://elsewhere.example/',consent:'not-required'},'',{origin:'https://fern.example','user-agent':chrome,...headers})
+ assert.equal((await event({'user-agent':googlebot})).status,403,'automatic events from excluded traffic are refused');assert.equal((await event({})).status,202)
+ const summary=await (await a.request('/api/vane/summary?siteId='+id,owner)).json();assert.equal(summary.pageviews,2)
+ assert.deepEqual(summary.exclusions,[{reason:'bot',count:3},{reason:'excluded-country',count:1},{reason:'excluded-ip',count:2},{reason:'own-browser',count:1},{reason:'referrer-spam',count:1}])
+ const report=await (await a.request(`/app/sites/${id}?section=report`,owner)).text()
+ for(const row of ['<dt>Bots and automation</dt><dd>3 of 5 page loads that reached Vane (60.0%), not collected.</dd>','<dt>Excluded IP addresses</dt><dd>2 of 4','<dt>Excluded countries</dt><dd>1 of 3','<dt>Referrer spam</dt><dd>1 of 3','<dt>Own browser (opted out)</dt><dd>1 of 3'])assert.ok(report.includes(row),row)
+ const stored=JSON.stringify(await a.dump());for(const value of ['198.51.100.7','2001:db8::5','203.0.113.20','Googlebot','HeadlessChrome','curl/','semalt'])assert.ok(!stored.includes(value),value)
+ const settings=await (await a.request(`/app/sites/${id}?section=settings`,owner)).text();assert.ok(settings.includes('198.51.100.0/24\n2001:db8::/32')&&settings.includes('value="CA"'))
+ const input={siteId:id,name:'Fern Studio',origin:'https://fern.example',paths:['/','/thanks'],goals:{signup:'/thanks'},consent:'not-required'}
+ for(const extra of [{excludeIps:'198.51.100.0/33'},{excludeIps:'example.com'},{excludeCountries:'ZZ'},{excludeCountries:Array.from({length:31},(_,i)=>String.fromCharCode(65+i%26)+String.fromCharCode(65+Math.floor(i/26))).join(' ')}])assert.equal((await a.post('/api/vane/commands',{command:'site.configure',input:{...input,...extra}},a.owner)).status,400,JSON.stringify(extra))
+ const methodology=await (await a.request('/methodology')).text();for(const phrase of ['id="excluded-traffic"','headlesschrome','semalt.com','AS16509 Amazon AWS','never stored'])assert.ok(methodology.includes(phrase),phrase)
+})
+test('REPORT-003 a week where organic search falls 40% on one page names that channel and page with their totals, lists the range\'s annotation and coverage change, and judges each day against the 95% day-of-week prediction interval',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}},input={name:'Fern Studio',origin:'https://fern.example',paths:[],excludePaths:['/admin/**'],goals:{},consent:'not-required',sampleRate:100,retentionDays:365},id=await a.addSite(input)
+ const DAY=86400000,date=ms=>new Date(ms).toISOString().slice(0,10),range=Date.parse('2026-03-09T00:00:00Z')
+ const visit=async(at,k,organic)=>{await a.clock(at);assert.equal((await a.post('/api/vane/collect',a.event(id,organic?{path:'/pricing',source:undefined,campaign:undefined,referrer:'https://www.google.com/'}:{path:'/',source:undefined,campaign:undefined}),'',{origin:'https://fern.example','cf-connecting-ip':'203.0.113.'+k,'user-agent':'Synthetic Browser 7'})).status,202)}
+ const day=async(start,organic,direct)=>{for(let k=0;k<organic+direct;k++)await visit(start+(9*60+k*5)*60000,k+1,k<organic)}
+ // Weeks 2-8 before the range: 4 or 6 direct visits a day, alternating by week; week 1 (the compared week): 4 a day, 10 of them organic.
+ for(let week=8;week>=2;week--)for(let d=0;d<7;d++)await day(range-week*7*DAY+d*DAY,0,week%2?4:6)
+ for(const [d,organic] of [2,2,2,1,1,1,1].entries())await day(range-7*DAY+d*DAY,organic,4-organic)
+ // The range: organic 6 (−40%), direct 18 as before; Monday has 4 visits, Tuesday 1.
+ for(const [d,[organic,direct]] of [[2,2],[0,1],[1,3],[1,3],[1,3],[1,3],[0,3]].entries())await day(range+d*DAY,organic,direct)
+ await a.clock(range+2*DAY+12*3600000);assert.equal((await a.post('/api/vane/collect',a.event(id,{path:'/admin/users'}),'',{origin:'https://fern.example'})).status,403)
+ const p=await (await a.post('/api/vane/commands',{command:'site.configure',input:{...input,siteId:id,visitTimeout:45}},a.owner)).json();assert.equal((await a.form({operation:'proposal.approve',id:p.id},a.owner)).status,303)
+ const summary=await (await a.request(`/api/vane/summary?siteId=${id}&from=2026-03-09&to=2026-03-16`,owner)).json(),e=summary.explain
+ assert.deepEqual([summary.visits,summary.previousVisits],[24,28])
+ const moved=e.movers.map(m=>[m.dimension,m.label,m.then,m.now,m.totalThen,m.totalNow])
+ assert.deepEqual(moved.filter(m=>m[0]!=='Device'),[['Channel','Organic Search',10,6,28,24],['Page','/pricing',10,6,28,24]],'direct and / are stable, so only organic search and /pricing moved')
+ assert.deepEqual(e.annotations.map(n=>n.day),['2026-03-11']);assert.deepEqual(e.coverage,[{label:'excluded-path',now:1,then:0}])
+ const judged=Object.fromEntries(e.variation.map(d=>[d.day,d.metrics?.visitors]))
+ // Monday's baseline leaves out MLK Day and Washington's Birthday: 4,6,6,4,6,6 gives 5.33 ± 2.571·s·√(7/6); Tuesday's eight give 5 ± 2.365·s·√(9/8).
+ assert.deepEqual(judged['2026-03-09'],{value:4,low:2.5,high:8.2,within:true});assert.deepEqual(judged['2026-03-10'],{value:1,low:2.3,high:7.7,within:false})
+ const html=await (await a.request(`/app/sites/${id}?section=report&from=2026-03-09&to=2026-03-16`,owner)).text()
+ for(const phrase of ['Channel Organic Search: 10 → 6 visits (−4, −40%), of 28 → 24 visits in all.','Page /pricing: 10 → 6 pageviews (−4, −40%), of 28 → 24 pageviews in all.','2026-03-11: Visit definition v2','Excluded paths: 0 → 1.','2.3 to 7.7: outside normal variation','2.5 to 8.2: within normal variation'])assert.ok(html.includes(phrase),phrase)
+ assert.ok(!/because|caused|due to/i.test(html.slice(html.indexOf('Weekly explanation'),html.indexOf('What moved')+4000)),'the explanation never claims a cause')
+ const holiday=await (await a.request(`/api/vane/summary?siteId=${id}&from=2026-02-16&to=2026-02-18`,owner)).json();assert.deepEqual(holiday.explain.variation.map(d=>[d.day,d.holiday??null,Boolean(d.metrics)]),[['2026-02-16','Washington’s Birthday',false],['2026-02-17',null,true]])
+ assert.equal((await (await a.request(`/api/vane/summary?siteId=${id}&from=2026-01-01&to=2026-03-16`,owner)).json()).explain.variation,null,'ranges over 31 days are not judged')
 })
 test('CONV-004 conversions from Google and from email give every channel, source, UTM, entry-page and device row its conversions and conversion rate for the selected goal, or for any goal',async t=>{
  const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({paths:[],goals:{signup:'/thanks',demo:'/demo'}})
