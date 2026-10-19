@@ -6,3 +6,11 @@ export function goalMatches(pattern:string,path:string):boolean {
  const escaped=(part:string)=>part.replace(/[.+?^${}()|[\]\\]/g,'\\$&');
  return new RegExp('^'+pattern.split('**').map(part=>part.split('*').map(escaped).join('[^/]*')).join('.*')+'$').test(path);
 }
+// DASH-013: a goal may be scoped to one hostname by prefixing it, as in blog.example.com/thanks; it then
+// converts only on that hostname. Rows without a hostname (imported history) never meet a scoped goal.
+export function goalApplies(goal:string,hostname:string|null|undefined,path:string):boolean {
+ if(goal.startsWith('/'))return goalMatches(goal,path);
+ const at=goal.indexOf('/');
+ return Boolean(hostname)&&goal.slice(0,at)===hostname&&goalMatches(goal.slice(at),path);
+}
+export const goalPath=(goal:string)=>goal.startsWith('/')?goal:goal.slice(goal.indexOf('/'))

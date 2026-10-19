@@ -4,7 +4,7 @@ import { signalResponse } from './privacy-signals'
 import { localDay, visitorHash } from './visitors'
 import { clock } from './clock'
 import { ENGAGED_AFTER_MS, VISIT_GAP_MS } from './visits'
-import { goalMatches } from './goals'
+import { goalApplies } from './goals'
 import { deviceOf } from './devices'
 import { searchTerm } from './search'
 import { hostOf, keptValue, pathAllowed, redactPath, storedPath, visitSource } from './paths'
@@ -32,11 +32,11 @@ export async function collector(request:Request,env:Env):Promise<Response|null> 
    // METRIC-006: it carries the deepest scroll reached, and scroll-depth goals count against it.
    insist(Object.keys(payload??{}).every(key=>['id','siteId','scroll'].includes(key))&&/^[a-f0-9-]{36}$/.test(payload.id),'fields','An engagement ping carries only the site and page-load IDs and the scroll depth.');
    insist(Number.isInteger(payload.scroll)&&payload.scroll>=0&&payload.scroll<=100,'scroll','Scroll depth is a whole percentage from 0 to 100.');
-   const at=clock(),eventId=value.id+':'+payload.id,load=await env.DB.prepare("SELECT at,path FROM vane_events WHERE id=? AND kind='pageview'").bind(eventId).first<{at:number|null,path:string}>();
+   const at=clock(),eventId=value.id+':'+payload.id,load=await env.DB.prepare("SELECT at,path,hostname FROM vane_events WHERE id=? AND kind='pageview'").bind(eventId).first<{at:number|null,path:string,hostname:string|null}>();
    insist(typeof load?.at==='number','page_load','No timed page load has this ID.',404);
    insist(at-load.at>=ENGAGED_AFTER_MS,'engagement','Engagement counts after 10 seconds on the page.',409);
    insist(at-load.at<=VISIT_GAP_MS,'expired','Engagement more than 30 minutes after its page load is not counted.',409);
-   const goals=Object.entries(value.config.scrollGoals??{}).filter(([,goal])=>goalMatches(goal.path,load.path));
+   const goals=Object.entries(value.config.scrollGoals??{}).filter(([,goal])=>goalApplies(goal.path,load.hostname,load.path));
    await env.DB.batch([statement(env,'UPDATE vane_events SET engaged_at=MAX(COALESCE(engaged_at,0),?),scroll=MAX(COALESCE(scroll,0),?) WHERE id=?',at,payload.scroll,eventId),...goals.map(([name,goal])=>statement(env,'INSERT OR IGNORE INTO vane_events(id,site_id,day,kind,path,source,campaign,consent,sample_rate,visitor,at,hostname) SELECT id||?,site_id,day,?,path,source,campaign,consent,sample_rate,visitor,at,hostname FROM vane_events WHERE id=? AND scroll>=?',':'+name,name,eventId,goal.depth))]);
    return Response.json({accepted:true},{status:202,headers:cors});
   }
@@ -66,7 +66,7 @@ export async function collector(request:Request,env:Env):Promise<Response|null> 
   const prior=await env.DB.prepare('SELECT * FROM vane_events WHERE id=?').bind(eventId).first<any>();
   if(prior) { insist(prior.path===e.path&&prior.source===e.source&&prior.campaign===e.campaign,'conflict','Event ID already has different data.',409); return Response.json({accepted:true,duplicate:true},{headers:cors}); }
   const visitor=await visitorHash(env,value,request,today,now),d=deviceOf(request.headers.get('user-agent')??'',payload.width),search=payload.search===undefined?null:searchTerm(payload.search);
-  const kinds=['pageview',...Object.entries(value.config.goals).filter(([,path])=>goalMatches(path,e.path)).map(([name])=>name)];
+  const kinds=['pageview',...Object.entries(value.config.goals).filter(([,goal])=>goalApplies(goal,e.hostname,e.path)).map(([name])=>name)];
   const statements=[statement(env,'DELETE FROM vane_guard'),statement(env,'INSERT INTO vane_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM vane_sites WHERE id=? AND version=?) THEN 1 ELSE 0 END',value.id,value.version),statement(env,'INSERT INTO vane_admission(site_id,day,count) VALUES(?,?,1) ON CONFLICT(site_id,day) DO UPDATE SET count=count+1',value.id,today),statement(env,'INSERT INTO vane_guard(value) SELECT CASE WHEN count<=10000 THEN 1 ELSE 0 END FROM vane_admission WHERE site_id=? AND day=?',value.id,today)];
   for(const kind of kinds)statements.push(statement(env,'INSERT INTO vane_events(id,site_id,day,kind,path,source,campaign,consent,sample_rate,visitor,at,device,browser,browser_version,os,os_version,screen,search,hostname,utm_source,utm_medium,utm_term,utm_content,paid_click,query,channel,referrer) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',kind==='pageview'?eventId:eventId+':'+kind,value.id,today,kind,e.path,e.source,e.campaign,payload.consent,value.config.sampleRate,visitor,now,d.device,d.browser,d.browserVersion,d.os,d.osVersion,d.screen,kind==='pageview'?search:null,e.hostname,e.utmSource,e.utmMedium,e.utmTerm,e.utmContent,e.paidClick,e.query,channel,e.referrer));
   statements.push(statement(env,'DELETE FROM vane_guard'));

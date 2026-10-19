@@ -627,3 +627,24 @@ test('PRIVACY-001 the data inventory and generated policy text change with the s
   for(const row of rows)for(const [column,value] of Object.entries(row))if(value!==null)assert.ok(named.has(column),`${table}.${column} is in the inventory`)
  }
 })
+test('DASH-013 www and blog hostnames keep their pages apart, the Hostnames report and filter (is, is not, contains, wildcard) narrow the dashboard and Stats API, and a goal scoped to one hostname converts only there',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}},www='https://www.fern.example',blog='https://blog.fern.example'
+ const id=await a.addSite({origin:www,origins:[blog],paths:[],goals:{'blog-thanks':'blog.fern.example/thanks'},autoEvents:['outbound']})
+ let n=0;const send=async(origin,path)=>{n++;const r=await a.post('/api/vane/collect',a.event(id,{path,source:'direct',campaign:'none'}),'',{origin,'cf-connecting-ip':'203.0.113.'+n,'user-agent':'Synthetic Browser'});assert.equal(r.status,202,origin+path)}
+ for(const origin of [www,blog])for(const path of ['/','/pricing','/thanks'])await send(origin,path)
+ for(const origin of [www,blog])assert.equal((await a.post('/api/vane/event',{id:crypto.randomUUID(),siteId:id,kind:'outbound',prop:'https://example.org/',consent:'not-required'},'',{origin})).status,202)
+ assert.equal((await a.post('/api/vane/collect',a.event(id,{path:'/'}),'',{origin:'https://shop.fern.example'})).status,403,'a hostname the site does not allow is refused')
+ const summary=async(query='')=>{const r=await a.request(`/api/vane/summary?siteId=${id}${query}`,owner);assert.equal(r.status,200,query);return r.json()}
+ const all=await summary()
+ assert.deepEqual(all.topPages.map(p=>p.path).sort(),['blog.fern.example/','blog.fern.example/pricing','blog.fern.example/thanks','www.fern.example/','www.fern.example/pricing','www.fern.example/thanks'])
+ assert.deepEqual(all.hostnames.map(h=>[h.path,h.visitors,h.visits,h.pageviews,h.bounceRate,h.conversions]),[['blog.fern.example',3,3,3,100,1],['www.fern.example',3,3,3,100,0]])
+ assert.deepEqual(all.goalBreakdown.map(g=>[g.label,g.count]),[['blog-thanks',1]],'the scoped goal converts only on its hostname')
+ const shape=r=>[r.pageviews,r.visitors,r.goals,r.topPages.length,r.automaticEvents.reduce((sum,e)=>sum+Number(e.count),0),[...new Set(r.topPages.map(p=>p.path.split('/')[0]))].sort().join(' ')]
+ assert.deepEqual(shape(await summary('&hostOp=is&host=blog.fern.example')),[3,3,1,3,1,'blog.fern.example'])
+ assert.deepEqual(shape(await summary('&hostOp=is_not&host=blog.fern.example')),[3,3,0,3,1,'www.fern.example'])
+ assert.deepEqual(shape(await summary('&hostOp=contains&host=blog')),[3,3,1,3,1,'blog.fern.example'])
+ assert.deepEqual(shape(await summary('&hostOp=matches&host=*.fern.example')),[6,6,1,6,2,'blog.fern.example www.fern.example'])
+ assert.equal((await a.request(`/api/vane/summary?siteId=${id}&hostOp=is&host=bl'og`,owner)).status,400)
+ const page=await (await a.request(`/app/sites/${id}?section=report&hostOp=is&host=blog.fern.example`,owner)).text()
+ assert.ok(page.includes('Filtered: hostname is blog.fern.example'));assert.ok(!page.includes('www.fern.example/pricing'))
+})

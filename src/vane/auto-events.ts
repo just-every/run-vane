@@ -24,12 +24,12 @@ export async function autoEventResponse(request:Request,env:Env):Promise<Respons
   insist(request.method==='POST','method','POST required.',405);
   const text=await request.text();insist(text.length<=2048,'body','Event too large.',413);
   const payload=JSON.parse(text),value=await site(env,String(payload?.siteId));
-  cors={...cors,'access-control-allow-origin':siteOrigin(value,request)};
+  const origin=siteOrigin(value,request);cors={...cors,'access-control-allow-origin':origin};
   insist(Object.keys(payload).every(key=>['id','siteId','kind','prop','consent'].includes(key))&&/^[a-f0-9-]{36}$/.test(payload.id)&&typeof payload.prop==='string','fields','Only the declared automatic-event fields are accepted.');
   insist((value.config.autoEvents??[]).includes(payload.kind),'kind','This automatic event is not turned on for the site.',403);
   insist(payload.consent===(value.config.consent==='required'?'granted':'not-required'),'consent','Consent is required for collection.',403);
   const now=clock();
-  await env.DB.prepare('INSERT OR IGNORE INTO vane_auto_events(id,site_id,day,kind,prop,at) VALUES(?,?,?,?,?,?)').bind(value.id+':'+payload.id,value.id,localDay(now,value.config.timeZone??'UTC'),payload.kind,detail(payload.kind,payload.prop,[value.origin,...(value.config.origins??[])]),now).run();
+  await env.DB.prepare('INSERT OR IGNORE INTO vane_auto_events(id,site_id,day,kind,prop,at,hostname) VALUES(?,?,?,?,?,?,?)').bind(value.id+':'+payload.id,value.id,localDay(now,value.config.timeZone??'UTC'),payload.kind,detail(payload.kind,payload.prop,[value.origin,...(value.config.origins??[])]),now,new URL(origin).hostname.toLowerCase()).run();
   return Response.json({accepted:true},{status:202,headers:cors});
  } catch(error) { const e=error instanceof VaneError?error:new VaneError('invalid_event','Event could not be accepted.'); return Response.json({error:e.code,message:e.message},{status:e.status,headers:cors}); }
 }
