@@ -15,10 +15,10 @@ export function replacement(env:Env,config:Connection,syncId:string,kinds:Kind[]
  }
  // JSON batches avoid thousands of statements without exceeding SQLite's binding limit.
  for(let start=0;start<values.length;start+=100){
-  prepared.push(statement(env,`INSERT INTO vane_bing_rows(site_id,day,kind,query,page,clicks,impressions,position_sum,position_weight,fetched_at)
-   SELECT ?,json_extract(j.value,'$.day'),json_extract(j.value,'$.kind'),json_extract(j.value,'$.query'),json_extract(j.value,'$.page'),json_extract(j.value,'$.clicks'),json_extract(j.value,'$.impressions'),json_extract(j.value,'$.position_sum'),json_extract(j.value,'$.position_weight'),?
+  prepared.push(statement(env,`INSERT INTO vane_bing_rows(site_id,property,day,kind,query,page,clicks,impressions,position_sum,position_weight,fetched_at)
+   SELECT ?,?,json_extract(j.value,'$.day'),json_extract(j.value,'$.kind'),json_extract(j.value,'$.query'),json_extract(j.value,'$.page'),json_extract(j.value,'$.clicks'),json_extract(j.value,'$.impressions'),json_extract(j.value,'$.position_sum'),json_extract(j.value,'$.position_weight'),?
    FROM json_each(?) j WHERE ${current}
-   AND json_extract(j.value,'$.day')>=COALESCE((SELECT MAX(before_day) FROM vane_deletions WHERE site_id=?),'0000-01-01')`,config.site_id,now,JSON.stringify(values.slice(start,start+100)),config.site_id,config.id,syncId,config.site_id))
+   AND json_extract(j.value,'$.day')>=COALESCE((SELECT MAX(before_day) FROM vane_deletions WHERE site_id=?),'0000-01-01')`,config.site_id,config.property,now,JSON.stringify(values.slice(start,start+100)),config.site_id,config.id,syncId,config.site_id))
  }
  return prepared
 }

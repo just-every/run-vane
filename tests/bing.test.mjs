@@ -7,7 +7,7 @@ import { installation } from './harness.mjs'
 const T=Date.parse('2026-10-19T12:00:00Z'),DAY=86400000
 
 test('SEARCH-002 verified Bing connection, source keyword/page figures beside Google, organic landing filter, private credentials and scoped public doors',async t=>{
- const a=await installation();t.after(()=>a.close())
+ const a=await installation({vars:{GOOGLE_CLIENT_ID:'fixture-google-client',GOOGLE_CLIENT_SECRET:'fixture-google-secret'}});t.after(()=>a.close())
  const id=await a.addSite({paths:[],goals:{},retainForever:true}),other=await a.addSite({origin:'https://other.example',paths:[],goals:{}})
  const owner={headers:{cookie:a.owner}},apiKey='fixture-bing-key-private-to-network-edge',property='https://fern.example/'
  await a.clock(Date.parse('2026-10-16T12:00:00Z'))
@@ -16,7 +16,7 @@ test('SEARCH-002 verified Bing connection, source keyword/page figures beside Go
   assert.equal(response.status,202)
  }
  await a.clock(T)
- let providerCalls=0,refuse=false
+ let providerCalls=0,refuse=false,olderWindow=true
  const date='/Date('+Date.parse('2026-10-16T07:00:00Z')+'-0700)/'
  const row=(Query,Clicks,Impressions,AvgImpressionPosition)=>({Date:date,Query,Clicks,Impressions,AvgImpressionPosition,AvgClickPosition:AvgImpressionPosition+1})
  a.fixtureSites['https://ssl.bing.com']=async request=>{
@@ -25,10 +25,10 @@ test('SEARCH-002 verified Bing connection, source keyword/page figures beside Go
   assert.equal(request.method,'GET')
   const method=url.pathname.split('/').at(-1)
   assert.ok(url.pathname.startsWith('/webmaster/api.svc/json/'),'only documented Bing JSON endpoints receive the credential')
-  if(method==='GetUserSites')return Response.json({d:[{Url:property,IsVerified:true},{Url:'https://fern.example/not-verified/',IsVerified:false}]})
+  if(method==='GetUserSites')return Response.json({d:[{Url:property,IsVerified:true},{Url:'https://fern.example/not-verified/',IsVerified:false},{Url:'https://fern.example/alternate/',IsVerified:true}]})
   assert.equal(url.searchParams.get('siteUrl'),property)
   if(refuse&&method==='GetQueryStats')return new Response('',{status:503})
-  if(method==='GetQueryStats')return Response.json({d:[row('coffee guide',8,80,2),row('buy beans',2,20,4),row('private@example.test',2,20,3)]})
+  if(method==='GetQueryStats')return Response.json({d:[row('coffee guide',8,80,2),row('buy beans',2,20,4),row('private@example.test',2,20,3),...(olderWindow?[{...row('aged phrase',3,30,5),Date:'/Date('+Date.parse('2026-10-09T07:00:00Z')+'-0700)/'}]:[])]})
   if(method==='GetPageStats')return Response.json({d:[row(property+'guide',9,90,2.2),row(property+'shop',3,30,4)]})
   if(method==='GetRankAndTrafficStats')return Response.json({d:[{Date:date,Clicks:12,Impressions:120}]})
   if(method==='GetPageQueryStats'){
@@ -54,6 +54,9 @@ test('SEARCH-002 verified Bing connection, source keyword/page figures beside Go
  assert.equal((await a.request(reportURL(),{headers:{cookie:scoped}})).status,403)
  assert.equal(providerCalls,0,'refused public-door requests cannot reach Bing')
  assert.equal((await op('search.bing.connect',{property:'https://fern.example/not-verified/',apiKey})).status,400,'a returned but unverified property cannot connect')
+ a.fixtureSites['https://oauth2.googleapis.com']=()=>Response.json({access_token:'fixture-google-access',refresh_token:'fixture-google-refresh',expires_in:3600,token_type:'Bearer',scope:'https://www.googleapis.com/auth/webmasters.readonly'});
+ a.fixtureSites['https://www.googleapis.com']=async request=>{const url=new URL(request.url);if(url.pathname==='/webmasters/v3/sites')return Response.json({siteEntry:[{siteUrl:property,permissionLevel:'siteOwner'}]});const q=await request.json(),keys=q.dimensions.map(key=>key==='date'?'2026-10-16':key==='query'?'pour over':property+'shop');return Response.json({rows:[{keys,clicks:4,impressions:40,ctr:0.1,position:6}]})};
+ const googleBegin=await op('search.google.begin'),googleState=new URL(googleBegin.headers.get('location')).searchParams.get('state');assert.equal((await a.request('/api/vane/search-console/callback?'+new URLSearchParams({state:googleState,code:'fixture-code'}),owner)).status,303);assert.equal((await op('search.google.property',{property})).status,303);
  assert.equal((await op('search.bing.connect',{property,apiKey})).status,303)
  let report=await source()
  assert.deepEqual(report.queries.find(value=>value.query==='coffee guide'),{query:'coffee guide',clicks:8,impressions:80,ctr:0.1,position:2})
@@ -85,15 +88,15 @@ test('SEARCH-002 verified Bing connection, source keyword/page figures beside Go
  const page=await context.newPage(),screens=process.env.VANE_SCREEN_DIR;if(screens)await mkdir(screens,{recursive:true})
  for(const width of [1440,390]){
   await page.setViewportSize({width,height:960});await page.goto(`${a.origin}/app/sites/${id}?from=2026-10-16&to=2026-10-19`)
-  await page.getByRole('heading',{name:'Google search keywords',exact:true}).waitFor()
-  await page.getByRole('heading',{name:'Bing search keywords',exact:true}).scrollIntoViewIfNeeded()
+  await page.getByRole('heading',{name:'Google search keywords',exact:true}).waitFor();assert.match(await page.getByRole('region',{name:'Google search queries',exact:true}).innerText(),/pour over\s+4\s+40\s+10.0%\s+6/)
+  await page.getByRole('region',{name:'Bing search queries',exact:true}).scrollIntoViewIfNeeded()
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true)
   if(screens)await page.screenshot({path:`${screens}/bing-report-${width}.png`})
   await page.getByRole('link',{name:'coffee guide',exact:true}).click();await page.waitForURL(/searchQuery=coffee/)
   const filtered=await(await a.request('/api/vane/summary?siteId='+id+'&'+new URL(page.url()).searchParams,owner)).json()
   assert.equal(filtered.pageviews,2);assert.equal(filtered.visits,2,'the Bing keyword selects organic visits landing on its source page, excluding direct and other landing pages')
   assert.match(await page.locator('main').innerText(),/Landing pages for coffee guide/)
-  if(screens)await page.screenshot({path:`${screens}/bing-filter-${width}.png`})
+  await page.getByRole('region',{name:'Bing query landing pages',exact:true}).scrollIntoViewIfNeeded();if(screens)await page.screenshot({path:`${screens}/bing-filter-${width}.png`})
   await page.goto(`${a.origin}/app/sites/${id}?section=settings&from=2026-10-16&to=2026-10-19`)
   await page.getByRole('heading',{name:'Bing Webmaster Tools',exact:true}).scrollIntoViewIfNeeded()
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true)
@@ -102,10 +105,11 @@ test('SEARCH-002 verified Bing connection, source keyword/page figures beside Go
  refuse=true;assert.equal((await op('search.bing.sync')).status,502)
  report=await source();assert.match(report.connection.error,/503/);assert.equal(report.queries.find(value=>value.query==='coffee guide').clicks,8,'a provider failure retains successful data, never fabricated zero')
  assert.ok(!JSON.stringify(report).includes(apiKey),'provider errors must not echo credential-bearing URLs')
- refuse=false;await a.clock(T+DAY+1000);await a.scheduled();report=await source()
+ refuse=false;olderWindow=false;await a.clock(T+DAY+1000);await a.scheduled();report=await source()
  assert.equal(report.connection.error,null);assert.equal(report.queries.find(value=>value.query==='coffee guide').clicks,8,'repeated source dates replace their snapshot rather than adding counts')
  assert.equal((await op('search.bing.disconnect')).status,303)
  assert.equal((await a.dump()).vane_bing_connections.length,0,'disconnect deletes the actual sealed credential record')
  const calls=providerCalls;await a.clock(T+2*DAY+1000);await a.scheduled();assert.equal(providerCalls,calls,'disconnected sites stop making provider requests')
+ assert.equal((await op('search.bing.connect',{property:'https://fern.example/alternate/',apiKey})).status,409);assert.equal((await op('search.bing.connect',{property,apiKey})).status,303);assert.equal((await source('2026-10-09','2026-10-10')).queries.find(r=>r.query==='aged phrase').clicks,3,'same-property reconnect retains older fetched source history');assert.equal((await op('search.bing.disconnect')).status,303);
  report=await source();assert.equal(report.connection.connected,false);assert.equal(report.queries.find(value=>value.query==='coffee guide').clicks,8,'disconnect retains fetched aggregate history')
 })

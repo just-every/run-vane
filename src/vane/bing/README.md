@@ -7,7 +7,7 @@ require the owner. Reports require site read access and scope. `queryPaths` is a
 Connect validates the exact property against `GetUserSites` with `IsVerified`
 true and immediately syncs. A failed sync throws a safe provider error and
 stores its visible reason. Disconnect removes the sealed key and configuration,
-retaining fetched history. Reconnect starts a fresh property snapshot.
+retaining fetched history. Same-property reconnect retains history. A different property is refused with 409 while history remains; the owner must erase it through the existing reviewed erasure proposal first.
 
 The only request origin is `https://ssl.bing.com`. Requests use the documented
 `/webmaster/api.svc/json/` methods. Property and page URLs are parameters sent

@@ -18,6 +18,7 @@ CREATE INDEX vane_bing_due ON vane_bing_connections(next_sync_at);
 CREATE TABLE vane_bing_rows (
  site_id TEXT NOT NULL REFERENCES vane_sites(id) ON DELETE CASCADE,
  day TEXT NOT NULL,
+ property TEXT NOT NULL,
  kind TEXT NOT NULL CHECK(kind IN ('query','page','date','query-page')),
  query TEXT NOT NULL DEFAULT '',
  page TEXT NOT NULL DEFAULT '',
