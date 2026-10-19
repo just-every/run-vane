@@ -64,9 +64,11 @@
 .vane-app table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
 .vane-app caption { padding-bottom: 10px; color: var(--body); font-size: 13px; text-align: left; }
 .vane-app th, .vane-app td { padding: 9px 10px; border-bottom: 1px solid var(--line-soft); vertical-align: top; overflow-wrap: break-word; }
-/* M3: a table is as wide as its words need (never narrower than its longest word) and scrolls inside its region beyond
+/* A table is as wide as its words need (never narrower than its longest word) and scrolls inside its region beyond
    that; the label column (path, hostname, source) stays on one line, so rows stay dense. */
 .vane-table-scroll tbody th[scope=row], .vane-table-scroll thead th:first-child { white-space: nowrap; }
+/* Inside a scrolling region a cell never breaks inside a word (Chrome counts break-word in a table's minimum width). */
+.vane-app .vane-table-scroll th, .vane-app .vane-table-scroll td { overflow-wrap: normal; }
 .vane-app th { font-weight: 400; color: var(--ink); }
 .vane-app thead th { padding-top: 0; border-bottom-color: var(--line); color: var(--body); font-size: 12.5px; font-weight: 500; }
 .vane-app th:first-child, .vane-app td:first-child { padding-left: 0; }
