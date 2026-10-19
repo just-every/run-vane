@@ -374,7 +374,7 @@ The approved homepage (17 Oct 2026, `HOME-001`) states 80 capabilities in its co
 | 40 | Reports: "Scheduled email reports" (Weekly report · Mondays 8:00 am) | `REPORT-001` | missing |
 | 41 | Reports: "spike and drop alerts" (Traffic spike card) | `ALERT-001` | missing |
 | 42 | Reports: "shared dashboards for your team" | `SHARE-001`, `TEAM-001`, `DASH-007` | partial |
-| 43 | Reports: "a public page when you want one" (Public stats page) | `SHARE-002` | missing |
+| 43 | Reports: "a public page when you want one" (Public stats page) | `SHARE-002` | done |
 | 44 | Reports chip: Saturday 2–3 am drop held · scheduled maintenance | `ALERT-001` | missing |
 | 45 | Interlude: All 12 goals tracking · checked 9:00 am | `ALERT-002`, `AGENT-001` | missing |
 | 46 | Why it moved: "The agent checks your tracking" | `AGENT-001` | missing |
@@ -420,8 +420,8 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 16 | 1 | 0 | 17 |
-| Target and push further | 14 | 19 | 58 | 91 |
-| All | 30 | 20 | 58 | 108 |
+| Target and push further | 15 | 19 | 57 | 91 |
+| All | 31 | 20 | 57 | 108 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -504,7 +504,7 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | `ALERT-002` | Conversion, revenue and tracking-health alerts | target | missing |  | No conversion, revenue or tracking-health alerts. |
 | `FOLLOW-001` | Alerts are followed through until a person resolves them | target | missing |  | No alert follow-up items, reminders or escalation. |
 | `SHARE-001` | Shared links and embedded dashboards | target | missing |  | No shared links or embeds. |
-| `SHARE-002` | Public dashboards | target | missing |  | No public dashboards. |
+| `SHARE-002` | Public dashboards | target | done | `src/vane/public.ts`; `src/vane/public-reports.ts`; `src/vane/views/public.ts`; `src/vane/privacy.ts`; `src/vane/views/settings.ts`; `src/server.ts`; `tests/vane.test.mjs` |  |
 | `TEAM-001` | Per-site roles and invitations | target | partial | `src/vane/core.ts`; `src/vane/routes.ts`; `tests/vane.test.mjs` | Installation-wide owner, admin and member roles are enforced and tested; no per-site scope, Analyst role or ownership transfer. |
 | `TEAM-002` | Single sign-on and two-step sign-in | target | missing |  | No working SSO or second-step sign-in in Vane; the vendored Base OIDC module is not mounted. |
 | `AGENCY-001` | Agency client workspaces and branded reports | target | missing |  | No client workspaces or branded reports. |

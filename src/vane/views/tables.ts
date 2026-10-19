@@ -1,0 +1,32 @@
+import { count, escape, panel } from './html'
+// Report tables shared by the signed-in report and the public stats page (SHARE-002).
+export const decimal = (value: unknown) => value === null || value === undefined ? '—' : Number(value).toLocaleString('en-US', { maximumFractionDigits: 2 })
+export const percent = (value: unknown) => value === null || value === undefined ? '—' : `${Number(value).toFixed(1)}%`
+export const duration = (value: unknown) => value === null || value === undefined ? '—' : `${Math.floor(Number(value) / 60)}m ${String(Number(value) % 60).padStart(2, '0')}s`
+export const tile = (title: string, value: string, help: string) => `<section class="vane-panel"><h2>${escape(title)}</h2><p class="vane-metric">${escape(value)}</p><p class="vane-help">${escape(help)}</p></section>`
+
+// DASH-012: site search, shown when the owner names a search parameter.
+export function searchPanel(search: any, param: string | undefined): string {
+  if (!param) return ''
+  const terms = search?.terms?.length ? `<div class="vane-table-scroll" role="region" aria-label="Search terms" tabindex="0"><table><caption class="vane-sr-only">Search terms</caption><thead><tr><th scope="col">Search term</th><th scope="col" class="vane-number">Searches</th><th scope="col" class="vane-number">Visitors</th></tr></thead><tbody>${search.terms.map((row: any) => `<tr><th scope="row">${escape(row.term)}</th><td class="vane-number">${count(row.searches)}</td><td class="vane-number">${count(row.visitors)}</td></tr>`).join('')}</tbody></table></div>` : '<p class="vane-empty">No search term has been searched by two different visitors yet.</p>'
+  const starts = search?.startPages?.length ? `<div class="vane-table-scroll" role="region" aria-label="Pages searches start from" tabindex="0"><table><caption class="vane-sr-only">Pages searches start from</caption><thead><tr><th scope="col">Searched from</th><th scope="col" class="vane-number">Searches</th></tr></thead><tbody>${search.startPages.map((row: any) => `<tr><th scope="row">${escape(row.path)}</th><td class="vane-number">${count(row.searches)}</td></tr>`).join('')}</tbody></table></div>` : ''
+  return panel('Site search', `<dl><dt>Searches</dt><dd>${count(search?.searches)}</dd><dt>Searches per searching visit</dt><dd>${decimal(search?.searchesPerVisit)}</dd><dt>Visits that exit after searching</dt><dd>${percent(search?.exitAfterSearch)}</dd></dl>${terms}${starts}`, `Terms from the ${param} parameter. A term appears once two different visitors have searched it on one day; terms that look like an email address or phone number are never stored.`)
+}
+
+// DASH-006: derived device, browser, operating system and screen classes; no user agent is stored.
+export function dimensionTable(title: string, rows: any[] = []): string {
+  if (!rows.length) return panel(title, '<p class="vane-empty">No page loads with device details in this period.</p>')
+  return panel(title, `<div class="vane-table-scroll" role="region" aria-label="${escape(title)}" tabindex="0"><table><caption class="vane-sr-only">${escape(title)}</caption><thead><tr><th scope="col">${escape(title.replace(/s$/, '').replace('Operating system version', 'Version').replace('Browser version', 'Version'))}</th><th scope="col" class="vane-number">Visitors</th><th scope="col" class="vane-number">Pageviews</th></tr></thead><tbody>${rows.map(row => `<tr><th scope="row">${escape(String(row.label).trim())}</th><td class="vane-number">${count(row.visitors)}</td><td class="vane-number">${count(row.pageviews)}</td></tr>`).join('')}</tbody></table></div>`)
+}
+
+// CONV-001: each goal's conversions, unique converting visitors and conversion rate against unique visitors.
+export function conversionTable(rows: any[] = []): string {
+  if (!rows.length) return ''
+  return panel('Goal conversion rates', `<div class="vane-table-scroll" role="region" aria-label="Goal conversion rates" tabindex="0"><table><caption class="vane-sr-only">Goal conversion rates</caption><thead><tr><th scope="col">Goal</th><th scope="col" class="vane-number">Conversions</th><th scope="col" class="vane-number">Converting visitors</th><th scope="col" class="vane-number">Conversion rate</th></tr></thead><tbody>${rows.map(row => `<tr><th scope="row">${escape(row.label)}</th><td class="vane-number">${count(row.count)}</td><td class="vane-number">${count(row.converters)}</td><td class="vane-number">${percent(row.conversionRate)}</td></tr>`).join('')}</tbody></table></div>`, 'Converting visitors are distinct daily visitor hashes with the goal, summed over the days, like unique visitors; the rate divides them by unique visitors.')
+}
+
+// DASH-003 (with METRIC-003 and METRIC-006): top, entry and exit pages, each over its own page loads and their visits.
+export function pageTable(title: string, rows: any[] = []): string {
+  if (!rows.length) return panel(title, '<p class="vane-empty">No timed visits in this period. Page tables count page loads collected with a time and visitor hash.</p>')
+  return panel(title, `<div class="vane-table-scroll" role="region" aria-label="${escape(title)}" tabindex="0"><table><caption class="vane-sr-only">${escape(title)}</caption><thead><tr><th scope="col">Path</th><th scope="col" class="vane-number">Visitors</th><th scope="col" class="vane-number">Pageviews</th><th scope="col" class="vane-number">Visits</th><th scope="col" class="vane-number">Bounce rate</th><th scope="col" class="vane-number">Visit duration (median / average)</th><th scope="col" class="vane-number">Time on page (median / average)</th><th scope="col" class="vane-number">Scroll depth (average)</th><th scope="col" class="vane-number">Reached 75%</th><th scope="col" class="vane-number">Conversion rate</th></tr></thead><tbody>${rows.map(row => `<tr><th scope="row">${escape(row.path)}</th><td class="vane-number">${count(row.visitors)}</td><td class="vane-number">${count(row.pageviews)}</td><td class="vane-number">${count(row.visits)}</td><td class="vane-number">${percent(row.bounceRate)}</td><td class="vane-number">${duration(row.medianDuration)} / ${duration(row.averageDuration)}</td><td class="vane-number">${duration(row.medianTimeOnPage)} / ${duration(row.averageTimeOnPage)}</td><td class="vane-number">${percent(row.averageScrollDepth)}</td><td class="vane-number">${percent(row.reached75Share)}</td><td class="vane-number">${percent(row.conversionRate)}</td></tr>`).join('')}</tbody></table></div>`)
+}

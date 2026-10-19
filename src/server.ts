@@ -2,6 +2,7 @@ import { withDemo } from './modules/demo/index.mjs'
 import { seedDemo } from './demo'
 import { collector } from './vane/collect'
 import { methodologyResponse } from './vane/methodology'
+import { publicStatsResponse } from './vane/public'
 import { expireSalts } from './vane/visitors'
 import { clock, clockResponse } from './vane/clock'
 import { vaneResponse } from './vane/routes'
@@ -38,6 +39,8 @@ export default withDemo({
     if (collected) return collected
     const methodology = await methodologyResponse(request)
     if (methodology) return methodology
+    const stats = await publicStatsResponse(request, runtimeBindings(env))
+    if (stats) return stats
     const auth = await authResponse(request, env)
     if (auth) return auth
     const vane = await vaneResponse(request, env)

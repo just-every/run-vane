@@ -1,5 +1,6 @@
 import { insist, type Config } from './core'
 import { goalMatches } from './goals'
+import { PUBLIC_REPORTS } from './public-reports'
 // Adapted from Spool origins.ts at 9f75f060a66446f4c9dcf9cafddd0906d7698748.
 // An origin limits browser ingestion; it does not authenticate a visitor.
 export function browserOrigin(value:unknown):string {
@@ -27,7 +28,11 @@ export function cleanConfig(input:any):Config {
  const signalCounter=input.signalCounter===true||input.signalCounter==='on',timeZone=String(input.timeZone||'UTC').trim();
  const searchParam=String(input.searchParam??'').trim();
  insist(searchParam===''||/^[a-z][a-z0-9_-]{0,19}$/.test(searchParam),'search_param','Name the site-search query parameter, such as q, or leave it empty.');
+ // SHARE-002: the reports a public stats page shows (none: no public page) and whether search engines may index it.
+ const publicReports:string[]=Array.isArray(input.publicReports)?[...new Set<string>(input.publicReports.map(String))]:Object.keys(PUBLIC_REPORTS).filter(key=>input['public_'+key]==='on');
+ insist(publicReports.every(key=>Object.hasOwn(PUBLIC_REPORTS,key)),'public_reports','Choose public reports from the listed ones.');
+ const publicIndexing=publicReports.length>0&&(input.publicIndexing===true||input.publicIndexing==='on');
  insist(/^[A-Za-z_]+(?:\/[A-Za-z0-9_+-]+)*$/.test(timeZone)&&(()=>{try{new Intl.DateTimeFormat('en-US',{timeZone}).format(0);return true}catch{return false}})(),'time_zone','Choose an IANA time zone, such as America/New_York.');
- return {paths,goals,scrollGoals,campaigns,sources,consent,sampleRate,retentionDays,signalCounter,timeZone,...(searchParam?{searchParam}:{})};
+ return {paths,goals,scrollGoals,campaigns,sources,consent,sampleRate,retentionDays,signalCounter,timeZone,...(searchParam?{searchParam}:{}),...(publicReports.length?{publicReports,publicIndexing}:{})};
 }
 export function cleanSite(input:any) { const name=String(input.name??'').trim(); insist(name.length>0&&name.length<=80&&!/[<>@]/.test(name),'name','Enter a short site name, without personal details.'); return {name,origin:browserOrigin(input.origin),config:cleanConfig(input.config??input)} }

@@ -1,3 +1,4 @@
+import { PUBLIC_REPORTS } from '../public-reports'
 import { canPrepare, escape, field, operation, panel, siteLink, textarea } from './html'
 import type { ViewData } from './types'
 import { copyableScript } from './script-copy'
@@ -22,7 +23,8 @@ export function configForm(site?: any): string {
     <div class="vane-form-grid">${field('Time zone', 'timeZone', config.timeZone ?? 'UTC', 'required maxlength="64" placeholder="America/New_York"')}${field('Site-search query parameter', 'searchParam', config.searchParam ?? '', 'maxlength="20" placeholder="q" aria-describedby="search-param-help"')}</div><p class="vane-help" id="search-param-help">Optional. When named, the script sends that parameter’s search term with the page load; terms that look like an email address or phone number are dropped, and a term is reported only once two different visitors have searched it.</p>
     <p class="vane-help">Reports use this zone's dates, and the visitor salt rotates at its midnight.</p>
     <label class="vane-check"><input type="checkbox" name="signalCounter" value="on"${config.signalCounter ? ' checked' : ''}> Count privacy signals: browsers sending Global Privacy Control or Do Not Track are never collected; with this on, each such page load adds one field-free count.</label>
-    <p class="vane-help">100% includes every eligible page load. Counts measure page loads, not unique people or sessions.</p>
+    <p class="vane-help">100% includes every eligible page load. Pageviews count page loads; visits and unique visitors come from daily visitor hashes.</p>
+    <fieldset class="vane-public"><legend>Public stats page</legend><p class="vane-help">Checked reports appear signed out at ${site ? `/stats/${escape(site.id)}` : '/stats/ followed by the site ID'}. Leave all unchecked for no public page.</p>${Object.entries(PUBLIC_REPORTS).map(([key, title]) => `<label class="vane-check"><input type="checkbox" name="public_${key}" value="on"${(config.publicReports ?? []).includes(key) ? ' checked' : ''}> ${escape(title)}</label>`).join('')}<label class="vane-check"><input type="checkbox" name="publicIndexing" value="on"${config.publicIndexing ? ' checked' : ''}> Let search engines index the public page</label></fieldset>
     <div class="vane-form-footer"><p>Preparing this change sends it to the owner for approval before it takes effect.</p><button type="submit">${site ? 'Prepare settings change' : 'Prepare site'}</button></div>
   </form>`
 }
