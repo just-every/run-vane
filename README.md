@@ -77,7 +77,8 @@ per site per UTC day.
 The first move-in kit accepts **Umami v2 Events API** JSON pages. Read
 [the documented shape and limits](docs/umami-import.md). It also accepts a page of
 PostHog `$pageview` events as PostHog's events API returns them (`{"results": [...]}`,
-up to 500), keeping only each event's UTC day, path, source and campaign. In a site's **History**,
+up to 500), and a page of Simple Analytics' data-point CSV export (with at least `added_iso`,
+`path` and `uuid`), keeping only each event's UTC day, path, source and campaign. In a site's **History**,
 upload, **Preview import**, inspect, then **Apply import**. Preview writes
 nothing. Apply records the owner, fingerprint and Base import-kit journal.
 Repeat the same reviewed page if processing remains. **Undo import** removes

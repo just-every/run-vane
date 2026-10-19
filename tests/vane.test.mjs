@@ -1605,7 +1605,7 @@ test('API-004 an MCP client with a site-scoped Stats API key lists its sites and
  assert.equal((await a.request('/api/v1/mcp',{headers:{authorization:'Bearer '+key,accept:'text/event-stream'}})).status,405)
  assert.equal((await a.form({operation:'apikey.revoke',id:(await a.dump()).vane_api_keys[0].id},a.owner)).status,303);assert.equal((await send({jsonrpc:'2.0',id:100,method:'tools/list'})).status,401)
 })
-test('IMPORT-006 a page of PostHog $pageview events imports only the day, path, source and campaign, resumes without double counting, and keeps no person, session, device or IP identifier',async t=>{
+test('IMPORT-006 a page of PostHog $pageview events and a Simple Analytics CSV export page import only the day, path, source and campaign, resume without double counting, and keep no person, session, device or IP identifier',async t=>{
  const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({paths:[]})
  const person='0191f2d0-person-7a1b',ip='198.51.100.23',pageview=(uuid,timestamp,url,extra={})=>({uuid,event:'$pageview',timestamp,distinct_id:person,properties:{$current_url:url,$pathname:new URL(url).pathname,$host:'fern.example',$ip:ip,$session_id:'0191f2d0-session',$device_id:'0191f2d0-device',$title:'Title of a PostHog page',token:'phc_projectkey',$browser:'Chrome',$referrer:'$direct',$referring_domain:'$direct',...extra}})
  const page={next:null,results:[
@@ -1624,6 +1624,16 @@ test('IMPORT-006 a page of PostHog $pageview events imports only the day, path, 
  // Anything but a $pageview, or a page without events, is refused before custody.
  const refused=await a.post('/api/vane/import-preview',{siteId:id,document:{results:[{...page.results[0],event:'$autocapture'}]}},a.owner);assert.equal(refused.status,400);assert.match(await refused.text(),/ROW_1_UNSUPPORTED_EVENT_TYPE/)
  assert.equal((await a.post('/api/vane/import-preview',{siteId:id,document:{results:[]}},a.owner)).status,400)
+ // A Simple Analytics data-point export page (CSV): the same four fields are kept, the session ID and the rest are not.
+ const csv='added_iso,path,uuid,session_id,hostname,referrer_hostname,referrer_path,utm_source,utm_campaign,query,browser_name,country_code,is_unique\r\n'+
+  '2024-03-12T08:00:00.000Z,/,sa-0001,sa-session-77,fern.example,news.ycombinator.com,/item,,,,Firefox,NL,true\r\n'+
+  '2024-03-12T08:05:00.000Z,/pricing,sa-0002,sa-session-77,fern.example,,,newsletter,"spring, launch",ref=x,Firefox,NL,false\r\n'
+ const simple=(await movein(a,id,csv)).preview
+ assert.deepEqual(simple.normalized.map(e=>[e.day,e.path,e.source,e.campaign]).sort(),[['2024-03-12','/','news.ycombinator.com','none'],['2024-03-12','/pricing','newsletter','spring, launch']])
+ assert.deepEqual([simple.discarded.sessionIds,simple.discarded.rawQueries,simple.discarded.referrerPaths],[2,1,1])
+ assert.equal((await (await a.request(`/api/vane/summary?siteId=${id}&from=2024-03-12&to=2024-03-13`,owner)).json()).pageviews,2)
+ await movein(a,id,csv);assert.equal((await (await a.request(`/api/vane/summary?siteId=${id}&from=2024-03-12&to=2024-03-13`,owner)).json()).pageviews,2,'resumes without double counting')
+ const after=JSON.stringify(await a.dump());for(const value of ['sa-session-77','sa-0001','ref=x'])assert.ok(!after.includes(value),value)
 })
 test('INSTALL-008 a server sends pageviews and a custom event with its site token, a repeated Idempotency-Key counts once, a token for another site is refused, and no raw IP or user agent is stored',async t=>{
  const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({paths:[]}),other=await a.addSite({name:'Oak Store',origin:'https://oak.example'})
