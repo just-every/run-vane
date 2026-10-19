@@ -87,7 +87,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "6e36e235b24543e026d090b8b60a4ee85b5c87d1aa594de229f02bf1934abb1b",
+      "sha256": "1b67043052dae785acf5ea89733adc5a573fa867e316353c327fb603e42e9266",
       "executable": false
     },
     "DEMO.md": {
@@ -551,7 +551,7 @@
       "executable": false
     },
     "README.md": {
-      "sha256": "bd4381ea7d236e5a9b7dd1686dd7d54cd3e43bc6c340b6cc44bac26334308a49",
+      "sha256": "2e4381b749682514ff6a80d27c30d14fcf5158847a6f805596175cd17e0c1079",
       "executable": false
     },
     "rer-project.json": {
@@ -2583,11 +2583,15 @@
       "executable": false
     },
     "src/vane/movein/normalize.ts": {
-      "sha256": "5c319e88d4b57bf30dfcc989626da4429512fa1c8e8c1fbf0fea1f8174ccf549",
+      "sha256": "a372ba65c93ccb26fda02ecd9b31edbd1de5771477d7056c578a4e5c616369f6",
       "executable": false
     },
     "src/vane/movein/policy.ts": {
       "sha256": "cdd9302537374d0f18e1e51671a720f79e584c6f3046d5d2dfd3117b69a5b278",
+      "executable": false
+    },
+    "src/vane/movein/posthog.ts": {
+      "sha256": "c7522da831d0cfe939c46cd7f9c462e53fecca6f2b649cccf9c0a4199321fef9",
       "executable": false
     },
     "src/vane/movein/tables.ts": {
@@ -2863,7 +2867,7 @@
       "executable": false
     },
     "tests/vane.test.mjs": {
-      "sha256": "0f6698e140995110f59ae8c7a0c98f5fd219665b96c16d39d88945625508c708",
+      "sha256": "943d189ba37d23dd8557c67f7abefd7a1982859ff9390096e08c6e943bd3c1b7",
       "executable": false
     },
     "tsconfig.json": {

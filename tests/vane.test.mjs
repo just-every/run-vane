@@ -1605,3 +1605,23 @@ test('API-004 an MCP client with a site-scoped Stats API key lists its sites and
  assert.equal((await a.request('/api/v1/mcp',{headers:{authorization:'Bearer '+key,accept:'text/event-stream'}})).status,405)
  assert.equal((await a.form({operation:'apikey.revoke',id:(await a.dump()).vane_api_keys[0].id},a.owner)).status,303);assert.equal((await send({jsonrpc:'2.0',id:100,method:'tools/list'})).status,401)
 })
+test('IMPORT-006 a page of PostHog $pageview events imports only the day, path, source and campaign, resumes without double counting, and keeps no person, session, device or IP identifier',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({paths:[]})
+ const person='0191f2d0-person-7a1b',ip='198.51.100.23',pageview=(uuid,timestamp,url,extra={})=>({uuid,event:'$pageview',timestamp,distinct_id:person,properties:{$current_url:url,$pathname:new URL(url).pathname,$host:'fern.example',$ip:ip,$session_id:'0191f2d0-session',$device_id:'0191f2d0-device',$title:'Title of a PostHog page',token:'phc_projectkey',$browser:'Chrome',$referrer:'$direct',$referring_domain:'$direct',...extra}})
+ const page={next:null,results:[
+  pageview('0191f2d0-0001-7000-8000-000000000001','2024-03-10T10:00:00.123000+00:00','https://fern.example/?utm_source=newsletter&utm_campaign=spring',{utm_source:'newsletter',utm_campaign:'spring'}),
+  pageview('0191f2d0-0002-7000-8000-000000000002','2024-03-10T10:05:00+00:00','https://fern.example/pricing',{$referrer:'https://www.google.com/search?q=fern',$referring_domain:'www.google.com'}),
+  pageview('0191f2d0-0003-7000-8000-000000000003','2024-03-11T09:00:00Z','https://fern.example/thanks'),
+ ]}
+ const {preview}=await movein(a,id,page)
+ assert.deepEqual(preview.normalized.map(e=>[e.day,e.path,e.source,e.campaign]).sort(),[['2024-03-10','/','newsletter','spring'],['2024-03-10','/pricing','www.google.com','none'],['2024-03-11','/thanks','direct','none']])
+ assert.deepEqual([preview.discarded.sessionIds,preview.discarded.pageTitles,preview.discarded.websiteIds,preview.discarded.sourceEventIds,preview.discarded.rawQueries,preview.discarded.referrerPaths],[9,3,3,3,1,1])
+ const totals=async()=>(await (await a.request(`/api/vane/summary?siteId=${id}&from=2024-03-10&to=2024-03-12`,owner)).json()).pageviews
+ assert.equal(await totals(),3)
+ // The same page again resumes its job: nothing counts twice.
+ await movein(a,id,page);assert.equal(await totals(),3)
+ const stored=JSON.stringify(await a.dump());for(const value of [person,ip,'0191f2d0-session','0191f2d0-device','phc_projectkey','Title of a PostHog page','0191f2d0-0001-7000-8000-000000000001','utm_source=newsletter'])assert.ok(!stored.includes(value),value)
+ // Anything but a $pageview, or a page without events, is refused before custody.
+ const refused=await a.post('/api/vane/import-preview',{siteId:id,document:{results:[{...page.results[0],event:'$autocapture'}]}},a.owner);assert.equal(refused.status,400);assert.match(await refused.text(),/ROW_1_UNSUPPORTED_EVENT_TYPE/)
+ assert.equal((await a.post('/api/vane/import-preview',{siteId:id,document:{results:[]}},a.owner)).status,400)
+})
