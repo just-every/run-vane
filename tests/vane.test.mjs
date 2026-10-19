@@ -6,9 +6,9 @@ import { installation } from './harness.mjs'
 const fixture=JSON.parse(await readFile(new URL('./fixtures/umami-events.json',import.meta.url),'utf8'))
 async function withApp(t){const app=await installation();t.after(()=>app.close());return app}
 // A real browser whose requests are all recorded: the built Worker serves the installation's origin, `pages` serves fixture pages, and anything else is refused.
-async function browse(t,a,pages={}){
+async function browse(t,a,pages={},options={}){
  const {chromium}=await import('@playwright/test'),browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']});t.after(()=>browser.close())
- const context=await browser.newContext(),requests=[]
+ const context=await browser.newContext(options),requests=[]
  await context.route('**/*',async route=>{
   const request=route.request(),url=new URL(request.url());requests.push(url.origin)
   if(pages[url.href])return route.fulfill({contentType:'text/html',body:pages[url.href]})
@@ -398,4 +398,24 @@ test('CONV-001 /thanks* converts on /thanks and /thanks/pro, a 75% scroll goal o
  for(const html of ['<th scope="row">signup</th><td class="vane-number">3</td><td class="vane-number">2</td><td class="vane-number">40.0%</td>','Converting visitors: 3 (60.0% of unique visitors).'])assert.ok(page.includes(html),html)
  assert.ok((await (await a.request(`/app/sites/${id}?section=settings`,owner)).text()).includes('signup=/thanks*\ndeep-read=/blog/**@75'))
  assert.ok((await (await a.request('/methodology')).text()).includes('/thanks* covers /thanks and /thanks/pro'))
+})
+test('DASH-006 iPhone Safari, Android Chrome, Windows Edge and an iPad fill the device, browser, OS and screen tables, and no raw user agent is stored',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite()
+ const agents=[['Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1',390],['Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36',412],['Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 Edg/126.0.0.0',1536],['Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',820]]
+ for(const [ua,width] of agents)assert.equal((await a.post('/api/vane/collect',a.event(id,{width}),'',{origin:'https://fern.example','user-agent':ua})).status,202)
+ for(const width of [-1,'wide',1.5])assert.equal((await a.collect(a.event(id,{width}))).status,400,String(width))
+ const r=await (await a.request('/api/vane/summary?siteId='+id,owner)).json(),pick=rows=>rows.map(row=>[row.label,row.visitors,row.pageviews])
+ assert.deepEqual(pick(r.devices),[['mobile',2,2],['desktop',1,1],['tablet',1,1]])
+ assert.deepEqual(pick(r.browsers),[['Safari',2,2],['Chrome',1,1],['Edge',1,1]]);assert.deepEqual(pick(r.browserVersions),[['Safari 17',2,2],['Chrome 126',1,1],['Edge 126',1,1]])
+ assert.deepEqual(pick(r.systems),[['Android',1,1],['Windows',1,1],['iOS',1,1],['iPadOS',1,1]]);assert.deepEqual(pick(r.systemVersions),[['Android 14',1,1],['Windows 10/11',1,1],['iOS 17.4',1,1],['iPadOS 17.0',1,1]])
+ assert.deepEqual(pick(r.screens),[['Mobile (under 576 px)',2,2],['Desktop (1440 px and wider)',1,1],['Tablet (576–991 px)',1,1]])
+ const page=await (await a.request(`/app/sites/${id}?section=report`,owner)).text();for(const html of ['<h2>Devices</h2>','<th scope="row">iPadOS 17.0</th><td class="vane-number">1</td>','<h2>Screen sizes</h2>'])assert.ok(page.includes(html),html)
+ // In a browser at phone width, the script sends its viewport width and the page load lands in the phone class.
+ const other=await a.addSite({origin:'https://oak.example'}),{context}=await browse(t,a,{'https://oak.example/':`<!doctype html><title>Oak</title><script src="${a.origin}/vane.js" data-site="${other}"></script>`},{viewport:{width:390,height:844}}),tab=await context.newPage()
+ const sent=tab.waitForResponse(response=>new URL(response.url()).pathname==='/api/vane/collect'&&response.request().method()==='POST');await tab.goto('https://oak.example/');const response=await sent
+ assert.equal(response.status(),202);assert.equal(JSON.parse(response.request().postData()).width,390)
+ assert.deepEqual(pick((await (await a.request('/api/vane/summary?siteId='+other,owner)).json()).screens),[['Mobile (under 576 px)',1,1]])
+ const stored=JSON.stringify([await a.dump(),await a.archive()]);for(const fragment of ['Mozilla/5.0','Pixel 8','AppleWebKit','HeadlessChrome'])assert.equal(stored.includes(fragment),false,fragment)
+ assert.ok((await (await a.request('/methodology')).text()).includes('The user agent is then discarded; only these classes are stored.'))
+ await context.close()
 })

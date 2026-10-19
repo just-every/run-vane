@@ -358,7 +358,7 @@ The approved homepage (17 Oct 2026, `HOME-001`) states 80 capabilities in its co
 | 24 | Sources: "pages" | `DASH-003` | done |
 | 25 | Sources: "campaigns" | `DASH-004` | partial |
 | 26 | Sources: "countries" | `DASH-005` | missing |
-| 27 | Sources: "devices and browsers" | `DASH-006` | missing |
+| 27 | Sources: "devices and browsers" | `DASH-006` | done |
 | 28 | Sources: "live" | `DASH-001` | missing |
 | 29 | Sources: "over any period" | `TRAFFIC-001`, `DASH-002` | partial |
 | 30 | Sources: "with filters" | `DASH-007` | missing |
@@ -420,8 +420,8 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 16 | 1 | 0 | 17 |
-| Target and push further | 12 | 19 | 60 | 91 |
-| All | 28 | 20 | 60 | 108 |
+| Target and push further | 13 | 19 | 59 | 91 |
+| All | 29 | 20 | 59 | 108 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -465,7 +465,7 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | `DASH-003` | Page, entry and exit reports | target | done | `src/vane/visits.ts`; `src/vane/reports.ts`; `src/vane/routes.ts`; `src/vane/views/report.ts`; `tests/vane.test.mjs` |  |
 | `DASH-004` | Channels, referrers and UTM campaigns | target | partial | `src/vane/tracker.ts`; `src/vane/collect.ts`; `tests/vane.test.mjs` | Referring hostnames from an allowlist and utm_campaign are reported; no channel definitions, other UTM fields, referrer URLs or per-row visitors, bounce rate and duration. |
 | `DASH-005` | Country, region and city | target | missing |  | No location dimensions. |
-| `DASH-006` | Devices, browsers and operating systems | target | missing |  | No device, browser or OS dimensions. |
+| `DASH-006` | Devices, browsers and operating systems | target | done | `src/vane/devices.ts`; `src/vane/collect.ts`; `src/vane/tracker.ts`; `src/vane/reports.ts`; `src/vane/views/report.ts`; `migrations/core/0021_vane_devices.sql`; `tests/vane.test.mjs` |  |
 | `DASH-007` | Filters, segments and saved views | target | missing |  | Only a date range filter; no dimension filters, segments or saved views. |
 | `DASH-008` | Period comparisons | target | partial | `src/vane/reports.ts`; `src/vane/views/report.ts` | Totals are compared with the preceding period; no year-over-year or custom comparison, chart overlay or per-row change, and no assertion. |
 | `DASH-009` | Annotations, manual and automatic | target | missing |  | No annotations. |
