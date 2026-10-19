@@ -57,6 +57,8 @@ export function usRange(from: string, to: string, year = true): string {
 }
 /** The range control's short form: "Oct 13 – 19" or "Sep 28 – Oct 4". */
 export const rangeText = (from: string, to: string) => usRange(from, to, false)
+/** An instant in UTC as people read it: "Oct 19, 2026, 3:48 PM". */
+export const whenUtc = (at: number) => new Date(at).toLocaleString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })
 export const zoneName = (timeZone: string) => new Intl.DateTimeFormat('en-US', { timeZone, timeZoneName: 'longGeneric' }).formatToParts(0).find(part => part.type === 'timeZoneName')?.value ?? timeZone
 export const timeOfDay = (at: number, timeZone: string) => new Date(at).toLocaleTimeString('en-US', { timeZone, hour: 'numeric', minute: '2-digit' })
 // A chart bucket as people read it: "Tue, Oct 13", "Oct 19, 9 AM CDT", "Week of Oct 12" or "Oct 2026".

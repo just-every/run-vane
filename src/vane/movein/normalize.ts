@@ -8,6 +8,7 @@ import { mappingVersion, namespace } from './policy.ts';
 import { validateCarry } from './carry.ts';
 import { isPosthogPage, posthogEvents } from './posthog.ts';
 import { isSimpleCsv, simpleEvents } from './simple.ts';
+import { isUmamiCsv, umamiCsvEvents } from './umami-csv.ts';
 
 const known = new Set(['id','websiteId','sessionId','createdAt','urlPath','urlQuery','referrerPath','referrerQuery','referrerDomain','pageTitle','eventType','eventName']);
 const present = (value: unknown) => value !== undefined && value !== null && value !== '';
@@ -16,6 +17,7 @@ const text = (value: unknown) => typeof value === 'string' ? value : '';
 export function normalize(document: unknown, site: ImportSite, policy: SitePolicy) {
   let input: any = document;
   if (isSimpleCsv(document)) { if (new TextEncoder().encode(document as string).length > 2_000_000) throw new MoveinError('DOCUMENT_TOO_LARGE'); const page = simpleEvents(document as string, site, policy); return normalizedSource(page.events, page.discarded, site); }
+  if (isUmamiCsv(document)) { if (new TextEncoder().encode(document as string).length > 2_000_000) throw new MoveinError('DOCUMENT_TOO_LARGE'); const page = umamiCsvEvents(document as string, site, policy); return normalizedSource(page.events, page.discarded, site); }
   if (typeof document === 'string') {
     if (new TextEncoder().encode(document).length > 2_000_000) throw new MoveinError('DOCUMENT_TOO_LARGE');
     try { input = JSON.parse(document); } catch { throw new MoveinError('INVALID_JSON'); }

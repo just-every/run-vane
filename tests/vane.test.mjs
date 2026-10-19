@@ -1121,6 +1121,8 @@ test('DASH-007 filtering the report by Organic Search, mobile and not /blog/* ke
  // Each comparison keeps whole visits: acquisition and device by the first page load, page and goal by any page load (or none).
  for(const [filter,visits] of [['channel:is:Organic Search',5],['source:is:Google',5],['utm_medium:is:email',1],['device:is_not:desktop',5],['entry:is:/pricing',1],['page:contains:BLOG',2],['page:not_contains:blog',4],['page:matches:^/blog/[a-z]+$',1],['page:is:/blog/**',2],['goal:is:signup',2],['hostname:is:fern.example',6],['browser_version:matches:^Chrome ',1],['os_version:contains:ios',5]])assert.equal((await summary('filter='+encodeURIComponent(filter))).visits,visits,filter)
  assert.equal((await a.request(`/api/vane/summary?siteId=${id}&filter=${encodeURIComponent('page:matches:(')}`,owner)).status,400,'an invalid regular expression is refused')
+ // A filtered report finds its kept visits once and deletes them when it returns.
+ assert.deepEqual((await a.dump()).vane_report_kept,[],'no kept-visit rows outlive their report')
  // In the browser: click Organic Search in the channel table, add the device and page filters, and save the segment.
  const {context}=await browse(t,a,{},{viewport:{width:1440,height:900}});await context.addCookies(a.owner.split('; ').map(pair=>{const [name,...value]=pair.split('=');return {name,value:value.join('='),url:a.origin}}))
  const tab=await context.newPage();await tab.goto(`${a.origin}/app/sites/${id}?section=report&${range}`)
@@ -1596,6 +1598,61 @@ test('MOBILE-001 at 390 and 1440 px the site, approval, report and filter journe
  }
  await context.close()
 })
+test('MOBILE-001 the app installs as a PWA, a browser that turns on alerts receives an encrypted test alert carrying only its title, site and link that the service worker shows, and turning off, a 410 and removal from the team forget the browser',async t=>{
+ const a=await withApp(t),id=await a.addSite(),axe=await readFile(createRequire(import.meta.url).resolve('axe-core'),'utf8'),{context}=await browse(t,a)
+ await context.addCookies(a.owner.split('; ').map(pair=>{const [name,...value]=pair.split('=');return {name,value:value.join('='),url:a.origin}}))
+ await context.route(a.origin+'/app/action',async route=>{const request=route.request(),response=await a.request('/app/action',{method:'POST',headers:request.headers(),body:request.postData()??undefined}),location=response.headers.get('location');if(response.status!==303||!location)return route.fulfill({status:response.status,headers:Object.fromEntries(response.headers),body:Buffer.from(await response.arrayBuffer())});return route.fulfill({status:200,contentType:'text/html',body:`<!doctype html><title>Redirecting</title><meta http-equiv="refresh" content="0;url=${location.replaceAll('&','&amp;').replaceAll('"','&quot;')}">`})})
+ const page=await context.newPage(),cdp=await context.newCDPSession(page)
+ const scanned=async label=>{const violations=await page.evaluate(`${axe}\n;axe.run(document,{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21a','wcag21aa','wcag22aa']}}).then(r=>r.violations.map(v=>v.id+': '+v.nodes.map(n=>n.target.join(' ')).join(', ')))`);assert.deepEqual(violations,[],label);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`${label} scrolls sideways`)}
+ await page.goto(a.origin+'/app?section=alerts')
+ // Installable: Chrome finds the manifest's name, start URL, standalone display and icons.
+ assert.deepEqual((await cdp.send('Page.getInstallabilityErrors')).installabilityErrors,[])
+ // Turning alerts on registers the service worker; the test then stands in for the browser's push service.
+ await page.getByRole('button',{name:'Turn on alerts in this browser'}).click()
+ await page.waitForFunction(async()=>Boolean((await navigator.serviceWorker.getRegistration('/'))?.active))
+ const {createECDH,createDecipheriv,createPublicKey,randomBytes,verify}=await import('node:crypto')
+ const browser=createECDH('prime256v1');browser.generateKeys()
+ const b64url=b=>Buffer.from(b).toString('base64url'),auth=randomBytes(16),key=await page.getAttribute('[data-push]','data-key')
+ const subscription=endpoint=>({endpoint,keys:{p256dh:b64url(browser.getPublicKey()),auth:b64url(auth)}})
+ const subscribe=(endpoint,cookie=a.owner)=>a.post('/api/vane/push/subscribe',subscription(endpoint),cookie)
+ assert.equal((await subscribe('https://push.example/send/browser-1')).status,201)
+ assert.equal((await subscribe('http://127.0.0.1:9/send')).status,400,'a private or plain-http endpoint is refused')
+ const delivered=[];let answer=201
+ a.fixtureSites['https://push.example']=async request=>{delivered.push({url:request.url,headers:Object.fromEntries(request.headers),body:Buffer.from(await request.arrayBuffer())});return new Response(null,{status:answer})}
+ // RFC 8291: the browser's key and auth secret decrypt the aes128gcm record; RFC 8292: the VAPID JWT verifies with the installation's key.
+ const hmac=(k,d)=>createHmac('sha256',k).update(d).digest()
+ const decrypt=body=>{const salt=body.subarray(0,16),idlen=body[20],sender=body.subarray(21,21+idlen),sealed=body.subarray(21+idlen),shared=browser.computeSecret(sender)
+  const ikm=hmac(hmac(auth,shared),Buffer.concat([Buffer.from('WebPush: info\0'),browser.getPublicKey(),sender,Buffer.from([1])])),prk=hmac(salt,ikm)
+  const decipher=createDecipheriv('aes-128-gcm',hmac(prk,Buffer.from('Content-Encoding: aes128gcm\0\x01')).subarray(0,16),hmac(prk,Buffer.from('Content-Encoding: nonce\0\x01')).subarray(0,12));decipher.setAuthTag(sealed.subarray(-16))
+  const plain=Buffer.concat([decipher.update(sealed.subarray(0,-16)),decipher.final()]);assert.equal(plain.at(-1),2,'one final record');return plain.subarray(0,-1).toString()}
+ for(const width of [390,1440]){await page.setViewportSize({width,height:900});await page.goto(a.origin+'/app?section=alerts');await scanned(`${width} browser alerts`)}
+ await page.getByRole('button',{name:'Send a test alert'}).press('Enter');await page.waitForURL(/notice=Test\+alert\+sent/)
+ assert.equal(delivered.length,1);const [sent]=delivered
+ assert.equal(sent.headers['content-encoding'],'aes128gcm');const [,jwt,k]=sent.headers.authorization.match(/^vapid t=([^,]+), k=(.+)$/);assert.equal(k,key)
+ const [head,claims,signature]=jwt.split('.'),raw=Buffer.from(k,'base64url'),publicKey=createPublicKey({key:{kty:'EC',crv:'P-256',x:b64url(raw.subarray(1,33)),y:b64url(raw.subarray(33,65))},format:'jwk'})
+ assert.ok(verify('sha256',Buffer.from(`${head}.${claims}`),{key:publicKey,dsaEncoding:'ieee-p1363'},Buffer.from(signature,'base64url')),'the VAPID JWT is signed with the installation key')
+ assert.equal(JSON.parse(Buffer.from(claims,'base64url')).aud,'https://push.example')
+ const alert=JSON.parse(decrypt(sent.body));assert.deepEqual(alert,{title:'Test alert',site:'Fern Studio',link:`${a.origin}/app/sites/${id}`},'only the title, site name and link')
+ // The installed service worker shows the delivered alert as a notification.
+ await cdp.send('ServiceWorker.enable');const registration=await new Promise(resolve=>{cdp.on('ServiceWorker.workerRegistrationUpdated',({registrations})=>{const r=registrations.find(r=>r.scopeURL===a.origin+'/'&&!r.isDeleted);if(r)resolve(r)})})
+ // The headless browser has no notification centre, so the worker's showNotification is recorded instead (the OS edge).
+ const worker=context.serviceWorkers().find(w=>w.url()===a.origin+'/vane-sw.js');await worker.evaluate(()=>{self.shown=[];self.registration.showNotification=(title,options)=>{self.shown.push([title,options.body,options.data.link]);return Promise.resolve()}})
+ await cdp.send('ServiceWorker.deliverPushMessage',{origin:a.origin,registrationId:registration.registrationId,data:decrypt(sent.body)})
+ let notifications=[];for(let i=0;i<50&&!notifications.length;i++){notifications=await worker.evaluate(()=>self.shown);if(!notifications.length)await page.waitForTimeout(100)}
+ assert.deepEqual(notifications,[['Test alert','Fern Studio',`${a.origin}/app/sites/${id}`]])
+ // A push service's 410 forgets the subscription; turning off forgets it too; both are audited.
+ answer=410;await page.goto(a.origin+'/app?section=alerts');await page.getByRole('button',{name:'Send a test alert'}).press('Enter');await page.waitForURL(/notice=No\+push/)
+ assert.deepEqual((await a.dump()).vane_push_subscriptions,[])
+ answer=201;await subscribe('https://push.example/send/browser-2');assert.equal((await a.post('/api/vane/push/unsubscribe',{endpoint:'https://push.example/send/browser-2'},a.owner)).status,200)
+ assert.deepEqual((await a.dump()).vane_push_subscriptions,[])
+ // Removing a team member (TEAM-001) deletes their browsers' subscriptions.
+ const member=await a.invite('alerts@example.test','member');assert.equal((await subscribe('https://push.example/send/member',member)).status,201)
+ const operators=await (await a.request('/auth/operators',{headers:{cookie:a.owner}})).json(),list=Array.isArray(operators)?operators:operators.operators
+ assert.equal((await a.form({operation:'team.remove',operatorId:list.find(p=>p.email==='alerts@example.test').id},a.owner)).status,303)
+ const after=await a.dump();assert.deepEqual(after.vane_push_subscriptions,[]);assert.ok(['push.subscribe','push.unsubscribe'].every(action=>after.vane_audit.some(e=>e.action===action)),'subscribing and unsubscribing are audited')
+ assert.ok(!JSON.stringify(after.vane_push_keys).includes('"d"'),'the VAPID private key is sealed')
+ assert.ok(a.egress.every(url=>new URL(url).origin==='https://push.example'||new URL(url).hostname==='api.resend.com'),'alerts go only to the push service')
+})
 test('API-004 an MCP client with a site-scoped Stats API key lists its sites and gets last week\'s top sources equal to the Stats API answer; another site, a missing or revoked key and a write tool without a grant are refused',async t=>{
  const a=await withApp(t),id=await a.addSite({paths:[]}),other=await a.addSite({name:'Oak Store',origin:'https://oak.example'})
  const now=Date.parse('2026-03-12T12:00:00Z')
@@ -1624,7 +1681,7 @@ test('API-004 an MCP client with a site-scoped Stats API key lists its sites and
  assert.equal((await a.request('/api/v1/mcp',{headers:{authorization:'Bearer '+key,accept:'text/event-stream'}})).status,405)
  assert.equal((await a.form({operation:'apikey.revoke',id:(await a.dump()).vane_api_keys[0].id},a.owner)).status,303);assert.equal((await send({jsonrpc:'2.0',id:100,method:'tools/list'})).status,401)
 })
-test('IMPORT-006 a page of PostHog $pageview events and a Simple Analytics CSV export page import only the day, path, source and campaign, resume without double counting, and keep no person, session, device or IP identifier',async t=>{
+test('IMPORT-006 a page of PostHog $pageview events, a Simple Analytics CSV export page and a Umami website_event database export page import only the day, path, source and campaign, resume without double counting, and keep no person, session, device or IP identifier',async t=>{
  const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({paths:[]})
  const person='0191f2d0-person-7a1b',ip='198.51.100.23',pageview=(uuid,timestamp,url,extra={})=>({uuid,event:'$pageview',timestamp,distinct_id:person,properties:{$current_url:url,$pathname:new URL(url).pathname,$host:'fern.example',$ip:ip,$session_id:'0191f2d0-session',$device_id:'0191f2d0-device',$title:'Title of a PostHog page',token:'phc_projectkey',$browser:'Chrome',$referrer:'$direct',$referring_domain:'$direct',...extra}})
  const page={next:null,results:[
@@ -1652,7 +1709,20 @@ test('IMPORT-006 a page of PostHog $pageview events and a Simple Analytics CSV e
  assert.deepEqual([simple.discarded.sessionIds,simple.discarded.rawQueries,simple.discarded.referrerPaths],[2,1,1])
  assert.equal((await (await a.request(`/api/vane/summary?siteId=${id}&from=2024-03-12&to=2024-03-13`,owner)).json()).pageviews,2)
  await movein(a,id,csv);assert.equal((await (await a.request(`/api/vane/summary?siteId=${id}&from=2024-03-12&to=2024-03-13`,owner)).json()).pageviews,2,'resumes without double counting')
- const after=JSON.stringify(await a.dump());for(const value of ['sa-session-77','sa-0001','ref=x'])assert.ok(!after.includes(value),value)
+ // A page of Umami's website_event database export (CSV, PostgreSQL timestamps in UTC): the same fields are kept, and an
+ // event keeps its identity through Umami's events API, so a row imported both ways counts once.
+ const umami='event_id,website_id,session_id,visit_id,created_at,url_path,url_query,referrer_path,referrer_query,referrer_domain,page_title,event_type,event_name,hostname,tag\n'+
+  'b1a6c0de-0001-4000-8000-000000000001,4fb7a9b2-site,77aa-session,88bb-visit,2024-03-13 09:00:00.123+00,/,utm_source=newsletter&utm_campaign=spring,,,,Fern home,1,,fern.example,\n'+
+  'b1a6c0de-0002-4000-8000-000000000002,4fb7a9b2-site,77aa-session,88bb-visit,2024-03-13 09:02:00,/pricing,,/search,q=fern,www.google.com,Fern pricing,1,,fern.example,\n'+
+  'b1a6c0de-0003-4000-8000-000000000003,4fb7a9b2-site,77aa-session,88bb-visit,2024-03-13T09:05:00Z,/thanks,,,,,Thanks,2,signup,fern.example,\n'
+ const export_=(await movein(a,id,umami)).preview
+ assert.deepEqual(export_.normalized.map(e=>[e.day,e.kind,e.path,e.source,e.campaign]).sort(),[['2024-03-13','pageview','/','newsletter','spring'],['2024-03-13','pageview','/pricing','www.google.com','none'],['2024-03-13','signup','/thanks','direct','none']])
+ assert.deepEqual([export_.discarded.sessionIds,export_.discarded.websiteIds,export_.discarded.pageTitles,export_.discarded.rawQueries,export_.discarded.referrerPaths,export_.discarded.referrerQueries],[6,3,3,1,1,1])
+ const day13=async()=>{const r=await (await a.request(`/api/vane/summary?siteId=${id}&from=2024-03-13&to=2024-03-14`,owner)).json();return [r.pageviews,r.goals]}
+ assert.deepEqual(await day13(),[2,1])
+ await movein(a,id,{data:[{id:'b1a6c0de-0001-4000-8000-000000000001',websiteId:'4fb7a9b2-site',sessionId:'77aa-session',createdAt:'2024-03-13T09:00:00.123Z',urlPath:'/',urlQuery:'utm_source=newsletter&utm_campaign=spring',eventType:1}],count:1,page:1,pageSize:1})
+ assert.deepEqual(await day13(),[2,1],'the same Umami event through the events API counts once')
+ const after=JSON.stringify(await a.dump());for(const value of ['sa-session-77','sa-0001','ref=x','77aa-session','88bb-visit','4fb7a9b2-site','Fern pricing','b1a6c0de-0002','q=fern'])assert.ok(!after.includes(value),value)
 })
 test('INSTALL-008 a server sends pageviews and a custom event with its site token, a repeated Idempotency-Key counts once, a token for another site is refused, and no raw IP or user agent is stored',async t=>{
  const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({paths:[]}),other=await a.addSite({name:'Oak Store',origin:'https://oak.example'})
@@ -1765,7 +1835,7 @@ test('REPORT-001 two weekly subscribers get the Monday 8:00 New York report once
  assert.deepEqual(to('gone@client.example').map(m=>m.status),[422],'a rejected message is not retried')
  await at('2026-03-18T00:17:00Z');assert.equal(to('down@client.example').length,3,'the fourth attempt waits 12 hours');await at('2026-03-18T00:19:00Z');assert.deepEqual(to('down@client.example').map(m=>m.status),[500,500,500,500])
  const sends=await (await a.request(`/app/sites/${id}?section=settings`,owner)).text()
- assert.match(sends,/<td>down@client\.example<\/td><td>2026-03-16 to 2026-03-17 \(end exclusive\)<\/td><td>failed<\/td><td class="vane-number">4<\/td><td>temporary failure \(uncertain\) on all 4 attempts<\/td>/)
+ assert.match(sends,/<td>down@client\.example<\/td><td>Mar 16, 2026<\/td><td>failed<\/td><td class="vane-number">4<\/td><td>temporary failure \(uncertain\) on all 4 attempts<\/td>/)
  assert.match(sends,/<td>gone@client\.example<\/td><td>[^<]*<\/td><td>failed<\/td><td class="vane-number">1<\/td><td>rejected by the mail provider[^<]*; not retried<\/td>/)
  assert.match(sends,/<td>retry@client\.example<\/td><td>[^<]*<\/td><td>sent<\/td><td class="vane-number">3<\/td>/)
  // Only the owner adds an external recipient; a viewer subscribes their own address.

@@ -1,5 +1,13 @@
 # Move in from Umami
 
+Vane also accepts a page (up to 500 rows) of Umami's database export of the
+`website_event` table as CSV with a header row, such as PostgreSQL's
+`\copy (SELECT * FROM website_event WHERE website_id = '<id>' ORDER BY created_at
+LIMIT 500 OFFSET 0) TO 'page-1.csv' CSV HEADER`. It needs `event_id`, `created_at`
+(UTC; a time without an offset is read as UTC), `url_path` and `event_type`, and
+keeps the same fields as an events page. An event keeps one identity whether it
+arrives through the export or the events API, so it never counts twice.
+
 Vane accepts a JSON response from Umami v2's documented
 [`GET /api/websites/:websiteId/events`](https://v2.umami.is/docs/api/events-api).
 The response has `data`, `count`, `page`, and `pageSize` at the root. It is not a

@@ -55,7 +55,7 @@ export async function regrant(env:Env,actor:Actor,input:any) {
 export async function remove(env:Env,actor:Actor,request:Request,operatorId:string) {
  const found=await person(env,actor,operatorId);
  if(found.status==='invited')await operatorAuth(env).cancelInvitation(request,found.id);else await operatorAuth(env).setOperatorStatus(request,found.id,'inactive');
- await env.DB.batch([statement(env,'DELETE FROM vane_grants WHERE operator_id=?',found.id),auditStatement(env,actor.id,'team.remove',found.id,'access ended')]);
+ await env.DB.batch([statement(env,'DELETE FROM vane_grants WHERE operator_id=?',found.id),statement(env,'DELETE FROM vane_push_subscriptions WHERE operator_id=?',found.id),auditStatement(env,actor.id,'team.remove',found.id,'access ended')]);
 }
 // Ownership moves only on the current owner's confirmation: the owner types the new owner's email address, and Base's
 // owner-role change asks for a fresh sign-in proof. The new owner holds every site; the former owner becomes an admin.

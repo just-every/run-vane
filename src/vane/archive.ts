@@ -4,7 +4,7 @@ interface Payload { format:'vane-history/1'; exportedAt:number; tables:Record<st
 interface Archive { payload:Payload; sha256:string }
 function encodeCell(value:any):any { if(value instanceof ArrayBuffer||ArrayBuffer.isView(value)) {const bytes=value instanceof ArrayBuffer?new Uint8Array(value):new Uint8Array(value.buffer,value.byteOffset,value.byteLength);let text='';for(const b of bytes)text+=String.fromCharCode(b);return {blob:btoa(text)}}return value }
 function decodeCell(value:any):any { if(value===null||typeof value==='string'||typeof value==='number')return value;insist(value&&Object.keys(value).length===1&&typeof value.blob==='string'&&/^[A-Za-z0-9+/]*={0,2}$/.test(value.blob),'cell','Invalid archive cell.');return Uint8Array.from(atob(value.blob),c=>c.charCodeAt(0)).buffer }
-async function tableNames(env:Env) { return (await rows(env,"SELECT name FROM sqlite_master WHERE type='table' AND (name LIKE 'vane_%' OR name LIKE 'ik_%') ORDER BY name")).map(r=>r.name as string).filter(n=>n!=='vane_guard'&&n!=='vane_salts'&&n!=='vane_exports'&&n!=='vane_webhooks') }
+async function tableNames(env:Env) { return (await rows(env,"SELECT name FROM sqlite_master WHERE type='table' AND (name LIKE 'vane_%' OR name LIKE 'ik_%') ORDER BY name")).map(r=>r.name as string).filter(n=>n!=='vane_guard'&&n!=='vane_salts'&&n!=='vane_exports'&&n!=='vane_webhooks'&&n!=='vane_report_kept'&&n!=='vane_push_keys'&&n!=='vane_push_subscriptions') }
 export async function exportHistory(env:Env,actor:Actor):Promise<Archive> {
  role(actor);
  const names=await tableNames(env);

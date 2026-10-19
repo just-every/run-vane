@@ -2,21 +2,12 @@ import { canonicalJson, sha256 } from '../../modules/import-kit/src/provenance/i
 import type { DiscardedCounts, ImportSite, SafeEvent, SitePolicy } from './types.ts';
 import { MoveinError } from './types.ts';
 import { hostOf, keptValue, pathAllowed, storedPath, visitSource } from '../paths';
+import { csvRows as rows } from './csv.ts';
 // IMPORT-006: one CSV page of Simple Analytics' data-point export (Export API, format=csv: a header row of the chosen
 // fields, then one page view per row), up to 500 rows. It needs added_iso, path and uuid; referrer_hostname,
 // utm_source and utm_campaign are kept when present. The session ID, the unique flag, the query string, the referrer
 // path and every other column are counted as discarded and never enter custody.
 const kept = new Set(['added_iso','path','uuid','hostname','referrer_hostname','utm_source','utm_campaign']);
-function rows(text: string): string[][] {
-  const out: string[][] = []; let row: string[] = [], cell = '', quoted = false;
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i]!;
-    if (quoted) { if (c === '"' && text[i + 1] === '"') { cell += '"'; i++; } else if (c === '"') quoted = false; else cell += c; continue; }
-    if (c === '"' && cell === '') quoted = true; else if (c === ',') { row.push(cell); cell = ''; } else if (c === '\n' || c === '\r') { if (c === '\r' && text[i + 1] === '\n') i++; row.push(cell); out.push(row); row = []; cell = ''; } else cell += c;
-  }
-  if (cell !== '' || row.length) { row.push(cell); out.push(row); }
-  return out.filter(r => r.some(v => v !== ''));
-}
 export const isSimpleCsv = (input: unknown) => typeof input === 'string' && /^﻿?[a-z_,"]*\badded_iso\b/.test(input.split(/\r?\n/, 1)[0] ?? '');
 export function simpleEvents(text: string, site: ImportSite, policy: SitePolicy): { events: SafeEvent[]; discarded: DiscardedCounts } {
   const [head, ...data] = rows(text.replace(/^﻿/, '')), columns = head!.map(c => c.trim());

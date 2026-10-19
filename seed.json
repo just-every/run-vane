@@ -50,6 +50,15 @@
         "Goal conversion counts per minute"
       ],
       "adapters": []
+    },
+    {
+      "id": "push",
+      "required": false,
+      "why": "Browser push services (MOBILE-001) that deliver alerts to the browsers where a signed-in person turned them on",
+      "data": [
+        "Encrypted alert title, site name and app link"
+      ],
+      "adapters": []
     }
   ],
   "env": [],

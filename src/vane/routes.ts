@@ -25,6 +25,7 @@ import { currentVisitors, realtime } from './realtime'
 import { saveSegment, segments } from './segments'
 import { previewSelector } from './event-definitions'
 import { shareLinks } from './share'
+import { pushSubscriptions, subscribePush, testPush, unsubscribePush, vapidKey } from './push'
 import { AuthError } from '../modules/operator-auth/index.mjs'
 const ACCOUNT_REFUSALS:Record<string,string>={forbidden:'Your role cannot make this team change.',invitation_conflict:'This email address already belongs to a team member or a pending invitation.',step_up_required:'Confirm it is you first: sign in again, then repeat the ownership transfer within a few minutes.',last_owner:'The installation keeps one owner.',invalid_email:'Enter a valid email address.'};
 const headers={'cache-control':'no-store','x-content-type-options':'nosniff','referrer-policy':'same-origin'};
@@ -47,11 +48,12 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
   const audit=!selected&&asked==='audit'?(everySite(actor!),await auditLog(env,actor!)):undefined;
   const people=!selected&&asked==='team'?await team(env,actor!):undefined;
   const keys=!selected&&asked==='api'?await apiKeys(env,actor!):undefined;
+  const push=!selected&&asked==='alerts'?{pushKey:await vapidKey(env),pushSubscriptions:await pushSubscriptions(env,actor!)}:{};
   const imports=selected&&actor!.role==='owner'?await rows(env,'SELECT j.id,j.state,(SELECT COUNT(*) FROM ik_provenance p WHERE p.job_id=j.id) AS count FROM ik_jobs j JOIN vane_import_approvals a ON a.job_id=j.id WHERE a.site_id=? ORDER BY a.approved_at DESC',selected.id):[];
   const all=(await sites(env)).filter(s=>open(s.id)),list=!selected&&!extra.rollup&&!extra.error&&(url.searchParams.get('section')??'report')==='report'?await overview(env,all,clock(),{period:url.searchParams.get('period'),sort:url.searchParams.get('sort'),q:url.searchParams.get('q')}):undefined;
   const live=selected&&url.searchParams.get('section')==='realtime';
   const settings=selected&&(extra.section??url.searchParams.get('section'))==='settings',hook=settings?(await rows<{created_at:number}>(env,'SELECT created_at FROM vane_annotation_hooks WHERE site_id=?',selected.id))[0]??null:undefined,github=settings?(await rows<{created_at:number}>(env,'SELECT created_at FROM vane_github_keys WHERE site_id=?',selected.id))[0]??null:undefined,warehouse=settings&&actor!.role==='owner'?await exportOf(env,selected.id):undefined,hooks=settings&&['owner','admin'].includes(actor!.role)?{webhooks:await webhooks(env,selected.id),webhookLog:await deliveryLog(env,selected.id)}:{},reports=settings?{reportSubscriptions:(await reportSubscriptions(env,selected.id)).filter(s=>['owner','admin'].includes(actor!.role)||s.operator_id===actor!.id),reportSends:['owner','admin'].includes(actor!.role)?await reportSends(env,selected.id):[]}:{};
-  return renderApp({actor:actor as ViewData['actor'],origin:env.AUTH_ORIGIN,store:await storeUse(env),sites:all,overview:list,rollups:(await rollups(env)).filter(r=>r.sites.every((s:any)=>open(s.id))),site:selected,hook,github,...hooks,...reports,warehouse:warehouse?{endpoint:warehouse.endpoint,bucket:warehouse.bucket,region:warehouse.region,prefix:warehouse.prefix,accessKeyId:warehouse.access_key_id,lastDay:warehouse.last_day,lastResult:warehouse.last_result,createdAt:warehouse.created_at}:warehouse,shares:settings?await shareLinks(env,selected.id):undefined,segments:selected&&!live?await segments(env,selected.id):undefined,live:live?await realtime(env,selected,clock()):undefined,liveVisitors:selected?await currentVisitors(env,selected,clock()):undefined,report:selected&&!live?await createInsightsService(env,selected,clock(),range).list():undefined,proposals,imports,audit,people,apiKeys:keys,section:url.searchParams.get('section')??undefined,notice:url.searchParams.get('notice')??undefined,...extra});
+  return renderApp({actor:actor as ViewData['actor'],origin:env.AUTH_ORIGIN,store:await storeUse(env),sites:all,overview:list,rollups:(await rollups(env)).filter(r=>r.sites.every((s:any)=>open(s.id))),site:selected,hook,github,...hooks,...reports,warehouse:warehouse?{endpoint:warehouse.endpoint,bucket:warehouse.bucket,region:warehouse.region,prefix:warehouse.prefix,accessKeyId:warehouse.access_key_id,lastDay:warehouse.last_day,lastResult:warehouse.last_result,createdAt:warehouse.created_at}:warehouse,shares:settings?await shareLinks(env,selected.id):undefined,segments:selected&&!live?await segments(env,selected.id):undefined,live:live?await realtime(env,selected,clock()):undefined,liveVisitors:selected?await currentVisitors(env,selected,clock()):undefined,report:selected&&!live?await createInsightsService(env,selected,clock(),range).list():undefined,proposals,imports,audit,people,apiKeys:keys,...push,section:url.searchParams.get('section')??undefined,notice:url.searchParams.get('notice')??undefined,...extra});
  }
  try {
   const session=await operatorAuth(env).getSession(request);
@@ -89,6 +91,9 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
    if(path==='/api/vane/install-check')return json(await verifyInstallation(env,actor,p.siteId));
    if(path==='/api/vane/site-import')return json(await importSite(env,actor,p.archive),201);
    if(path==='/api/vane/restore')return json(await restoreHistory(env,actor,p.archive,p.journal));
+   // MOBILE-001: the alerts page's script sends this browser's push subscription, or turns it off.
+   if(path==='/api/vane/push/subscribe')return json(await subscribePush(env,actor,p),201);
+   if(path==='/api/vane/push/unsubscribe')return json(await unsubscribePush(env,actor,p));
    if(path==='/app/action') {
     // Approval has a deliberately separate human form surface. The command API
     // can prepare and inspect; it cannot apply pending configuration or erasure.
@@ -109,6 +114,9 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
     // API-001: a new key is rendered once in this response, never put in a redirect URL.
     if(p.operation==='apikey.create')return view(undefined,{section:'api',notice:'Key created. Copy it now: it is not shown again.',apiToken:await createKey(env,actor,p)});
     if(p.operation==='apikey.revoke'){await revokeKey(env,actor,String(p.id??''));return redirect('/app?'+new URLSearchParams({section:'api',notice:'Key revoked. It is refused from now on.'}))}
+    // MOBILE-001: a browser removed from the alerts page, and a test alert to the person's own browsers.
+    if(p.operation==='push.remove'){await unsubscribePush(env,actor,{id:p.id});return redirect('/app?'+new URLSearchParams({section:'alerts',notice:'That browser no longer receives alerts.'}))}
+    if(p.operation==='push.test'){const sent=await testPush(env,actor,String(p.siteId??''));return redirect('/app?'+new URLSearchParams({section:'alerts',notice:sent?`Test alert sent to ${sent===1?'one browser':`${sent} browsers`}.`:'No push service accepted the test alert.'}))}
     // REPORT-001: email report subscriptions.
     if(p.operation==='report.subscribe'){const made=await subscribe(env,actor,p);return redirect(`/app/sites/${encodeURIComponent(made.siteId)}?${new URLSearchParams({section:'settings',notice:'Subscribed to the email report.'})}`)}
     if(p.operation==='report.unsubscribe'){const id=await unsubscribe(env,actor,String(p.id??''));return redirect(`/app/sites/${encodeURIComponent(id)}?${new URLSearchParams({section:'settings',notice:'Unsubscribed from the email report.'})}`)}

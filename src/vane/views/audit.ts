@@ -1,4 +1,4 @@
-import { escape, panel } from './html'
+import { escape, panel, whenUtc } from './html'
 import { commands } from './approvals'
 import type { ViewData } from './types'
 
@@ -15,7 +15,6 @@ const ACTIONS: Record<string, string> = {
   'team.invite': 'Invited a person', 'team.grant': 'Changed a person’s access', 'team.remove': 'Removed a person', 'team.transfer': 'Transferred ownership',
 }
 const action = (slug: string) => ACTIONS[slug] ?? slug.replace(/[._-]+/g, ' ').replace(/^./, c => c.toUpperCase())
-const when = (at: number) => new Date(at).toLocaleString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })
 const subject = (entry: any) => entry.subjectName ?? (entry.subjectCommand ? commands[entry.subjectCommand] ?? 'A change' : entry.subject === 'installation' ? 'This installation' : /^[0-9a-f-]{20,}$/i.test(String(entry.subject ?? '')) ? '—' : entry.subject)
 // Details name things: a command by its label, a site by its name, and any other id (a note, link, job) by its kind alone.
 function detail(text: unknown, sites: { id: string; name: string }[]): string {
@@ -31,5 +30,5 @@ function detail(text: unknown, sites: { id: string; name: string }[]): string {
 export function auditPage(data: ViewData): string {
   const entries = data.audit ?? []
   if (!entries.length) return panel('Audit history', '<p class="vane-empty">No audited actions yet.</p>')
-  return panel('Audit history', `<div class="vane-table-scroll" role="region" aria-label="Audit history" tabindex="0"><table data-audit><caption class="vane-sr-only">Audit history</caption><thead><tr><th scope="col">Time (UTC)</th><th scope="col">By</th><th scope="col">Action</th><th scope="col">Subject</th><th scope="col">Detail</th></tr></thead><tbody>${entries.map(entry => `<tr><td>${escape(when(Number(entry.at)))}</td><td>${escape(entry.actorKnown ?? (/^[0-9a-f-]{20,}$/i.test(String(entry.actor)) ? 'Someone no longer on the team' : action(String(entry.actor))))}</td><th scope="row" data-action="${escape(entry.action)}">${escape(action(entry.action))}</th><td>${escape(subject(entry))}</td><td>${escape(detail(entry.detail, data.sites ?? []))}</td></tr>`).join('')}</tbody></table></div>`, 'Every proposal and approval, setting change, import and undo, export, restore, erasure, retention run, sign-in and agent action. Entries survive history erasure and travel in the archive.')
+  return panel('Audit history', `<div class="vane-table-scroll" role="region" aria-label="Audit history" tabindex="0"><table data-audit><caption class="vane-sr-only">Audit history</caption><thead><tr><th scope="col">Time (UTC)</th><th scope="col">By</th><th scope="col">Action</th><th scope="col">Subject</th><th scope="col">Detail</th></tr></thead><tbody>${entries.map(entry => `<tr><td>${escape(whenUtc(Number(entry.at)))}</td><td>${escape(entry.actorKnown ?? (/^[0-9a-f-]{20,}$/i.test(String(entry.actor)) ? 'Someone no longer on the team' : action(String(entry.actor))))}</td><th scope="row" data-action="${escape(entry.action)}">${escape(action(entry.action))}</th><td>${escape(subject(entry))}</td><td>${escape(detail(entry.detail, data.sites ?? []))}</td></tr>`).join('')}</tbody></table></div>`, 'Every proposal and approval, setting change, import and undo, export, restore, erasure, retention run, sign-in and agent action. Entries survive history erasure and travel in the archive.')
 }
