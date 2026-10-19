@@ -10,6 +10,7 @@ import { customEventResponse } from './vane/custom-events'
 import { exposureResponse } from './vane/experiments'
 import { expireSalts } from './vane/visitors'
 import { runExports } from './vane/warehouse'
+import { runWebhooks } from './vane/webhooks'
 import { clock, clockResponse } from './vane/clock'
 import { vaneResponse } from './vane/routes'
 import { apiDoor } from './vane/api-door'
@@ -83,5 +84,7 @@ export default withDemo({
   async scheduled(_controller, env) {
     await expireSalts(runtimeBindings(env), clock())
     await runExports(runtimeBindings(env), clock())
+    // API-003: queue ended minutes' goal conversions and send due webhook deliveries.
+    await runWebhooks(runtimeBindings(env), clock())
   },
 } satisfies ExportedHandler<Bindings>, { seed: seedDemo })

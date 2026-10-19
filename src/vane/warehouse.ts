@@ -20,15 +20,15 @@ export const exportSchema=()=>({version:1,format:'text/csv; charset=utf-8, RFC 4
  daily_rollups:{key:'<prefix>vane/<site_id>/daily_rollups/<date>.csv',rows:'One row: the site’s dashboard totals for that date',columns:ROLLUP_COLUMNS.map(([name,type,description])=>({name,type,description}))},
  events:{key:'<prefix>vane/<site_id>/events/<date>.csv',rows:'Every stored page load and goal event of that date',columns:EVENT_COLUMNS.map(([name,type,description])=>({name,type,description}))}},
  never:['visitor hash','daily salt','IP address','user agent'],schedule:'Each site-local date once, after it ends, checked every 5 minutes; a refused upload is retried after an hour'})
-// An endpoint is an https origin whose host is a public name or address: not localhost or a .localhost, .local,
+// An endpoint is an https origin (with a path and query for a webhook, API-003) whose host is a public name or address: not localhost or a .localhost, .local,
 // .internal or .home.arpa name, a single-label name, or an IPv4/IPv6 literal in a private, loopback, link-local,
 // carrier-grade NAT, unspecified or multicast range (IPv4-mapped IPv6 included).
-export function publicHttps(value:string):URL {
+export function publicHttps(value:string,withPath=false):URL {
  let url:URL;try{url=new URL(value)}catch{url=new URL('invalid:')}
  const host=url.hostname.toLowerCase().replace(/^\[|\]$/g,''),v4=host.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/)
  const privateV4=(a:number,b:number)=>a===0||a===10||a===127||a>=224||(a===169&&b===254)||(a===172&&b>=16&&b<=31)||(a===192&&b===168)||(a===100&&b>=64&&b<=127)
  const refused=['localhost'].includes(host)||/\.(localhost|local|internal|home\.arpa)$/.test(host)||(!host.includes('.')&&!host.includes(':'))||(v4?privateV4(Number(v4[1]),Number(v4[2])):false)||(host.includes(':')&&(host==='::'||host==='::1'||/^f[cd]/.test(host)||/^fe[89ab]/.test(host)||host.startsWith('::ffff:')))
- insist(url.protocol==='https:'&&!url.username&&!url.password&&(url.pathname==='/'||url.pathname==='')&&!url.search&&!url.hash&&!refused,'endpoint','Enter the bucket service’s https endpoint, such as https://<account>.r2.cloudflarestorage.com or https://s3.us-east-1.amazonaws.com; private and local addresses are refused.');
+ insist(url.protocol==='https:'&&!url.username&&!url.password&&(withPath||url.pathname==='/'||url.pathname==='')&&!url.hash&&(withPath||!url.search)&&!refused,'endpoint',withPath?'Enter a public https address; private and local addresses are refused.':'Enter the bucket service’s https endpoint, such as https://<account>.r2.cloudflarestorage.com or https://s3.us-east-1.amazonaws.com; private and local addresses are refused.');
  return url
 }
 export async function saveExport(env:Env,actor:Actor,p:any) {

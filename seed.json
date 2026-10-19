@@ -41,6 +41,15 @@
         "Event rows without the visitor hash"
       ],
       "adapters": []
+    },
+    {
+      "id": "webhooks",
+      "required": false,
+      "why": "Signed webhooks an owner or administrator adds (API-003) to their own endpoints",
+      "data": [
+        "Goal conversion counts per minute"
+      ],
+      "adapters": []
     }
   ],
   "env": [],

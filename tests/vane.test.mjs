@@ -1686,3 +1686,27 @@ test('PRIVACY-003 each consent manager adapter and Google Consent Mode decide co
  assert.ok(!JSON.stringify((await a.dump()).vane_events).match(/"(DE|BE|TX)"/),'no region is stored')
  await context.close()
 })
+test('API-003 a signed webhook receives a goal burst as per-minute counts once each after a failed first delivery is retried, and the delivery log shows the failure and the success',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({paths:[],goals:{signup:'/thanks'}}),T=Date.parse('2026-03-10T10:00:00Z')
+ const add=(body,cookie=a.owner)=>a.form({operation:'webhook.create',siteId:id,url:'https://hooks.fixture.example/vane','event_goal.conversions':'on',...body},cookie)
+ assert.equal((await add({url:'http://hooks.fixture.example/vane'})).status,400);assert.equal((await add({url:'https://10.1.2.3/vane'})).status,400)
+ assert.equal((await a.form({operation:'team.invite',email:'viewer@example.test',role:'viewer',scope:'all'},a.owner)).status,303);assert.equal((await add({},await a.accept('viewer@example.test'))).status,403)
+ await a.clock(T);const made=await add({});assert.equal(made.status,200);const secret=(await made.text()).match(/data-webhook-secret>(vane_wh_[0-9a-f]{64})</)[1]
+ assert.ok(!(await (await a.request(`/app/sites/${id}?section=settings`,owner)).text()).includes(secret),'shown once');assert.ok(!JSON.stringify(await a.dump()).includes(secret),'sealed')
+ const received=[];let fail=1
+ a.fixtureSites['https://hooks.fixture.example']=async request=>{const body=await request.text(),[,ts,v1]=request.headers.get('vane-signature').match(/^t=(\d+),v1=([0-9a-f]{64})$/);received.push({delivery:request.headers.get('vane-delivery'),event:request.headers.get('vane-event'),body:JSON.parse(body),valid:createHmac('sha256',secret).update(`${ts}.${body}`).digest('hex')===v1});return new Response(null,{status:fail-->0?500:204})}
+ // A burst: three signups in the 10:00 minute and one in 10:01.
+ const load=async(at,n)=>{await a.clock(at);assert.equal((await a.post('/api/vane/collect',a.event(id,{path:'/thanks'}),'',{origin:'https://fern.example','cf-connecting-ip':'203.0.113.'+n,'user-agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36'})).status,202)}
+ for(const [n,s] of [[1,5],[2,20],[3,40],[4,90]])await load(T+s*1000,n)
+ await a.clock(T+125000);await a.scheduled()
+ assert.equal(received.length,2);assert.ok(received.every(r=>r.valid&&r.event==='goal.conversions'))
+ await a.scheduled();assert.equal(received.length,2,'a failed delivery waits a minute before its retry')
+ await a.clock(T+125000+61000);await a.scheduled();assert.equal(received.length,3)
+ const failed=received[0].delivery;assert.equal(received[2].delivery,failed,'the retry carries the same delivery ID')
+ const delivered=received.slice(1);assert.deepEqual(delivered.map(r=>[r.body.minute,r.body.goal,r.body.count]).sort(),[['2026-03-10T10:00:00.000Z','signup',3],['2026-03-10T10:01:00.000Z','signup',1]])
+ assert.ok(received.every(r=>Object.keys(r.body).sort().join()===['count','event','goal','minute','site_id'].join()),'counts only, never per person')
+ await a.clock(T+600000);await a.scheduled();assert.equal(received.length,3,'each delivery succeeds once')
+ const log=await (await a.request(`/app/sites/${id}?section=settings`,owner)).text();assert.match(log,/<td class="vane-number">500<\/td><td>HTTP 500; retry in 1 min<\/td>/);assert.equal((log.match(/<td>delivered<\/td>/g)??[]).length,2)
+ assert.ok(a.egress.every(url=>url.startsWith('https://hooks.fixture.example/')||url.includes('resend')),'deliveries go only to the endpoint')
+ const hook=(await a.dump()).vane_webhooks[0].id;assert.equal((await a.form({operation:'webhook.delete',id:hook},a.owner)).status,303);assert.ok((await a.dump()).vane_audit.some(e=>e.action==='webhook.delete'))
+})

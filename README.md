@@ -128,6 +128,10 @@ Every report table downloads as CSV, and **Whole site as a ZIP of CSVs** on a re
 
 Create an **events token** for one site on the API keys page, then `POST /api/v1/events` with `Authorization: Bearer <token>` and one event (or `{"events": [...]}` with up to 100): the script's fields, `type` `pageview` or `event`, and the visitor's `client_ip` and `user_agent`, which are used only to count visitors and classify devices and are never stored. Send an `Idempotency-Key` header to make a retry safe for 24 hours.
 
+### Webhooks
+
+In a site's settings an owner or administrator adds an https endpoint. Goal conversions arrive as signed JSON counts per goal and minute; check `Vane-Signature` (`t=<unix time>,v1=<HMAC-SHA256 of t.body>`) with the secret shown when you add it, and keep one copy per `Vane-Delivery`. The settings page lists every attempt.
+
 ### Assistants (MCP)
 
 Point an MCP client at `POST <installation>/api/v1/mcp` with the header `Authorization: Bearer <Stats API key>`. Its `list_sites` and `query_stats` tools read the key's sites and answer exactly as `/api/v1/stats`; write tools are refused until agent grants exist.
