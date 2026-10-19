@@ -21,6 +21,7 @@ export interface ViewData {
   reportSends?: Awaited<ReturnType<typeof import('../email-reports').reportSends>>
   mailEvents?: boolean
   alerts?: import('../traffic-alerts').Alert[]
+  maintenance?: import('../alert-baseline').Window[]
   alertLog?: Awaited<ReturnType<typeof import('../traffic-alerts').alertLog>>
   mailStops?: { email: string; status: string; occurred_at: number }[]
   warehouse?: { endpoint: string; bucket: string; region: string; prefix: string; accessKeyId: string; lastDay: string; lastResult: string | null; createdAt: number } | null

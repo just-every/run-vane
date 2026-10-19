@@ -23,7 +23,7 @@ type Frequency=keyof typeof FREQUENCIES
 export interface Subscription { id:string; site_id:string; segment_id:string|null; email:string; operator_id:string|null; frequency:Frequency; weekday:number; hour:number; next_at:number; created_by:string; created_at:number }
 const offset=(at:number,timeZone:string)=>{const p=Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone,hourCycle:'h23',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'}).formatToParts(at).map(x=>[x.type,x.value]));return Date.UTC(+p.year!,+p.month!-1,+p.day!,+p.hour!,+p.minute!,+p.second!)-Math.floor(at/1000)*1000}
 // The instant of a local wall-clock hour, found from the zone's offset at that moment (twice, across a change).
-const instant=(day:string,hour:number,timeZone:string)=>{const wall=Date.parse(day)+hour*3600000;const first=wall-offset(wall,timeZone);return wall-offset(first,timeZone)}
+export const instant=(day:string,hour:number,timeZone:string)=>{const wall=Date.parse(day)+hour*3600000;const first=wall-offset(wall,timeZone);return wall-offset(first,timeZone)}
 const shift=(day:string,days:number)=>new Date(Date.parse(day)+days*DAY).toISOString().slice(0,10)
 export function nextDue(s:Pick<Subscription,'frequency'|'weekday'|'hour'>,timeZone:string,after:number):number {
  const today=localDay(after,timeZone)

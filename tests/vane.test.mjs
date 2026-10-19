@@ -1908,3 +1908,33 @@ test('ALERT-001 a current-visitors alert above 50 is sent by email within 15 min
  const alert=(await a.dump()).vane_alerts[0];assert.equal((await a.form({operation:'alert.delete',id:alert.id},viewer)).status,403);assert.equal((await a.form({operation:'alert.delete',id:alert.id},analyst)).status,303)
  assert.ok((await a.dump()).vane_audit.some(e=>e.action==='alert.create')&&(await a.dump()).vane_audit.some(e=>e.action==='alert.delete'),'setting and deleting alerts are audited')
 })
+test('ALERT-001 against eight weeks of baseline traffic a 4x spike and a 70% drop alert once each against the same weekday and hour, the cool-down holds a repeat, a Thanksgiving dip is held, and a drop inside a recurring Saturday 2:00-3:00 maintenance window is held while the same drop at 4:00 alerts',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({paths:[]}),HOUR=3600000
+ let ip=0;const pageviews=async(iso,n)=>{await a.clock(Date.parse(iso));for(let i=0;i<n;i++)assert.equal((await a.post('/api/vane/collect',a.event(id,{path:'/'}),'',{origin:'https://fern.example','cf-connecting-ip':`198.51.${100+(ip>>8)%50}.${ip++%256}`,'user-agent':DESKTOP_CHROME})).status,202)}
+ const usual=[6,7,5,6,8,6,5,7],day=(from,weeks)=>new Date(Date.parse(from)+weeks*7*86400000).toISOString().slice(0,10)
+ // Baselines: Thursdays 27 Aug to 19 Nov 2026 at 10:00 and 14:00 UTC, Saturdays 29 Aug to 17 Oct at 2:00 and 4:00.
+ for(let w=0;w<13;w++){const d=day('2026-08-27',w);for(const h of ['10','14'])if(!(d==='2026-10-22'&&h==='10'||d==='2026-11-05'&&h==='14'))await pageviews(`${d}T${h}:10:00Z`,usual[w%8])}
+ for(let w=0;w<8;w++)for(const h of ['02','04'])await pageviews(`${day('2026-08-29',w)}T${h}:10:00Z`,usual[w%8])
+ await a.clock(Date.parse('2026-10-20T00:00:00Z'))
+ const add=body=>a.form({operation:'alert.create',siteId:id,metric:'pageviews',condition:'anomaly',cooldown:'6',...body},a.owner)
+ assert.equal((await add({direction:'above'})).status,303);assert.equal((await add({direction:'below'})).status,303)
+ assert.equal((await add({direction:'above',metric:'current'})).status,400,'current visitors take a fixed threshold')
+ assert.equal((await a.form({operation:'maintenance.add',siteId:id,kind:'weekly',weekday:'6',from:'02:00',to:'03:00'},a.owner)).status,303)
+ const sent=()=>a.sentMail.filter(m=>/usual range/.test(m.subject)).map(m=>m.subject),at=async iso=>{await a.clock(Date.parse(iso));await a.scheduled()}
+ // Thursday 22 Oct, 10:00: 24 pageviews by 10:20 against a usual 6 or so: the running hour alerts once.
+ await a.clock(Date.parse('2026-10-22T10:00:00Z'));await at('2026-10-22T10:05:00Z');await pageviews('2026-10-22T10:20:00Z',24);await at('2026-10-22T10:25:00Z');await at('2026-10-22T10:30:00Z')
+ assert.deepEqual(sent(),['Fern Studio: Pageviews above the usual range for the weekday and hour'],'the spike alerts once')
+ assert.match(a.sentMail.at(-1).text,/24 pageviews so far in Thursday 2026-10-22 10:00–11:00 \(UTC\); the usual range for this weekday and hour is \d+(\.\d)? to \d+(\.\d)?\./)
+ // A second spike at 12:00 the same day is inside the 6-hour cool-down: held, not sent.
+ await pageviews('2026-10-22T12:10:00Z',24);await at('2026-10-22T12:15:00Z');assert.equal(sent().length,1,'the cool-down suppresses a repeat')
+ // Saturday 24 Oct: 1 pageview at 2:00 (inside the maintenance window) is held; the same drop at 4:00 alerts.
+ await pageviews('2026-10-24T02:10:00Z',1);await at('2026-10-24T03:05:00Z');assert.equal(sent().length,1,'held in maintenance')
+ await pageviews('2026-10-24T04:10:00Z',1);await at('2026-10-24T05:05:00Z');assert.deepEqual(sent().slice(1),['Fern Studio: Pageviews below the usual range for the weekday and hour'])
+ // Thursday 5 Nov, 14:00: 2 pageviews (a 70% drop) alert when the hour ends; Thanksgiving's empty 14:00 is held.
+ await pageviews('2026-11-05T14:10:00Z',2);await at('2026-11-05T15:05:00Z');assert.equal(sent().length,3,'the drop alerts')
+ await at('2026-11-26T15:05:00Z');assert.equal(sent().length,3,'the Thanksgiving dip does not alert')
+ const log=unlinked(await (await a.request(`/app/sites/${id}?section=settings`,owner)).text())
+ for(const outcome of ['held: cool-down of 6 h since the last send','held: scheduled maintenance (Saturdays 02:00–03:00)','held: Thanksgiving Day, a US federal holiday, is not judged against ordinary weeks'])assert.ok(log.includes(outcome),outcome)
+ assert.match(log,/<td>Pageviews below the usual range for the weekday and hour<\/td><td class="vane-number">1<\/td><td>Oct 24, 2026, 5:05\sAM<\/td><td>sent: email accepted by the mail provider; push accepted by 0 browsers; usual range [\d.]+ to [\d.]+ for Saturday 2026-10-24 04:00–05:00<\/td>/)
+ assert.ok(log.includes('Saturdays 02:00–03:00'),'the window is listed');assert.equal((await a.dump()).vane_alert_log.length,6)
+})
