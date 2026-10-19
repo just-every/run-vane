@@ -55,7 +55,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "059ee25aa6de153375d76f5b7bed37e37bd8f765096fd6664bc4a88d016fec19",
+      "sha256": "db7ac4932318187675a11914d1bf1c0fcaddf3ef6a9762d5929d00c3b0944cf7",
       "executable": false
     },
     "AGENTS.md": {
@@ -2683,7 +2683,7 @@
       "executable": false
     },
     "tests/harness.mjs": {
-      "sha256": "6f339099299bbe82172bdbe44aaa40a8288f2368695539ebcbc7972310b0b514",
+      "sha256": "8442110d5e831db114eadc8fe91cb039fd3d2e3177b60ab72554c162cdce7806",
       "executable": false
     },
     "tests/site.test.mjs": {
@@ -2691,7 +2691,7 @@
       "executable": false
     },
     "tests/vane.test.mjs": {
-      "sha256": "295cb3ee476176974808595900d309e8993cbe173db0ed502488a50392f465a5",
+      "sha256": "1e4c344c0670cbf4459270f77ad1298fc7535d536e1eb5b3da5f7975209dd73d",
       "executable": false
     },
     "tsconfig.json": {
