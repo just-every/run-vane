@@ -1133,3 +1133,30 @@ test('CONV-002 Signup with plan=pro and plan=free through vane() and CSS classes
  assert.ok((await (await a.request('/api/vane/inventory?siteId='+id,owner)).json()).fields.some(f=>f.table==='vane_event_props'))
  const published=await (await a.request(`/stats/${id}?from=${day}&to=${new Date(Date.parse(day)+86400000).toISOString().slice(0,10)}`)).text();assert.ok(published.includes('/essay')&&!/Signup|Callback|Event properties|Page properties/.test(published),'public stats show no custom event or property')
 })
+test('CONV-009 a click on #book-demo, a contact form, a visible pricing table and a docs pageview defined in the app, previewed against the live page and approved, arrive as custom events with no site code change',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({paths:[]})
+ const html=`<!doctype html><title>Fern</title><button id="book-demo" class="cta">Book a demo</button><form class="contact" action="/" onsubmit="return false"><button>Send</button></form><div style="height:3000px"></div><section id="pricing">Pricing</section><script src="${a.origin}/vane.js" data-site="${id}"></script>`
+ a.fixtureSites['https://fern.example']=()=>new Response(html,{headers:{'content-type':'text/html'}})
+ // Preview: the selector is run over the live page; nothing is stored, and only owners and administrators preview.
+ const preview=await a.form({operation:'event.preview',siteId:id,selector:'#book-demo',path:'/'},a.owner),shown=await preview.text()
+ assert.equal(preview.status,200);assert.ok(shown.includes('data-preview-total="1"')&&shown.includes('<code>&lt;button id="book-demo" class="cta"&gt;</code> Book a demo'),'the matched element is shown')
+ assert.ok((await (await a.form({operation:'event.preview',siteId:id,selector:'.missing',path:'/'},a.owner)).text()).includes('data-preview-total="0"'))
+ assert.equal((await a.form({operation:'event.preview',siteId:id,selector:'#x{}',path:'/'},a.owner)).status,400,'an invalid selector is refused')
+ const member=await a.invite('member@example.test','member');assert.equal((await a.form({operation:'event.preview',siteId:id,selector:'#book-demo',path:'/'},member)).status,403)
+ // Defined in the settings and applied only once the owner approves (APPROVE-001).
+ const input={siteId:id,name:'Fern Studio',origin:'https://fern.example',paths:[],goals:{},consent:'not-required',eventDefinitions:'Book demo = click #book-demo\nLead = submit form.contact\nPricing seen = visible #pricing\nDocs = pageview /docs/**'}
+ assert.equal((await a.post('/api/vane/commands',{command:'site.configure',input:{...input,eventDefinitions:'Book demo = hover #book-demo'}},a.owner)).status,400)
+ const proposed=await (await a.post('/api/vane/commands',{command:'site.configure',input},a.owner)).json(),config=async()=>(await a.request('/api/vane/config/'+id,{headers:{origin:'https://fern.example'}})).json()
+ assert.equal((await config()).eventDefinitions,undefined,'nothing is live before approval')
+ assert.equal((await a.form({operation:'proposal.approve',id:proposed.id},a.owner)).status,303);assert.equal((await config()).eventDefinitions.length,4)
+ // The live page, unchanged: each interaction arrives as its custom event.
+ const {context}=await browse(t,a,{'https://fern.example/':html}),tab=await context.newPage(),names=[]
+ tab.on('request',r=>{if(new URL(r.url()).pathname==='/api/vane/custom')names.push(JSON.parse(r.postData()).name)})
+ const custom=()=>tab.waitForResponse(r=>new URL(r.url()).pathname==='/api/vane/custom'&&r.status()===202),loaded=tab.waitForResponse(r=>new URL(r.url()).pathname==='/api/vane/collect');await tab.goto('https://fern.example/');await loaded
+ for(const act of [()=>tab.getByRole('button',{name:'Book a demo'}).click(),()=>tab.getByRole('button',{name:'Send'}).click(),()=>tab.locator('#pricing').scrollIntoViewIfNeeded(),()=>tab.evaluate(()=>history.pushState({},'','/docs/intro'))]){const sent=custom();await act();await sent}
+ // The pushState to /docs/intro is a new pageview, so the still-visible pricing table counts once more for it.
+ await tab.waitForTimeout(500);assert.deepEqual(names,['Book demo','Lead','Pricing seen','Docs','Pricing seen'])
+ const day=(await a.dump()).vane_events[0].day,summary=await (await a.request(`/api/vane/summary?siteId=${id}&from=${day}&to=${new Date(Date.parse(day)+86400000).toISOString().slice(0,10)}`,owner)).json()
+ assert.deepEqual(summary.customEvents.map(r=>[r.name,r.events]).sort(),[['Book demo',1],['Docs',1],['Lead',1],['Pricing seen',2]])
+ assert.ok((await (await a.request(`/app/sites/${id}?section=settings`,owner)).text()).includes('Book demo = click #book-demo'))
+})

@@ -14,6 +14,7 @@ export interface ViewData {
   notice?: string
   error?: string
   importPreview?: any
+  eventPreview?: any
   importCarry?: string
   section?: string
   audit?: any[]

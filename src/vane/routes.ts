@@ -16,6 +16,7 @@ import { createRollup, rollup, rollupReport, rollups } from './rollups'
 import { overview } from './overview'
 import { realtime } from './realtime'
 import { saveSegment, segments } from './segments'
+import { previewSelector } from './event-definitions'
 const headers={'cache-control':'no-store','x-content-type-options':'nosniff','referrer-policy':'same-origin'};
 const json=(value:unknown,status=200)=>Response.json(value,{status,headers});
 const redirect=(path:string)=>new Response(null,{status:303,headers:{...headers,location:path}});
@@ -74,6 +75,8 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
     }
     // DASH-007: a saved segment reopens the report with it applied.
     if(p.operation==='segment.save'){const saved=await saveSegment(env,actor,p);return redirect(`/app/sites/${encodeURIComponent(saved.siteId)}?${new URLSearchParams({section:'report',segment:saved.id,notice:'Segment saved for the team.'})}`)}
+    // CONV-009: a selector preview renders on the settings page; nothing is stored.
+    if(p.operation==='event.preview')return view(p.siteId,{section:'settings',eventPreview:await previewSelector(env,actor,p)});
     if(p.operation==='rollup.create')return redirect('/app/rollups/'+encodeURIComponent(await createRollup(env,actor,p))+'?'+new URLSearchParams({notice:'Roll-up created.'}));
     const result=await action(env,actor,p),query=new URLSearchParams({notice:result.notice,...(result.section?{section:result.section}:{})});
     // DASH-009: a new annotation secret is rendered once in this response, never put in a redirect URL.
