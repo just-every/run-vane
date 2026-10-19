@@ -228,7 +228,7 @@ These clauses restate what the released first contract and ACCEPTANCE.md promise
 
 ### Sharing, team and data access
 
-- **SHARE-001 — Shared links and embedded dashboards.** An owner creates read-only shared links to a site or segment, optionally password-protected and with an expiry. Each link is revocable and can hide revenue or chosen reports. A link can be embedded as an iframe with a light or dark theme. Viewers need no account and cannot see settings or other sites. **Acceptance evidence:** Create a password-protected link that hides revenue, open it signed out and embed it. The figures match the dashboard with no revenue shown, the wrong password is refused, and a revoked link returns 404.
+- **SHARE-001 — Shared links and embedded dashboards.** An owner creates read-only shared links to a site or segment, optionally password-protected and with an expiry. Each link is revocable and can hide revenue or chosen reports. A link can be embedded as an iframe with a light or dark theme. Viewers need no account and cannot see settings or other sites. The exact rules: the owner or an administrator creates a link in the site settings to the whole site or one saved segment (`DASH-007`), which the viewer cannot change, with reports chosen from the public-page list (`SHARE-002`), so a link hides revenue by leaving the revenue report (`CONV-006`) unchosen. The link's address holds a token of 32 random bytes shown once; Vane keeps only its SHA-256. An optional password of 8 to 200 characters is kept as a salted PBKDF2-SHA256 hash (100,000 iterations); the right password sets a signed cookie scoped to that link's path for 24 hours, and after 10 wrong passwords within 15 minutes the link answers 429 until that window ends. A link may expire 1 to 365 days after it is created (exactly that many 24-hour days); an expired, revoked or unknown link answers 404, and revoking deletes the link at once. A link opens in an iframe only on the site's registered origins (`SITE-001`) and up to 5 more https origins the owner lists, light by default and dark with `?theme=dark`; its pages are never indexed. A viewer may change the reporting period and nothing else, and the link opens no private route. Creating and revoking a link are audited (`AUDIT-001`). The viewer's imported-data switch is `IMPORT-007`'s and city suppression on links is `DASH-005`'s, each before it ships. **Acceptance evidence:** Create a password-protected link that hides revenue, open it signed out and embed it. The figures match the dashboard with no revenue shown, the wrong password is refused, and a revoked link returns 404.
 
 - **SHARE-002 — Public dashboards.** A site can publish a public stats page at a stable URL. The owner chooses which reports appear and whether search engines may index it. No report is chosen by default, so a site has no public page until the owner chooses one; revenue appears only in the revenue report, when the owner chooses it (`CONV-006`). **Acceptance evidence:** Make a site public with two reports chosen and open its URL signed out. Only those reports appear, and turning it off returns 404. Revenue appears only once the owner adds the revenue report (`CONV-006`).
 
@@ -420,8 +420,8 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 17 | 0 | 0 | 17 |
-| Target and push further | 43 | 9 | 39 | 91 |
-| All | 60 | 9 | 39 | 108 |
+| Target and push further | 44 | 9 | 38 | 91 |
+| All | 61 | 9 | 38 | 108 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -503,7 +503,7 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | `ALERT-001` | Traffic spike and drop alerts | target | missing |  | No traffic alerts. |
 | `ALERT-002` | Conversion, revenue and tracking-health alerts | target | missing |  | No conversion, revenue or tracking-health alerts. |
 | `FOLLOW-001` | Alerts are followed through until a person resolves them | target | missing |  | No alert follow-up items, reminders or escalation. |
-| `SHARE-001` | Shared links and embedded dashboards | target | missing |  | No shared links or embeds. |
+| `SHARE-001` | Shared links and embedded dashboards | target | done | `src/vane/share.ts`; `src/vane/views/share.ts`; `src/vane/views/share-settings.ts`; `src/vane/actions.ts`; `src/server.ts`; `migrations/core/0036_vane_share_links.sql`; `public/vane.css`; `tests/vane.test.mjs` |  |
 | `SHARE-002` | Public dashboards | target | done | `src/vane/public.ts`; `src/vane/public-reports.ts`; `src/vane/views/public.ts`; `src/vane/privacy.ts`; `src/vane/views/settings.ts`; `src/server.ts`; `tests/vane.test.mjs` |  |
 | `TEAM-001` | Per-site roles and invitations | target | partial | `src/vane/core.ts`; `src/vane/routes.ts`; `tests/vane.test.mjs` | Installation-wide owner, admin and member roles are enforced and tested; no per-site scope, Analyst role or ownership transfer. |
 | `TEAM-002` | Single sign-on and two-step sign-in | target | missing |  | No working SSO or second-step sign-in in Vane; the vendored Base OIDC module is not mounted. |

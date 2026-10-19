@@ -12,7 +12,8 @@ import { addNote, deleteNote } from './annotations'
 import { createHook, revokeHook } from './annotation-door'
 import { createGithubKey, revokeGithubKey } from './github-releases'
 import { deleteSegment } from './segments'
-export async function action(env:Env,actor:Actor,p:any):Promise<{siteId?:string;notice:string;section?:string;secret?:string}> {
+import { createShareLink, revokeShareLink } from './share'
+export async function action(env:Env,actor:Actor,p:any):Promise<{siteId?:string;notice:string;section?:string;secret?:string;sharePath?:string}> {
  let siteId=p.siteId;
  switch(p.operation) {
   case 'site.prepare': await prepare(env,actor,'site.create',p,'app');return {notice:'Site prepared. Review and approve its settings.',section:'approvals'};
@@ -38,6 +39,9 @@ export async function action(env:Env,actor:Actor,p:any):Promise<{siteId?:string;
   case 'annotation-github.create': return {siteId,notice:'GitHub release key created. Copy it into the GitHub webhook now: it is not shown again.',section:'settings',secret:await createGithubKey(env,actor,siteId)};
   case 'annotation-github.revoke': await revokeGithubKey(env,actor,siteId);return {siteId,notice:'GitHub release key revoked.',section:'settings'};
   case 'annotation-hook.revoke': await revokeHook(env,actor,siteId);return {siteId,notice:'Annotation webhook secret revoked.',section:'settings'};
+  // SHARE-001: a new link's path holds its token, returned once to be shown once.
+  case 'share.create': {const created=await createShareLink(env,actor,p);return {siteId:created.siteId,notice:'Shared link created. Copy it now: it is not shown again.',section:'settings',sharePath:created.path};}
+  case 'share.revoke': return {siteId:await revokeShareLink(env,actor,String(p.id)),notice:'Shared link revoked. It now answers 404.',section:'settings'};
   case 'segment.delete': return {siteId:await deleteSegment(env,actor,String(p.id)),notice:'Segment deleted.'};
   default:throw new Error('Unknown action.');
  }

@@ -463,6 +463,45 @@ test('SHARE-002 a site made public with two reports shows only those to a signed
  assert.equal((await stats()).status,404,'turning it off returns 404');assert.equal((await a.request('/stats/no-such-site')).status,404)
  assert.equal((await a.post('/api/vane/commands',{command:'site.configure',input:{siteId:id,name:'Fern Studio',origin:'https://fern.example',paths:['/'],goals:{},consent:'not-required',publicReports:['search-terms']}},a.owner)).status,400,'only listed reports can be public')
 })
+test('SHARE-001 a password-protected link that hides revenue and a dark segment link open signed out with the dashboard figures, embed only on allowed origins, refuse wrong passwords, expire, and answer 404 once revoked',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}},start=Date.parse('2026-03-10T12:00:00Z'),id=await a.addSite({paths:[]});await a.addSite({name:'Oak Books',origin:'https://oak.example',paths:[]})
+ await a.clock(start)
+ const load=async(n,path)=>{const event=a.event(id,{path});assert.equal((await a.post('/api/vane/collect',event,'',{origin:'https://fern.example','cf-connecting-ip':'203.0.113.'+n})).status,202);return event.id}
+ await load(1,'/');await load(2,'/');const thanks=await load(3,'/thanks')
+ assert.equal((await a.post('/api/vane/custom',{id:crypto.randomUUID(),siteId:id,page:thanks,name:'Purchase',revenue:{amount:40,currency:'USD'},consent:'not-required'},'',{origin:'https://fern.example'})).status,202)
+ const summary=await (await a.request('/api/vane/summary?siteId='+id,owner)).json();assert.equal(summary.revenue.total,40)
+ const create=async(body,cookie=a.owner)=>{const r=await a.form({operation:'share.create',siteId:id,...body},cookie);if(r.status!==200)return r.status;return (await r.text()).match(/data-share-url>[^<]*(\/share\/vane_s_[0-9a-f]{64})</)[1]}
+ // A password-protected link with totals and pages chosen and revenue left out.
+ const locked=await create({label:'Investors',share_totals:'on',share_pages:'on',password:'correct horse',embedOrigins:'https://blog.example'})
+ let page=await a.request(locked);assert.equal(page.status,401);assert.ok((await page.text()).includes('name="password"'))
+ const unlock=password=>a.request(locked,{method:'POST',headers:{origin:a.origin,'content-type':'application/x-www-form-urlencoded'},body:new URLSearchParams({password}).toString()})
+ assert.equal((await unlock('wrong horse')).status,401,'the wrong password is refused');assert.equal((await a.request(locked,{headers:{cookie:'vane_share=99999999999999.forged'}})).status,401,'a forged cookie is refused')
+ const opened=await unlock('correct horse');assert.equal(opened.status,303);const cookie=a.cookieOf(opened)
+ page=await a.request(locked,{headers:{cookie}});const html=await page.text();assert.equal(page.status,200)
+ for(const part of [`<h2>Pageviews</h2><p class="vane-metric">${summary.pageviews}</p>`,`<h2>Unique visitors</h2><p class="vane-metric">${summary.visitors}</p>`,'<h2>Top pages</h2>'])assert.ok(html.includes(part),part)
+ for(const part of ['Revenue','$40.00','Oak Books','/app','Settings','<h2>Sources</h2>'])assert.equal(html.includes(part),false,part)
+ assert.equal(page.headers.get('x-robots-tag'),'noindex, nofollow');assert.match(page.headers.get('content-security-policy'),/frame-ancestors https:\/\/fern\.example https:\/\/blog\.example$/)
+ assert.equal((await a.request('/api/vane/summary?siteId='+id,{headers:{cookie}})).status,401,'the link cookie opens no private route');assert.equal((await a.request('/app',{headers:{cookie}})).status,303)
+ // Ten wrong passwords in 15 minutes lock the link until the window ends.
+ for(let i=0;i<9;i++)assert.equal((await unlock('wrong horse')).status,401)
+ assert.equal((await unlock('correct horse')).status,429);await a.clock(start+16*60000);assert.equal((await unlock('correct horse')).status,303)
+ // A saved segment's link with no password, embedded dark on the site's own origin and refused on an unlisted one.
+ const saved=await a.form({operation:'segment.save',siteId:id,name:'Thanks',filters:'page:is:/thanks'},a.owner),segment=new URL(saved.headers.get('location'),a.origin).searchParams.get('segment')
+ const kept=await (await a.request(`/api/vane/summary?siteId=${id}&segment=${segment}`,owner)).json();assert.equal(kept.pageviews,1)
+ const open=await create({label:'Blog',segment,share_totals:'on',share_revenue:'on',expiresDays:'30'})
+ const {context}=await browse(t,a,{'https://fern.example/':`<!doctype html><title>Fern</title><iframe src="${a.origin}${open}?theme=dark"></iframe>`,'https://oak.example/':`<!doctype html><title>Oak</title><iframe src="${a.origin}${open}"></iframe>`}),tab=await context.newPage()
+ await tab.goto('https://fern.example/');const frame=tab.frames().find(f=>f.url().includes('/share/'))
+ assert.ok((await frame.content()).includes(`<h2>Pageviews</h2><p class="vane-metric">${kept.pageviews}</p>`),'the embed shows the segment figures');assert.ok((await frame.content()).includes('data-revenue="">$40.00'),'revenue shows when its report is chosen')
+ assert.equal(await frame.evaluate(()=>getComputedStyle(document.body).backgroundColor),'rgb(15, 19, 28)','the dark theme')
+ await tab.goto('https://oak.example/');assert.equal((await tab.frames().find(f=>f!==tab.mainFrame()).content()).includes('Pageviews'),false,'an unlisted origin cannot embed it')
+ // Only the owner and administrators create links; revoking answers 404 at once, and a link expires after its days.
+ assert.equal(await create({share_totals:'on'},await a.invite('member@example.test','member')),403)
+ const listed=await (await a.request(`/app/sites/${id}?section=settings`,owner)).text();assert.ok(listed.includes('Investors')&&listed.includes('password-protected')&&!listed.includes(locked),'listed without the token')
+ const linkId=(await a.dump()).vane_share_links.find(l=>l.label==='Investors').id;assert.equal((await a.form({operation:'share.revoke',id:linkId},a.owner)).status,303)
+ assert.equal((await a.request(locked,{headers:{cookie}})).status,404,'a revoked link returns 404');assert.equal((await a.request(open)).status,200)
+ await a.clock(start+31*86400000);assert.equal((await a.request(open)).status,404,'an expired link returns 404')
+ assert.deepEqual((await (await a.request('/api/vane/audit',owner)).json()).filter(e=>e.action.startsWith('share.')).map(e=>e.action).sort(),['share.create','share.create','share.revoke'])
+})
 test('CONV-003 in a browser an outbound link, a PDF link, a marked 404 page and a form submission send four automatic events with the right details and no form contents',async t=>{
  const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({autoEvents:['outbound','download','404','form']}),quiet=await a.addSite({origin:'https://oak.example'})
  const home=`<!doctype html><title>Fern</title><a id="out" href="https://elsewhere.example/guide?ref=fern#top">Guide</a> <a id="pdf" href="/files/menu.pdf?v=2">Menu</a><form id="signup" action="/thanks" method="post"><input name="email" value="secret@example.com"><button>Join</button></form><script src="${a.origin}/vane.js" data-site="${id}"></script>`

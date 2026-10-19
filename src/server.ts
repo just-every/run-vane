@@ -4,6 +4,7 @@ import { collector } from './vane/collect'
 import { perfResponse } from './vane/performance'
 import { methodologyResponse } from './vane/methodology'
 import { publicStatsResponse } from './vane/public'
+import { shareResponse } from './vane/share'
 import { autoEventResponse } from './vane/auto-events'
 import { customEventResponse } from './vane/custom-events'
 import { exposureResponse } from './vane/experiments'
@@ -59,6 +60,8 @@ export default withDemo({
     if (methodology) return methodology
     const stats = await publicStatsResponse(request, runtimeBindings(env))
     if (stats) return stats
+    const shared = await shareResponse(request, runtimeBindings(env))
+    if (shared) return shared
     const auth = await authResponse(request, env)
     if (auth) return auth
     const vane = await vaneResponse(request, env)

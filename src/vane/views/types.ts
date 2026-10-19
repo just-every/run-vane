@@ -8,6 +8,8 @@ export interface ViewData {
   hook?: { created_at: number } | null
   github?: { created_at: number } | null
   secret?: string
+  shares?: import('../share').ShareLink[]
+  sharePath?: string
   segments?: { id: string; name: string; filters: { dimension: string; op: string; value: string }[] }[]
   proposals?: any[]
   imports?: any[]
