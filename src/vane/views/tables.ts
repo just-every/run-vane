@@ -2,7 +2,7 @@ import { change, changeHead, count, escape, money, panel } from './html'
 // Report tables shared by the signed-in report and the public stats page (SHARE-002).
 // DASH-007: on the signed-in report a row's value links to the same report filtered by it.
 // CONV-006: a row's revenue (for the selected goal) and revenue per visitor, in the report's currency; rows without
-// revenue (the public stats page, SHARE-002) show neither column.
+// revenue (the public stats page's reports other than its revenue report, SHARE-002) show neither column.
 const revenueHead = (rows: any[]) => rows.some(row => row.revenue !== undefined) ? '<th scope="col" class="vane-number">Revenue</th><th scope="col" class="vane-number">Revenue per visitor</th>' : ''
 const revenueCells = (row: any) => row.revenue === undefined ? '' : `<td class="vane-number">${money(row.revenue, row.currency)}</td><td class="vane-number">${row.revenuePerVisitor === null ? '—' : money(row.revenuePerVisitor, row.currency)}</td>`
 export type FilterLink = (label: string) => string | null

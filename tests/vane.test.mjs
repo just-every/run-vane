@@ -1134,7 +1134,7 @@ test('CONV-002 Signup with plan=pro and plan=free through vane() and CSS classes
  assert.ok((await (await a.request('/api/vane/inventory?siteId='+id,owner)).json()).fields.some(f=>f.table==='vane_event_props'))
  const published=await (await a.request(`/stats/${id}?from=${day}&to=${new Date(Date.parse(day)+86400000).toISOString().slice(0,10)}`)).text();assert.ok(published.includes('/essay')&&!/Signup|Callback|Event properties|Page properties/.test(published),'public stats show no custom event or property')
 })
-test('CONV-006 USD and CAD purchases returning from Stripe Checkout total in USD at the owner-entered rate with credit to the original source, revenue joins the chart, comparisons, channel rows and roll-ups, and unconverted revenue is listed apart',async t=>{
+test('CONV-006 USD and CAD purchases returning from Stripe Checkout total in USD at the owner-entered rate with credit to the original source, revenue joins the chart, comparisons, channel rows and roll-ups, unconverted revenue is listed apart, and the public page shows revenue only once the owner adds the revenue report',async t=>{
  const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({paths:[],goals:{purchase:'/thanks',signup:'/signup'},rates:'CAD 0.73 from 2026-03-01',publicReports:['totals','pages','devices']}),oak=await a.addSite({name:'Oak Books',origin:'https://oak.example',paths:[]})
  const agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36'
  const google={source:undefined,campaign:undefined,referrer:'https://www.google.com/'},email={source:undefined,campaign:'spring',utm:{source:'newsletter',medium:'email'}},stripe={source:undefined,campaign:undefined,referrer:'https://checkout.stripe.com/c/pay/cs_test_a1'},inside={source:undefined,campaign:undefined}
@@ -1171,7 +1171,14 @@ test('CONV-006 USD and CAD purchases returning from Stripe Checkout total in USD
  assert.equal((await summary('rollupId='+rollupId)).revenue.total,(await summary('siteId='+id)).revenue.total+(await summary('siteId='+oak)).revenue.total);assert.equal((await summary('rollupId='+rollupId)).revenue.total,141.5)
  const methodology=await (await a.request('/methodology')).text()
  for(const rule of ['id="revenue"','an exchange rate the owner entered','never fetched','Stripe Checkout: checkout.stripe.com','adds revenue as an exact sum'])assert.ok(methodology.includes(rule),rule)
- assert.ok(!(await (await a.request(`/stats/${id}?from=2026-03-10&to=2026-03-11`)).text()).includes('Revenue'),'revenue is never public')
+ // SHARE-002: revenue is public only once the owner adds the revenue report; the other reports' rows stay bare.
+ const publicPage=async()=>(await a.request(`/stats/${id}?from=2026-03-10&to=2026-03-11`)).text()
+ let shared=await publicPage();assert.ok(shared.includes('<h2>Top pages</h2>'));for(const text of ['Revenue','$136.50','CA$50.00','0.73'])assert.equal(shared.includes(text),false,`no revenue by default: ${text}`)
+ const proposal=await (await a.post('/api/vane/commands',{command:'site.configure',input:{siteId:id,name:'Fern Studio',origin:'https://fern.example',paths:[],goals:{purchase:'/thanks',signup:'/signup'},consent:'not-required',sampleRate:100,retentionDays:90,rates:'CAD 0.73 from 2026-03-01',publicReports:['totals','pages','devices','revenue']}},a.owner)).json()
+ assert.equal((await a.form({operation:'proposal.approve',id:proposal.id},a.owner)).status,303)
+ shared=await publicPage()
+ for(const text of ['data-revenue>$136.50','<li>$100.00 sent in USD by 1 event.</li>','<li>CA$50.00 sent in CAD by 1 event.</li>','<li>€10.00 sent in EUR by 1 event.</li>','Exchange rates (owner-entered)','1 CAD = 0.73 USD from 2026-03-01, entered by the owner; Vane never fetches a rate.','€10.00 from 1 event: no exchange rate for EUR is in effect','data-aov>$68.25'])assert.ok(shared.includes(text),text)
+ assert.equal(shared.includes('Revenue per visitor</th>'),false,'page and device rows carry no revenue column')
 })
 test('CONV-007 a test purchase through the standard ecommerce events fills the ready-made ecommerce funnel and the product report with the product, quantity and revenue, and malformed or personal product lines are refused',async t=>{
  const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({paths:[]})

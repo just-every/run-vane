@@ -34,15 +34,17 @@ export function convertedSql(sites:{id:string,config:Config}[],reporting:string,
  const rules=sites.filter(s=>(s.config.currency??'USD')===reporting).flatMap(s=>[...(s.config.rates??[])].sort((a,b)=>b.from.localeCompare(a.from)).map(r=>`WHEN ${alias}.site_id=${literal(s.id)} AND ${c}=${literal(r.currency)} AND ${alias}.day>=${literal(r.from)} THEN ROUND(${m}*${Number(r.rate)}/${unit})*${unit}`))
  return `(CASE WHEN ${m} IS NULL THEN NULL WHEN ${c}=${literal(reporting)} THEN ${m} ${rules.join(' ')} ELSE NULL END)`
 }
-// Totals over the report's page loads: converted revenue and the events carrying it (orders), and unconverted
-// revenue by currency.
+// Totals over the report's page loads: converted revenue and the events carrying it (orders), revenue as sent by
+// currency (converted or not), and unconverted revenue by currency.
 export async function revenueTotals(env:Env,scope:string,from:string,to:string,events:string,converted:string) {
  const pages=`(SELECT id FROM ${events} WHERE kind='pageview' AND site_id IN (SELECT value FROM json_each(?1)) AND day>=?2 AND day<?3)`
- const [total,apart]=await env.DB.batch<any>([
+ const [total,apart,sent]=await env.DB.batch<any>([
   env.DB.prepare(`SELECT COALESCE(SUM(r),0) AS revenue,COUNT(r) AS orders FROM (SELECT ${converted} AS r FROM vane_custom_events ce JOIN ${pages} p ON p.id=ce.page_id WHERE ce.revenue_micros IS NOT NULL)`).bind(scope,from,to),
   env.DB.prepare(`SELECT ce.currency AS currency,SUM(ce.revenue_micros) AS micros,COUNT(*) AS orders FROM vane_custom_events ce JOIN ${pages} p ON p.id=ce.page_id WHERE ce.revenue_micros IS NOT NULL AND ${converted} IS NULL GROUP BY ce.currency ORDER BY ce.currency`).bind(scope,from,to),
+  env.DB.prepare(`SELECT ce.currency AS currency,SUM(ce.revenue_micros) AS micros,COUNT(*) AS orders FROM vane_custom_events ce JOIN ${pages} p ON p.id=ce.page_id WHERE ce.revenue_micros IS NOT NULL GROUP BY ce.currency ORDER BY ce.currency`).bind(scope,from,to),
  ])
- return {revenue:Number(total.results[0].revenue)/MICROS,orders:Number(total.results[0].orders),unconverted:apart.results.map((r:any)=>({currency:r.currency,amount:Number(r.micros)/MICROS,orders:Number(r.orders)}))}
+ const byCurrency=(rows:any[])=>rows.map((r:any)=>({currency:r.currency,amount:Number(r.micros)/MICROS,orders:Number(r.orders)}))
+ return {revenue:Number(total.results[0].revenue)/MICROS,orders:Number(total.results[0].orders),sent:byCurrency(sent.results),unconverted:byCurrency(apart.results)}
 }
 // CONV-006 payment-processor referrers (published on the methodology page): a return from checkout is not a source,
 // so the page load keeps the acquisition of the visitor's latest earlier page load that day (DASH-004), else direct.

@@ -112,7 +112,7 @@ export function createInsightsService(env:Env,value:Site,now=clock(),range?:{fro
   // with the compared period's revenue, unconverted revenue by currency and the owner's rates in effect.
   const [money,previousMoney]=await Promise.all([revenueTotals(env,scope,from,to,ev,converted),revenueTotals(env,scope,previousFrom,previousTo,ev,converted)]);
   const rates=scoped.filter(s=>(JSON.parse(s.config_json).currency??'USD')===currency).flatMap(s=>(JSON.parse(s.config_json).rates??[]).filter((r:any)=>r.from<to).map((r:any)=>({site:s.name,...r})));
-  const revenue={currency,total:money.revenue,previous:previousMoney.revenue,orders:money.orders,previousOrders:previousMoney.orders,averageOrderValue:money.orders?cents(money.revenue/money.orders):null,perVisitor:visitors?cents(money.revenue/visitors):null,unconverted:money.unconverted,rates};
+  const revenue={currency,total:money.revenue,previous:previousMoney.revenue,orders:money.orders,previousOrders:previousMoney.orders,averageOrderValue:money.orders?cents(money.revenue/money.orders):null,perVisitor:visitors?cents(money.revenue/visitors):null,sent:money.sent,unconverted:money.unconverted,rates};
   const perVisitor=<T extends {revenue:number,visitors:number}>(r:T)=>({...r,currency,revenuePerVisitor:r.visitors?cents(r.revenue/r.visitors):null});
   for(const name of Object.keys(entryTables))entryTables[name]=(entryTables[name] as any[]).map(perVisitor) as any;
   const difference=pageviews-previousPageviews,{visits,timedPageviews,...visit}=engagement;
