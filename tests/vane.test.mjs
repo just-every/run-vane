@@ -1156,7 +1156,7 @@ test('CONV-009 a click on #book-demo, a contact form, a visible pricing table an
  const custom=()=>tab.waitForResponse(r=>new URL(r.url()).pathname==='/api/vane/custom'&&r.status()===202),loaded=tab.waitForResponse(r=>new URL(r.url()).pathname==='/api/vane/collect');await tab.goto('https://fern.example/');await loaded
  for(const act of [()=>tab.getByRole('button',{name:'Book a demo'}).click(),()=>tab.getByRole('button',{name:'Send'}).click(),()=>tab.locator('#pricing').scrollIntoViewIfNeeded(),()=>tab.evaluate(()=>history.pushState({},'','/docs/intro'))]){const sent=custom();await act();await sent}
  // The pushState to /docs/intro is a new pageview, so the still-visible pricing table counts once more for it.
- await tab.waitForTimeout(500);assert.deepEqual(names,['Book demo','Lead','Pricing seen','Docs','Pricing seen'])
+ for(let i=0;i<50&&names.length<5;i++)await tab.waitForTimeout(100);await tab.waitForTimeout(300);assert.deepEqual(names,['Book demo','Lead','Pricing seen','Docs','Pricing seen'])
  const day=(await a.dump()).vane_events[0].day,summary=await (await a.request(`/api/vane/summary?siteId=${id}&from=${day}&to=${new Date(Date.parse(day)+86400000).toISOString().slice(0,10)}`,owner)).json()
  assert.deepEqual(summary.customEvents.map(r=>[r.name,r.events]).sort(),[['Book demo',1],['Docs',1],['Lead',1],['Pricing seen',2]])
  assert.ok((await (await a.request(`/app/sites/${id}?section=settings`,owner)).text()).includes('Book demo = click #book-demo'))
