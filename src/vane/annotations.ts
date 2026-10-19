@@ -1,4 +1,4 @@
-import { day as utcDay, insist, role, rows, site, statement, uid, type Actor, type Config, type Env } from './core'
+import { allow, day as utcDay, inScope, insist, rows, site, statement, uid, type Actor, type Config, type Env } from './core'
 import { auditStatement } from './audit'
 import { clock } from './clock'
 import { definitionAnnotations, type Annotation } from './definitions'
@@ -26,16 +26,16 @@ export function plainText(value:unknown,max:number,code:string,message:string):s
  return text;
 }
 export const localDate=(value:unknown)=>{const d=String(value??'');insist(/^\d{4}-\d{2}-\d{2}$/.test(d)&&utcDay(Date.parse(d))===d,'day','Choose a valid date.');return d}
-// A note: any signed-in owner, administrator or member adds one (ct 06:25Z); its author or the owner deletes it.
+// A note: any signed-in owner, administrator or member adds one (ct 06:25Z; TEAM-001 viewers too, ct 11:47Z); its author or the owner deletes it.
 export async function addNote(env:Env,actor:Actor,input:any) {
- role(actor,['owner','admin','member']);
+ allow(actor,'viewer');
  const value=await site(env,String(input.siteId)),day=localDate(input.day),text=plainText(input.text,280,'note','Write a note of up to 280 characters, as plain text.'),id=uid();
  await env.DB.batch([statement(env,"INSERT INTO vane_annotations(id,site_id,day,kind,text,url,author,at) VALUES(?,?,?,'note',?,NULL,?,?)",id,value.id,day,text,actor.id,clock()),auditStatement(env,actor.id,'annotation.add',value.id,`note ${id} on ${day}`)]);
  return value.id;
 }
 export async function deleteNote(env:Env,actor:Actor,id:string) {
  const note=(await rows<{site_id:string,author:string,day:string}>(env,"SELECT site_id,author,day FROM vane_annotations WHERE id=? AND kind='note'",id))[0];
- insist(note,'note','This note no longer exists.',404);insist(note.author===actor.id||actor.role==='owner','forbidden','Only the note’s author or the owner deletes it.',403);
+ insist(note,'note','This note no longer exists.',404);inScope(actor,note.site_id);insist(note.author===actor.id||actor.role==='owner','forbidden','Only the note’s author or the owner deletes it.',403);
  await env.DB.batch([statement(env,'DELETE FROM vane_annotations WHERE id=?',id),auditStatement(env,actor.id,'annotation.delete',note.site_id,`note ${id} on ${note.day}`)]);
  return note.site_id;
 }

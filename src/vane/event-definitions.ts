@@ -1,4 +1,4 @@
-import { insist, role, site, VaneError, type Actor, type Env } from './core'
+import { allow, insist, site, VaneError, type Actor, type Env } from './core'
 import { eventName } from './properties'
 // CONV-009: no-code events, defined in the app as part of the site's settings (so APPROVE-001 applies: administrators
 // prepare, the owner approves) and served to the script with its configuration. Each fires the named custom event
@@ -31,7 +31,7 @@ export function cleanEventDefinitions(input:unknown):EventDefinition[] {
 // three matched elements' tag, id, classes and first 80 characters of text. Nothing is stored.
 export interface Preview { selector:string; url:string; total:number; matched:{tag:string,id:string|null,classes:string|null,text:string}[] }
 export async function previewSelector(env:Env,actor:Actor,input:any):Promise<Preview> {
- role(actor,['owner','admin']);
+ allow(actor,'analyst');
  const value=await site(env,String(input.siteId)),selector=cleanSelector(input.selector),path=String(input.path||'/').trim(),origins=[value.origin,...(value.config.origins??[])];
  insist(/^\/[^\s#]{0,500}$/.test(path),'path','Preview a page by its path, such as /pricing.');
  let url=new URL(path,value.origin),response:Response|undefined;

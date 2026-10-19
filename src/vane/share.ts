@@ -1,6 +1,6 @@
 import { themeFrame } from '../base/theme-frame'
 import { fontHead } from '../base/font-head'
-import { digest, insist, role, rows, site, statement, uid, VaneError, type Actor, type Env, type Site } from './core'
+import { digest, inScope, insist, role, rows, site, statement, uid, VaneError, type Actor, type Env, type Site } from './core'
 import { auditStatement } from './audit'
 import { clock } from './clock'
 import { createInsightsService } from './reports'
@@ -52,7 +52,7 @@ export async function createShareLink(env:Env,actor:Actor,input:any):Promise<{si
 }
 export async function revokeShareLink(env:Env,actor:Actor,id:string):Promise<string> {
  role(actor,['owner','admin']);
- const found=(await rows<{site_id:string}>(env,'SELECT site_id FROM vane_share_links WHERE id=?',id))[0];insist(found,'share','This shared link no longer exists.',404);
+ const found=(await rows<{site_id:string}>(env,'SELECT site_id FROM vane_share_links WHERE id=?',id))[0];insist(found,'share','This shared link no longer exists.',404);inScope(actor,found.site_id);
  await env.DB.batch([statement(env,'DELETE FROM vane_share_links WHERE id=?',id),auditStatement(env,actor.id,'share.revoke',found.site_id,`link ${id}`)]);
  return found.site_id;
 }

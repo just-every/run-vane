@@ -1,5 +1,6 @@
 export interface ViewData {
-  actor: { id: string; role: string; displayName: string }
+  actor: { id: string; role: string; displayName: string; access?: string; sites?: string[] | null }
+  people?: { id: string; email: string; name: string; status: string; access: string; sites: string[] | null }[]
   origin: string
   sites: any[]
   site?: any

@@ -40,7 +40,7 @@ test('HTTP-001 and ACCESS-002: one Worker serves honest public doors; every priv
  assert.equal((await a.post('/auth/signout',{},a.owner)).status,204)
  assert.equal((await a.request('/api/vane/sites',{headers:{cookie:a.owner}})).status,401)
 })
-test('administrator prepares, owner approves once, members only read and revoked operators lose access',async t=>{
+test('administrator prepares, owner approves once, members neither prepare sites nor export, and revoked operators lose access',async t=>{
  const a=await withApp(t),admin=await a.invite('admin@example.test','admin'),member=await a.invite('member@example.test','member')
  const input={name:'Oak Books',origin:'https://oak.example',paths:['/'],goals:{},consent:'required',sampleRate:100,retentionDays:30}
  assert.equal((await a.post('/api/vane/commands',{command:'site.create',input},member)).status,403)
@@ -1116,8 +1116,9 @@ test('DASH-007 filtering the report by Organic Search, mobile and not /blog/* ke
  assert.deepEqual(kept.funnels[0].steps.map(s=>s.visits),[2,1],'the funnel counts visits 1 and 6 entering and visit 1 reaching /pricing')
  assert.deepEqual(totals(await summary(`segment=${segment}&filter=${encodeURIComponent('page:is:/pricing')}`)),[2,4,1,2],'an added filter narrows the segment')
  // Members apply saved segments; only the owner and administrators save or delete them, and each change is audited.
- const member=await a.invite('member@example.test','member');assert.equal((await (await a.request(`/api/vane/summary?siteId=${id}&${range}&segment=${segment}`,{headers:{cookie:member}})).json()).visits,3)
- assert.equal((await a.form({operation:'segment.save',siteId:id,name:'Mine',filters:'channel:is:Email'},member)).status,403)
+ assert.equal((await a.form({operation:'team.invite',email:'viewer@example.test',role:'viewer',scope:'all'},a.owner)).status,303);const viewer=await a.accept('viewer@example.test')
+ assert.equal((await (await a.request(`/api/vane/summary?siteId=${id}&${range}&segment=${segment}`,{headers:{cookie:viewer}})).json()).visits,3)
+ assert.equal((await a.form({operation:'segment.save',siteId:id,name:'Mine',filters:'channel:is:Email'},viewer)).status,403)
  assert.ok((await (await a.request('/api/vane/audit',owner)).json()).some(e=>e.action==='segment.save'&&e.detail.includes('Organic mobile')))
  assert.equal((await a.form({operation:'segment.delete',siteId:id,id:segment},a.owner)).status,303);assert.equal((await a.request(`/api/vane/summary?siteId=${id}&segment=${segment}`,owner)).status,404)
 })
@@ -1286,7 +1287,7 @@ test('CONV-009 a click on #book-demo, a contact form, a visible pricing table an
  assert.equal(preview.status,200);assert.ok(shown.includes('data-preview-total="1"')&&shown.includes('<code>&lt;button id="book-demo" class="cta"&gt;</code> Book a demo'),'the matched element is shown')
  assert.ok((await (await a.form({operation:'event.preview',siteId:id,selector:'.missing',path:'/'},a.owner)).text()).includes('data-preview-total="0"'))
  assert.equal((await a.form({operation:'event.preview',siteId:id,selector:'#x{}',path:'/'},a.owner)).status,400,'an invalid selector is refused')
- const member=await a.invite('member@example.test','member');assert.equal((await a.form({operation:'event.preview',siteId:id,selector:'#book-demo',path:'/'},member)).status,403)
+ assert.equal((await a.form({operation:'team.invite',email:'viewer@example.test',role:'viewer',scope:'all'},a.owner)).status,303);assert.equal((await a.form({operation:'event.preview',siteId:id,selector:'#book-demo',path:'/'},await a.accept('viewer@example.test'))).status,403)
  // Defined in the settings and applied only once the owner approves (APPROVE-001).
  const input={siteId:id,name:'Fern Studio',origin:'https://fern.example',paths:[],goals:{},consent:'not-required',eventDefinitions:'Book demo = click #book-demo\nLead = submit form.contact\nPricing seen = visible #pricing\nDocs = pageview /docs/**'}
  assert.equal((await a.post('/api/vane/commands',{command:'site.configure',input:{...input,eventDefinitions:'Book demo = hover #book-demo'}},a.owner)).status,400)
@@ -1303,4 +1304,84 @@ test('CONV-009 a click on #book-demo, a contact form, a visible pricing table an
  const day=(await a.dump()).vane_events[0].day,summary=await (await a.request(`/api/vane/summary?siteId=${id}&from=${day}&to=${new Date(Date.parse(day)+86400000).toISOString().slice(0,10)}`,owner)).json()
  assert.deepEqual(summary.customEvents.map(r=>[r.name,r.events]).sort(),[['Book demo',1],['Docs',1],['Lead',1],['Pricing seen',2]])
  assert.ok((await (await a.request(`/app/sites/${id}?section=settings`,owner)).text()).includes('Book demo = click #book-demo'))
+})
+test('TEAM-001 an analyst invited to one site and a viewer invited to two act only within their role and sites at every door, removal ends access at once, and ownership moves only on the owner\'s confirmation',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}}
+ const A=await a.addSite(),B=await a.addSite({name:'Oak Store',origin:'https://oak.example'}),C=await a.addSite({name:'Elm Clinic',origin:'https://elm.example'})
+ a.fixtureSites['https://fern.example']=()=>new Response('<button id="book-demo">Book a demo</button>',{headers:{'content-type':'text/html'}})
+ // The owner invites by email with a role and chosen sites; Base sends the invitation and the person accepts it.
+ const join=async(email,role,sites)=>{const r=await a.form({operation:'team.invite',email,role,scope:sites?'chosen':'all',...Object.fromEntries((sites??[]).map(id=>['site_'+id,'on']))},a.owner);assert.equal(r.status,303,await r.clone().text());return a.accept(email)}
+ const analyst=await join('analyst@example.test','analyst',[A]),viewer=await join('viewer@example.test','viewer',[A,B]),admin=await join('admin@example.test','admin')
+ const team=await (await a.request('/app?section=team',owner)).text()
+ assert.match(team,/data-person="analyst@example.test">[\s\S]*?>analyst<\/span>[\s\S]*?<td>Fern Studio<\/td>/);assert.match(team,/data-person="viewer@example.test">[\s\S]*?>viewer<\/span>[\s\S]*?<td>Fern Studio, Oak Store<\/td>/)
+ // Objects on every site for the delete and revoke doors.
+ const shared=await a.form({operation:'share.create',siteId:A,label:'Board',share_totals:'on'},a.owner);assert.equal(shared.status,200)
+ const shareId=(await a.dump()).vane_share_links[0].id
+ assert.equal((await a.form({operation:'segment.save',siteId:C,name:'Email',filters:'channel:is:Email'},a.owner)).status,303)
+ assert.equal((await a.form({operation:'annotation.add',siteId:C,day:new Date().toISOString().slice(0,10),text:'Owner note'},a.owner)).status,303)
+ const state0=await a.dump(),segmentC=state0.vane_segments[0].id,noteC=state0.vane_annotations[0].id
+ const pending=await (await a.post('/api/vane/commands',{command:'site.configure',input:{siteId:B,name:'Oak Store',origin:'https://oak.example',paths:['/'],goals:{},consent:'required'}},a.owner)).json()
+ const rollAll=await a.form({operation:'rollup.create',name:'Every site',[`site_${A}`]:'on',[`site_${B}`]:'on',[`site_${C}`]:'on'},a.owner),rollTwo=await a.form({operation:'rollup.create',name:'Two sites',[`site_${A}`]:'on',[`site_${B}`]:'on'},a.owner)
+ const rollAllId=rollAll.headers.get('location').match(/rollups\/([\w-]+)/)[1],rollTwoId=rollTwo.headers.get('location').match(/rollups\/([\w-]+)/)[1]
+ const operators=await (await a.request('/auth/operators',owner)).json(),list=Array.isArray(operators)?operators:operators.operators,id=email=>list.find(p=>p.email===email).id
+ // Reads: each person sees only their sites in every list and read door; every other site's door answers 403.
+ const sitesOf=async cookie=>(await (await a.request('/api/vane/sites',{headers:{cookie}})).json()).map(s=>s.id).sort()
+ assert.deepEqual(await sitesOf(analyst),[A]);assert.deepEqual(await sitesOf(viewer),[A,B].sort())
+ const reads=site=>[`/api/vane/summary?siteId=${site}`,`/api/vane/realtime?siteId=${site}`,`/api/vane/inventory?siteId=${site}`,`/app/sites/${site}`,`/app/sites/${site}?section=settings`]
+ for(const [cookie,open,closed] of [[analyst,[A],[B,C]],[viewer,[A,B],[C]]]) {
+  for(const site of open)for(const path of reads(site))assert.equal((await a.request(path,{headers:{cookie}})).status,200,path)
+  for(const site of closed)for(const path of [...reads(site),`/api/vane/import-journal?siteId=${site}&jobId=x`])assert.equal((await a.request(path,{headers:{cookie}})).status,403,path)
+  const home=await (await a.request('/app',{headers:{cookie}})).text();assert.ok(!home.includes('Elm Clinic'),'out-of-scope sites are not listed')
+  for(const path of ['/api/vane/audit','/api/vane/proposals','/api/vane/export',`/api/vane/export?siteId=${open[0]}`,'/app?section=team','/app?section=audit',`/app/rollups/${rollAllId}`,`/api/vane/summary?rollupId=${rollAllId}`])assert.equal((await a.request(path,{headers:{cookie}})).status,403,path)
+ }
+ assert.equal((await a.request(`/app/rollups/${rollTwoId}`,{headers:{cookie:viewer}})).status,200)
+ // Writes: every out-of-role or out-of-scope call through its public door is refused with no write.
+ const writable=dump=>Object.fromEntries(Object.entries(dump).filter(([name])=>name.startsWith('vane_')||name==='oa_operators'))
+ const archive=JSON.stringify({payload:{format:'vane-history/1',tables:{}},sha256:'0'})
+ const forms=site=>[
+  {operation:'site.prepare',name:'New',origin:'https://new.example',paths:'/',consent:'required',sampleRate:'100'},{operation:'config.prepare',siteId:site,name:'X',origin:'https://x.example',paths:'/',consent:'required'},
+  {operation:'site.delete.prepare',siteId:site},{operation:'history.erase.prepare',siteId:site},{operation:'site.import',archive},{operation:'proposal.approve',id:pending.id},{operation:'proposal.reject',id:pending.id},
+  {operation:'history.restore',archive},{operation:'import.preview',siteId:site,document:JSON.stringify(fixture)},{operation:'import.apply',siteId:site,document:JSON.stringify(fixture),fingerprint:'x'},{operation:'import.undo',siteId:site,jobId:'x'},
+  {operation:'install.verify',siteId:site},{operation:'history.retention',siteId:site},{operation:'annotation-hook.create',siteId:site},{operation:'annotation-hook.revoke',siteId:site},{operation:'annotation-github.create',siteId:site},{operation:'annotation-github.revoke',siteId:site},
+  {operation:'share.create',siteId:site,label:'Mine',share_totals:'on'},{operation:'share.revoke',id:shareId},{operation:'segment.delete',id:segmentC},{operation:'annotation.delete',id:noteC},
+  {operation:'rollup.create',name:'Mine',[`site_${A}`]:'on',[`site_${B}`]:'on'},{operation:'team.invite',email:'new@example.test',role:'viewer',scope:'chosen',[`site_${A}`]:'on'},{operation:'team.grant',operatorId:id('viewer@example.test'),role:'analyst',scope:'chosen',[`site_${A}`]:'on'},
+  {operation:'team.remove',operatorId:id('viewer@example.test')},{operation:'team.transfer',operatorId:id('admin@example.test'),confirm:'admin@example.test'}]
+ const apis=site=>[['/api/vane/commands',{command:'site.create',input:{name:'New',origin:'https://new.example',paths:['/'],goals:{},consent:'required'}}],['/api/vane/commands',{command:'history.erase',input:{siteId:site}}],['/api/vane/commands',{command:'site.delete',input:{siteId:site}}],
+  ['/api/vane/import-preview',{siteId:site,document:fixture}],['/api/vane/import-apply',{siteId:site,document:fixture,fingerprint:'x'}],['/api/vane/import-undo',{siteId:site,jobId:'x'}],['/api/vane/install-check',{siteId:site}],['/api/vane/site-import',{archive:JSON.parse(archive)}],['/api/vane/restore',{archive:JSON.parse(archive)}]]
+ const scoped=site=>[{operation:'segment.save',siteId:site,name:'Mine',filters:'channel:is:Email'},{operation:'event.preview',siteId:site,selector:'#book-demo',path:'/'},{operation:'annotation.add',siteId:site,day:new Date().toISOString().slice(0,10),text:'Out of scope'},{operation:'config.prepare',siteId:site,eventDefinitions:'book-demo = click #book-demo'}]
+ const before=writable(await a.dump())
+ for(const [who,cookie,inSite,outSite] of [['analyst',analyst,A,C],['viewer',viewer,B,C]]) {
+  for(const body of [...forms(inSite).filter(b=>who==='viewer'||b.operation!=='config.prepare'),...forms(outSite),...scoped(outSite),...(who==='viewer'?scoped(inSite).filter(b=>b.operation!=='annotation.add'):[])])assert.equal((await a.form(body,cookie)).status,403,`${who} ${body.operation} ${body.siteId===outSite?'out of scope':'out of role'}`)
+  for(const [path,body] of [...apis(inSite),...apis(outSite),['/api/vane/commands',{command:'site.configure',input:{siteId:outSite,goals:{}}}]])assert.equal((await a.post(path,body,cookie)).status,403,`${who} ${path} ${body.command??''}`)
+  if(who==='viewer')assert.equal((await a.post('/api/vane/commands',{command:'site.configure',input:{siteId:inSite,goals:{}}},cookie)).status,403)
+ }
+ assert.deepEqual(writable(await a.dump()),before,'no refused call wrote anything')
+ // In role: the analyst saves a segment (DASH-007), previews and prepares a no-code event (CONV-009) and adds a note; the viewer adds a note (DASH-009).
+ assert.equal((await a.form({operation:'segment.save',siteId:A,name:'Email visits',filters:'channel:is:Email'},analyst)).status,303)
+ assert.equal((await a.form({operation:'event.preview',siteId:A,selector:'#book-demo',path:'/'},analyst)).status,200)
+ assert.equal((await a.form({operation:'config.prepare',siteId:A,name:'Renamed',origin:'https://evil.example',consent:'required',goals:'signup=/thanks',eventDefinitions:'book-demo = click #book-demo'},analyst)).status,303)
+ for(const cookie of [analyst,viewer])assert.equal((await a.form({operation:'annotation.add',siteId:A,day:new Date().toISOString().slice(0,10),text:'Team note'},cookie)).status,303)
+ // The analyst's proposal carries only the event definition; the site's name, origin and consent stay as they are until the owner approves.
+ const proposal=(await (await a.request('/api/vane/proposals',owner)).json()).find(p=>p.prepared_by===id('analyst@example.test')),payload=JSON.parse(proposal.payload_json),current=(await (await a.request('/api/vane/sites',owner)).json()).find(s=>s.id===A)
+ assert.equal(payload.name,'Fern Studio');assert.equal(payload.origin,'https://fern.example');assert.equal(payload.config.consent,current.config.consent);assert.deepEqual(payload.config.eventDefinitions,[{name:'book-demo',kind:'click',target:'#book-demo'}])
+ assert.equal((await a.form({operation:'proposal.approve',id:proposal.id},a.owner)).status,303)
+ // A change of sites applies at once; removal ends the person's sessions at once.
+ assert.equal((await a.form({operation:'team.grant',operatorId:id('viewer@example.test'),role:'viewer',scope:'chosen',[`site_${B}`]:'on'},a.owner)).status,303)
+ assert.equal((await a.request(`/api/vane/summary?siteId=${A}`,{headers:{cookie:viewer}})).status,403)
+ assert.equal((await a.form({operation:'team.remove',operatorId:id('viewer@example.test')},a.owner)).status,303)
+ assert.equal((await a.request('/api/vane/sites',{headers:{cookie:viewer}})).status,401)
+ // Ownership moves only with the current owner's typed confirmation: the admin cannot take it, and a wrong confirmation changes nothing.
+ assert.equal((await a.form({operation:'team.transfer',operatorId:id('admin@example.test'),confirm:'admin@example.test'},admin)).status,403)
+ assert.equal((await a.form({operation:'team.transfer',operatorId:id('admin@example.test'),confirm:'someone@example.test'},a.owner)).status,400)
+ const roles=async()=>Object.fromEntries((await a.dump()).oa_operators.map(p=>[p.email,p.role]))
+ assert.equal((await roles())['admin@example.test'],'admin')
+ // Base asks the owner for a fresh emailed proof first; once the owner follows it in this session, the transfer applies.
+ assert.equal((await a.form({operation:'team.transfer',operatorId:id('admin@example.test'),confirm:'Admin@example.test'},a.owner)).status,403)
+ assert.equal((await roles())['owner@example.test'],'owner')
+ assert.equal((await a.post('/auth/step-up',{action:'owner:transfer',returnTo:'/app?section=team'},a.owner)).status,202)
+ const proof=a.sentMail.findLast(m=>JSON.stringify(m.to).includes('owner@example.test')).html.match(/href="([^"]*\/auth\/confirm\?token=[^"]+)"/)[1]
+ assert.equal((await a.post('/auth/confirm',{token:new URL(proof.replaceAll('&amp;','&'),a.origin).searchParams.get('token')},a.owner)).status,303)
+ assert.equal((await a.form({operation:'team.transfer',operatorId:id('admin@example.test'),confirm:'Admin@example.test'},a.owner)).status,303)
+ const after=await roles();assert.equal(after['admin@example.test'],'owner');assert.equal(after['owner@example.test'],'admin')
+ assert.ok((await a.dump()).vane_audit.some(e=>e.action==='team.transfer'&&e.subject===id('admin@example.test')))
 })

@@ -1,4 +1,4 @@
-import { day, insist, role, rows, site, statement, uid, type Actor, type Env } from './core'
+import { allow, day, inScope, insist, rows, site, statement, uid, type Actor, type Env } from './core'
 import { auditStatement } from './audit'
 import { clock } from './clock'
 import { gapSql } from './definitions'
@@ -86,7 +86,7 @@ export async function segment(env:Env,siteId:string,id:string):Promise<Segment> 
  const found=(await segments(env,siteId)).find(s=>s.id===id);insist(found,'segment','This saved segment no longer exists.',404);return found
 }
 export async function saveSegment(env:Env,actor:Actor,input:any) {
- role(actor,['owner','admin']);
+ allow(actor,'analyst');
  const value=await site(env,String(input.siteId)),name=String(input.name??'').trim(),filters=parseFilters(input.filters);
  insist(name.length>0&&name.length<=60&&!/[\u0000-\u001f\u007f<>]/.test(name),'segment_name','Name the segment in up to 60 characters of plain text.');
  insist(filters.length>0,'filter','Add at least one filter before saving a segment.');
@@ -96,8 +96,8 @@ export async function saveSegment(env:Env,actor:Actor,input:any) {
  return {siteId:value.id,id};
 }
 export async function deleteSegment(env:Env,actor:Actor,id:string) {
- role(actor,['owner','admin']);
- const found=(await rows<{site_id:string,name:string}>(env,'SELECT site_id,name FROM vane_segments WHERE id=?',id))[0];insist(found,'segment','This saved segment no longer exists.',404);
+ allow(actor,'analyst');
+ const found=(await rows<{site_id:string,name:string}>(env,'SELECT site_id,name FROM vane_segments WHERE id=?',id))[0];insist(found,'segment','This saved segment no longer exists.',404);inScope(actor,found.site_id);
  await env.DB.batch([statement(env,'DELETE FROM vane_segments WHERE id=?',id),auditStatement(env,actor.id,'segment.delete',found.site_id,`segment ${found.name}`)]);
  return found.site_id;
 }

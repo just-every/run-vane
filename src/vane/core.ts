@@ -4,12 +4,19 @@ import type { EventDefinition } from './event-definitions'
 import type { Bindings } from '../auth.server'
 import { clock } from './clock'
 export type Env = Bindings
-export interface Actor { id: string; role: string; displayName?: string }
+// TEAM-001: role is the Base account role; access is the Vane role (owner > admin > analyst > viewer) and sites the
+// sites the person may open (null: every site). Out-of-role and out-of-scope calls are refused before any write.
+export type Access = 'owner'|'admin'|'analyst'|'viewer'
+export interface Actor { id: string; role: string; displayName?: string; access?: Access; sites?: string[]|null }
 export interface Config { paths:string[]; eventDefinitions?:EventDefinition[]; excludePaths?:string[]; rewrites?:{from:string,to:string}[]; queryKeys?:string[]; sourceRules?:{match:string,name:string}[]; declinedCounter?:boolean; goals:Record<string,string>; scrollGoals?:Record<string,{path:string,depth:number}>; consent:'not-required'|'required'; sampleRate:number; retentionDays?:number; retentionMonths?:number; retainForever?:boolean; signalCounter:boolean; timeZone:string; searchParam?:string; publicReports?:string[]; publicIndexing?:boolean; autoEvents?:string[]; origins?:string[]; currency?:string; rates?:{currency:string,rate:number,from:string}[]; visitTimeout?:number; definitions?:DefinitionVersion[]; excludeIps?:string[]; excludeCountries?:string[]; funnels?:Funnel[]; experiments?:{name:string,page:string,goal:string,variants:string[]}[] }
 export interface Site { id:string; name:string; origin:string; config_json:string; config:Config; version:number; created_at:number }
 export class VaneError extends Error { constructor(public code:string, message:string, public status=400) { super(message) } }
 export function insist(condition:unknown, code:string, message:string, status=400):asserts condition { if (!condition) throw new VaneError(code,message,status) }
 export function role(actor:Actor, roles=['owner']) { insist(roles.includes(actor.role),'forbidden','This action requires '+roles.join(' or ')+'.',403) }
+const RANK:Record<Access,number>={viewer:0,analyst:1,admin:2,owner:3}
+export function allow(actor:Actor, least:Access) { insist(RANK[actor.access??(actor.role==='member'?'viewer':actor.role as Access)]>=RANK[least],'forbidden',`This action requires ${least==='analyst'?'an analyst, admin or the owner':least==='admin'?'an admin or the owner':'the owner'}.`,403) }
+export function inScope(actor:Actor, siteId:string) { insist(!actor.sites||actor.sites.includes(siteId),'forbidden','This site is outside your access.',403) }
+export function everySite(actor:Actor) { insist(!actor.sites,'forbidden','This action covers every site, and your access is limited to some.',403) }
 export const uid = () => crypto.randomUUID()
 export const day = (time=clock()) => new Date(time).toISOString().slice(0,10)
 export async function rows<T=Record<string,any>>(env:Env,sql:string,...values:any[]):Promise<T[]> { return (await env.DB.prepare(sql).bind(...values).all<T>()).results }

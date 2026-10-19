@@ -1,5 +1,6 @@
 import { operatorAuth, runtimeBindings, type Bindings } from '../auth.server'
-import { insist, role, rows, site, sites, VaneError, type Actor } from './core'
+import { everySite, inScope, insist, role, rows, site, sites, VaneError, type Actor } from './core'
+import { invite, regrant, remove, team, teamActor, transferOwnership } from './team'
 import { createInsightsService } from './reports'
 import { prepare } from './commands'
 import { preview, journal, MoveinError } from './movein/index'
@@ -18,6 +19,8 @@ import { realtime } from './realtime'
 import { saveSegment, segments } from './segments'
 import { previewSelector } from './event-definitions'
 import { shareLinks } from './share'
+import { AuthError } from '../modules/operator-auth/index.mjs'
+const ACCOUNT_REFUSALS:Record<string,string>={forbidden:'Your role cannot make this team change.',invitation_conflict:'This email address already belongs to a team member or a pending invitation.',step_up_required:'Confirm it is you first: sign in again, then repeat the ownership transfer within a few minutes.',last_owner:'The installation keeps one owner.',invalid_email:'Enter a valid email address.'};
 const headers={'cache-control':'no-store','x-content-type-options':'nosniff','referrer-policy':'same-origin'};
 const json=(value:unknown,status=200)=>Response.json(value,{status,headers});
 const redirect=(path:string)=>new Response(null,{status:303,headers:{...headers,location:path}});
@@ -27,38 +30,47 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
  const env=runtimeBindings(original);
  const range={from:url.searchParams.get('from'),to:url.searchParams.get('to'),journey:url.searchParams.get('journey'),journeyMode:url.searchParams.get('journeyMode'),period:url.searchParams.get('period'),compare:url.searchParams.get('compare'),compareFrom:url.searchParams.get('compareFrom'),compareTo:url.searchParams.get('compareTo'),weekdays:url.searchParams.get('weekdays'),interval:url.searchParams.get('interval'),metric:url.searchParams.get('metric'),group:url.searchParams.get('group'),goal:url.searchParams.get('goal'),host:url.searchParams.get('host'),hostOp:url.searchParams.get('hostOp'),filters:[...url.searchParams.getAll('filter'),...(url.searchParams.get('filterValue')?[`${url.searchParams.get('filterDimension')==='prop'?'prop.'+url.searchParams.get('filterKey'):url.searchParams.get('filterDimension')}:${url.searchParams.get('filterOp')}:${url.searchParams.get('filterValue')}`]:[])],segment:url.searchParams.get('segment')};
  let actor:Actor|undefined;
+ const open=(id:string)=>!actor!.sites||actor!.sites.includes(id);
+ const visibleProposals=(list:any[])=>list.filter(p=>open(JSON.parse(p.payload_json).siteId));
+ const scopedRollup=async(id:string)=>{const r=await rollup(env,id);for(const s of r.sites)inScope(actor!,s.id);return r};
  async function view(siteId?:string,extra:Partial<ViewData>={}) {
   const selected=siteId?await site(env,siteId):undefined;
-  const proposals=actor!.role==='member'?[]:await rows(env,'SELECT * FROM vane_proposals ORDER BY created_at DESC LIMIT 100');
-  const audit=!selected&&url.searchParams.get('section')==='audit'?await auditLog(env,actor!):undefined;
+  const proposals=actor!.role==='member'?[]:visibleProposals(await rows(env,'SELECT * FROM vane_proposals ORDER BY created_at DESC LIMIT 100'));
+  // An error page passes section undefined, so a refused section is not rendered again.
+  const asked='section' in extra?extra.section:url.searchParams.get('section');
+  const audit=!selected&&asked==='audit'?(everySite(actor!),await auditLog(env,actor!)):undefined;
+  const people=!selected&&asked==='team'?await team(env,actor!):undefined;
   const imports=selected&&actor!.role==='owner'?await rows(env,'SELECT j.id,j.state,(SELECT COUNT(*) FROM ik_provenance p WHERE p.job_id=j.id) AS count FROM ik_jobs j JOIN vane_import_approvals a ON a.job_id=j.id WHERE a.site_id=? ORDER BY a.approved_at DESC',selected.id):[];
-  const all=await sites(env),list=!selected&&!extra.rollup&&!extra.error&&(url.searchParams.get('section')??'report')==='report'?await overview(env,all,clock(),{period:url.searchParams.get('period'),sort:url.searchParams.get('sort'),q:url.searchParams.get('q')}):undefined;
+  const all=(await sites(env)).filter(s=>open(s.id)),list=!selected&&!extra.rollup&&!extra.error&&(url.searchParams.get('section')??'report')==='report'?await overview(env,all,clock(),{period:url.searchParams.get('period'),sort:url.searchParams.get('sort'),q:url.searchParams.get('q')}):undefined;
   const live=selected&&url.searchParams.get('section')==='realtime';
   const settings=selected&&(extra.section??url.searchParams.get('section'))==='settings',hook=settings?(await rows<{created_at:number}>(env,'SELECT created_at FROM vane_annotation_hooks WHERE site_id=?',selected.id))[0]??null:undefined,github=settings?(await rows<{created_at:number}>(env,'SELECT created_at FROM vane_github_keys WHERE site_id=?',selected.id))[0]??null:undefined;
-  return renderApp({actor:actor as ViewData['actor'],origin:env.AUTH_ORIGIN,store:await storeUse(env),sites:all,overview:list,rollups:await rollups(env),site:selected,hook,github,shares:settings?await shareLinks(env,selected.id):undefined,segments:selected&&!live?await segments(env,selected.id):undefined,live:live?await realtime(env,selected,clock()):undefined,report:selected&&!live?await createInsightsService(env,selected,clock(),range).list():undefined,proposals,imports,audit,section:url.searchParams.get('section')??undefined,notice:url.searchParams.get('notice')??undefined,...extra});
+  return renderApp({actor:actor as ViewData['actor'],origin:env.AUTH_ORIGIN,store:await storeUse(env),sites:all,overview:list,rollups:(await rollups(env)).filter(r=>r.sites.every((s:any)=>open(s.id))),site:selected,hook,github,shares:settings?await shareLinks(env,selected.id):undefined,segments:selected&&!live?await segments(env,selected.id):undefined,live:live?await realtime(env,selected,clock()):undefined,report:selected&&!live?await createInsightsService(env,selected,clock(),range).list():undefined,proposals,imports,audit,people,section:url.searchParams.get('section')??undefined,notice:url.searchParams.get('notice')??undefined,...extra});
  }
  try {
   const session=await operatorAuth(env).getSession(request);
   if(!session)return path.startsWith('/app')&&request.method==='GET'?redirect('/signin?returnTo=%2Fapp'):json({error:'authentication_required'},401);
-  actor=session.operator;role(actor,['owner','admin','member']);
+  actor=await teamActor(env,session.operator);role(actor,['owner','admin','member']);
   if(request.method==='POST')insist(request.headers.get('origin')===env.AUTH_ORIGIN&&request.headers.get('sec-fetch-site')!=='cross-site','origin','Same-origin approval is required.',403);
+  // TEAM-001: every door that names a site, by query, path or form, answers only for a site the person may open.
+  const named=url.searchParams.get('siteId')??path.match(/^\/app\/sites\/([\w-]+)$/)?.[1];if(named)inScope(actor,named);
   if(request.method==='GET') {
-   if(path==='/api/vane/sites')return json(await sites(env));
-   if(path==='/api/vane/summary'&&url.searchParams.has('rollupId'))return json(await rollupReport(env,await rollup(env,url.searchParams.get('rollupId')!),range,url.searchParams.get('split')==='site'));
+   if(path==='/api/vane/sites')return json((await sites(env)).filter(s=>open(s.id)));
+   if(path==='/api/vane/summary'&&url.searchParams.has('rollupId'))return json(await rollupReport(env,await scopedRollup(url.searchParams.get('rollupId')!),range,url.searchParams.get('split')==='site'));
    if(path==='/api/vane/summary')return json(await createInsightsService(env,await site(env,url.searchParams.get('siteId')??''),clock(),range).list());
    if(path==='/api/vane/realtime')return json(await realtime(env,await site(env,url.searchParams.get('siteId')??''),clock()));
    if(path==='/api/vane/inventory')return json(inventory(await site(env,url.searchParams.get('siteId')??'')));
-   if(path==='/api/vane/audit')return json(await auditLog(env,actor));
-   if(path==='/api/vane/proposals') {role(actor,['owner','admin']);return json(await rows(env,'SELECT * FROM vane_proposals ORDER BY created_at DESC'));}
+   if(path==='/api/vane/audit'){everySite(actor);return json(await auditLog(env,actor));}
+   if(path==='/api/vane/proposals') {role(actor,['owner','admin']);return json(visibleProposals(await rows(env,'SELECT * FROM vane_proposals ORDER BY created_at DESC')));}
    if(path==='/api/vane/import-journal')return json(await journal(env,actor,{siteId:url.searchParams.get('siteId')??'',jobId:url.searchParams.get('jobId')??''}));
    if(path==='/api/vane/export'&&url.searchParams.has('siteId')) { const id=url.searchParams.get('siteId')!; return new Response(JSON.stringify(await exportSite(env,actor,id),null,2),{headers:{...headers,'content-type':'application/json','content-disposition':`attachment; filename="vane-site-${id}.json"`}}); }
    if(path==='/api/vane/export')return new Response(JSON.stringify(await exportHistory(env,actor),null,2),{headers:{...headers,'content-type':'application/json','content-disposition':'attachment; filename="vane-history.json"'}});
-   if(path==='/app')return view();
-   const match=path.match(/^\/app\/sites\/([\w-]+)$/);if(match)return view(match[1]);
-   const rolled=path.match(/^\/app\/rollups\/([\w-]+)$/);if(rolled){const r=await rollup(env,rolled[1]!);return view(undefined,{rollup:r,report:await rollupReport(env,r,range,url.searchParams.get('split')==='site')})}
+   if(path==='/app')return await view();
+   const match=path.match(/^\/app\/sites\/([\w-]+)$/);if(match)return await view(match[1]);
+   const rolled=path.match(/^\/app\/rollups\/([\w-]+)$/);if(rolled){const r=await scopedRollup(rolled[1]!);return view(undefined,{rollup:r,report:await rollupReport(env,r,range,url.searchParams.get('split')==='site')})}
   }
   if(request.method==='POST') {
    const p=await input(request);
+   for(const id of [p.siteId,p.input?.siteId])if(id!==undefined&&id!=='')inScope(actor,String(id));
    if(path==='/api/vane/commands')return json(await prepare(env,actor,p.command,p.input??{},'command API'),201);
    if(path==='/api/vane/import-preview')return json(await preview(env,actor,{siteId:p.siteId,document:p.document}));
    if(path==='/api/vane/import-apply')return json(await apply(env,actor,{siteId:p.siteId,document:p.document,fingerprint:p.fingerprint}));
@@ -78,6 +90,11 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
     if(p.operation==='segment.save'){const saved=await saveSegment(env,actor,p);return redirect(`/app/sites/${encodeURIComponent(saved.siteId)}?${new URLSearchParams({section:'report',segment:saved.id,notice:'Segment saved for the team.'})}`)}
     // CONV-009: a selector preview renders on the settings page; nothing is stored.
     if(p.operation==='event.preview')return view(p.siteId,{section:'settings',eventPreview:await previewSelector(env,actor,p)});
+    // TEAM-001: invitations, grants, removal and ownership transfer go through Base's account doors with this request.
+    if(p.operation==='team.invite'){await invite(env,actor,request,p);return redirect('/app?'+new URLSearchParams({section:'team',notice:'Invitation sent.'}))}
+    if(p.operation==='team.grant'){await regrant(env,actor,p);return redirect('/app?'+new URLSearchParams({section:'team',notice:'Access changed. It applies at once.'}))}
+    if(p.operation==='team.remove'){await remove(env,actor,request,String(p.operatorId??''));return redirect('/app?'+new URLSearchParams({section:'team',notice:'Removed. Their sessions have ended.'}))}
+    if(p.operation==='team.transfer'){await transferOwnership(env,actor,request,p);return redirect('/signin?returnTo=%2Fapp')}
     if(p.operation==='rollup.create')return redirect('/app/rollups/'+encodeURIComponent(await createRollup(env,actor,p))+'?'+new URLSearchParams({notice:'Roll-up created.'}));
     const result=await action(env,actor,p),query=new URLSearchParams({notice:result.notice,...(result.section?{section:result.section}:{})});
     // DASH-009: a new annotation secret is rendered once in this response, never put in a redirect URL.
@@ -88,7 +105,9 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
    }
   }
   return json({error:'not_found'},404);
- } catch(error) {
+ } catch(caught) {
+  // TEAM-001: Base's account doors refuse with a code; the team page names the reason.
+  const error=caught instanceof AuthError?new VaneError(caught.code,ACCOUNT_REFUSALS[caught.code]??'The team change was refused: '+caught.code.replaceAll('_',' ')+'.',caught.status):caught;
   const known=error instanceof VaneError||error instanceof MoveinError;
   const message=known?error.message:'The operation could not complete. Check the document and refresh before trying again.';
   const status=known?error.status:400;

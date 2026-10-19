@@ -4,6 +4,8 @@ export const siteLink = (id: unknown, section = 'report') => `/app/sites/${encod
 export const hidden = (name: string, value: unknown) => `<input type="hidden" name="${escape(name)}" value="${escape(value)}">`
 export const operation = (name: string, siteId?: unknown) => hidden('operation', name) + (siteId === undefined ? '' : hidden('siteId', siteId))
 export const canPrepare = (role: string) => role === 'owner' || role === 'admin'
+// TEAM-001: an analyst also saves segments, previews no-code events and proposes goal, funnel and event changes.
+export const canAnalyze = (actor: { role: string; access?: string }) => canPrepare(actor.role) || actor.access === 'analyst'
 export const count = (value: unknown) => Number.isFinite(Number(value)) ? Number(value).toLocaleString('en-US') : '0'
 
 export function date(value: unknown): string {

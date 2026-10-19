@@ -1,4 +1,4 @@
-import { atomic, day, insist, role, rows, site, statement, uid, type Actor, type Env } from './core'
+import { allow, atomic, day, everySite, inScope, insist, role, rows, site, statement, uid, type Actor, type Env, type Site } from './core'
 import { cleanSite } from './privacy'
 import { eraseSite } from './movein/index'
 import { deletionFence } from './deletion-fence'
@@ -6,15 +6,26 @@ import { auditSql, auditStatement } from './audit'
 import { versioned } from './definitions'
 import { localDay } from './visitors'
 import { clock } from './clock'
+// TEAM-001: an analyst's settings proposal changes only goals (with scroll goals), funnels and no-code events; every
+// other setting is carried over from the site as it stands. The owner still approves it.
+function analystChange(value:Site,input:any) {
+ const config:any={...value.config};
+ if('goals' in input){config.goals=input.goals;config.scrollGoals=input.scrollGoals}
+ for(const key of ['funnels','eventDefinitions'])if(key in input)config[key]=input[key];
+ return {name:value.name,origin:value.origin,config};
+}
 // The command API is the agent door: proposals it prepares are audited as agent actions.
 export async function prepare(env:Env,actor:Actor,command:string,input:any,channel:'app'|'command API') {
- role(actor,['owner','admin']);
+ allow(actor,'analyst');
  insist(['site.create','site.configure','history.erase','site.delete'].includes(command),'command','Unknown preparation command.');
+ // TEAM-001: an analyst prepares only settings changes, and a new site needs installation-wide access.
+ if(actor.access==='analyst')insist(command==='site.configure','forbidden','An analyst prepares only goal, funnel and no-code event changes.',403);
+ if(command==='site.create')everySite(actor);else inScope(actor,String(input.siteId));
  let payload:any;
  if(command==='site.create')payload={...cleanSite(input),siteId:uid()};
- else { const value=await site(env,String(input.siteId)); payload={siteId:value.id,version:value.version,...(command==='site.configure'?cleanSite(input):{})}; }
+ else { const value=await site(env,String(input.siteId)); payload={siteId:value.id,version:value.version,...(command==='site.configure'?cleanSite(actor.access==='analyst'?analystChange(value,input):input):{})}; }
  const id=uid();
- await atomic(env,actor,[statement(env,"INSERT INTO vane_proposals(id,command,payload_json,state,prepared_by,created_at) VALUES(?,?,?,'pending',?,?)",id,command,JSON.stringify(payload),actor.id,Date.now()),auditStatement(env,actor.id,channel==='command API'?'agent.prepare':'proposal.prepare',id,`${command} for site ${payload.siteId} via ${channel}`)],['owner','admin']);
+ await atomic(env,actor,[statement(env,"INSERT INTO vane_proposals(id,command,payload_json,state,prepared_by,created_at) VALUES(?,?,?,'pending',?,?)",id,command,JSON.stringify(payload),actor.id,Date.now()),auditStatement(env,actor.id,channel==='command API'?'agent.prepare':'proposal.prepare',id,`${command} for site ${payload.siteId} via ${channel}`)],actor.access==='analyst'?['owner','admin','member']:['owner','admin']);
  return {id,command,payload,state:'pending'};
 }
 export async function decide(env:Env,actor:Actor,id:string,approve:boolean) {

@@ -31,6 +31,10 @@ export async function installation({setup=true,vars:extra={}}={}) {
  if(setup)await request('/setup',{method:'POST',headers:{origin,'content-type':'application/x-www-form-urlencoded',cookie:owner},body:'confirm=yes'})
  async function invite(email,role) {
   const response=await post('/auth/invite',{email,role,displayName:role},owner);assert.equal(response.status,202,await response.text())
+  return accept(email)
+ }
+ // Follows the newest emailed sign-in or invitation link for an address and returns the session cookie.
+ async function accept(email) {
   const message=sentMail.findLast(message=>JSON.stringify(message.to).includes(email))
   const link=(message?.html??'').match(/href="([^"]*\/auth\/confirm\?token=[^"]+)"/)?.[1]
   if(link){const token=new URL(link.replaceAll('&amp;','&'),origin).searchParams.get('token');const confirmed=await post('/auth/confirm',{token});assert.equal(confirmed.status,303);return cookieOf(confirmed)}
@@ -49,6 +53,6 @@ export async function installation({setup=true,vars:extra={}}={}) {
  // The product clock, moved through the local dev-key door so tests can prove gaps of minutes without waiting.
  const clock=async at=>{const r=await request('/__dev/clock',{method:'POST',headers:{'x-rer-dev-key':vars.RER_DEV_KEY,'content-type':'application/json'},body:JSON.stringify({at})});assert.equal(r.status,200,await r.clone().text())}
  const archive=async()=>{const r=await request('/api/vane/export',{headers:{cookie:owner}});assert.equal(r.status,200);return r.json()}
- return {dump,scheduled,clock,origin,cookieOf,request,post,form,owner,invite,sentMail,egress,fixtureSites,addSite,event,collect,archive,close:()=>mf.dispose()}
+ return {dump,scheduled,clock,origin,cookieOf,request,post,form,owner,invite,accept,sentMail,egress,fixtureSites,addSite,event,collect,archive,close:()=>mf.dispose()}
  } catch(error) {await mf.dispose();throw error}
 }
