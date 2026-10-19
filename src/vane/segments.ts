@@ -12,21 +12,25 @@ import { sourceNameSql, type SourceRule } from './sources'
 // is and is not compare exactly, and on Page and Entry page they take the goal wildcards (CONV-001); contains and
 // does not contain ignore ASCII case; matches is a JavaScript regular expression tested against each distinct value.
 // Imported history has no visits and automatic events carry no visit, so a filtered report leaves both out.
-// Event properties become dimensions with custom events (CONV-002); alerts take a segment with ALERT-001 and the
+// Custom events and their properties, and pageview properties, are dimensions too (CONV-002): a visit matches when any
+// of its page loads, or a custom event on one, matches; alerts take a segment with ALERT-001 and the
 // versioned Stats API with API-001.
 export const FILTER_OPS={is:'is',is_not:'is not',contains:'contains',not_contains:'does not contain',matches:'matches (regex)'} as const
 type Op=keyof typeof FILTER_OPS
-type Scope='first'|'any'|'goal'
+type Scope='first'|'any'|'goal'|'event'|'prop'
+export interface Dimension { label:string; scope:Scope; sql?:(row:string)=>string; key?:string }
 const column=(name:string)=>(row:string)=>`${row}.${name}`
-export const DIMENSIONS:Record<string,{label:string,scope:Scope,sql?:(row:string)=>string}>={
+export const DIMENSIONS:Record<string,Dimension>={
  channel:{label:'Channel',scope:'first',sql:column('channel')},source:{label:'Source',scope:'first'},referrer:{label:'Referring page',scope:'first',sql:column('referrer')},
  utm_source:{label:'UTM source',scope:'first',sql:column('utm_source')},utm_medium:{label:'UTM medium',scope:'first',sql:column('utm_medium')},utm_campaign:{label:'UTM campaign',scope:'first',sql:row=>`NULLIF(${row}.campaign,'none')`},utm_term:{label:'UTM term',scope:'first',sql:column('utm_term')},utm_content:{label:'UTM content',scope:'first',sql:column('utm_content')},
- entry:{label:'Entry page',scope:'first',sql:column('path')},page:{label:'Page',scope:'any',sql:column('path')},hostname:{label:'Hostname',scope:'any',sql:column('hostname')},goal:{label:'Goal',scope:'goal',sql:column('kind')},search:{label:'Site search term',scope:'any',sql:column('search')},
+ entry:{label:'Entry page',scope:'first',sql:column('path')},page:{label:'Page',scope:'any',sql:column('path')},hostname:{label:'Hostname',scope:'any',sql:column('hostname')},goal:{label:'Goal',scope:'goal',sql:column('kind')},search:{label:'Site search term',scope:'any',sql:column('search')},event:{label:'Custom event',scope:'event',sql:column('name')},
  device:{label:'Device',scope:'first',sql:column('device')},browser:{label:'Browser',scope:'first',sql:column('browser')},browser_version:{label:'Browser version',scope:'first',sql:row=>`trim(${row}.browser||' '||COALESCE(${row}.browser_version,''))`},os:{label:'Operating system',scope:'first',sql:column('os')},os_version:{label:'Operating system version',scope:'first',sql:row=>`trim(${row}.os||' '||COALESCE(${row}.os_version,''))`},screen:{label:'Screen size',scope:'first',sql:column('screen')},
 }
+// CONV-002: prop.<key> filters by a custom-event or pageview property, as in prop.plan:is:pro.
+export const dimensionOf=(name:string):Dimension|undefined=>Object.hasOwn(DIMENSIONS,name)?DIMENSIONS[name]:/^prop\.[a-z0-9_-]{1,40}$/.test(name)?{label:`Property ${name.slice(5)}`,scope:'prop',sql:column('value'),key:name.slice(5)}:undefined
 export interface Filter { dimension:string; op:Op; value:string }
 export const MAX_FILTERS=10,MAX_MATCHED_VALUES=500
-export const filterText=(f:Filter)=>`${DIMENSIONS[f.dimension]!.label} ${FILTER_OPS[f.op]} ${f.value}`
+export const filterText=(f:Filter)=>`${dimensionOf(f.dimension)!.label} ${FILTER_OPS[f.op]} ${f.value}`
 export const encodeFilter=(f:Filter)=>`${f.dimension}:${f.op}:${f.value}`
 // A filter is written dimension:op:value, as in channel:is:Organic Search or page:is_not:/blog/*.
 export function parseFilters(input:unknown):Filter[] {
@@ -34,7 +38,7 @@ export function parseFilters(input:unknown):Filter[] {
  insist(list.length<=MAX_FILTERS,'filter',`Use at most ${MAX_FILTERS} filters.`);
  const filters=list.map(text=>{
   const [dimension='',op='',...rest]=text.split(':'),value=rest.join(':').trim();
-  insist(Object.hasOwn(DIMENSIONS,dimension)&&Object.hasOwn(FILTER_OPS,op)&&value.length>0&&value.length<=200&&!/[\u0000-\u001f\u007f]/.test(value),'filter','Filter by a listed dimension with is, is not, contains, does not contain or matches, and a value of up to 200 characters.');
+  insist(dimensionOf(dimension)!==undefined&&Object.hasOwn(FILTER_OPS,op)&&value.length>0&&value.length<=200&&!/[\u0000-\u001f\u007f]/.test(value),'filter','Filter by a listed dimension with is, is not, contains, does not contain or matches, and a value of up to 200 characters.');
   if(op==='matches'){let valid=true;try{new RegExp(value)}catch{valid=false}insist(valid,'filter','Write matches as a valid regular expression, such as ^/blog/.');}
   return {dimension,op:op as Op,value};
  });
@@ -46,19 +50,23 @@ const resolved=(f:Filter)=>f.op==='matches'||(f.op==='is'||f.op==='is_not')&&(f.
 // The event set of the kept visits over local days [from, to), drawn from `base` (the hostname-filtered events).
 export async function segmentEvents(env:Env,scope:string,filters:Filter[],from:string,to:string,base:string,sourceRules:SourceRule[]=[]):Promise<string> {
  const sites=(row:string)=>`${row}.site_id IN (SELECT value FROM json_each(${literal(scope)}))`,days=(row:string)=>`${row}.day>=${literal(from)} AND ${row}.day<${literal(to)}`
- const expr=(f:Filter,row:string)=>f.dimension==='source'?sourceNameSql(sourceRules,`${row}.source`):DIMENSIONS[f.dimension]!.sql!(row)
+ const expr=(f:Filter,row:string)=>f.dimension==='source'?sourceNameSql(sourceRules,`${row}.source`):dimensionOf(f.dimension)!.sql!(row)
  const positive=async(f:Filter,row:string)=>{
   const e=`COALESCE(${expr(f,row)},'')`;
   if(f.op==='contains'||f.op==='not_contains')return `instr(lower(${e}),lower(${literal(f.value)}))>0`;
   if(!resolved(f))return `${e}=${literal(f.value)}`;
-  const values=(await rows<{v:string|null}>(env,`SELECT DISTINCT ${expr(f,'x')} AS v FROM ${base} x WHERE ${sites('x')} AND ${days('x')} AND x.kind${f.dimension==='goal'?'<>':'='}'pageview'`)).map(r=>r.v).filter((v):v is string=>v!==null);
+  const d=dimensionOf(f.dimension)!,values=(await rows<{v:string|null}>(env,d.scope==='event'?`SELECT DISTINCT x.name AS v FROM vane_custom_events x WHERE ${sites('x')} AND ${days('x')}`:d.scope==='prop'?`SELECT DISTINCT x.value AS v FROM vane_event_props x WHERE ${sites('x')} AND ${days('x')} AND x.key=${literal(d.key!)}`:`SELECT DISTINCT ${expr(f,'x')} AS v FROM ${base} x WHERE ${sites('x')} AND ${days('x')} AND x.kind${f.dimension==='goal'?'<>':'='}'pageview'`)).map(r=>r.v).filter((v):v is string=>v!==null);
   const pattern=f.op==='matches'?new RegExp(f.value):null,kept=values.filter(v=>pattern?pattern.test(v):goalMatches(f.value,v));
   insist(kept.length<=MAX_MATCHED_VALUES,'filter',`The filter matches more than ${MAX_MATCHED_VALUES} values; narrow it.`);
   return kept.length?`${e} IN (${kept.map(literal).join(',')})`:'0';
  };
  const negative=(f:Filter)=>f.op==='is_not'||f.op==='not_contains'
- const flags=await Promise.all(filters.map(async f=>{const p=await positive(f,'l');return DIMENSIONS[f.dimension]!.scope==='goal'?`EXISTS(SELECT 1 FROM ${base} g WHERE g.id>l.id||':' AND g.id<l.id||';' AND ${(await positive(f,'g'))})`:p}))
- const having=filters.map((f,i)=>DIMENSIONS[f.dimension]!.scope==='first'?`MAX(CASE WHEN first=1 AND ${negative(f)?'NOT ':''}f${i} THEN 1 ELSE 0 END)=1`:`MAX(f${i})=${negative(f)?0:1}`).join(' AND ')
+ const flags=await Promise.all(filters.map(async f=>{const d=dimensionOf(f.dimension)!;
+  if(d.scope==='goal')return `EXISTS(SELECT 1 FROM ${base} g WHERE g.id>l.id||':' AND g.id<l.id||';' AND ${await positive(f,'g')})`;
+  if(d.scope==='event')return `EXISTS(SELECT 1 FROM vane_custom_events ce WHERE ce.page_id=l.id AND ${await positive(f,'ce')})`;
+  if(d.scope==='prop')return `EXISTS(SELECT 1 FROM vane_event_props pr WHERE (pr.event_id=l.id OR pr.event_id IN (SELECT ce.id FROM vane_custom_events ce WHERE ce.page_id=l.id)) AND pr.key=${literal(d.key!)} AND ${await positive(f,'pr')})`;
+  return positive(f,'l')}))
+ const having=filters.map((f,i)=>dimensionOf(f.dimension)!.scope==='first'?`MAX(CASE WHEN first=1 AND ${negative(f)?'NOT ':''}f${i} THEN 1 ELSE 0 END)=1`:`MAX(f${i})=${negative(f)?0:1}`).join(' AND ')
  return `(SELECT * FROM ${base} e WHERE ${sites('e')} AND ${days('e')} AND substr(e.id,1,length(e.site_id)+37) IN (WITH s AS (SELECT l.id,l.day,l.visitor,l.at,${flags.map((sql,i)=>`(${sql}) AS f${i}`).join(',')},LAG(l.at) OVER w AS prev_at,${gapSql('l')} AS gap FROM ${base} l WHERE ${sites('l')} AND ${days('l')} AND l.kind='pageview' AND l.visitor IS NOT NULL AND l.at IS NOT NULL WINDOW w AS (PARTITION BY l.day,l.visitor ORDER BY l.at,l.id)),
 t AS (SELECT *,CASE WHEN prev_at IS NULL OR at-prev_at>gap THEN 1 ELSE 0 END AS first FROM s),
 u AS (SELECT *,SUM(first) OVER (PARTITION BY day,visitor ORDER BY at,id ROWS UNBOUNDED PRECEDING) AS visit FROM t),

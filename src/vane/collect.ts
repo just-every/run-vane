@@ -11,6 +11,7 @@ import { hostOf, keptValue, pathAllowed, redactPath, storedPath, visitSource } f
 import { channelOf, webmail } from './channels'
 import { countExclusion, declinedResponse } from './exclusions'
 import { excludedTraffic } from './traffic'
+import { cleanProps, droppedStatement, propStatements } from './properties'
 export async function collector(request:Request,env:Env):Promise<Response|null> {
  const url=new URL(request.url);
  const signal=await signalResponse(request,env)??await declinedResponse(request,env);if(signal)return signal;
@@ -21,7 +22,7 @@ export async function collector(request:Request,env:Env):Promise<Response|null> 
  let cors:Record<string,string>={'vary':'Origin','cache-control':'no-store'};
  try {
   let payload:any;
-  if(!match&&request.method!=='OPTIONS') { insist(request.method==='POST','method','POST required.',405); const text=await request.text(); insist(text.length<=2048,'body','Event too large.',413); payload=JSON.parse(text); }
+  if(!match&&request.method!=='OPTIONS') { insist(request.method==='POST','method','POST required.',405); const text=await request.text(); insist(text.length<=8192,'body','Event too large.',413); payload=JSON.parse(text); }
   const id=match?.[1]??payload?.siteId??url.searchParams.get('siteId');
   // Preflight advertises no read privilege and never admits an event.
   if(request.method==='OPTIONS')return new Response(null,{status:204,headers:{...cors,'access-control-allow-origin':request.headers.get('origin')??'null','access-control-allow-methods':'POST','access-control-allow-headers':'content-type','access-control-max-age':'600'}});
@@ -42,7 +43,7 @@ export async function collector(request:Request,env:Env):Promise<Response|null> 
    await env.DB.batch([statement(env,'UPDATE vane_events SET engaged_at=MAX(COALESCE(engaged_at,0),?),scroll=MAX(COALESCE(scroll,0),?) WHERE id=?',at,payload.scroll,eventId),...goals.map(([name,goal])=>statement(env,'INSERT OR IGNORE INTO vane_events(id,site_id,day,kind,path,source,campaign,consent,sample_rate,visitor,at,hostname) SELECT id||?,site_id,day,?,path,source,campaign,consent,sample_rate,visitor,at,hostname FROM vane_events WHERE id=? AND scroll>=?',':'+name,name,eventId,goal.depth))]);
    return Response.json({accepted:true},{status:202,headers:cors});
   }
-  insist(payload&&Object.keys(payload).every(key=>['id','siteId','path','source','referrer','campaign','utm','ref','click','query','consent','width','search'].includes(key)),'fields','Only the declared anonymous fields are accepted.');
+  insist(payload&&Object.keys(payload).every(key=>['id','siteId','path','source','referrer','campaign','utm','ref','click','query','consent','width','search','props'].includes(key)),'fields','Only the declared anonymous fields are accepted.');
   // COLLECT-002: the page's hostname comes from its verified origin; the path is redacted and rewritten before
   // storage; UTM fields, ref/source and the owner's kept query keys arrive as values, and click IDs only as a flag.
   const utm=payload.utm??{},query=payload.query??{};
@@ -66,7 +67,7 @@ export async function collector(request:Request,env:Env):Promise<Response|null> 
   if(excluded){await countExclusion(env,value.id,localDay(clock(),value.config.timeZone??'UTC'),excluded).run();throw new VaneError('excluded',`This traffic is excluded from collection (${excluded}).`,403)}
   const e={hostname:hostOf(origin),path,source:mail&&!utmSource&&!keptValue(payload.ref)?'webmail':visitSource(utmSource,keptValue(payload.ref),refHost,own),referrer:referrer&&referrer.protocol!=='android-app:'&&!mail&&!own.includes(referrer.hostname.toLowerCase())?referrer.hostname.toLowerCase()+redactPath(referrer.pathname||'/'):null,campaign:keptValue(payload.campaign)??'none',utmSource,utmMedium:keptValue(utm.medium),utmTerm:keptValue(utm.term),utmContent:keptValue(utm.content),paidClick:payload.click?1:0,query:kept.length?kept.join('&'):null};
   insist(payload.consent===(value.config.consent==='required'?'granted':'not-required'),'consent','Consent is required for collection.',403);
-  const now=clock(),today=localDay(now,value.config.timeZone??'UTC'),eventId=value.id+':'+payload.id;
+  const now=clock(),today=localDay(now,value.config.timeZone??'UTC'),eventId=value.id+':'+payload.id,props=cleanProps(payload.props);
   const channel=channelOf(e.source,e.utmMedium,e.paidClick===1);
   const prior=await env.DB.prepare('SELECT * FROM vane_events WHERE id=?').bind(eventId).first<any>();
   if(prior) { insist(prior.path===e.path&&prior.source===e.source&&prior.campaign===e.campaign,'conflict','Event ID already has different data.',409); return Response.json({accepted:true,duplicate:true},{headers:cors}); }
@@ -74,7 +75,8 @@ export async function collector(request:Request,env:Env):Promise<Response|null> 
   const kinds=['pageview',...Object.entries(value.config.goals).filter(([,goal])=>goalApplies(goal,e.hostname,e.path)).map(([name])=>name)];
   const statements=[statement(env,'DELETE FROM vane_guard'),statement(env,'INSERT INTO vane_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM vane_sites WHERE id=? AND version=?) THEN 1 ELSE 0 END',value.id,value.version),statement(env,'INSERT INTO vane_admission(site_id,day,count) VALUES(?,?,1) ON CONFLICT(site_id,day) DO UPDATE SET count=count+1',value.id,today),statement(env,'INSERT INTO vane_guard(value) SELECT CASE WHEN count<=10000 THEN 1 ELSE 0 END FROM vane_admission WHERE site_id=? AND day=?',value.id,today)];
   for(const kind of kinds)statements.push(statement(env,'INSERT INTO vane_events(id,site_id,day,kind,path,source,campaign,consent,sample_rate,visitor,at,device,browser,browser_version,os,os_version,screen,search,hostname,utm_source,utm_medium,utm_term,utm_content,paid_click,query,channel,referrer) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',kind==='pageview'?eventId:eventId+':'+kind,value.id,today,kind,e.path,e.source,e.campaign,payload.consent,value.config.sampleRate,visitor,now,d.device,d.browser,d.browserVersion,d.os,d.osVersion,d.screen,kind==='pageview'?search:null,e.hostname,e.utmSource,e.utmMedium,e.utmTerm,e.utmContent,e.paidClick,e.query,channel,e.referrer));
-  statements.push(statement(env,'DELETE FROM vane_guard'));
+  // CONV-002: a pageview's properties (INSTALL-007) are stored beside it.
+  statements.push(...propStatements(env,eventId,value.id,today,props),...droppedStatement(env,value.id,today,props),statement(env,'DELETE FROM vane_guard'));
   try{await env.DB.batch(statements)}catch { throw new VaneError('admission','Collection changed, the daily limit was reached, or this event was already admitted. Refresh before sending another page load.',409) }
   return Response.json({accepted:true},{status:202,headers:cors});
  } catch(error) { const e=error instanceof VaneError?error:new VaneError('invalid_event','Event could not be accepted.'); return Response.json({error:e.code,message:e.message},{status:e.status,headers:cors}); }

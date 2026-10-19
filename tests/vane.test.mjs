@@ -1102,3 +1102,34 @@ test('INSTALL-007 a TanStack React Router app and a hash-routed one each record 
  const rows=(await a.dump()).vane_events.filter(e=>e.kind==='pageview'&&e.path.startsWith('/manual'));assert.deepEqual(rows.map(e=>[e.path,e.utm_source]).sort(),[['/manual',null],['/manual/step-2','newsletter']])
  const settings=await (await a.request(`/app/sites/${id}?section=settings`,{headers:{cookie:a.owner}})).text();assert.ok(settings.includes('data-spa-help')&&settings.includes('data-hash')&&settings.includes('data-manual'))
 })
+test('CONV-002 Signup with plan=pro and plan=free through vane() and CSS classes breaks down by plan, an email property is refused, manual and attribute pageview properties break down by author, and a funnel step and a filter on plan=pro count only the pro signups',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({paths:[],funnels:'pro=/ > event:Signup[plan=pro]',publicReports:['totals','sources','campaigns','pages','goals','devices']})
+ const script=(attrs='')=>`<script src="${a.origin}/vane.js" data-site="${id}"${attrs}></script>`
+ const pages={'https://fern.example/':`<!doctype html><title>Fern</title><button class="vane-event-name=Signup vane-event-plan=free">Free plan</button><form class="vane-event-name=Signup vane-event-plan=pro" action="/" onsubmit="return false"><button>Pro plan</button></form>${script()}`,
+  'https://fern.example/post':`<!doctype html><title>Post</title><script>window.vane=window.vane||function(){(vane.q=vane.q||[]).push(arguments)};vane('pageview',{props:{author:'jo'}})</script>${script(' data-manual')}`,
+  'https://fern.example/essay':`<!doctype html><title>Essay</title>${script(' data-prop-author="sam"')}`}
+ const open=async(n,url)=>{const {context}=await browse(t,a,pages,{extraHTTPHeaders:{'cf-connecting-ip':'203.0.113.'+n}}),tab=await context.newPage(),loaded=tab.waitForResponse(r=>new URL(r.url()).pathname==='/api/vane/collect'&&r.status()===202);await tab.goto(url);await loaded;return tab}
+ const fired=async(tab,act)=>{const sent=tab.waitForResponse(r=>new URL(r.url()).pathname==='/api/vane/custom');await act();assert.equal((await sent).status(),202)}
+ // Pro and free, each once through a CSS class (a form and a button) and once through vane().
+ const one=await open(1,'https://fern.example/');await fired(one,()=>one.getByRole('button',{name:'Pro plan'}).click())
+ const two=await open(2,'https://fern.example/');await fired(two,()=>two.evaluate(()=>vane('Signup',{props:{plan:'free'}})))
+ const three=await open(3,'https://fern.example/');await fired(three,()=>three.getByRole('button',{name:'Free plan'}).click())
+ const four=await open(4,'https://fern.example/');await fired(four,()=>four.evaluate(()=>vane('Signup',{props:{plan:'pro'}})))
+ await open(5,'https://fern.example/post');await open(6,'https://fern.example/essay')
+ // Through the public door: an email address refuses the event, a phone number is dropped and counted.
+ const pageId=(await a.dump()).vane_events.find(e=>e.kind==='pageview'&&e.path==='/').id.split(':')[1],custom=body=>a.post('/api/vane/custom',{id:crypto.randomUUID(),siteId:id,page:pageId,consent:'not-required',...body},'',{origin:'https://fern.example'})
+ assert.equal((await custom({name:'Signup',props:{plan:'pro',contact:'jo@example.com'}})).status,400);assert.equal((await custom({name:'jo@example.com'})).status,400)
+ assert.equal((await custom({name:'Callback',props:{phone:'+1 (555) 123-4567'}})).status,202);assert.equal((await custom({name:'Signup',props:Object.fromEntries(Array.from({length:31},(_,i)=>['k'+i,'v']))})).status,400,'at most 30 properties')
+ const day=(await a.dump()).vane_events[0].day,summary=async query=>(await a.request(`/api/vane/summary?siteId=${id}&from=${day}&to=${new Date(Date.parse(day)+86400000).toISOString().slice(0,10)}&${query}`,owner)).json(),all=await summary('')
+ assert.deepEqual(all.customEvents.map(r=>[r.name,r.events,r.visitors]),[['Signup',4,4],['Callback',1,1]])
+ assert.deepEqual(all.eventProps.map(r=>[r.name,r.key,r.value,r.events]),[['Signup','plan','free',2],['Signup','plan','pro',2]])
+ assert.deepEqual(all.pageProps.map(r=>[r.key,r.value,r.pageviews]),[['author','jo',1],['author','sam',1]])
+ assert.deepEqual(all.exclusions,[{reason:'dropped-property',count:1}]);assert.ok(!JSON.stringify(await a.dump()).includes('123-4567'),'the phone number is not stored')
+ // The funnel step on Signup with plan=pro, and the DASH-007 filters, count only the pro signups.
+ assert.deepEqual(all.funnels[0].steps.map(s=>s.visits),[4,2])
+ for(const [filter,visits] of [['prop.plan:is:pro',2],['prop.plan:is_not:pro',4],['event:is:Signup',4],['prop.author:is:jo',1]])assert.equal((await summary('filter='+encodeURIComponent(filter))).visits,visits,filter)
+ const html=unlinked(await (await a.request(`/app/sites/${id}?section=report&from=${day}&to=${new Date(Date.parse(day)+86400000).toISOString().slice(0,10)}`,owner)).text())
+ for(const row of ['<th scope="row">Signup</th><td class="vane-number">4</td>','<th scope="row">Signup</th><td>plan</td><td>pro</td><td class="vane-number">2</td>','<th scope="row">author</th><td>jo</td><td class="vane-number">1</td>','Dropped properties'])assert.ok(html.includes(row),row)
+ assert.ok((await (await a.request('/api/vane/inventory?siteId='+id,owner)).json()).fields.some(f=>f.table==='vane_event_props'))
+ const published=await (await a.request(`/stats/${id}?from=${day}&to=${new Date(Date.parse(day)+86400000).toISOString().slice(0,10)}`)).text();assert.ok(published.includes('/essay')&&!/Signup|Callback|Event properties|Page properties/.test(published),'public stats show no custom event or property')
+})
