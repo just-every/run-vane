@@ -1,4 +1,5 @@
 import { paymentReferrer } from './revenue'
+import { assignments } from './experiments'
 import { day, insist, site, siteOrigin, statement, VaneError, type Env } from './core'
 import { tracker } from './tracker'
 import { signalResponse } from './privacy-signals'
@@ -84,6 +85,8 @@ export async function collector(request:Request,env:Env):Promise<Response|null> 
   // CONV-002: a pageview's properties (INSTALL-007) are stored beside it.
   statements.push(...propStatements(env,eventId,value.id,today,props),...droppedStatement(env,value.id,today,props),statement(env,'DELETE FROM vane_guard'));
   try{await env.DB.batch(statements)}catch { throw new VaneError('admission','Collection changed, the daily limit was reached, or this event was already admitted. Refresh before sending another page load.',409) }
-  return Response.json({accepted:true},{status:202,headers:cors});
+  // EXPERIMENT-001: the page load's variant in each split test running on its page, from its visitor hash.
+  const experiments=await assignments(value.config.experiments,visitor,e.hostname,e.path);
+  return Response.json({accepted:true,...(experiments?{experiments}:{})},{status:202,headers:cors});
  } catch(error) { const e=error instanceof VaneError?error:new VaneError('invalid_event','Event could not be accepted.'); return Response.json({error:e.code,message:e.message},{status:e.status,headers:cors}); }
 }

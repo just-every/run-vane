@@ -1196,6 +1196,41 @@ test('CONV-007 a test purchase through the standard ecommerce events fills the r
  for(const row of ['<th scope="row">Fern tee</th><td>TEE-1</td><td>Shirts</td><td class="vane-number">2</td>','$50.00','€20.00','$12.50','data-funnel="Ecommerce"','<th scope="row">4. event:Purchase</th><td class="vane-number">1</td>'])assert.ok(html.includes(row),row)
  assert.ok((await (await a.request('/api/vane/inventory?siteId='+id,owner)).json()).fields.some(f=>f.table==='vane_ecommerce_lines'))
 })
+test('EXPERIMENT-001 a seeded 20% lift reaches significance with the expected interval once powered, a null test never does, a skewed exposure split triggers the mismatch warning, and the script applies and reports its variant',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({paths:[],goals:{signup:'/signup',demo:'/demo'},experiments:'lift = /pricing > signup : control, cheaper\nnull = /pricing > demo : a, b\nskew = /pricing > signup : left, right'})
+ const agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36'
+ const visit=async(i,path)=>{const event=a.event(id,{path,source:undefined,campaign:undefined}),r=await a.post('/api/vane/collect',event,'',{origin:'https://fern.example','cf-connecting-ip':`198.18.${i>>8}.${i&255}`,'user-agent':agent});assert.equal(r.status,202);return {page:event.id,body:await r.json()}}
+ const expose=async(page,experiment)=>{const r=await a.post('/api/vane/exposure',{page,siteId:id,experiment,consent:'not-required'},'',{origin:'https://fern.example'});assert.equal(r.status,202,await r.clone().text());return (await r.json()).variant}
+ const tests=async()=>Object.fromEntries((await (await a.request(`/api/vane/summary?siteId=${id}&period=today`,owner)).json()).experiments.map(x=>[x.name,x]))
+ // Control converts 7 in 10 visitors (70%), cheaper 21 in 25 (84%: a 20% lift); the null test's arms both convert 7 in 10.
+ // Visitors arrive eight at a time; the skew test loses 60% of its right-hand exposures.
+ const arms={lift:{control:[],cheaper:[]},null:{a:[],b:[]}};let right=0
+ const one=async i=>{
+  const {page,body}=await visit(i,'/pricing'),v=body.experiments
+  assert.equal(await expose(page,'lift'),v.lift,'the exposure door recomputes the assigned variant');await expose(page,'null')
+  if(v.skew==='left'||right++%10<4)await expose(page,'skew')
+  const k=arms.lift[v.lift].push(i)-1,m=arms.null[v.null].push(i)-1
+  if(v.lift==='control'?k%10<7:k%25<21)await visit(i,'/signup')
+  if(m%10<7)await visit(i,'/demo')
+ }
+ for(let b=0;b<360;b+=8){await Promise.all(Array.from({length:8},(_,j)=>one(b+j)));if(b===88){const early=await tests();assert.ok(early.lift.underpowered&&early.lift.variants[1].verdict==='underpowered','no result is called while underpowered')}}
+ const r=await tests(),[control,cheaper]=r.lift.variants,n=[arms.lift.control.length,arms.lift.cheaper.length],c=[Math.floor(n[0]/10)*7+Math.min(n[0]%10,7),Math.floor(n[1]/25)*21+Math.min(n[1]%25,21)]
+ assert.deepEqual([control.visitors,control.conversions,cheaper.visitors,cheaper.conversions],[n[0],c[0],n[1],c[1]])
+ const z=1.959964,pc=c[0]/n[0],pv=c[1]/n[1],d=pv-pc,se=Math.sqrt(pc*(1-pc)/n[0]+pv*(1-pv)/n[1]),round=x=>Math.round(x*1e4)/1e4
+ assert.deepEqual(cheaper.differenceInterval,[round(d-z*se),round(d+z*se)],'the difference interval');assert.ok(cheaper.differenceInterval[0]>0&&cheaper.differenceInterval[0]<0.14&&cheaper.differenceInterval[1]>0.14,'the interval holds the seeded 14-point lift')
+ const den=1+z*z/n[0],mid=(pc+z*z/(2*n[0]))/den,half=z*Math.sqrt(pc*(1-pc)/n[0]+z*z/(4*n[0]*n[0]))/den;assert.deepEqual(control.interval,[round(mid-half),round(mid+half)],'the control’s Wilson interval')
+ assert.equal(r.lift.underpowered,false);assert.equal(cheaper.verdict,'beats control');assert.ok(cheaper.probabilityBeatsControl>0.99)
+ assert.equal(r.null.underpowered,false);assert.equal(r.null.variants[1].verdict,'no difference','the null test never reaches significance')
+ assert.equal(r.skew.sampleRatioMismatch,true);assert.ok(r.skew.sampleRatioP<0.01)
+ const html=await (await a.request(`/app/sites/${id}?section=report&period=today`,owner)).text()
+ for(const text of ['data-experiment="lift"','data-variant="cheaper" data-verdict="beats control"','data-variant="b" data-verdict="no difference"','data-srm'])assert.ok(html.includes(text),text)
+ // The script: vane('experiment', ...) calls back with the page load's variant after its pageview, and reports the exposure.
+ const {context}=await browse(t,a,{'https://fern.example/pricing':`<!doctype html><title>Pricing</title><script>window.vane=window.vane||function(){(vane.q=vane.q||[]).push(arguments)};vane('experiment','lift',v=>{document.body.dataset.variant=v})</script><script src="${a.origin}/vane.js" data-site="${id}"></script>`}),tab=await context.newPage()
+ const exposed=tab.waitForResponse(r=>new URL(r.url()).pathname==='/api/vane/exposure');await tab.goto('https://fern.example/pricing');const response=await exposed
+ assert.equal(response.status(),202);const page=JSON.parse(response.request().postData()).page,stored=(await a.dump()).vane_exposures.find(x=>x.page_id===id+':'+page&&x.experiment==='lift');assert.equal(await tab.evaluate(()=>document.body.dataset.variant),stored.variant,'the page shows the variant the server recorded')
+ assert.equal((await a.post('/api/vane/exposure',{page:crypto.randomUUID(),siteId:id,experiment:'lift',consent:'not-required'},'',{origin:'https://fern.example'})).status,404)
+ assert.equal((await a.post('/api/vane/exposure',{page:crypto.randomUUID(),siteId:id,experiment:'lift',variant:'cheaper',consent:'not-required'},'',{origin:'https://fern.example'})).status,400,'the variant is never taken from the request')
+})
 test('CONV-009 a click on #book-demo, a contact form, a visible pricing table and a docs pageview defined in the app, previewed against the live page and approved, arrive as custom events with no site code change',async t=>{
  const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({paths:[]})
  const html=`<!doctype html><title>Fern</title><button id="book-demo" class="cta">Book a demo</button><form class="contact" action="/" onsubmit="return false"><button>Send</button></form><div style="height:3000px"></div><section id="pricing">Pricing</section><script src="${a.origin}/vane.js" data-site="${id}"></script>`

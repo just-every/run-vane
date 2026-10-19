@@ -6,6 +6,7 @@ import { methodologyResponse } from './vane/methodology'
 import { publicStatsResponse } from './vane/public'
 import { autoEventResponse } from './vane/auto-events'
 import { customEventResponse } from './vane/custom-events'
+import { exposureResponse } from './vane/experiments'
 import { expireSalts } from './vane/visitors'
 import { clock, clockResponse } from './vane/clock'
 import { vaneResponse } from './vane/routes'
@@ -42,6 +43,8 @@ export default withDemo({
     if (asset) return asset
     const custom = await customEventResponse(request, env)
     if (custom) return custom
+    const exposure = await exposureResponse(request, env)
+    if (exposure) return exposure
     const automatic = await autoEventResponse(request, env)
     if (automatic) return automatic
     const measured = await perfResponse(request, runtimeBindings(env))

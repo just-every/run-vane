@@ -48,12 +48,13 @@ export async function decide(env:Env,actor:Actor,id:string,approve:boolean) {
     {sql:'DELETE FROM vane_custom_events WHERE site_id=?',params:[current.id]},
     {sql:'DELETE FROM vane_event_props WHERE site_id=?',params:[current.id]},
     {sql:'DELETE FROM vane_ecommerce_lines WHERE site_id=?',params:[current.id]},
+    {sql:'DELETE FROM vane_exposures WHERE site_id=?',params:[current.id]},
     ...(remove?[]:[auditSql(actor.id,'proposal.approve',id,`history.erase for site ${current.id}`),auditSql(actor.id,'history.erase',current.id,`version ${payload.version}`),{sql:"UPDATE vane_proposals SET state='approved',approved_by=?,approved_at=? WHERE id=? AND state='pending'",params:[actor.id,at,id]}]),
     {sql:'INSERT INTO vane_deletions(id,site_id,before_day,at,actor,reason) VALUES(?,?,?,?,?,?)',params:[uid(),current.id,day(at+86400000),at,actor.id,remove?'site-deletion':'owner-erasure']},
     {sql:'DELETE FROM vane_guard',params:[]},
    ]);
    if(!remove)return {id,state:'approved',siteId:current.id};
-   await atomic(env,actor,[guard,operations[1]!,...['vane_events','vane_signals','vane_exclusions','vane_auto_events','vane_import_events','vane_admission','vane_salts','vane_annotations','vane_annotation_hooks','vane_github_keys','vane_segments','vane_custom_events','vane_event_props','vane_ecommerce_lines'].map(table=>statement(env,`DELETE FROM ${table} WHERE site_id=?`,current.id)),statement(env,'DELETE FROM vane_sites WHERE id=?',current.id),change,auditStatement(env,actor.id,'proposal.approve',id,`site.delete for site ${current.id}`),auditStatement(env,actor.id,'site.delete',current.id,`version ${payload.version}`)]);
+   await atomic(env,actor,[guard,operations[1]!,...['vane_events','vane_signals','vane_exclusions','vane_auto_events','vane_import_events','vane_admission','vane_salts','vane_annotations','vane_annotation_hooks','vane_github_keys','vane_segments','vane_custom_events','vane_event_props','vane_ecommerce_lines','vane_exposures'].map(table=>statement(env,`DELETE FROM ${table} WHERE site_id=?`,current.id)),statement(env,'DELETE FROM vane_sites WHERE id=?',current.id),change,auditStatement(env,actor.id,'proposal.approve',id,`site.delete for site ${current.id}`),auditStatement(env,actor.id,'site.delete',current.id,`version ${payload.version}`)]);
    return {id,state:'approved'};
   }
  }
