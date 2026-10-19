@@ -126,7 +126,7 @@ These clauses restate what the released first contract and ACCEPTANCE.md promise
 
 - **DASH-003 — Page, entry and exit reports.** Page reports list top pages, entry (landing) pages and exit pages, each with visitors, pageviews, bounce rate, time on page, scroll depth and conversion rate. Pages can be grouped by path prefix or by a rewrite rule. When a site has more than one hostname, each row shows its hostname and the same path on two hostnames is two rows (`DASH-013`). **Acceptance evidence:** Seed visits with known entry and exit pages. The three tables match, and grouping by `/blog/*` sums the posts correctly.
 
-- **DASH-004 — Channels, referrers and UTM campaigns.** Every visit gets a channel, using published definitions: Direct, Organic Search, Paid Search, Organic Social, Paid Social, Email, Referral, AI Assistants (ChatGPT, Perplexity, Claude, Gemini, Copilot), Affiliates and Display. Referrer domains and URLs come from public referring pages. All five UTM fields (source, medium, campaign, term, content) are available as dimensions. No allowlist is needed. Email-client and webmail referrers are grouped. Every channel, referrer and UTM table shows, per row, the visitors, visits, bounce rate, visit duration and the conversion rate for the selected goal, as the pages table does. **Acceptance evidence:** Send visits with Google organic, Google paid (gclid flag), Facebook, an email UTM, a chatgpt.com referrer and five-field UTMs. Each lands in its documented channel, every UTM field is reportable, and each row's visitors, bounce rate and visit duration equal a hand-computed count of the seeded visits.
+- **DASH-004 — Channels, referrers and UTM campaigns.** Every visit gets a channel, using published definitions: Direct, Organic Search, Paid Search, Organic Social, Paid Social, Email, Referral, AI Assistants (ChatGPT, Perplexity, Claude, Gemini, Copilot), Affiliates and Display. Referrer domains and URLs come from public referring pages. All five UTM fields (source, medium, campaign, term, content) are available as dimensions. No allowlist is needed. Email-client and webmail referrers are grouped. Every channel, referrer and UTM table shows, per row, the visitors, visits, bounce rate, visit duration and the conversion rate for the selected goal, as the pages table does. The exact rules: the channel is set at collection by the first matching rule, in the order Affiliates, Display, Paid Social, Paid Search, AI Assistants, Email, Organic Search, Organic Social, Referral, Direct, from the visit's source (`COLLECT-002`), `utm_medium` and paid-click flag, with the source lists and the paid `utm_medium` values published on the methodology page (`METRIC-004`). A referring page is kept as its hostname and path, redacted like page paths, without query or fragment; email-client and webmail referrers are grouped as the source `webmail` and their addresses are never kept. Each visit counts under its first page load's channel, source, referring page and UTM values. The conversion rate counts visits with the goal the reader selects, or with any goal when none is selected; the page tables follow the same selection. Imported history has no visits, so it is left out of these tables. **Acceptance evidence:** Send visits with Google organic, Google paid (gclid flag), Facebook, an email UTM, a chatgpt.com referrer and five-field UTMs. Each lands in its documented channel, every UTM field is reportable, and each row's visitors, bounce rate and visit duration equal a hand-computed count of the seeded visits.
 
 - **DASH-005 — Country, region and city.** Location comes from Cloudflare's request geolocation at ingestion: country, region (US state), city and US metro area (DMA), stored as names and never as an IP address. On shared links, embeds and public dashboards (`SHARE-001`, `SHARE-002`), a city with fewer than 5 visitors in the selected range is folded into an "Other cities" row in its region. Signed-in team members see every city. **Acceptance evidence:** Send events with Cloudflare geo for Texas, Ontario and London. Reports show the country, region and city, and no IP appears anywhere in storage. Seed Austin with 12 visitors and Marfa with 3, then open a shared link. Austin is listed, Marfa is folded into "Other cities" in Texas, and the signed-in dashboard lists both.
 
@@ -356,7 +356,7 @@ The approved homepage (17 Oct 2026, `HOME-001`) states 80 capabilities in its co
 | 22 | Visitors chip: Salt rotated at midnight · yesterday's visitors can't be linked | `METRIC-001` | done |
 | 23 | Sources: "Sources" | `DASH-004`, `DASH-014` | partial |
 | 24 | Sources: "pages" | `DASH-003` | done |
-| 25 | Sources: "campaigns" | `DASH-004` | partial |
+| 25 | Sources: "campaigns" | `DASH-004` | done |
 | 26 | Sources: "countries" | `DASH-005` | missing |
 | 27 | Sources: "devices and browsers" | `DASH-006` | done |
 | 28 | Sources: "live" | `DASH-001` | missing |
@@ -420,8 +420,8 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 17 | 0 | 0 | 17 |
-| Target and push further | 18 | 18 | 55 | 91 |
-| All | 35 | 18 | 55 | 108 |
+| Target and push further | 19 | 17 | 55 | 91 |
+| All | 36 | 17 | 55 | 108 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -463,7 +463,7 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | `DASH-001` | Real-time dashboard | target | missing |  | No real-time view. |
 | `DASH-002` | Historical time series in the site's time zone | target | partial | `src/vane/reports.ts`; `src/vane/views/report.ts`; `tests/vane.test.mjs` | A custom date range is tested, and reports use the site's local dates; no chart, granularities, preset ranges or data table. |
 | `DASH-003` | Page, entry and exit reports | target | done | `src/vane/visits.ts`; `src/vane/reports.ts`; `src/vane/routes.ts`; `src/vane/views/report.ts`; `tests/vane.test.mjs` |  |
-| `DASH-004` | Channels, referrers and UTM campaigns | target | partial | `src/vane/paths.ts`; `src/vane/collect.ts`; `tests/vane.test.mjs` | Sources (utm_source, ref or source, else the referring hostname) and campaigns are reported without an allowlist, and every UTM field and the paid-click flag are stored (`COLLECT-002`); no channel definitions, referrer URLs, reports for the other UTM fields, or per-row visitors, bounce rate, duration and conversion rate. |
+| `DASH-004` | Channels, referrers and UTM campaigns | target | done | `src/vane/channels.ts`; `src/vane/collect.ts`; `src/vane/visits.ts`; `tests/vane.test.mjs` |  |
 | `DASH-005` | Country, region and city | target | missing |  | No location dimensions. |
 | `DASH-006` | Devices, browsers and operating systems | target | done | `src/vane/devices.ts`; `src/vane/collect.ts`; `src/vane/tracker.ts`; `src/vane/reports.ts`; `src/vane/views/report.ts`; `migrations/core/0021_vane_devices.sql`; `tests/vane.test.mjs` |  |
 | `DASH-007` | Filters, segments and saved views | target | missing |  | Only a date range filter; no dimension filters, segments or saved views. |

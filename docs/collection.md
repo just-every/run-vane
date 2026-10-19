@@ -10,6 +10,8 @@ Every page of the site is collected unless you list paths to include (then only 
 
 Query strings are dropped except the five UTM fields, `ref`, `source` and the parameters you choose to keep; a kept value that looks like an email address, a phone or account number or a web address is dropped. `gclid`, `fbclid` and `msclkid` only mark a paid click. A visit's source is its `utm_source`, else its `ref` or `source` parameter, else the referring hostname; no referrer becomes `direct`. Campaigns come from `utm_campaign`.
 
+Each page load also gets a channel (Direct, Organic Search, Paid Search, Organic Social, Paid Social, Email, Referral, AI Assistants, Affiliates or Display) from its source, `utm_medium` and paid-click flag; the methodology page lists the rules and source lists. A referring page is kept as its hostname and path, without its query; webmail referrers are grouped as `webmail` and their addresses are never kept. The report's channel, source, referring-page and UTM tables count each visit under its first page load.
+
 ## Consent and browser signals
 
 Choose **Consent required** or **Consent not required** in collection settings. For consent-required sites, load the script only after consent and set `window.vaneConsent = true` before it runs.
