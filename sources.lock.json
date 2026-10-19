@@ -226,6 +226,10 @@
       "sha256": "2b33e50ffaa4f49638730bd7a62f2705ae3efb5df4f92c6f50a9954ffc793678",
       "executable": false
     },
+    "migrations/core/0024_vane_open_paths.sql": {
+      "sha256": "7bdc915aa3fa6b52272bc26424ca49ccd853a6b9564a7b2a45d34f7a8b129222",
+      "executable": false
+    },
     "ONBOARDING.md": {
       "sha256": "b28a79254e2278d81d877ffd5987972aaf135d85683ae285b52fd98cc44e608e",
       "executable": false
@@ -2440,6 +2444,10 @@
     },
     "src/vane/movein/types.ts": {
       "sha256": "f7dbe76461ee00523f3505e56587930fafa2dd709061c294a96e654d9e3b8f2a",
+      "executable": false
+    },
+    "src/vane/paths.ts": {
+      "sha256": "38a22d1899879be42c198b6c5c83e3f67d482d668961e7f4a449586d770d97da",
       "executable": false
     },
     "src/vane/privacy-signals.ts": {
