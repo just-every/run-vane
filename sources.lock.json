@@ -126,10 +126,6 @@
       "sha256": "15fed383573381d9914e00635847df4f48c5e9b014108d4aaf2484624b0d20b0",
       "executable": false
     },
-    "docs/matomo-import.md": {
-      "sha256": "9cac00f1da1e8b29eb9baff420d93ce6ce1f8254f84d66b7014d27a56d37561b",
-      "executable": false
-    },
     "docs/umami-import.md": {
       "sha256": "d29dd33139a02b9b20460f29213521f8552bcc4a795c6cde3cd76615386114d9",
       "executable": false
@@ -635,7 +631,7 @@
       "executable": false
     },
     "README.md": {
-      "sha256": "66798a7f76d0779574d7dc42e91b2d5e57e3d8feb424655bd91d1e85dd07d488",
+      "sha256": "d4caf9a38c3fb87042aace44c612372824bc70c19687a3ceb1e1ebdfb082cc0f",
       "executable": false
     },
     "rer-project.json": {
