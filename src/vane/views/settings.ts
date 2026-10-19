@@ -4,6 +4,7 @@ import type { ViewData } from './types'
 import { copyableScript } from './script-copy'
 import { stance } from '../privacy-signals'
 import { inventory } from '../inventory'
+import { RETENTION_CHOICES, retentionChoice } from '../retention'
 
 function select(label: string, name: string, value: number, options: number[]): string {
   return `<label>${escape(label)}<select name="${escape(name)}" aria-label="${escape(label)}" required>${options.map(option => `<option value="${option}"${option === value ? ' selected' : ''}>${option}</option>`).join('')}</select></label>`
@@ -22,7 +23,7 @@ export function configForm(site?: any): string {
     <div class="vane-form-grid">
     ${textarea('Goals', 'goals', goals, 'One goal per line: signup=/thanks records a visit to that path, and a pattern matches every allowed path it covers (* within one path segment, as in /thanks/*, and ** across them, as in /blog/**); deep-read=/journal@75 records reaching 75% of the scroll depth. No extra event script is needed.')}</div>
     <div class="vane-collection-options"><label>Consent<select name="consent" aria-label="Consent"><option value="required"${config.consent !== 'not-required' ? ' selected' : ''}>Consent required</option><option value="not-required"${config.consent === 'not-required' ? ' selected' : ''}>Consent not required</option></select></label>
-    ${select('Sample rate (%)', 'sampleRate', config.sampleRate ?? 100, [10, 25, 50, 100])}${select('Retention (days)', 'retentionDays', config.retentionDays ?? 90, [30, 90, 365])}</div>
+    ${select('Sample rate (%)', 'sampleRate', config.sampleRate ?? 100, [10, 25, 50, 100])}<label>Retention<select name="retention" aria-label="Retention" aria-describedby="retention-help" required>${Object.entries(RETENTION_CHOICES).map(([value, title]) => `<option value="${value}"${value === retentionChoice(config) ? ' selected' : ''}>${escape(title)}</option>`).join('')}</select><span class="vane-help" id="retention-help">Raw events are kept at full detail for this long; applying retention erases only older ones.</span></label></div>
     <div class="vane-form-grid">${field('Time zone', 'timeZone', config.timeZone ?? 'UTC', `required maxlength="64" placeholder="America/New_York"${site ? '' : ' data-browser-zone'}`)}${field('Site-search query parameter', 'searchParam', config.searchParam ?? '', 'maxlength="20" placeholder="q" aria-describedby="search-param-help"')}</div><p class="vane-help" id="search-param-help">Optional. When named, the script sends that parameter’s search term with the page load; terms that look like an email address or phone number are dropped, and a term is reported only once two different visitors have searched it.</p>
     <p class="vane-help">Reports use this zone's dates, and the visitor salt rotates at its midnight.</p>
     <label class="vane-check"><input type="checkbox" name="signalCounter" value="on"${config.signalCounter ? ' checked' : ''}> Count privacy signals: browsers sending Global Privacy Control or Do Not Track are never collected; with this on, each such page load adds one field-free count.</label>

@@ -7,6 +7,7 @@ import { deletionFence } from './deletion-fence'
 import { verifyInstallation } from './install-check'
 import { clock } from './clock'
 import { importSite } from './transfer'
+import { retentionCutoff } from './retention'
 export async function action(env:Env,actor:Actor,p:any):Promise<{siteId?:string;notice:string;section?:string}> {
  let siteId=p.siteId;
  switch(p.operation) {
@@ -21,7 +22,8 @@ export async function action(env:Env,actor:Actor,p:any):Promise<{siteId?:string;
   case 'import.undo': {const result=await undo(env,actor,{siteId,jobId:p.jobId});return {siteId,notice:result.complete?'Import undone. The journal remains.':'Undo is in progress. Repeat to finish.',section:'history'};}
   case 'install.verify': {const result=await verifyInstallation(env,actor,siteId);return {siteId,notice:result.message,section:'settings'};}
   case 'history.retention': {
-   role(actor);const value=await site(env,siteId),at=clock(),cutoff=day(at-value.config.retentionDays*86400000);
+   role(actor);const value=await site(env,siteId),at=clock(),cutoff=retentionCutoff(value.config,day(at));
+   if(cutoff===null)return {siteId,notice:'This site keeps its events for as long as the installation exists, so retention erased nothing.',section:'history'};
    const result=await expireBefore(env,actor,siteId,cutoff,[...await deletionFence(env),{sql:'DELETE FROM vane_events WHERE site_id=? AND day<?',params:[siteId,cutoff]},{sql:'DELETE FROM vane_signals WHERE site_id=? AND day<?',params:[siteId,cutoff]},{sql:'DELETE FROM vane_exclusions WHERE site_id=? AND day<?',params:[siteId,cutoff]},{sql:'DELETE FROM vane_auto_events WHERE site_id=? AND day<?',params:[siteId,cutoff]},auditSql(actor.id,'history.retention',siteId,`before ${cutoff}`),{sql:'INSERT OR IGNORE INTO vane_deletions(id,site_id,before_day,at,actor,reason) VALUES(?,?,?,?,?,?)',params:['retention:'+siteId+':'+cutoff,siteId,cutoff,at,actor.id,'retention']}]);
    return {siteId,notice:result.complete?'Retention applied. Older events are erased and the deletion journal is recorded.':`${result.remaining} imported events remain to expire. Apply retention again to continue.`,section:'history'};
   }

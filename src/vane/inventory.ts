@@ -1,4 +1,5 @@
 import type { Site } from './core'
+import { retentionPhrase } from './retention'
 // PRIVACY-001: what a site collects, derives and discards, its identifiers, salt, retention and processors,
 // built from the site's settings, and the privacy-policy text generated from the same inventory. Every
 // stored column is listed under the table that holds it, so the stored data can be checked against it.
@@ -26,7 +27,7 @@ export function inventory(site:Site) {
  const discarded=['IP address and user agent: used once for the visitor hash and device classes, then discarded','viewport width: turned into the screen-size class','query strings other than kept parameters, URL fragments and page titles: never stored','click-ID values (gclid, fbclid, msclkid): only the paid-click flag is kept']
  const identifiers=['Default mode: no cookie and no browser storage; the server’s visitor hash changes every day.','Consented mode: not offered by this release, so no identifier is stored on any device.']
  const salt=`A random salt per site and day, rotated at midnight in ${c.timeZone??'UTC'} and deleted within 24 hours.`
- const retention=`${c.retentionDays} days`
+ const retention=retentionPhrase(c)
  const processors=['Cloudflare (Workers and D1), which hosts this installation']
  return {fields,discarded,identifiers,salt,retention,processors,policyText:policyText(site,auto)}
 }
@@ -36,6 +37,6 @@ function policyText(site:Site,auto:string[]):string[] {
   `We use Vane, a privacy-focused analytics tool that runs on our own installation hosted by Cloudflare, to understand how ${site.name} is used. It sets no cookies and stores nothing on your device, and it does not track you across sites or across days.`,
   `When you load a page, Vane records the page address without its query string, the referring site, campaign tags, a paid-click flag, your device, browser and operating system types, your screen-size class and how far you scroll. Your IP address and browser identification are used only to compute a daily visitor count and are not stored.${c.searchParam?' Search terms you enter on our site are recorded, except ones that look like an email address or phone number.':''}${auto.length?` Vane also records ${auto.map(kind=>({outbound:'links you follow to other sites',download:'files you download','404':'pages that were not found',form:'which forms you submit (never what you type)'} as Record<string,string>)[kind]).join(', ')}.`:''}`,
   c.consent==='required'?`Vane only records your visit after you give consent.${c.declinedCounter?' If you do not, it only counts that a page load went without consent, with nothing else about it.':''}`:'Vane records visits without asking for consent because it collects no personal data and sets no cookies.',
-  `Browsers that send Global Privacy Control or Do Not Track are not tracked${c.signalCounter?'; we only count how many such page loads arrive':''}. Analytics data is kept for ${c.retentionDays} days and is never sold or shared for advertising.`,
+  `Browsers that send Global Privacy Control or Do Not Track are not tracked${c.signalCounter?'; we only count how many such page loads arrive':''}. Analytics data is kept for ${retentionPhrase(c)} and is never sold or shared for advertising.`,
  ]
 }

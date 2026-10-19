@@ -12,4 +12,5 @@ export interface ViewData {
   importCarry?: string
   section?: string
   audit?: any[]
+  store?: { bytes: number; limit: number; share: number; warn: boolean }
 }

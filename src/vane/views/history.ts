@@ -1,5 +1,6 @@
 import { count, escape, hidden, operation, panel } from './html'
 import type { ViewData } from './types'
+import { storePanel } from './store'
 
 /** The route supplies these reviewed values with its sanitized importCarry. */
 export interface ImportPreview {
@@ -39,7 +40,7 @@ export function globalHistoryPage(data: ViewData): string {
     ? panel('Restore an installation archive', '<p>Restoring requires an installation with no sites. Export your current history before using a fresh installation to restore an archive.</p>')
     : panel('Restore an installation archive', `<p>Restore a whole-installation analytics export into this empty installation. Existing erasure fences prevent older archives from bringing erased history back. Include a later journal if erasures happened after the archive was made, so a fresh store also preserves those erasures.</p><form method="post" action="/app/action" enctype="multipart/form-data">${operation('history.restore')}<label>Installation archive<input type="file" name="archive" required></label><label>Later journal (optional)<input type="file" name="journal"></label><button type="submit">Restore archive</button></form>`)
   const transfer = panel('Transfer a site in', `<p>Add one site with its settings and history from a site archive downloaded on another Vane installation. The site keeps its ID, so its script tag keeps working once it points here.</p><form method="post" action="/app/action" enctype="multipart/form-data">${operation('site.import')}<label>Site archive<input type="file" name="archive" required></label><button type="submit">Transfer site</button></form>`)
-  return exportPanel() + transfer + restore
+  return exportPanel() + storePanel(data) + transfer + restore
 }
 
 export function historyPage(data: ViewData): string {
@@ -49,5 +50,5 @@ export function historyPage(data: ViewData): string {
   const retention = owner ? panel('Apply retention', `<p>Remove analytics older than the configured retention periods. If imported rows remain beyond those periods, repeat Apply retention until they have all been processed.</p><form method="post" action="/app/action">${operation('history.retention', data.site.id)}<button type="submit">Apply retention</button></form>`) : ''
   const erase = owner ? panel('Erase this site’s history', `<p>Erasure removes analytics for ${escape(data.site.name)}. It records an erasure fence so an older archive cannot resurrect that history. Prepare the request here, then review and approve it in Approvals.</p><form method="post" action="/app/action">${operation('history.erase.prepare', data.site.id)}<button type="submit" class="vane-danger">Prepare history erasure</button></form>`) : ''
   const transfer = owner ? panel('Transfer or delete this site', `<p>Download ${escape(data.site.name)} with its settings and history to transfer it to another Vane installation. Imported rows travel as settled history; their import journal stays in the installation archive.</p><a class="vane-button vane-secondary" href="/api/vane/export?siteId=${encodeURIComponent(data.site.id)}" download>Download site archive</a><p>Deleting the site removes it with all of its history. Prepare the request here; the owner reviews and approves it in Approvals.</p><form method="post" action="/app/action">${operation('site.delete.prepare', data.site.id)}<button type="submit" class="vane-danger">Prepare site deletion</button></form>`) : ''
-  return (owner ? exportPanel() : '') + imported + preview(data) + journals(data) + retention + erase + transfer
+  return (owner ? exportPanel() : '') + imported + preview(data) + journals(data) + retention + storePanel(data) + erase + transfer
 }

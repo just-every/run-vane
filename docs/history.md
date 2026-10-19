@@ -37,7 +37,9 @@ These installation archives also carry access-control records, suspend local dev
 
 ## Retention and erasure
 
-Choose 30, 90 or 365 days in collection settings. **Apply retention** erases older events. Retention runs manually; repeat until imported rows are processed.
+Choose 30, 90 or 365 days, 13 or 25 months, or as long as the installation exists in collection settings. **Apply retention** erases events older than the window and nothing on a keep-forever site. Retention runs manually and erases one imported row per run; repeat until imported rows are processed.
+
+The History page shows how full the store is against its capacity, D1's 10,240 MB database limit on Workers Paid (set `VANE_STORE_LIMIT_MB` to 500 on Workers Free). From 80% every app page warns and names the choices: a shorter retention window, or a scheduled warehouse export once that ships. Vane never drops or rolls up events to make room.
 
 For a site's full history, select **Prepare history erasure**, then review and approve the permanent deletion as owner. Deletion retires affected import custody and records a deletion fence.
 

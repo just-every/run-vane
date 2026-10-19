@@ -742,3 +742,37 @@ test('DASH-008 the last 30 days compared with the previous period, the same peri
   for(const table of tables){assert.ok(table.includes('<th scope="col" class="vane-number">Change</th>'),table.slice(0,120));assert.equal((table.match(/<tr><th scope="row">/g)??[]).length,(table.match(/data-change="/g)??[]).length,table.slice(0,120))}
  }
 })
+test('RETENTION-002 a keep-forever site keeps 30 months of imported history and today\'s events, 25 months erases only older events with one journal entry, and a store past 80% of its capacity warns with both choices and drops nothing',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}}
+ await a.clock(Date.parse('2026-10-19T12:00:00Z'));const id=await a.addSite({retention:'forever'})
+ const bytesOf=async(app,cookie)=>Number((await (await app.request('/app?section=history',{headers:{cookie}})).text()).match(/data-store-bytes="(\d+)"/)[1]),fresh=await bytesOf(a,a.owner)
+ const months=Array.from({length:30},(_,i)=>new Date(Date.UTC(2024,3+i,15,10)).toISOString()),history=structuredClone(fixture)
+ history.data=months.map((createdAt,i)=>({...structuredClone(fixture.data[0]),id:`synthetic-month-${i}`,sessionId:`synthetic-month-session-${i}`,createdAt}));history.count=history.pageSize=30
+ // The import applies in batches; the same reviewed document is applied again until it is complete.
+ const {preview}=await movein(a,id,history);for(let n=0;n<5;n++){const r=await (await a.post('/api/vane/import-apply',{siteId:id,document:preview.carry,fingerprint:preview.fingerprint},a.owner)).json();if(r.complete)break}
+ assert.equal((await a.collect(a.event(id))).status,202)
+ const pageviews=async(from,to)=>(await (await a.request(`/api/vane/summary?siteId=${id}&from=${from}&to=${to}`,owner)).json()).pageviews
+ // Apply retention erases one imported event per run, so the owner repeats it until none remain.
+ const retain=async()=>{for(let n=0;n<10;n++){const r=await a.form({operation:'history.retention',siteId:id},a.owner);assert.equal(r.status,303);const notice=new URL(r.headers.get('location'),a.origin).searchParams.get('notice');if(!/remain to expire/.test(notice))return notice}throw new Error('retention did not finish')}
+ assert.match(await retain(),/erased nothing/)
+ let tables=(await a.archive()).payload.tables
+ assert.deepEqual([tables.vane_import_events.length,tables.vane_events.length,tables.vane_deletions.length],[30,1,0],'every imported and live event remains')
+ assert.deepEqual([await pageviews('2024-04-15','2024-04-16'),await pageviews('2024-04-15','2026-10-20')],[1,31],'the oldest imported day still returns its event')
+ assert.equal((await (await a.request('/api/vane/inventory?siteId='+id,owner)).json()).retention,'as long as this installation exists')
+ assert.match(await (await a.request(`/app/sites/${id}?section=settings`,owner)).text(),/<option value="forever" selected>As long as this installation exists<\/option>/)
+ // 25 months before 19 October 2026 is 19 September 2024: the six monthly rows before it go, the other 24 and today's event stay.
+ const input={siteId:id,name:'Fern Studio',origin:'https://fern.example',paths:['/','/thanks'],goals:{signup:'/thanks'},consent:'not-required',sampleRate:100,retention:'25m'}
+ const changed=await (await a.post('/api/vane/commands',{command:'site.configure',input},a.owner)).json();assert.equal((await a.form({operation:'proposal.approve',id:changed.id},a.owner)).status,303)
+ assert.match(await retain(),/Retention applied/)
+ tables=(await a.archive()).payload.tables
+ assert.deepEqual([tables.vane_import_events.length,tables.vane_events.length,tables.vane_deletions.map(d=>d.before_day)],[24,1,['2024-09-19']])
+ assert.deepEqual([await pageviews('2024-04-15','2024-09-19'),await pageviews('2024-09-19','2026-10-20')],[0,25])
+ // A fixture store whose published capacity puts a fresh installation 5% under the 80% warning.
+ const b=await installation({vars:{VANE_STORE_LIMIT_MB:String(fresh*1.05/0.8/1048576)}});t.after(()=>b.close())
+ await b.clock(Date.parse('2026-10-19T12:00:00Z'));const small=await b.addSite(),warning=async path=>(await (await b.request(path,{headers:{cookie:b.owner}})).text()).match(/<div class="vane-error" role="alert" data-store-share="[^"]*">([^<]*)<\/div>/)?.[1]
+ assert.equal(await warning('/app'),undefined,'below 80% no page warns')
+ let sent=0;while(!await warning('/app')){for(let n=0;n<25;n++,sent++)assert.equal((await b.collect(b.event(small))).status,202);assert.ok(sent<5000,'the store reaches 80%')}
+ for(const path of ['/app',`/app/sites/${small}?section=report`,`/app/sites/${small}?section=history`]){const text=await warning(path);assert.match(text,/a scheduled warehouse export of older events/,path);assert.match(text,/a shorter retention window/,path)}
+ for(let n=0;n<5;n++,sent++)assert.equal((await b.collect(b.event(small))).status,202,'nothing is turned away at 80%')
+ assert.equal((await (await b.request(`/api/vane/summary?siteId=${small}&period=today`,{headers:{cookie:b.owner}})).json()).pageviews,sent,'every event is kept')
+})

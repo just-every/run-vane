@@ -39,6 +39,8 @@ export interface Bindings {
  MAIL_FROM?: string
  MAIL_API_KEY?: string
  MAIL_ACCOUNT_ID?: string
+ /** Vane's published store capacity in MB (RETENTION-002); unset means D1's 10,240 MB limit on Workers Paid. */
+ VANE_STORE_LIMIT_MB?: string
 }
 
 export const runtimeBindings = (env: Bindings): Bindings => env.RER_DEV_ORIGIN && env.AUTH_LOCAL === 'true' ? { ...env, AUTH_ORIGIN: env.RER_DEV_ORIGIN } : env

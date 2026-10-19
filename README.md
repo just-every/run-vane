@@ -110,7 +110,7 @@ archives outside source control. `rer reset --yes` destroys local state; export
 before using it.
 
 The owner can **Prepare history erasure**, then approve the permanent deletion.
-**Apply retention** erases events older than the configured 30, 90 or 365 days.
+**Apply retention** erases events older than the configured window: 30, 90 or 365 days, 13 or 25 months, or never on a keep-forever site.
 Retention is manual in this release. Repeat until imported rows are processed.
 Deletion retires affected import custody and records a deletion fence.
 

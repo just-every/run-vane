@@ -6,12 +6,12 @@ import { randomBytes } from 'node:crypto'
 import assert from 'node:assert/strict'
 const require=createRequire(import.meta.url),{unstable_splitSqlQuery:split}=require('wrangler')
 const origin='http://127.0.0.1:8787'
-export async function installation({setup=true}={}) {
+export async function installation({setup=true,vars:extra={}}={}) {
  const root=resolve('dist/server'),config=JSON.parse(await readFile(join(root,'wrangler.json'),'utf8'))
  const paths=await readdir(root,{recursive:true})
  const entry=join(root,config.main)
  const modules=[entry,...paths.filter(p=>p.endsWith('.js')&&join(root,p)!==entry).map(p=>join(root,p))].map(path=>({type:'ESModule',path}))
- const vars={AUTH_LOCAL:'true',AUTH_ORIGIN:origin,OWNER_EMAIL:'owner@example.test',SESSION_SECRET:randomBytes(32).toString('hex'),SETUP_TOKEN:randomBytes(32).toString('hex'),RER_DEV_KEY:randomBytes(32).toString('hex'),MAIL_PROVIDER:'resend',MAIL_API_KEY:'test-only-network-edge',MAIL_FROM:'auth@localhost.test'}
+ const vars={AUTH_LOCAL:'true',AUTH_ORIGIN:origin,OWNER_EMAIL:'owner@example.test',SESSION_SECRET:randomBytes(32).toString('hex'),SETUP_TOKEN:randomBytes(32).toString('hex'),RER_DEV_KEY:randomBytes(32).toString('hex'),MAIL_PROVIDER:'resend',MAIL_API_KEY:'test-only-network-edge',MAIL_FROM:'auth@localhost.test',...extra}
  const sentMail=[],egress=[],fixtureSites={}
  // Every outbound request from the Worker is recorded; only the fake mail edge and fixture websites answer.
  const mailEdge=async request=>{egress.push(request.url);const site=fixtureSites[new URL(request.url).origin];if(site)return site(request);if(new URL(request.url).hostname!=='api.resend.com')throw new Error('Unexpected test egress');sentMail.push(await request.json());return Response.json({id:crypto.randomUUID()})}
