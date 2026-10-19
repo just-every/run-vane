@@ -1,30 +1,48 @@
-import type { Env } from './core'
+import { insist, type Env } from './core'
 // METRIC-002: a visit is a run of one visitor hash's page loads with no gap over 30 minutes. The hash
 // rotates with the daily salt, so a visit also ends at the site's local midnight.
 // METRIC-003: a bounce is a visit of one page load with no engagement ping. A visit lasts from its first
 // page load to its last signal (page load or ping). Time on a page runs to the next page load of the
 // visit; on the visit's last page it runs to that page's last ping, or is 0 without one.
 // METRIC-006: a page's scroll depth is the deepest its pings reported; pages without a ping have none.
+// DASH-003: top, entry and exit pages each list a set of page loads (all of them, each visit's first,
+// each visit's last) by path or page group. A row's visits are the visits its page loads belong to:
+// bounce rate, visit duration and conversion rate (visits with a goal event) are over those visits.
 export const VISIT_GAP_MS=1800000
 export const ENGAGED_AFTER_MS=10000
-const timed=`WITH e AS (SELECT id,day,visitor,path,at,engaged_at,scroll,LAG(at) OVER w AS prev_at,LEAD(at) OVER w AS next_at FROM vane_events WHERE site_id=?1 AND day>=?2 AND day<?3 AND kind='pageview' AND visitor IS NOT NULL AND at IS NOT NULL WINDOW w AS (PARTITION BY day,visitor ORDER BY at,id)),
-p AS (SELECT *,CASE WHEN prev_at IS NULL OR at-prev_at>${VISIT_GAP_MS} THEN 1 ELSE 0 END AS starts,CASE WHEN next_at IS NOT NULL AND next_at-at<=${VISIT_GAP_MS} THEN next_at-at ELSE COALESCE(engaged_at-at,0) END AS on_page FROM e),
+const timed=`WITH e AS (SELECT l.id,l.day,l.visitor,l.path,l.at,l.engaged_at,l.scroll,EXISTS(SELECT 1 FROM vane_events c WHERE c.id>l.id||':' AND c.id<l.id||';') AS converted,LAG(l.at) OVER w AS prev_at,LEAD(l.at) OVER w AS next_at FROM vane_events l WHERE l.site_id=?1 AND l.day>=?2 AND l.day<?3 AND l.kind='pageview' AND l.visitor IS NOT NULL AND l.at IS NOT NULL WINDOW w AS (PARTITION BY l.day,l.visitor ORDER BY l.at,l.id)),
+p AS (SELECT *,CASE WHEN prev_at IS NULL OR at-prev_at>${VISIT_GAP_MS} THEN 1 ELSE 0 END AS starts,CASE WHEN next_at IS NULL OR next_at-at>${VISIT_GAP_MS} THEN 1 ELSE 0 END AS ends,CASE WHEN next_at IS NOT NULL AND next_at-at<=${VISIT_GAP_MS} THEN next_at-at ELSE COALESCE(engaged_at-at,0) END AS on_page FROM e),
 q AS (SELECT *,SUM(starts) OVER (PARTITION BY day,visitor ORDER BY at,id ROWS UNBOUNDED PRECEDING) AS visit FROM p),
-v AS (SELECT day,visitor,visit,COUNT(*) AS pages,MAX(engaged_at IS NOT NULL) AS engaged,MAX(CASE WHEN starts=1 THEN path END) AS entry,MAX(MAX(at,COALESCE(engaged_at,at)))-MIN(at) AS duration FROM q GROUP BY day,visitor,visit),
-vr AS (SELECT *,ROW_NUMBER() OVER (PARTITION BY entry ORDER BY duration) AS r,COUNT(*) OVER (PARTITION BY entry) AS c,ROW_NUMBER() OVER (ORDER BY duration) AS ra,COUNT(*) OVER () AS ca FROM v),
-pr AS (SELECT path,on_page,scroll,ROW_NUMBER() OVER (PARTITION BY path ORDER BY on_page) AS r,COUNT(*) OVER (PARTITION BY path) AS c FROM q)`
+v AS (SELECT day,visitor,visit,COUNT(*)=1 AND MAX(engaged_at IS NOT NULL)=0 AS bounce,MAX(converted) AS visit_converted,MAX(MAX(at,COALESCE(engaged_at,at)))-MIN(at) AS duration FROM q GROUP BY day,visitor,visit)`
 const middle=(r:string,c:string)=>`${r} IN ((${c}+1)/2,(${c}+2)/2)`
 const seconds=(ms:unknown)=>ms===null||ms===undefined?null:Math.round(Number(ms)/1000)
 const rate=(part:number,whole:number)=>whole?Math.round(part/whole*1000)/10:null
-export interface PageEngagement { path:string; pageviews:number; entries:number; bounceRate:number|null; medianDuration:number|null; averageDuration:number|null; medianTimeOnPage:number|null; averageTimeOnPage:number|null; averageScrollDepth:number|null; reached75Share:number|null }
-export async function visitMetrics(env:Env,siteId:string,from:string,to:string) {
- const [all,entries,pages]=await env.DB.batch<any>([
-  env.DB.prepare(`${timed} SELECT (SELECT COUNT(*) FROM v) AS visits,(SELECT COUNT(*) FROM q) AS pageviews,(SELECT COUNT(*) FROM v WHERE pages=1 AND engaged=0) AS bounces,(SELECT AVG(duration) FROM v) AS average,(SELECT AVG(duration) FROM vr WHERE ${middle('ra','ca')}) AS median`).bind(siteId,from,to),
-  env.DB.prepare(`${timed} SELECT entry AS path,COUNT(*) AS visits,SUM(pages=1 AND engaged=0) AS bounces,AVG(duration) AS average,AVG(CASE WHEN ${middle('r','c')} THEN duration END) AS median FROM vr GROUP BY entry`).bind(siteId,from,to),
-  env.DB.prepare(`${timed} SELECT path,COUNT(*) AS pageviews,AVG(on_page) AS average,AVG(CASE WHEN ${middle('r','c')} THEN on_page END) AS median,AVG(scroll) AS scroll,AVG(CASE WHEN scroll IS NULL THEN NULL WHEN scroll>=75 THEN 100.0 ELSE 0 END) AS deep FROM pr GROUP BY path ORDER BY pageviews DESC,path`).bind(siteId,from,to),
+export interface PageRow { path:string; visitors:number; pageviews:number; visits:number; bounceRate:number|null; conversionRate:number|null; medianDuration:number|null; averageDuration:number|null; medianTimeOnPage:number|null; averageTimeOnPage:number|null; averageScrollDepth:number|null; reached75Share:number|null }
+export interface PageGroup { pattern:string; label:string }
+// A group is an exact path or a prefix ending in *, optionally renamed: /blog/* or /blog/*=/articles.
+export function pageGroups(value:string|null|undefined):PageGroup[] {
+ const lines=String(value??'').split(/[\n,]/).map(x=>x.trim()).filter(Boolean);
+ insist(lines.length<=10,'group','Use at most 10 page groups.');
+ return lines.map(line=>{const [pattern,label=pattern]=line.split('=').map(x=>x.trim());insist(/^\/[a-z0-9_\-/]{0,119}\*?$/.test(pattern!)&&/^\/[a-z0-9_\-/*]{0,119}$/.test(label!),'group','Group pages by a path prefix such as /blog/*, optionally renamed: /blog/*=/articles.');return {pattern:pattern!,label:label!}});
+}
+const labelSql=(groups:PageGroup[])=>groups.length?`CASE ${groups.map((_,i)=>`WHEN ${groups[i]!.pattern.endsWith('*')?`substr(path,1,length(?${4+i*2}))=?${4+i*2}`:`path=?${4+i*2}`} THEN ?${5+i*2}`).join(' ')} ELSE path END`:'path'
+const groupValues=(groups:PageGroup[])=>groups.flatMap(g=>[g.pattern.endsWith('*')?g.pattern.slice(0,-1):g.pattern,g.label])
+function table(env:Env,args:string[],groups:PageGroup[],where:string) {
+ return env.DB.prepare(`${timed},
+x AS (SELECT ${labelSql(groups)} AS label,q.day,q.visitor,q.visit,q.on_page,q.scroll,v.bounce,v.visit_converted,v.duration FROM q JOIN v USING(day,visitor,visit) WHERE ${where}),
+xr AS (SELECT *,ROW_NUMBER() OVER (PARTITION BY label ORDER BY on_page) AS r,COUNT(*) OVER (PARTITION BY label) AS c FROM x),
+vd AS (SELECT DISTINCT label,day,visitor,visit,bounce,visit_converted,duration FROM x),
+vdr AS (SELECT *,ROW_NUMBER() OVER (PARTITION BY label ORDER BY duration) AS r,COUNT(*) OVER (PARTITION BY label) AS c FROM vd)
+SELECT a.*,b.visits,b.bounces,b.conversions,b.duration_average,b.duration_median FROM (SELECT label,COUNT(DISTINCT day||' '||visitor) AS visitors,COUNT(*) AS pageviews,AVG(on_page) AS time_average,AVG(CASE WHEN ${middle('r','c')} THEN on_page END) AS time_median,AVG(scroll) AS scroll,AVG(CASE WHEN scroll IS NULL THEN NULL WHEN scroll>=75 THEN 100.0 ELSE 0 END) AS deep FROM xr GROUP BY label) a
+JOIN (SELECT label,COUNT(*) AS visits,SUM(bounce) AS bounces,SUM(visit_converted) AS conversions,AVG(duration) AS duration_average,AVG(CASE WHEN ${middle('r','c')} THEN duration END) AS duration_median FROM vdr GROUP BY label) b USING(label) ORDER BY a.pageviews DESC,a.label`).bind(...args,...groupValues(groups))
+}
+const row=(r:any):PageRow=>({path:r.label,visitors:Number(r.visitors),pageviews:Number(r.pageviews),visits:Number(r.visits),bounceRate:rate(Number(r.bounces),Number(r.visits)),conversionRate:rate(Number(r.conversions),Number(r.visits)),medianDuration:seconds(r.duration_median),averageDuration:seconds(r.duration_average),medianTimeOnPage:seconds(r.time_median),averageTimeOnPage:seconds(r.time_average),averageScrollDepth:r.scroll===null?null:Math.round(Number(r.scroll)),reached75Share:r.deep===null?null:Math.round(Number(r.deep)*10)/10})
+export async function visitMetrics(env:Env,siteId:string,from:string,to:string,groups:PageGroup[]=[]) {
+ const args=[siteId,from,to]
+ const [all,top,entry,exit]=await env.DB.batch<any>([
+  env.DB.prepare(`${timed},vr AS (SELECT duration,ROW_NUMBER() OVER (ORDER BY duration) AS r,COUNT(*) OVER () AS c FROM v) SELECT (SELECT COUNT(*) FROM v) AS visits,(SELECT COUNT(*) FROM q) AS pageviews,(SELECT SUM(bounce) FROM v) AS bounces,(SELECT AVG(duration) FROM v) AS average,(SELECT AVG(duration) FROM vr WHERE ${middle('r','c')}) AS median`).bind(...args),
+  table(env,args,groups,'1'),table(env,args,groups,'q.starts=1'),table(env,args,groups,'q.ends=1'),
  ])
- const total=all.results[0],visits=Number(total.visits),pageviews=Number(total.pageviews)
- const entered=new Map(entries.results.map(row=>[row.path,row]))
- const perPage:PageEngagement[]=pages.results.map(row=>{const entry=entered.get(row.path),n=Number(entry?.visits??0);return {path:row.path,pageviews:Number(row.pageviews),entries:n,bounceRate:rate(Number(entry?.bounces??0),n),medianDuration:seconds(entry?.median),averageDuration:seconds(entry?.average),medianTimeOnPage:seconds(row.median),averageTimeOnPage:seconds(row.average),averageScrollDepth:row.scroll===null?null:Math.round(Number(row.scroll)),reached75Share:row.deep===null?null:Math.round(Number(row.deep)*10)/10}})
- return {visits,timedPageviews:pageviews,pagesPerVisit:visits?Math.round(pageviews/visits*100)/100:null,bounces:Number(total.bounces),bounceRate:rate(Number(total.bounces),visits),medianDuration:seconds(total.median),averageDuration:seconds(total.average),perPage}
+ const total=all.results[0],visits=Number(total.visits),pageviews=Number(total.pageviews),bounces=Number(total.bounces??0)
+ return {visits,timedPageviews:pageviews,pagesPerVisit:visits?Math.round(pageviews/visits*100)/100:null,bounces,bounceRate:rate(bounces,visits),medianDuration:seconds(total.median),averageDuration:seconds(total.average),topPages:top.results.map(row),entryPages:entry.results.map(row),exitPages:exit.results.map(row)}
 }

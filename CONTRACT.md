@@ -355,7 +355,7 @@ The approved homepage (17 Oct 2026, `HOME-001`) states 80 capabilities in its co
 | 21 | Visitors card: Seven-day line chart | `DASH-002` | partial |
 | 22 | Visitors chip: Salt rotated at midnight · yesterday's visitors can't be linked | `METRIC-001` | done |
 | 23 | Sources: "Sources" | `DASH-004`, `DASH-014` | partial |
-| 24 | Sources: "pages" | `DASH-003` | partial |
+| 24 | Sources: "pages" | `DASH-003` | done |
 | 25 | Sources: "campaigns" | `DASH-004` | partial |
 | 26 | Sources: "countries" | `DASH-005` | missing |
 | 27 | Sources: "devices and browsers" | `DASH-006` | missing |
@@ -420,8 +420,8 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 16 | 1 | 0 | 17 |
-| Target and push further | 10 | 21 | 60 | 91 |
-| All | 26 | 22 | 60 | 108 |
+| Target and push further | 11 | 20 | 60 | 91 |
+| All | 27 | 21 | 60 | 108 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -462,7 +462,7 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | `METRIC-006` | Scroll depth and time on page | target | done | `src/vane/tracker.ts`; `src/vane/collect.ts`; `src/vane/visits.ts`; `src/vane/privacy.ts`; `src/vane/views/report.ts`; `src/vane/methodology.ts`; `migrations/core/0020_vane_scroll.sql`; `tests/vane.test.mjs` |  |
 | `DASH-001` | Real-time dashboard | target | missing |  | No real-time view. |
 | `DASH-002` | Historical time series in the site's time zone | target | partial | `src/vane/reports.ts`; `src/vane/views/report.ts`; `tests/vane.test.mjs` | A custom date range is tested, and reports use the site's local dates; no chart, granularities, preset ranges or data table. |
-| `DASH-003` | Page, entry and exit reports | target | partial | `src/vane/reports.ts`; `src/vane/views/report.ts` | A pages breakdown by page-load count exists; no entry or exit pages, per-page metrics or grouping. |
+| `DASH-003` | Page, entry and exit reports | target | done | `src/vane/visits.ts`; `src/vane/reports.ts`; `src/vane/routes.ts`; `src/vane/views/report.ts`; `tests/vane.test.mjs` |  |
 | `DASH-004` | Channels, referrers and UTM campaigns | target | partial | `src/vane/tracker.ts`; `src/vane/collect.ts`; `tests/vane.test.mjs` | Referring hostnames from an allowlist and utm_campaign are reported; no channel definitions, other UTM fields, referrer URLs or per-row visitors, bounce rate and duration. |
 | `DASH-005` | Country, region and city | target | missing |  | No location dimensions. |
 | `DASH-006` | Devices, browsers and operating systems | target | missing |  | No device, browser or OS dimensions. |

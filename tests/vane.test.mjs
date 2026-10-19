@@ -320,9 +320,9 @@ test('METRIC-003 a quick bounce, a 45-second single-page visit and a three-page 
  await engage(single,50,400,{siteId:id,id:single,seconds:50});await engage(crypto.randomUUID(),50,404);await engage(single,1900,409)
  const r=await (await a.request(`/api/vane/summary?siteId=${id}&from=2026-03-04&to=2026-03-05`,owner)).json()
  assert.deepEqual([r.visits,r.pageviews,r.bounces,r.bounceRate,r.medianDuration,r.averageDuration],[3,5,1,33.3,45,55])
- assert.deepEqual(r.engagement,[{path:'/',pageviews:4,entries:3,bounceRate:33.3,medianDuration:45,averageDuration:55,medianTimeOnPage:30,averageTimeOnPage:26,averageScrollDepth:60,reached75Share:50},{path:'/thanks',pageviews:1,entries:0,bounceRate:null,medianDuration:null,averageDuration:null,medianTimeOnPage:60,averageTimeOnPage:60,averageScrollDepth:null,reached75Share:null}])
+ assert.deepEqual(r.topPages,[{path:'/',visitors:3,pageviews:4,visits:3,bounceRate:33.3,conversionRate:33.3,medianDuration:45,averageDuration:55,medianTimeOnPage:30,averageTimeOnPage:26,averageScrollDepth:60,reached75Share:50},{path:'/thanks',visitors:1,pageviews:1,visits:1,bounceRate:0,conversionRate:100,medianDuration:120,averageDuration:120,medianTimeOnPage:60,averageTimeOnPage:60,averageScrollDepth:null,reached75Share:null}])
  const page=await (await a.request(`/app/sites/${id}?section=report&from=2026-03-04&to=2026-03-05`,owner)).text()
- for(const html of ['<h2>Bounce rate</h2><p class="vane-metric">33.3%</p>','<h2>Visit duration</h2><p class="vane-metric">0m 45s</p><p class="vane-help">Median; average 0m 55s.','<th scope="row">/</th><td class="vane-number">4</td><td class="vane-number">3</td><td class="vane-number">33.3%</td><td class="vane-number">0m 45s / 0m 55s</td><td class="vane-number">0m 30s / 0m 26s</td>'])assert.ok(page.includes(html),html)
+ for(const html of ['<h2>Bounce rate</h2><p class="vane-metric">33.3%</p>','<h2>Visit duration</h2><p class="vane-metric">0m 45s</p><p class="vane-help">Median; average 0m 55s.','<th scope="row">/</th><td class="vane-number">3</td><td class="vane-number">4</td><td class="vane-number">3</td><td class="vane-number">33.3%</td><td class="vane-number">0m 45s / 0m 55s</td><td class="vane-number">0m 30s / 0m 26s</td>'])assert.ok(page.includes(html),html)
  // In a browser: a page hidden after 3 seconds sends nothing (a bounce); the next visit pings at 10 visible seconds and again when hidden.
  const oak=await a.addSite({origin:'https://oak.example'}),html=`<!doctype html><title>Oak</title><script src="${a.origin}/vane.js" data-site="${oak}"></script>`
  const {context}=await browse(t,a,{'https://oak.example/':html}),tab=await context.newPage(),pings=[]
@@ -358,10 +358,29 @@ test('METRIC-006 in a browser, visits scrolling a long page to 50% and to 100% g
  }
  for(const scroll of [101,-1,50.5,undefined])assert.equal((await a.post('/api/vane/engage',{siteId:id,id:loads[0],scroll},'',{origin:'https://fern.example'})).status,400,String(scroll))
  const r=await (await a.request(`/api/vane/summary?siteId=${id}&from=2026-03-06&to=2026-03-07`,owner)).json()
- assert.deepEqual([r.engagement[0].path,r.engagement[0].averageScrollDepth,r.engagement[0].reached75Share],['/',75,50])
+ assert.deepEqual([r.topPages[0].path,r.topPages[0].averageScrollDepth,r.topPages[0].reached75Share],['/',75,50])
  assert.deepEqual([r.goals,r.goalBreakdown.map(g=>[g.label,g.count])],[1,[['deep-read',1]]],'only the visit that reached 75% converts, once')
  const page=await (await a.request(`/app/sites/${id}?section=report&from=2026-03-06&to=2026-03-07`,owner)).text();assert.ok(page.includes('<td class="vane-number">75.0%</td><td class="vane-number">50.0%</td>'))
  assert.ok((await (await a.request(`/app/sites/${id}?section=settings`,owner)).text()).includes('deep-read=/@75'))
  const methodology=await (await a.request('/methodology')).text();for(const phrase of ['as a whole percentage from 0 to 100','the share of page loads reaching 75%','converts once per page load'])assert.ok(methodology.includes(phrase),phrase)
  await context.close()
+})
+test('DASH-003 seeded visits give top, entry and exit pages with visitors, pageviews, bounce rate, time on page and conversion rate, and grouping by /blog/* sums the posts',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({paths:['/','/pricing','/blog/a','/blog/b','/thanks']}),start=Date.parse('2026-03-09T10:00:00Z')
+ const visit=async(n,paths)=>{for(const [i,path] of paths.entries()){await a.clock(start+n*3600000+i*20000);assert.equal((await a.post('/api/vane/collect',a.event(id,{path}),'',{origin:'https://fern.example','cf-connecting-ip':'192.0.2.'+n,'user-agent':'Synthetic Browser '+n})).status,202)}}
+ await visit(1,['/','/blog/a','/thanks']);await visit(2,['/blog/a','/blog/b']);await visit(3,['/blog/b']);await visit(4,['/pricing','/'])
+ const summary=async(group='')=>(await a.request(`/api/vane/summary?siteId=${id}&from=2026-03-09&to=2026-03-10${group&&'&group='+encodeURIComponent(group)}`,owner)).json()
+ const pick=rows=>rows.map(r=>[r.path,r.visitors,r.pageviews,r.visits,r.bounceRate,r.conversionRate])
+ const r=await summary()
+ assert.deepEqual(pick(r.topPages),[['/',2,2,2,0,50],['/blog/a',2,2,2,0,50],['/blog/b',2,2,2,50,0],['/pricing',1,1,1,0,0],['/thanks',1,1,1,0,100]])
+ assert.deepEqual(pick(r.entryPages),[['/',1,1,1,0,100],['/blog/a',1,1,1,0,0],['/blog/b',1,1,1,100,0],['/pricing',1,1,1,0,0]])
+ assert.deepEqual(pick(r.exitPages),[['/blog/b',2,2,2,50,0],['/',1,1,1,0,0],['/thanks',1,1,1,0,100]])
+ assert.deepEqual([r.topPages[0].medianTimeOnPage,r.topPages[0].averageTimeOnPage,r.entryPages[0].medianDuration],[10,10,40],'time on / is 20 s then 0 s; the visit entering / lasts 40 s')
+ const g=await summary('/blog/*')
+ assert.deepEqual(pick(g.topPages),[['/blog/*',3,4,3,33.3,33.3],['/',2,2,2,0,50],['/pricing',1,1,1,0,0],['/thanks',1,1,1,0,100]])
+ assert.deepEqual(pick(g.entryPages)[0],['/blog/*',2,2,2,50,0]);assert.deepEqual(pick(g.exitPages)[0],['/blog/*',2,2,2,50,0])
+ assert.deepEqual(pick((await summary('/blog/*=/articles')).topPages)[0],['/articles',3,4,3,33.3,33.3],'a rewrite rule renames the group')
+ assert.equal((await a.request(`/api/vane/summary?siteId=${id}&group=blog`,owner)).status,400)
+ const page=await (await a.request(`/app/sites/${id}?section=report&from=2026-03-09&to=2026-03-10&group=%2Fblog%2F*`,owner)).text()
+ for(const html of ['<h2>Top pages</h2>','<h2>Entry pages</h2>','<h2>Exit pages</h2>','<th scope="row">/blog/*</th><td class="vane-number">3</td><td class="vane-number">4</td><td class="vane-number">3</td><td class="vane-number">33.3%</td>','name="group" value="/blog/*"'])assert.ok(page.includes(html),html)
 })
