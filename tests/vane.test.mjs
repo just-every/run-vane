@@ -1436,3 +1436,23 @@ test('API-001 a site-scoped Stats API key answers visitors by channel with a fil
  assert.ok((await a.dump()).vane_audit.some(e=>e.detail.includes('via key:Agency')))
  assert.equal((await provision('/api/v1/sites',{name:'Bad',origin:'not an origin'})).status,400)
 })
+test('API-002 every table of a filtered, compared report downloads as CSV with the dashboard\'s figures, for a site the person may open',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({paths:[],goals:{signup:'/thanks'}}),other=await a.addSite({name:'Oak Store',origin:'https://oak.example'})
+ const start=Date.parse('2026-03-10T10:00:00Z')
+ for(const [n,first,paths] of [[1,{referrer:'https://www.google.com/'},['/','/thanks']],[2,{campaign:'spring',utm:{source:'newsletter',medium:'email'}},['/pricing']],[3,{referrer:'https://www.google.com/'},['/','/pricing']]])for(const [i,path] of paths.entries()){await a.clock(start+n*600000+i*60000);assert.equal((await a.post('/api/vane/collect',a.event(id,{source:undefined,campaign:undefined,...(i?{}:first),path}),'',{origin:'https://fern.example','cf-connecting-ip':'203.0.113.'+n,'user-agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36'})).status,202)}
+ const query='from=2026-03-10&to=2026-03-11&compare=previous&filter=page:contains:pricing'
+ const dashboard=await (await a.request(`/api/vane/summary?siteId=${id}&${query}`,owner)).json()
+ const html=await (await a.request(`/app/sites/${id}?section=report&${query}`,owner)).text()
+ const links=[...html.matchAll(/href="([^"]+)" data-csv="(\w+)"/g)].map(m=>[m[2],m[1].replaceAll('&amp;','&')])
+ for(const table of ['channels','topPages','entryPages','sources','series'])assert.ok(links.some(([name])=>name===table),table)
+ const parse=text=>{const [head,...rows]=text.trim().split('\r\n');const columns=head.split(',');return rows.map(r=>Object.fromEntries(r.split(',').map((v,i)=>[columns[i],v])))}
+ for(const [table,href] of links) {
+  const r=await a.request(href,owner);assert.equal(r.status,200,table);assert.match(r.headers.get('content-type'),/^text\/csv/);assert.match(r.headers.get('content-disposition'),new RegExp(`attachment; filename="vane-${id}-${table}-2026-03-10-2026-03-11.csv"`))
+  const rows=parse(await r.text());assert.equal(rows.length,dashboard[table].length,table)
+  for(const [i,row] of rows.entries())for(const [column,value] of Object.entries(row))if(['number','string'].includes(typeof dashboard[table][i][column])&&!/[",\r\n]/.test(String(dashboard[table][i][column])))assert.equal(value,String(dashboard[table][i][column]).replace(/^([=+\-@])/,"'$1"),`${table}.${column}`)
+ }
+ const channels=parse(await (await a.request(links.find(([name])=>name==='channels')[1],owner)).text());assert.deepEqual(Object.fromEntries(channels.filter(r=>r.visits!=='0').map(r=>[r.label,r.visits])),{'Organic Search':'1',Email:'1'})
+ // A viewer of another site gets 403, and a table the report does not have 404.
+ assert.equal((await a.form({operation:'team.invite',email:'viewer@example.test',role:'viewer',scope:'chosen',[`site_${other}`]:'on'},a.owner)).status,303);const viewer=await a.accept('viewer@example.test')
+ assert.equal((await a.request(links[0][1],{headers:{cookie:viewer}})).status,403);assert.equal((await a.request(`/api/vane/csv?siteId=${id}&table=nope`,owner)).status,404)
+})

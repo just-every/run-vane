@@ -2,6 +2,7 @@ import { operatorAuth, runtimeBindings, type Bindings } from '../auth.server'
 import { everySite, inScope, insist, role, rows, site, sites, VaneError, type Actor } from './core'
 import { invite, regrant, remove, team, teamActor, transferOwnership } from './team'
 import { apiKeys, createKey, revokeKey } from './api-keys'
+import { csvTables, toCsv } from './csv'
 import { createInsightsService } from './reports'
 import { prepare } from './commands'
 import { preview, journal, MoveinError } from './movein/index'
@@ -59,6 +60,8 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
    if(path==='/api/vane/sites')return json((await sites(env)).filter(s=>open(s.id)));
    if(path==='/api/vane/summary'&&url.searchParams.has('rollupId'))return json(await rollupReport(env,await scopedRollup(url.searchParams.get('rollupId')!),range,url.searchParams.get('split')==='site'));
    if(path==='/api/vane/summary')return json(await createInsightsService(env,await site(env,url.searchParams.get('siteId')??''),clock(),range).list());
+   // API-002: one report table as CSV, with the dashboard's range, comparison, filters and segment.
+   if(path==='/api/vane/csv'){const value=await site(env,url.searchParams.get('siteId')??''),report=await createInsightsService(env,value,clock(),range).list() as Record<string,any>,table=url.searchParams.get('table')??'';insist(csvTables(report).includes(table),'table','Choose one of the report’s tables.',404);return new Response(toCsv(report[table]),{headers:{...headers,'content-type':'text/csv; charset=utf-8','content-disposition':`attachment; filename="vane-${value.id}-${table}-${report.from}-${report.to}.csv"`}})}
    if(path==='/api/vane/realtime')return json(await realtime(env,await site(env,url.searchParams.get('siteId')??''),clock()));
    if(path==='/api/vane/inventory')return json(inventory(await site(env,url.searchParams.get('siteId')??'')));
    if(path==='/api/vane/audit'){everySite(actor);return json(await auditLog(env,actor));}

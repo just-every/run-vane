@@ -420,8 +420,8 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 17 | 0 | 0 | 17 |
-| Target and push further | 46 | 7 | 38 | 91 |
-| All | 63 | 7 | 38 | 108 |
+| Target and push further | 46 | 8 | 37 | 91 |
+| All | 63 | 8 | 37 | 108 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -509,7 +509,7 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | `TEAM-002` | Single sign-on and two-step sign-in | target | missing |  | No working SSO or second-step sign-in in Vane; the vendored Base OIDC module is not mounted. |
 | `AGENCY-001` | Agency client workspaces and branded reports | target | missing |  | No client workspaces or branded reports. |
 | `API-001` | Stats API | target | done | `src/vane/api-door.ts`; `src/vane/api-keys.ts`; `src/vane/stats-api.ts`; `src/vane/provisioning.ts`; `src/vane/views/api-keys.ts`; `migrations/core/0038_vane_api_keys.sql`; `tests/vane.test.mjs` |  |
-| `API-002` | CSV, Looker Studio and warehouse export | target | missing |  | Only the whole-history JSON archive (ARCHIVE-001) exists; no CSV, Looker Studio connector or warehouse export. |
+| `API-002` | CSV, Looker Studio and warehouse export | target | partial | `src/vane/csv.ts`; `src/vane/routes.ts`; `src/vane/views/report.ts`; `tests/vane.test.mjs` | Every non-empty report table downloads as CSV with the dashboard's range, comparison, filters and segment (`GET /api/vane/csv`); no Plausible-layout site ZIP, Looker Studio connector or scheduled warehouse export. |
 | `API-003` | Webhooks for goals, alerts and reports | target | missing |  | No webhooks. |
 | `API-004` | MCP endpoint for assistants | target | missing |  | No MCP endpoint. |
 | `PRIVACY-001` | Data inventory and privacy-policy text | target | done | `src/vane/inventory.ts`; `src/vane/views/settings.ts`; `tests/vane.test.mjs` |  |
