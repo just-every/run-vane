@@ -31,7 +31,8 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
   const imports=selected&&actor!.role==='owner'?await rows(env,'SELECT j.id,j.state,(SELECT COUNT(*) FROM ik_provenance p WHERE p.job_id=j.id) AS count FROM ik_jobs j JOIN vane_import_approvals a ON a.job_id=j.id WHERE a.site_id=? ORDER BY a.approved_at DESC',selected.id):[];
   const all=await sites(env),list=!selected&&!extra.rollup&&!extra.error&&(url.searchParams.get('section')??'report')==='report'?await overview(env,all,clock(),{period:url.searchParams.get('period'),sort:url.searchParams.get('sort'),q:url.searchParams.get('q')}):undefined;
   const live=selected&&url.searchParams.get('section')==='realtime';
-  return renderApp({actor:actor as ViewData['actor'],origin:env.AUTH_ORIGIN,store:await storeUse(env),sites:all,overview:list,rollups:await rollups(env),site:selected,live:live?await realtime(env,selected,clock()):undefined,report:selected&&!live?await createInsightsService(env,selected,clock(),range).list():undefined,proposals,imports,audit,section:url.searchParams.get('section')??undefined,notice:url.searchParams.get('notice')??undefined,...extra});
+  const settings=selected&&(extra.section??url.searchParams.get('section'))==='settings',hook=settings?(await rows<{created_at:number}>(env,'SELECT created_at FROM vane_annotation_hooks WHERE site_id=?',selected.id))[0]??null:undefined,github=settings?(await rows<{created_at:number}>(env,'SELECT created_at FROM vane_github_keys WHERE site_id=?',selected.id))[0]??null:undefined;
+  return renderApp({actor:actor as ViewData['actor'],origin:env.AUTH_ORIGIN,store:await storeUse(env),sites:all,overview:list,rollups:await rollups(env),site:selected,hook,github,live:live?await realtime(env,selected,clock()):undefined,report:selected&&!live?await createInsightsService(env,selected,clock(),range).list():undefined,proposals,imports,audit,section:url.searchParams.get('section')??undefined,notice:url.searchParams.get('notice')??undefined,...extra});
  }
  try {
   const session=await operatorAuth(env).getSession(request);
@@ -72,6 +73,8 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
     }
     if(p.operation==='rollup.create')return redirect('/app/rollups/'+encodeURIComponent(await createRollup(env,actor,p))+'?'+new URLSearchParams({notice:'Roll-up created.'}));
     const result=await action(env,actor,p),query=new URLSearchParams({notice:result.notice,...(result.section?{section:result.section}:{})});
+    // DASH-009: a new annotation secret is rendered once in this response, never put in a redirect URL.
+    if(result.secret)return view(result.siteId,{section:result.section,notice:result.notice,secret:result.secret});
     return redirect((result.siteId?'/app/sites/'+encodeURIComponent(result.siteId):'/app')+'?'+query);
    }
   }

@@ -28,8 +28,9 @@ export function versioned(before:Config|null,next:Config,today:string,at:number)
 // The visit timeout in milliseconds for a page-load row aliased `row` (it has site_id and day): the latest version
 // dated on or before the row's local day, else the default.
 export const gapSql=(row:string)=>`(COALESCE((SELECT json_extract(d.value,'$.minutes') FROM vane_sites s,json_each(s.config_json,'$.definitions') d WHERE s.id=${row}.site_id AND json_extract(d.value,'$.metric')='visit-timeout' AND json_extract(d.value,'$.from')<=${row}.day ORDER BY json_extract(d.value,'$.from') DESC,CAST(d.key AS INTEGER) DESC LIMIT 1),${DEFAULT_VISIT_TIMEOUT})*60000)`
-export interface Annotation { day:string; version:number; text:string; site?:string }
+// DASH-009: a dated chart annotation; kind is one of ANNOTATION_KINDS (annotations.ts).
+export interface Annotation { day:string; kind:string; text:string; site?:string; version?:number; id?:string; url?:string; author?:string }
 // DASH-009's definition annotations: every version dated inside the range, named by site in a roll-up.
 export function definitionAnnotations(sites:{name:string,config:Config}[],from:string,to:string,named:boolean):Annotation[] {
- return sites.flatMap(site=>(site.config.definitions??[]).map((v,i)=>({v,version:i+2,site}))).filter(({v})=>v.from>=from&&v.from<to).map(({v,version,site})=>({day:v.from,version,text:`Visit definition v${version}: a visit ends after ${v.minutes} minutes without a page load (was ${v.previous}).`,...(named?{site:site.name}:{})})).sort((a,b)=>a.day.localeCompare(b.day)||a.version-b.version)
+ return sites.flatMap(site=>(site.config.definitions??[]).map((v,i)=>({v,version:i+2,site}))).filter(({v})=>v.from>=from&&v.from<to).map(({v,version,site})=>({day:v.from,kind:'definition',version,text:`Visit definition v${version}: a visit ends after ${v.minutes} minutes without a page load (was ${v.previous}).`,...(named?{site:site.name}:{})})).sort((a,b)=>a.day.localeCompare(b.day)||a.version-b.version)
 }

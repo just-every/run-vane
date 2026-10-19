@@ -7,7 +7,8 @@ import { filtered, hostFilter } from './hosts'
 import { comparisonRange, COMPARISONS, intervalOf, PERIODS, presetRange, type Comparison, type Period } from './periods'
 import { METRICS, timeSeries, type Metric } from './series'
 import { journeys, type JourneyMode } from './journeys'
-import { definitionAnnotations, visitTimeout } from './definitions'
+import { visitTimeout } from './definitions'
+import { annotationsFor } from './annotations'
 import { movers, variation, type Explanation } from './explain'
 const columns='id,site_id,day,kind,path,source,campaign,consent,sample_rate,import_job'
 // Adapted from Mango insights/service.ts 7f27217b8ce03aeac9cf4eb3fa0c8eb7ebc28d3f:
@@ -54,8 +55,8 @@ export function createInsightsService(env:Env,value:Site,now=clock(),range?:{fro
    // DASH-008: each journey row carries its visits in the compared period.
    const key=(row:{steps:string[]})=>row.steps.join('\u0000');return {...now,previousVisits:then.visits,next:withPrevious(now.next.map(r=>({...r,key:key(r)})),then.next.map(r=>({...r,key:key(r)})),['key'],'visits'),previous:withPrevious(now.previous.map(r=>({...r,key:key(r)})),then.previous.map(r=>({...r,key:key(r)})),['key'],'visits'),nextSteps:withPrevious(now.nextSteps,then.nextSteps,['step'],'reached'),previousSteps:withPrevious(now.previousSteps,then.previousSteps,['step'],'reached')}};
   const [journey_,series,previousSeries,visitors,previousVisitors,pageviews,goals,previousPageviews,previousGoals,current,before,sources,campaigns,pages,goalCounts,converting,signals,coverage,exclusions,deletions]=await Promise.all([journey(),timeSeries(env,scope,from,to,interval,timeZone,eventSet,ev),timeSeries(env,scope,previousFrom,previousTo,interval,timeZone,eventSet,ev),uniques(from,to),uniques(previousFrom,previousTo),count(from,to,true),count(from,to,false),count(previousFrom,previousTo,true),count(previousFrom,previousTo,false),tables(from,to),tables(previousFrom,previousTo),group(sourceName),group('campaign'),group('path'),group('kind',true),converters(from,to),rows(env,'SELECT COALESCE(SUM(count),0) AS n FROM vane_signals WHERE site_id IN (SELECT value FROM json_each(?)) AND day>=? AND day<?',scope,from,to),rows(env,`SELECT COUNT(*) AS imported,SUM(CASE WHEN sample_rate IS NULL OR consent='unknown' THEN 1 ELSE 0 END) AS unknownCoverage FROM ${eventSet} WHERE site_id IN (SELECT value FROM json_each(?)) AND day>=? AND day<? AND import_job IS NOT NULL`,scope,from,to),rows<{reason:string,count:number}>(env,'SELECT reason,SUM(count) AS count FROM vane_exclusions WHERE site_id IN (SELECT value FROM json_each(?)) AND day>=? AND day<? GROUP BY reason ORDER BY reason',scope,from,to),rows<{reason:string,beforeDay:string,at:number}>(env,'SELECT reason,before_day AS beforeDay,at FROM vane_deletions WHERE site_id IN (SELECT value FROM json_each(?)) AND before_day>? ORDER BY at',scope,from)]);
-  // METRIC-004: definition versions dated inside the range annotate the charts they affect (DASH-009).
-  const scoped=await rows<{name:string,config_json:string}>(env,'SELECT name,config_json FROM vane_sites WHERE id IN (SELECT value FROM json_each(?)) ORDER BY created_at',scope),annotations=definitionAnnotations(scoped.map(s=>({name:s.name,config:JSON.parse(s.config_json)})),from,to,Boolean(members)),timeout=members?null:visitTimeout(value.config);
+  // DASH-009 (with METRIC-004's definition versions): the annotations dated inside the range, for the charts they affect.
+  const scoped=await rows<{id:string,name:string,config_json:string}>(env,'SELECT id,name,config_json FROM vane_sites WHERE id IN (SELECT value FROM json_each(?)) ORDER BY created_at',scope),annotations=await annotationsFor(env,scoped.map(s=>({id:s.id,name:s.name,config:JSON.parse(s.config_json)})),from,to,Boolean(members)),timeout=members?null:visitTimeout(value.config);
   // REPORT-003: the largest movers with their totals, the range's annotations, coverage that changed, and each day's
   // place against the day-of-week baseline (ranges up to 31 days; the baseline needs the 8 weeks before the range).
   const [daily,firstDay,previousSignals,previousExclusions,previousCoverage]=await Promise.all([

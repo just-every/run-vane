@@ -7,6 +7,8 @@ import { autoEventResponse } from './vane/auto-events'
 import { expireSalts } from './vane/visitors'
 import { clock, clockResponse } from './vane/clock'
 import { vaneResponse } from './vane/routes'
+import { annotationDoor } from './vane/annotation-door'
+import { githubReleaseDoor } from './vane/github-releases'
 import { rejectedResponse } from './base/rejected-response'
 import start from '@tanstack/react-start/server-entry'
 import { Hono } from 'hono'
@@ -40,6 +42,10 @@ export default withDemo({
     if (automatic) return automatic
     const collected = await collector(request, env)
     if (collected) return collected
+    const annotated = await annotationDoor(request, runtimeBindings(env))
+    if (annotated) return annotated
+    const released = await githubReleaseDoor(request, runtimeBindings(env))
+    if (released) return released
     const methodology = await methodologyResponse(request)
     if (methodology) return methodology
     const stats = await publicStatsResponse(request, runtimeBindings(env))

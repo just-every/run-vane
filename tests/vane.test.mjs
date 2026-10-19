@@ -965,3 +965,43 @@ test('CONV-004 conversions from Google and from email give every channel, source
  for(const [label,cells] of [['Email','<td class="vane-number">1</td><td class="vane-number">50.0%</td>'],['Organic Search','<td class="vane-number">1</td><td class="vane-number">33.3%</td>'],['mobile','<td class="vane-number">1</td><td class="vane-number">0</td><td class="vane-number">0.0%</td>']])assert.ok(row(label).includes(cells),label)
  assert.ok(html.includes('<th scope="col" class="vane-number">Conversions</th><th scope="col" class="vane-number">Conversion rate</th>'))
 })
+test('DASH-009 a member\'s note, an approved settings change, a deploy webhook, an Uptime incident and a signed GitHub release appear on the chart on their days and in the explanation, with owner-only secrets and author-or-owner note deletion',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}},member=await a.invite('member@example.test','member'),admin=await a.invite('admin@example.test','admin'),id=await a.addSite()
+ const today=new Date().toISOString().slice(0,10),earlier=new Date(Date.now()-2*86400000).toISOString().slice(0,10)
+ // A member adds a note; markup and over-long notes are refused.
+ assert.equal((await a.form({operation:'annotation.add',siteId:id,day:today,text:'Pricing page redesign shipped'},member)).status,303)
+ for(const text of ['<b>bold</b>','x'.repeat(281)])assert.equal((await a.form({operation:'annotation.add',siteId:id,day:today,text},member)).status,400)
+ // The owner approves a settings change that also makes a public stats page.
+ const p=await (await a.post('/api/vane/commands',{command:'site.configure',input:{siteId:id,name:'Fern Studio',origin:'https://fern.example',paths:['/','/thanks'],goals:{signup:'/thanks'},consent:'not-required',publicReports:['totals']}},a.owner)).json();assert.equal((await a.form({operation:'proposal.approve',id:p.id},a.owner)).status,303)
+ // Only the owner creates the webhook secret; it is shown once and kept only as its SHA-256.
+ assert.equal((await a.form({operation:'annotation-hook.create',siteId:id},admin)).status,403)
+ const created=await a.form({operation:'annotation-hook.create',siteId:id},a.owner);assert.equal(created.status,200);const secret=(await created.text()).match(/data-annotation-secret>(vane_ah_[0-9a-f]{64})</)[1]
+ assert.ok(!(await (await a.request(`/app/sites/${id}?section=settings`,owner)).text()).includes(secret),'shown once');assert.ok(!JSON.stringify(await a.dump()).includes(secret),'only the hash is kept')
+ const hook=(body,token=secret)=>a.request('/api/vane/annotations',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+token},body:JSON.stringify({siteId:id,...body})})
+ assert.equal((await hook({id:'deploy-42',kind:'deploy',at:earlier+'T12:00:00Z',title:'Deploy 42',url:'https://ci.example/runs/42?token=abc#log'})).status,201)
+ assert.equal((await hook({id:'deploy-42',kind:'deploy',at:earlier+'T12:00:00Z',title:'Deploy 42'})).status,200,'a repeat is idempotent')
+ assert.equal((await hook({id:'incident-7',kind:'incident',at:Date.now(),title:'Checkout down for 4 minutes'})).status,201)
+ assert.equal((await hook({id:'x',kind:'deploy',at:Date.now(),title:'Forged'},'vane_ah_'+'0'.repeat(64))).status,401)
+ assert.equal((await hook({id:'y',kind:'party',at:Date.now(),title:'Unknown kind'})).status,400)
+ // A GitHub release, signed with the site's separate GitHub key (kept encrypted, never in plain text).
+ assert.equal((await a.form({operation:'annotation-github.create',siteId:id},admin)).status,403)
+ const ghKey=(await (await a.form({operation:'annotation-github.create',siteId:id},a.owner)).text()).match(/data-annotation-secret>(vane_gh_[0-9a-f]{64})</)[1];assert.ok(!JSON.stringify(await a.dump()).includes(ghKey))
+ const {createHmac}=await import('node:crypto'),github=(event,payload,key=ghKey)=>{const body=JSON.stringify(payload);return a.request('/api/vane/annotations/github/'+id,{method:'POST',headers:{'content-type':'application/json','x-github-event':event,'x-github-delivery':crypto.randomUUID(),'x-hub-signature-256':'sha256='+createHmac('sha256',key).update(body).digest('hex')},body})}
+ const release={action:'published',release:{id:901,tag_name:'v2.1.0',name:'v2.1.0',html_url:'https://git.example/fern/site/releases/tag/v2.1.0',published_at:earlier+'T15:00:00Z'}}
+ assert.equal((await github('ping',{zen:'hi'})).status,200);assert.equal((await github('release',release)).status,201);assert.equal((await github('release',release)).status,200,'a redelivery is idempotent')
+ assert.equal((await github('release',release,'vane_gh_'+'1'.repeat(64))).status,401);assert.equal((await github('push',{ref:'main'})).status,400)
+ const html=await (await a.request(`/app/sites/${id}?section=report`,owner)).text()
+ for(const [day,kind,text] of [[earlier,'release','Release v2.1.0'],[today,'note','Pricing page redesign shipped'],[today,'settings','Settings approved (version 1 to 2).'],[earlier,'deploy','Deploy 42'],[today,'incident','Checkout down for 4 minutes']])assert.ok(html.includes(`<li data-annotation-day="${day}" data-annotation-kind="${kind}"><time datetime="${day}">${day}</time> ${text}`),kind)
+ assert.ok(html.includes(`data-annotation="${earlier}"`)&&html.includes(`data-annotation="${today}"`)&&html.includes('https://ci.example/runs/42</a>')&&!html.includes('token=abc'))
+ const summary=await (await a.request(`/api/vane/summary?siteId=${id}`,owner)).json();assert.deepEqual(summary.explain.annotations.map(n=>n.kind).sort(),['deploy','incident','note','release','settings'])
+ assert.match(await (await a.request('/app',owner)).text(),/annotated buckets">(<line class="vane-chart-annotation"[^>]*data-annotation-bucket="\d"\/>){2}<polyline/,'the overview sparkline marks both annotated days')
+ assert.ok(!(await (await a.request('/stats/'+id)).text()).includes('Pricing page redesign'),'notes are never public')
+ // At most 60 integration annotations an hour.
+ for(let i=0;i<57;i++)assert.equal((await hook({id:'bulk-'+i,kind:'deploy',at:Date.now(),title:'Deploy '+i})).status,201)
+ assert.equal((await hook({id:'bulk-57',kind:'deploy',at:Date.now(),title:'One too many'})).status,429)
+ // Only the author or the owner deletes a note.
+ const noteId=summary.annotations.find(n=>n.kind==='note').id
+ assert.equal((await a.form({operation:'annotation.delete',siteId:id,id:noteId},admin)).status,403);assert.equal((await a.form({operation:'annotation.delete',siteId:id,id:noteId},member)).status,303)
+ assert.equal((await a.form({operation:'annotation-hook.revoke',siteId:id},a.owner)).status,303);assert.equal((await hook({id:'after',kind:'deploy',at:Date.now(),title:'After revoke'})).status,401)
+ const audit=JSON.stringify(await (await a.request('/api/vane/audit',owner)).json());for(const action of ['annotation.add','annotation.delete','annotation-hook.create','annotation-hook.revoke','annotation-github.create'])assert.ok(audit.includes(action),action)
+})

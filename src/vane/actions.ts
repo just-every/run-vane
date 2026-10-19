@@ -8,7 +8,10 @@ import { verifyInstallation } from './install-check'
 import { clock } from './clock'
 import { importSite } from './transfer'
 import { retentionCutoff } from './retention'
-export async function action(env:Env,actor:Actor,p:any):Promise<{siteId?:string;notice:string;section?:string}> {
+import { addNote, deleteNote } from './annotations'
+import { createHook, revokeHook } from './annotation-door'
+import { createGithubKey, revokeGithubKey } from './github-releases'
+export async function action(env:Env,actor:Actor,p:any):Promise<{siteId?:string;notice:string;section?:string;secret?:string}> {
  let siteId=p.siteId;
  switch(p.operation) {
   case 'site.prepare': await prepare(env,actor,'site.create',p,'app');return {notice:'Site prepared. Review and approve its settings.',section:'approvals'};
@@ -27,6 +30,13 @@ export async function action(env:Env,actor:Actor,p:any):Promise<{siteId?:string;
    const result=await expireBefore(env,actor,siteId,cutoff,[...await deletionFence(env),{sql:'DELETE FROM vane_events WHERE site_id=? AND day<?',params:[siteId,cutoff]},{sql:'DELETE FROM vane_signals WHERE site_id=? AND day<?',params:[siteId,cutoff]},{sql:'DELETE FROM vane_exclusions WHERE site_id=? AND day<?',params:[siteId,cutoff]},{sql:'DELETE FROM vane_auto_events WHERE site_id=? AND day<?',params:[siteId,cutoff]},auditSql(actor.id,'history.retention',siteId,`before ${cutoff}`),{sql:'INSERT OR IGNORE INTO vane_deletions(id,site_id,before_day,at,actor,reason) VALUES(?,?,?,?,?,?)',params:['retention:'+siteId+':'+cutoff,siteId,cutoff,at,actor.id,'retention']}]);
    return {siteId,notice:result.complete?'Retention applied. Older events are erased and the deletion journal is recorded.':`${result.remaining} imported events remain to expire. Apply retention again to continue.`,section:'history'};
   }
+  // DASH-009: notes, and the owner's annotation webhook secret (returned once, to be shown once).
+  case 'annotation.add': return {siteId:await addNote(env,actor,p),notice:'Note added to the charts.'};
+  case 'annotation.delete': return {siteId:await deleteNote(env,actor,String(p.id)),notice:'Note deleted.'};
+  case 'annotation-hook.create': return {siteId,notice:'Annotation webhook secret created. Copy it now: it is not shown again.',section:'settings',secret:await createHook(env,actor,siteId)};
+  case 'annotation-github.create': return {siteId,notice:'GitHub release key created. Copy it into the GitHub webhook now: it is not shown again.',section:'settings',secret:await createGithubKey(env,actor,siteId)};
+  case 'annotation-github.revoke': await revokeGithubKey(env,actor,siteId);return {siteId,notice:'GitHub release key revoked.',section:'settings'};
+  case 'annotation-hook.revoke': await revokeHook(env,actor,siteId);return {siteId,notice:'Annotation webhook secret revoked.',section:'settings'};
   default:throw new Error('Unknown action.');
  }
 }

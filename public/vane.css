@@ -177,3 +177,4 @@
 .vane-site-stats { font-size: 14px; color: var(--rer-muted); }
 .vane-chart-annotation { stroke: var(--rer-accent); stroke-width: 1.5; stroke-dasharray: 2 3; }
 .vane-annotations { margin: 8px 0; padding-left: 20px; font-size: 14px; }
+.vane-inline-form { display: inline; margin-left: 8px; }

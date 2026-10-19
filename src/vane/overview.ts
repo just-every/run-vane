@@ -1,5 +1,6 @@
 import { insist, rows, type Env, type Site } from './core'
-import { comparisonRange, intervalOf, PERIODS, presetRange, type Period } from './periods'
+import { bucketKey, comparisonRange, intervalOf, PERIODS, presetRange, type Period } from './periods'
+import { annotationsFor } from './annotations'
 import { timeSeries } from './series'
 // DASH-010: the sites list shows each site's unique visitors for a preset range in the site's own time zone, the change
 // from the previous period of the same length, and a sparkline of the chart's buckets for that range. It sorts by name,
@@ -14,8 +15,10 @@ export async function overview(env:Env,list:Site[],now:number,query:{period?:str
  const rowsOf=await Promise.all(shown.map(async site=>{
   const timeZone=site.config.timeZone??'UTC',earliest=period==='all'?(await rows<{d:string|null}>(env,'SELECT MIN(day) AS d FROM (SELECT day FROM vane_events WHERE site_id=?1 UNION ALL SELECT day FROM vane_import_events WHERE site_id=?1)',site.id))[0]?.d??null:null
   const {from,to}=presetRange(period,now,timeZone,earliest),before=comparisonRange('previous',from,to,false,{from:null,to:null}),scope=JSON.stringify([site.id])
-  const [visitors,previous,series]=await Promise.all([uniques(site.id,from,to),uniques(site.id,before.from,before.to),timeSeries(env,scope,from,to,intervalOf(null,from,to),timeZone,'vane_events','vane_events')])
-  return {site,from,to,visitors,previous,sparkline:series.map(b=>b.visitors)}
+  const interval=intervalOf(null,from,to),[visitors,previous,series,notes]=await Promise.all([uniques(site.id,from,to),uniques(site.id,before.from,before.to),timeSeries(env,scope,from,to,interval,timeZone,'vane_events','vane_events'),annotationsFor(env,[site],from,to,false)])
+  // DASH-009: the sparkline (visitors) marks the bucket of each annotation in range; definition versions do not affect visitors.
+  const marks=[...new Set(notes.filter(n=>n.kind!=='definition').map(n=>series.findIndex(b=>b.key===bucketKey(interval,n.day,from,timeZone))).filter(i=>i>=0))]
+  return {site,from,to,visitors,previous,sparkline:series.map(b=>b.visitors),marks}
  }))
  const order:Record<string,(a:any,b:any)=>number>={added:()=>0,name:(a,b)=>a.site.name.localeCompare(b.site.name),visitors:(a,b)=>b.visitors-a.visitors,change:(a,b)=>(b.visitors-b.previous)-(a.visitors-a.previous)}
  return {period,sort,q,rows:[...rowsOf].sort(order[sort])}
