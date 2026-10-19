@@ -13,6 +13,8 @@ import { followAction, followHistory, followItems, followPeople, policyOf, saveP
 import { addClosedDay, addWindow, closedDays, deleteClosedDay, deleteWindow, siteWindows } from './alert-baseline'
 import { createInsightsService } from './reports'
 import { prepare } from './commands'
+import { readMatomo } from './movein/matomo-reader'
+import { prepareImportedGoal } from './movein/aggregate-reports'
 import { preview, journal, MoveinError } from './movein/index'
 import { apply, auditLog, exportHistory, restoreHistory, undo } from './audit'
 import { renderApp, type ViewData } from './views/index'
@@ -89,7 +91,7 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
    const p=await input(request);
    for(const id of [p.siteId,p.input?.siteId])if(id!==undefined&&id!=='')inScope(actor,String(id));
    if(path==='/api/vane/commands')return json(await prepare(env,actor,p.command,p.input??{},'command API'),201);
-   if(path==='/api/vane/import-preview')return json(await preview(env,actor,{siteId:p.siteId,document:p.document}));
+   if(path==='/api/vane/import-preview')return json(await preview(env,actor,{siteId:p.siteId,document:p.matomo?await readMatomo(env,actor,{siteId:p.siteId,...p.matomo}):p.document}));
    if(path==='/api/vane/import-apply')return json(await apply(env,actor,{siteId:p.siteId,document:p.document,fingerprint:p.fingerprint}));
    if(path==='/api/vane/import-undo')return json(await undo(env,actor,{siteId:p.siteId,jobId:p.jobId}));
    if(path==='/api/vane/install-check')return json(await verifyInstallation(env,actor,p.siteId));
@@ -102,9 +104,10 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
     // Approval has a deliberately separate human form surface. The command API
     // can prepare and inspect; it cannot apply pending configuration or erasure.
     if(p.operation?.startsWith('proposal.'))insist(request.headers.get('content-type')?.includes('application/x-www-form-urlencoded'),'approval','Review and approve the proposal using its form.');
-    if(p.operation==='import.preview') {
-     const result=await preview(env,actor,{siteId:p.siteId,document:p.document});
-     return view(p.siteId,{section:'history',importPreview:{fingerprint:result.fingerprint,count:result.normalized.length,warnings:['Visitor identifiers, titles and raw URLs were discarded before custody. Historical consent and sampling are unknown.'],rows:result.normalized.map(e=>({date:e.day,path:e.path,visits:e.kind==='pageview'?1:0,source:e.source,campaign:e.campaign,goal:e.kind==='pageview'?'':e.kind}))},importCarry:JSON.stringify(result.carry)});
+    if(p.operation==='import.goal.prepare'){await prepareImportedGoal(env,actor,p);return redirect('/app?section=approvals&notice=Goal+prepared+for+approval.')}
+    if(p.operation==='import.preview'||p.operation==='import.matomo.preview'||p.operation==='import.matomo.csv.preview') {
+     const result=await preview(env,actor,{siteId:p.siteId,document:p.operation==='import.matomo.preview'?await readMatomo(env,actor,p):p.operation==='import.matomo.csv.preview'?{format:'vane-matomo-reports/1',day:p.day,currency:p.currency,reports:{[String(p.report)]:p.document}}:p.document});
+     return view(p.siteId,{section:'history',importPreview:{fingerprint:result.fingerprint,count:result.normalized.length+result.aggregates.length,aggregates:result.aggregates,warnings:['Visitor identifiers, titles and raw URLs were discarded before custody. Historical consent and sampling are unknown.'],rows:result.normalized.map(e=>({date:e.day,path:e.path,visits:e.kind==='pageview'?1:0,source:e.source,campaign:e.campaign,goal:e.kind==='pageview'?'':e.kind}))},importCarry:JSON.stringify(result.carry)});
     }
     // DASH-007: a saved segment reopens the report with it applied.
     if(p.operation==='segment.save'){const saved=await saveSegment(env,actor,p);return redirect(`/app/sites/${encodeURIComponent(saved.siteId)}?${new URLSearchParams({section:'report',segment:saved.id,notice:'Segment saved for the team.'})}`)}

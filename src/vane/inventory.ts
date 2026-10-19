@@ -11,6 +11,7 @@ export interface Field { name:string; table:string; columns:string[]; descriptio
 export function inventory(site:Site) {
  const c=site.config,auto=c.autoEvents??[],page='vane_events'
  const fields:Field[]=[
+  {name:'Imported source reports',table:'vane_import_reports',columns:['id','site_id','import_job','day','provider','report','dimensions_json','metrics_json','definitions_json'],description:'Sanitized Matomo aggregate reports: local source date, report method, dimension labels, numeric measures and source goal definitions. No visitor logs, IP addresses, user agents or API tokens; coverage remains unknown. Each source report stays separate from native event totals.'},
   {name:'Page load',table:page,columns:['id','site_id','day','kind','at'],description:'A random page-load ID, the site, the local day and time, and whether it is a page load or a goal reached on it.'},
   {name:'Page',table:page,columns:['hostname','path'],description:'The page’s hostname and path, with emails, UUIDs, long numbers and tokens replaced and the site’s rewrite rules applied. No query string or page title.'},
   {name:'Source and campaign',table:page,columns:['source','campaign','utm_source','utm_medium','utm_term','utm_content','channel','referrer','paid_click'],description:'The visit’s source and channel, the UTM fields, the referring page without its query, and a paid-click flag; click-ID values are never kept.'},

@@ -2,6 +2,8 @@ import { canonicalJson, sha256 } from '../../modules/import-kit/src/provenance/i
 import type { SourceBundle, ImportMapping, Json } from '../../modules/import-kit/src/types.ts';
 import type { DiscardedCounts, ImportSite, SafeEvent, SitePolicy } from './types.ts';
 import { MoveinError } from './types.ts';
+import { aggregateSource } from './aggregates'
+import type { AggregateRecord } from './aggregate-types'
 import { goalApplies } from '../goals';
 import { hostOf, keptValue, pathAllowed, storedPath, visitSource } from '../paths';
 import { mappingVersion, namespace } from './policy.ts';
@@ -15,6 +17,7 @@ const present = (value: unknown) => value !== undefined && value !== null && val
 const text = (value: unknown) => typeof value === 'string' ? value : '';
 
 export function normalize(document: unknown, site: ImportSite, policy: SitePolicy) {
+  const aggregate=aggregateSource(document,site,policy); if(aggregate)return aggregate;
   let input: any = document;
   if (isSimpleCsv(document)) { if (new TextEncoder().encode(document as string).length > 2_000_000) throw new MoveinError('DOCUMENT_TOO_LARGE'); const page = simpleEvents(document as string, site, policy); return normalizedSource(page.events, page.discarded, site); }
   if (isUmamiCsv(document)) { if (new TextEncoder().encode(document as string).length > 2_000_000) throw new MoveinError('DOCUMENT_TOO_LARGE'); const page = umamiCsvEvents(document as string, site, policy); return normalizedSource(page.events, page.discarded, site); }
@@ -83,6 +86,10 @@ function normalizedSource(events: SafeEvent[], discarded: DiscardedCounts, site:
 export const mapping: ImportMapping = {
   version: mappingVersion,
   map(record) {
+    if(record.kind==='aggregate') {
+      const r=record.payload as unknown as AggregateRecord;
+      return {effects:[{targetKind:'analytics-aggregate',targetId:r.id,value:{day:r.day,provider:r.provider,report:r.report,dimensions_json:canonicalJson(r.dimensions),metrics_json:canonicalJson(r.metrics),definitions_json:canonicalJson(r.definitions)}}]};
+    }
     const event = record.payload as unknown as SafeEvent;
     const { id, ...value } = event;
     return { effects: [{ targetKind: 'analytics-event', targetId: id, value }] };

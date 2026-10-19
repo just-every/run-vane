@@ -5,7 +5,7 @@ import { audit, auditStatement } from './audit'
 // It carries the site's own events, privacy-signal and exclusion counts, automatic events, deletion journal and
 // imported rows, chart annotations and saved segments. Daily salts never leave an installation, and an import's journal and undo stay
 // with the source installation's whole archive (ARCHIVE-001), so imported rows arrive settled.
-const TABLES=['vane_events','vane_signals','vane_exclusions','vane_auto_events','vane_deletions','vane_import_events','vane_annotations','vane_segments','vane_custom_events','vane_event_props','vane_ecommerce_lines','vane_exposures'] as const
+const TABLES=['vane_events','vane_signals','vane_exclusions','vane_auto_events','vane_deletions','vane_import_events','vane_import_reports','vane_annotations','vane_segments','vane_custom_events','vane_event_props','vane_ecommerce_lines','vane_exposures'] as const
 interface Payload { format:'vane-site/1'; exportedAt:number; site:Record<string,any>; tables:Record<string,Record<string,any>[]> }
 interface SiteArchive { payload:Payload; sha256:string }
 
@@ -14,7 +14,7 @@ export async function exportSite(env:Env,actor:Actor,siteId:string):Promise<Site
  role(actor);
  const value=(await rows(env,'SELECT * FROM vane_sites WHERE id=?',siteId))[0];insist(value,'site_missing','Site not found.',404);
  // One batch gives a consistent snapshot of the site's rows.
- const result=await env.DB.batch<Record<string,any>>([...TABLES.map(name=>statement(env,`SELECT * FROM "${name}" WHERE site_id=?`,siteId)),statement(env,'SELECT r.* FROM vane_import_revisions r JOIN vane_import_events e ON e.id=r.event_id WHERE e.site_id=?',siteId)]);
+ const result=await env.DB.batch<Record<string,any>>([...TABLES.map(name=>statement(env,`SELECT * FROM "${name}" WHERE site_id=?`,siteId)),statement(env,'SELECT r.* FROM vane_import_revisions r JOIN (SELECT id,site_id FROM vane_import_events UNION ALL SELECT id,site_id FROM vane_import_reports) e ON e.id=r.event_id WHERE e.site_id=?',siteId)]);
  const payload:Payload={format:'vane-site/1',exportedAt:Date.now(),site:value,tables:{...Object.fromEntries(TABLES.map((name,i)=>[name,result[i].results])),vane_import_revisions:result[TABLES.length].results}};
  const archive={payload,sha256:await digest(JSON.stringify(payload))};
  await audit(env,actor.id,'site.export',siteId,`archive ${archive.sha256}`);
@@ -30,7 +30,7 @@ export async function importSite(env:Env,actor:Actor,input:any) {
  insist((await rows(env,'SELECT 1 FROM vane_sites WHERE id=? OR origin=?',id,value.origin)).length===0,'site_exists','This installation already has this site or its origin. Delete it first to replace it.',409);
  // A site deleted or erased here after the archive was made never comes back from it.
  insist((await rows(env,'SELECT 1 FROM vane_deletions WHERE site_id=? AND at>=?',id,Number(exportedAt))).length===0,'erased_history','This archive predates a deletion of this site here. Transfer a newer archive.',409);
- const events=new Set((tables.vane_import_events??[]).map(row=>row.id)),inserts:D1PreparedStatement[]=[statement(env,'INSERT INTO vane_guard(value) SELECT CASE WHEN NOT EXISTS(SELECT 1 FROM vane_sites WHERE id=? OR origin=?) THEN 1 ELSE 0 END',id,value.origin)];
+ const events=new Set([...(tables.vane_import_events??[]),...(tables.vane_import_reports??[])].map(row=>row.id)),inserts:D1PreparedStatement[]=[statement(env,'INSERT INTO vane_guard(value) SELECT CASE WHEN NOT EXISTS(SELECT 1 FROM vane_sites WHERE id=? OR origin=?) THEN 1 ELSE 0 END',id,value.origin)];
  let count=0;
  for(const name of ['vane_sites',...TABLES,'vane_import_revisions']) {
   const records=name==='vane_sites'?[value]:tables[name]??[];insist(Array.isArray(records),'archive','Invalid archive table.');

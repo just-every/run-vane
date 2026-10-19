@@ -69,7 +69,7 @@ function render(value:Site,s:Subscription,r:any,from:string,to:string,link:strin
   `Visitors: ${r.visitors}${change(r.visitors,r.previousVisitors)}`,`Visits: ${r.visits}${change(r.visits,r.previousVisits)}`,`Pageviews: ${r.pageviews}${change(r.pageviews,r.previousPageviews)}`,`Bounce rate: ${r.bounceRate??'none'}${r.bounceRate===null?'':'%'} (${r.previousBounceRate??'none'}${r.previousBounceRate===null?'':'%'} the period before)`,
   `Goal conversions: ${r.goals}${change(r.goals,r.previousGoals)}`,...(r.revenue?.total?[`Revenue: ${r.revenue.total} ${r.revenue.currency}`]:[]),'',
   'Top pages:',...(r.topPages??[]).slice(0,5).map((p:any)=>`- ${p.path}: ${p.pageviews} pageviews`),'','Top sources:',...(r.sourceVisits??[]).slice(0,5).map((p:any)=>`- ${p.label}: ${p.visits} visits`),'',
-  'Goals:',...(Object.keys(value.config.goals??{}).length?(r.goalBreakdown??[]).map((g:any)=>`- ${g.label}: ${g.count}`):['- none set']),'',
+  'Goals:',...(Object.keys({...value.config.goals,...value.config.customGoals}).length?(r.goalBreakdown??[]).map((g:any)=>`- ${g.label}: ${g.count}`):['- none set']),'',
   `Coverage: ${r.complete===false?'partial; ':''}${(r.explain?.coverage??[]).filter((c:any)=>c.now||c.then).map((c:any)=>`${c.label} ${c.then} → ${c.now}`).join('; ')||'no coverage count changed'}.`,
   `What moved: ${(r.explain?.movers??[]).map(moverText).join('; ')||'no channel, page, campaign or device changed'}.`,'',`Unsubscribe with one click: ${link}`]
  const text=lines.join('\n')

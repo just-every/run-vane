@@ -59,6 +59,16 @@
         "Encrypted alert title, site name and app link"
       ],
       "adapters": []
+    },
+    {
+      "id": "matomo",
+      "required": false,
+      "why": "Owner-initiated read-only Matomo Reporting API history import (IMPORT-005)",
+      "data": [
+        "Selected source site ID and day; one-use API token",
+        "Aggregate traffic, goal and ecommerce reports; no visitor logs"
+      ],
+      "adapters": []
     }
   ],
   "env": [],

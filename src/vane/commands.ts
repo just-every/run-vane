@@ -10,6 +10,7 @@ import { clock } from './clock'
 // other setting is carried over from the site as it stands. The owner still approves it.
 function analystChange(value:Site,input:any) {
  const config:any={...value.config};
+ if('customGoals' in input)config.customGoals=input.customGoals;
  if('goals' in input){config.goals=input.goals;config.scrollGoals=input.scrollGoals}
  for(const key of ['funnels','eventDefinitions'])if(key in input)config[key]=input[key];
  return {name:value.name,origin:value.origin,config};
@@ -65,7 +66,7 @@ export async function decide(env:Env,actor:Actor,id:string,approve:boolean) {
     {sql:'DELETE FROM vane_guard',params:[]},
    ]);
    if(!remove)return {id,state:'approved',siteId:current.id};
-   await atomic(env,actor,[guard,operations[1]!,...['vane_events','vane_signals','vane_exclusions','vane_auto_events','vane_import_events','vane_admission','vane_salts','vane_annotations','vane_annotation_hooks','vane_github_keys','vane_exports','vane_webhooks','vane_webhook_deliveries','vane_webhook_attempts','vane_report_subscriptions','vane_report_sends','vane_alerts','vane_alert_log','vane_maintenance','vane_closed_days','vane_follow_policy','vane_follow_items','vane_follow_events','vane_segments','vane_share_links','vane_custom_events','vane_event_props','vane_ecommerce_lines','vane_exposures'].map(table=>statement(env,`DELETE FROM ${table} WHERE site_id=?`,current.id)),statement(env,'DELETE FROM vane_sites WHERE id=?',current.id),change,auditStatement(env,actor.id,'proposal.approve',id,`site.delete for site ${current.id}`),auditStatement(env,actor.id,'site.delete',current.id,`version ${payload.version}`)]);
+   await atomic(env,actor,[guard,operations[1]!,...['vane_events','vane_signals','vane_exclusions','vane_auto_events','vane_import_events','vane_import_reports','vane_admission','vane_salts','vane_annotations','vane_annotation_hooks','vane_github_keys','vane_exports','vane_webhooks','vane_webhook_deliveries','vane_webhook_attempts','vane_report_subscriptions','vane_report_sends','vane_alerts','vane_alert_log','vane_maintenance','vane_closed_days','vane_follow_policy','vane_follow_items','vane_follow_events','vane_segments','vane_share_links','vane_custom_events','vane_event_props','vane_ecommerce_lines','vane_exposures'].map(table=>statement(env,`DELETE FROM ${table} WHERE site_id=?`,current.id)),statement(env,'DELETE FROM vane_sites WHERE id=?',current.id),change,auditStatement(env,actor.id,'proposal.approve',id,`site.delete for site ${current.id}`),auditStatement(env,actor.id,'site.delete',current.id,`version ${payload.version}`)]);
    return {id,state:'approved'};
   }
  }

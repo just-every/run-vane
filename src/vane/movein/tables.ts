@@ -45,5 +45,6 @@ export const importTables = [
   "vane_import_approvals",
   "vane_import_erasure_fences",
   "vane_import_events",
+  "vane_import_reports",
   "vane_import_revisions"
 ] as const;

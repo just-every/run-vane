@@ -1,3 +1,4 @@
+import { aggregateCsvRow, importedReports } from './movein/aggregate-reports'
 import { type Env, type Site } from './core'
 import { timedFrom } from './visits'
 import { sourceNameSql } from './sources'
@@ -46,5 +47,7 @@ SELECT day,${Object.keys(columns).map(name=>`"${name}"`).join(',')},COUNT(DISTIN
   file('browsers',['date','browser','browser_version',...VISIT],measured(browsers!.results,['browser','browser_version'])),
   file('operating_systems',['date','operating_system','operating_system_version',...VISIT],measured(systems!.results,['operating_system','operating_system_version'])),
  ]
+ const sourceReports=await importedReports(env,[value.id],ALL[0],ALL[1]);
+ for(const method of new Set(sourceReports.map(r=>r.report))){const records=sourceReports.filter(r=>r.report===method);files.push({name:`matomo_${method}_${records[0]!.day}_${records.at(-1)!.day}.csv`,text:toCsv(records.map(aggregateCsvRow))})}
  return {name:`vane-${value.id}_${first}_${last}.zip`,bytes:zip(files,now)}
 }

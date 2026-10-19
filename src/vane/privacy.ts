@@ -1,3 +1,4 @@
+import { eventName } from './properties'
 import { cleanRates } from './revenue'
 import { cleanConsent } from './consent'
 import { cleanExperiments } from './experiments'
@@ -32,6 +33,14 @@ export function cleanConfig(input:any):Config {
  insist([paths,excludePaths].every(group=>group.length<=50&&group.every(p=>/^\/[A-Za-z0-9_\-/*.:]{0,119}$/.test(p))),'paths','List up to 50 paths or patterns such as /blog/** to include, and up to 50 to exclude, without queries.');
  insist(queryKeys.length<=10&&queryKeys.every(key=>/^[a-z][a-z0-9_-]{0,39}$/.test(key)&&!/^(utm_|ref$|source$|gclid$|fbclid$|msclkid$)/.test(key)),'query_keys','Name up to 10 other query parameters to keep, such as plan; UTM, ref and source are always kept.');
  insist(names.length<=20&&new Set(names).size===names.length&&names.every(name=>/^[a-z][a-z0-9-]{0,39}$/.test(name)&&name!=='pageview')&&[...Object.values(goals),...Object.values(scrollGoals).map(goal=>goal.path)].every(goal=>/^(?:[a-z0-9-]+(?:\.[a-z0-9-]+)+)?\/[a-z0-9_\-/*]{0,119}$/.test(goal)&&(paths.length===0||paths.some(allowed=>goalMatches(goalPath(goal),allowed))))&&Object.values(scrollGoals).every(goal=>goal.depth>=1&&goal.depth<=100),'goals','Use goal-name=/path or a pattern such as /thanks/* (one segment) or /blog/** (any depth) that matches an included path, or add @75 for a scroll depth, and prefix a hostname (blog.example.com/thanks) to count it on that hostname only; one per line.');
+ const customInput=typeof input.customGoals==='string'?JSON.parse(input.customGoals):input.customGoals??{},customGoals:NonNullable<Config['customGoals']>={};
+ insist(customInput&&typeof customInput==='object'&&!Array.isArray(customInput)&&Object.keys(customInput).length<=30,'custom_goals','Define up to 30 custom-event goals.');
+ for(const [name,raw] of Object.entries(customInput) as [string,any][]){
+  eventName(name);insist(!names.includes(name),'custom_goals','Goal names must be distinct.');
+  insist(raw&&typeof raw.revenue==='boolean'&&typeof raw.currency==='string'&&Intl.supportedValuesOf('currency').includes(raw.currency),'custom_goals','Choose the revenue flag and an ISO currency for each event goal.');
+  if(raw.path!==undefined)insist(typeof raw.path==='string'&&/^\/[A-Za-z0-9_\-/*.:]{0,119}$/.test(raw.path),'custom_goals','An imported page goal needs a path without queries.');
+  customGoals[name]={event:eventName(raw.event),...(raw.path?{path:raw.path}:{}),revenue:raw.revenue,currency:raw.currency};names.push(name)
+ }
  const consent=input.consent??'required',sampleRate=Number(input.sampleRate??100),retention=retentionConfig(input);
  insist(['required','not-required'].includes(consent),'consent','Choose an explicit consent mode.');
  // PRIVACY-003: regions that require consent and the consent manager the script reads.
@@ -64,6 +73,6 @@ export function cleanConfig(input:any):Config {
  const eventDefinitions=cleanEventDefinitions(input.eventDefinitions);
  // COLLECT-003: the owner's excluded IP addresses or ranges and countries.
  const excludeIps=cleanExcludedIps(input.excludeIps),excludeCountries=cleanExcludedCountries(input.excludeCountries);
- return {...(eventDefinitions.length?{eventDefinitions}:{}),paths,...(excludePaths.length?{excludePaths}:{}),...(rewrites.length?{rewrites}:{}),...(queryKeys.length?{queryKeys}:{}),...(sourceRules.length?{sourceRules}:{}),...(declinedCounter?{declinedCounter}:{}),goals,scrollGoals,consent,...consentRules,sampleRate,...retention,signalCounter,timeZone,currency,...(rates.length?{rates}:{}),...(origins.length?{origins}:{}),...(searchParam?{searchParam}:{}),...(publicReports.length?{publicReports,publicIndexing}:{}),...(autoEvents.length?{autoEvents}:{}),...(visitTimeout!==DEFAULT_VISIT_TIMEOUT?{visitTimeout}:{}),...(definitions.length?{definitions}:{}),...(excludeIps.length?{excludeIps}:{}),...(excludeCountries.length?{excludeCountries}:{}),...(funnels.length?{funnels}:{}),...(experiments.length?{experiments}:{})};
+ return {...(Object.keys(customGoals).length?{customGoals}:{}),...(eventDefinitions.length?{eventDefinitions}:{}),paths,...(excludePaths.length?{excludePaths}:{}),...(rewrites.length?{rewrites}:{}),...(queryKeys.length?{queryKeys}:{}),...(sourceRules.length?{sourceRules}:{}),...(declinedCounter?{declinedCounter}:{}),goals,scrollGoals,consent,...consentRules,sampleRate,...retention,signalCounter,timeZone,currency,...(rates.length?{rates}:{}),...(origins.length?{origins}:{}),...(searchParam?{searchParam}:{}),...(publicReports.length?{publicReports,publicIndexing}:{}),...(autoEvents.length?{autoEvents}:{}),...(visitTimeout!==DEFAULT_VISIT_TIMEOUT?{visitTimeout}:{}),...(definitions.length?{definitions}:{}),...(excludeIps.length?{excludeIps}:{}),...(excludeCountries.length?{excludeCountries}:{}),...(funnels.length?{funnels}:{}),...(experiments.length?{experiments}:{})};
 }
 export function cleanSite(input:any) { const name=String(input.name??'').trim(); insist(name.length>0&&name.length<=80&&!/[<>@]/.test(name),'name','Enter a short site name, without personal details.'); const origin=browserOrigin(input.origin),config=cleanConfig(input.config??input); insist(!config.origins?.includes(origin),'origins','Extra origins must differ from the website origin.'); return {name,origin,config} }

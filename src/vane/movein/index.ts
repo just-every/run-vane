@@ -28,7 +28,8 @@ export async function preview(env: MoveinEnvironment, actor: MoveinActor, input:
   requireOwner(actor);
   const { normalized, plan } = await planned(env,actor,input);
   return { fingerprint: plan.fingerprint, normalized: normalized.events, discarded: normalized.discarded,
-    carry: { format:'vane-umami-preview/1' as const,events:normalized.events,discarded:normalized.discarded },
+    aggregates:'aggregates' in normalized?normalized.aggregates:[],
+    carry: 'carry' in normalized?normalized.carry:{ format:'vane-umami-preview/1' as const,events:normalized.events,discarded:normalized.discarded },
     counts: plan.counts, consent: null, sampleRate: null,
     originalRetention: 'discarded-before-custody' as const };
 }
@@ -74,7 +75,8 @@ export async function eraseSite(env: MoveinEnvironment, actor: MoveinActor, site
   requireOwner(actor);
   const { site } = await loadSite(env,actor,siteId);
   return retireD1ImportCustody({ values:[namespace(siteId)] },[
-    { sql:'DELETE FROM vane_import_revisions WHERE event_id IN (SELECT id FROM vane_import_events WHERE site_id=?)',params:[siteId] },
+    { sql:'DELETE FROM vane_import_revisions WHERE event_id IN (SELECT id FROM vane_import_events WHERE site_id=? UNION ALL SELECT id FROM vane_import_reports WHERE site_id=?)',params:[siteId,siteId] },
+    { sql:'DELETE FROM vane_import_reports WHERE site_id=?',params:[siteId] },
     { sql:'DELETE FROM vane_import_events WHERE site_id=?',params:[siteId] },
     { sql:'DELETE FROM vane_import_approvals WHERE site_id=?',params:[siteId] },
     ...nativeStatements,
@@ -89,20 +91,21 @@ export async function expireBefore(env: MoveinEnvironment, actor: MoveinActor, s
   requireOwner(actor);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(beforeDay) || !Number.isFinite(Date.parse(beforeDay)) || new Date(beforeDay).toISOString().slice(0,10) !== beforeDay) throw new MoveinError('INVALID_RETENTION_DAY');
   const { site } = await loadSite(env,actor,siteId);
-  const expired = await env.DB.prepare('SELECT id FROM vane_import_events WHERE site_id=? AND day<? ORDER BY day,id LIMIT 1').bind(siteId,beforeDay).first<{ id: string }>();
+  const expired = await env.DB.prepare("SELECT id,'analytics-event' AS kind FROM vane_import_events WHERE site_id=? AND day<? UNION ALL SELECT id,'analytics-aggregate' AS kind FROM vane_import_reports WHERE site_id=? AND day<? LIMIT 1").bind(siteId,beforeDay,siteId,beforeDay).first<{ id: string; kind:string }>();
   const fence: D1Sql[] = [{ sql:`INSERT INTO vane_import_erasure_fences(site_id,generation,erased_at) VALUES(?,1,?)
     ON CONFLICT(site_id) DO UPDATE SET generation=generation+1,erased_at=excluded.erased_at`,params:[siteId,new Date().toISOString()] }];
   let receiptId: string | null = null;
   if (expired) {
-    const receipt = await retireD1ImportCustody({ target:{kind:'analytics-event',id:expired.id} },[
-      { sql:'DELETE FROM vane_import_revisions WHERE event_id=? AND EXISTS(SELECT 1 FROM vane_import_events WHERE id=? AND site_id=? AND day<?)',params:[expired.id,expired.id,siteId,beforeDay] },
-      { sql:'DELETE FROM vane_import_events WHERE id=? AND site_id=? AND day<?',params:[expired.id,siteId,beforeDay] },
+    const table=expired.kind==='analytics-event'?'vane_import_events':'vane_import_reports';
+    const receipt = await retireD1ImportCustody({ target:{kind:expired.kind,id:expired.id} },[
+      { sql:`DELETE FROM vane_import_revisions WHERE event_id=? AND EXISTS(SELECT 1 FROM ${table} WHERE id=? AND site_id=? AND day<?)`,params:[expired.id,expired.id,siteId,beforeDay] },
+      { sql:`DELETE FROM ${table} WHERE id=? AND site_id=? AND day<?`,params:[expired.id,siteId,beforeDay] },
       ...nativeStatements,
     ],context(env,actor,site),fence);
     receiptId = receipt.receiptId;
   } else {
     await atomic(context(env,actor,site),'erase',[...nativeStatements,...fence]);
   }
-  const pending = await env.DB.prepare('SELECT COUNT(*) AS count FROM vane_import_events WHERE site_id=? AND day<?').bind(siteId,beforeDay).first<{ count: number }>();
+  const pending = await env.DB.prepare('SELECT (SELECT COUNT(*) FROM vane_import_events WHERE site_id=? AND day<?)+(SELECT COUNT(*) FROM vane_import_reports WHERE site_id=? AND day<?) AS count').bind(siteId,beforeDay,siteId,beforeDay).first<{ count: number }>();
   return { complete:pending?.count === 0, erased:Number(Boolean(expired)), remaining:pending?.count ?? 0, receiptId };
 }

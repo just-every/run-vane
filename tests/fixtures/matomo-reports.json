@@ -1,0 +1,39 @@
+{
+  "format": "vane-matomo-reports/1",
+  "day": "2026-10-01",
+  "currency": "USD",
+  "sourceDocumentation": [
+    "https://developer.matomo.org/api-reference/api",
+    "https://developer.matomo.org/guides/reporting-api#module-goals",
+    "https://github.com/matomo-org/matomo/blob/5.x-dev/plugins/Goals/Goals.php"
+  ],
+  "exportParameters": {"period":"day","format":"JSON","format_metrics":0,"flat":1,"filter_limit":-1,"showAllGoalSpecificMetrics":1},
+  "reports": {
+    "VisitsSummary.get": {"nb_uniq_visitors":80,"nb_users":0,"nb_visits":100,"nb_actions":180,"nb_visits_converted":8,"bounce_count":40,"sum_visit_length":7500,"max_actions":12},
+    "Actions.get": {"nb_pageviews":150,"nb_uniq_pageviews":120,"nb_downloads":8,"nb_uniq_downloads":7,"nb_outlinks":12,"nb_uniq_outlinks":10,"nb_searches":10,"nb_keywords":4},
+    "Actions.getPageUrls": [
+      {"label":"/pricing","url":"https://example.com/pricing?email=customer%40example.org","nb_hits":90,"nb_visits":65,"nb_uniq_visitors":55,"sum_time_spent":3000,"entry_nb_visits":40,"entry_bounce_count":12,"exit_nb_visits":25},
+      {"label":"/thank-you","url":"https://example.com/thank-you","nb_hits":60,"nb_visits":50,"nb_uniq_visitors":45,"sum_time_spent":1500,"entry_nb_visits":10,"entry_bounce_count":4,"exit_nb_visits":40}
+    ],
+    "Referrers.getWebsites": [
+      {"label":"news.example.org","nb_visits":35,"nb_uniq_visitors":28,"nb_actions":63},
+      {"label":"community.example.net","nb_visits":20,"nb_uniq_visitors":18,"nb_actions":36}
+    ],
+    "Referrers.getCampaigns": [{"label":"autumn-launch","nb_visits":25,"nb_uniq_visitors":22,"nb_actions":45}],
+    "UserCountry.getCountry": [{"label":"Australia","code":"au","nb_visits":60,"nb_uniq_visitors":48,"nb_actions":108}],
+    "UserCountry.getRegion": [{"label":"Queensland, Australia","region":"QLD","country":"au","nb_visits":45,"nb_uniq_visitors":36,"nb_actions":81}],
+    "UserCountry.getCity": [{"label":"Brisbane, Queensland, Australia","city_name":"Brisbane","region":"QLD","country":"au","nb_visits":40,"nb_uniq_visitors":32,"nb_actions":72}],
+    "DevicesDetection.getType": [
+      {"label":"Desktop","nb_visits":60,"nb_uniq_visitors":48,"nb_actions":108},
+      {"label":"Smartphone","nb_visits":40,"nb_uniq_visitors":32,"nb_actions":72}
+    ],
+    "DevicesDetection.getBrowsers": [{"label":"Chrome","nb_visits":70,"nb_uniq_visitors":56,"nb_actions":126}],
+    "DevicesDetection.getOsFamilies": [{"label":"Windows","nb_visits":50,"nb_uniq_visitors":40,"nb_actions":90}],
+    "Goals.get": {"nb_conversions":8,"nb_visits_converted":8,"revenue":240,"conversion_rate":0.08,"goal_1_nb_conversions":5,"goal_1_nb_visits_converted":5,"goal_1_revenue":0,"goal_2_nb_conversions":3,"goal_2_nb_visits_converted":3,"goal_2_revenue":240,"nb_visits":100},
+    "Goals.getItemsSku": [{"label":"COURSE-01","revenue":240,"quantity":3,"orders":3,"avg_price":80,"avg_quantity":1,"nb_visits":20,"conversion_rate":0.15}]
+  },
+  "goals": {
+    "1": {"idgoal":"1","idsite":"1","name":"newsletter signup","description":"Newsletter subscription event","match_attribute":"event_name","pattern":"newsletter signup","pattern_type":"exact","case_sensitive":"1","allow_multiple":"0","revenue":0,"event_value_as_revenue":"0"},
+    "2": {"idgoal":"2","idsite":"1","name":"Order confirmed","description":"Completed order URL","match_attribute":"url","pattern":"https://example.com/thank-you","pattern_type":"exact","case_sensitive":"1","allow_multiple":"0","revenue":80,"event_value_as_revenue":"0"}
+  }
+}
