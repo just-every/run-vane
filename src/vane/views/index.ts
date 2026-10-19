@@ -13,6 +13,7 @@ import { rollupPage } from './rollup'
 import { teamPage } from './team'
 import { apiKeysPage } from './api-keys'
 import { realtimePage, realtimePoll } from './realtime'
+import { pushPage, pushScript } from './push'
 import type { ViewData } from './types'
 
 const browserZone = "document.querySelectorAll('input[data-browser-zone]').forEach(input=>{const zone=Intl.DateTimeFormat().resolvedOptions().timeZone;if(zone)input.value=zone})"
@@ -22,23 +23,25 @@ export type { ImportPreview } from './history'
 
 export async function renderApp(data: ViewData): Promise<Response> {
   const frame = await themeFrame({ href: '/rer-theme.css', productName: 'Vane' })
-  const section = ['report', 'settings', 'history', 'approvals', ...(data.site ? ['realtime'] : ['audit', 'team', 'api'])].includes(data.section ?? '') ? data.section! : 'report'
+  const section = ['report', 'settings', 'history', 'approvals', ...(data.site ? ['realtime'] : ['audit', 'team', 'api', 'alerts'])].includes(data.section ?? '') ? data.section! : 'report'
   const site = data.site
   // DASH-002: a new site's time zone starts as the zone the owner's browser reports, such as America/Chicago.
   const zoneFill = !site && !data.rollup && section === 'report' && canPrepare(data.actor.role)
   // DASH-001: only the real-time view may connect, and only to this origin, to refresh itself.
   const live = Boolean(site && section === 'realtime')
-  const copyNonce = (site && section === 'settings') || zoneFill || live ? crypto.randomUUID() : ''
+  // MOBILE-001: only the browser alerts page runs a script that registers the service worker and sends its subscription.
+  const alerts = !site && !data.rollup && section === 'alerts'
+  const copyNonce = (site && section === 'settings') || zoneFill || live || alerts ? crypto.randomUUID() : ''
   const content = data.rollup
     ? rollupPage(data)
     : site
     ? `<div class="vane-heading"><div><p class="vane-eyebrow">Site analytics</p><h1>${escape(site.name)}</h1><p>${escape(site.origin)}</p></div><a href="/app">All sites</a></div><nav class="vane-tabs" aria-label="Site sections">${['report', 'realtime', 'settings', 'history', 'approvals'].map(item => `<a href="${siteLink(site.id, item)}"${item === section ? ' aria-current="page"' : ''}>${item === 'realtime' ? 'Real-time' : item[0].toUpperCase() + item.slice(1)}</a>`).join('')}</nav>${section === 'realtime' ? realtimePage(data.live) : section === 'settings' ? settingsPage(data) : section === 'history' ? historyPage(data) : section === 'approvals' ? approvalsPage(data) : reportPage(data)}`
-    : section === 'history' ? `<div class="vane-heading"><h1>Data history</h1><a href="/app">All sites</a></div>${globalHistoryPage(data)}` : section === 'approvals' ? `<div class="vane-heading"><h1>Approvals</h1><a href="/app">All sites</a></div>${approvalsPage(data)}` : section === 'audit' ? `<div class="vane-heading"><h1>Audit history</h1><a href="/app">All sites</a></div>${auditPage(data)}` : section === 'api' && data.apiKeys ? `<div class="vane-heading"><h1>API keys</h1><a href="/app">All sites</a></div>${apiKeysPage(data)}` : section === 'team' && data.people ? `<div class="vane-heading"><h1>Team</h1><a href="/app">All sites</a></div>${teamPage(data)}` : sitesPage(data)
-  const html = `<!doctype html><html lang="en"${frame.htmlClass}><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>${escape(site?.name ?? data.rollup?.name ?? (section === 'history' ? 'Data history' : section === 'approvals' ? 'Approvals' : section === 'audit' ? 'Audit history' : 'Sites'))} · Vane</title>${fontHead}${frame.head}<link rel="stylesheet" href="/vane.css"></head><body class="vane-app${!site && section === 'report' && !data.sites.length ? ' vane-empty-sites' : ''}">${appHeader(frame.brand, data.actor)}<main id="main" tabindex="-1">${data.store?.warn ? storeWarning(data.store) : ''}${data.notice ? `<div class="vane-notice" role="status">${escape(data.notice)}</div>` : ''}${data.error ? `<div class="vane-error" role="alert">${escape(data.error)}</div>` : ''}${content}</main>${appFooter}${copyNonce ? `<script nonce="${copyNonce}">${live ? realtimePoll : zoneFill ? browserZone : scriptCopy}</script>` : ''}</body></html>`
+    : section === 'history' ? `<div class="vane-heading"><h1>Data history</h1><a href="/app">All sites</a></div>${globalHistoryPage(data)}` : section === 'approvals' ? `<div class="vane-heading"><h1>Approvals</h1><a href="/app">All sites</a></div>${approvalsPage(data)}` : section === 'audit' ? `<div class="vane-heading"><h1>Audit history</h1><a href="/app">All sites</a></div>${auditPage(data)}` : section === 'alerts' ? `<div class="vane-heading"><h1>Browser alerts</h1><a href="/app">All sites</a></div>${pushPage(data)}` : section === 'api' && data.apiKeys ? `<div class="vane-heading"><h1>API keys</h1><a href="/app">All sites</a></div>${apiKeysPage(data)}` : section === 'team' && data.people ? `<div class="vane-heading"><h1>Team</h1><a href="/app">All sites</a></div>${teamPage(data)}` : sitesPage(data)
+  const html = `<!doctype html><html lang="en"${frame.htmlClass}><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>${escape(site?.name ?? data.rollup?.name ?? (section === 'history' ? 'Data history' : section === 'approvals' ? 'Approvals' : section === 'audit' ? 'Audit history' : section === 'alerts' ? 'Browser alerts' : 'Sites'))} · Vane</title>${fontHead}${frame.head}<link rel="stylesheet" href="/vane.css"><link rel="manifest" href="/manifest.webmanifest"></head><body class="vane-app${!site && section === 'report' && !data.sites.length ? ' vane-empty-sites' : ''}">${appHeader(frame.brand, data.actor)}<main id="main" tabindex="-1">${data.store?.warn ? storeWarning(data.store) : ''}${data.notice ? `<div class="vane-notice" role="status">${escape(data.notice)}</div>` : ''}${data.error ? `<div class="vane-error" role="alert">${escape(data.error)}</div>` : ''}${content}</main>${appFooter}${copyNonce ? `<script nonce="${copyNonce}">${live ? realtimePoll : alerts ? pushScript : zoneFill ? browserZone : scriptCopy}</script>` : ''}</body></html>`
   return new Response(html, { headers: {
     'Content-Type': 'text/html; charset=utf-8',
     'Cache-Control': 'no-store',
-    'Content-Security-Policy': `default-src 'none'; ${frame.policy}; script-src ${copyNonce ? `'nonce-${copyNonce}'` : "'none'"}; connect-src ${live ? "'self'" : "'none'"}; form-action 'self'; base-uri 'none'; frame-ancestors 'none'`,
+    'Content-Security-Policy': `default-src 'none'; ${frame.policy}; script-src ${copyNonce ? `'nonce-${copyNonce}'` : "'none'"}; connect-src ${live || alerts ? "'self'" : "'none'"}; worker-src ${alerts ? "'self'" : "'none'"}; manifest-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'`,
     'X-Content-Type-Options': 'nosniff',
     'Referrer-Policy': 'same-origin',
   } })

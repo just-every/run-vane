@@ -1579,6 +1579,61 @@ test('MOBILE-001 at 390 and 1440 px the site, approval, report and filter journe
  }
  await context.close()
 })
+test('MOBILE-001 the app installs as a PWA, a browser that turns on alerts receives an encrypted test alert carrying only its title, site and link that the service worker shows, and turning off, a 410 and removal from the team forget the browser',async t=>{
+ const a=await withApp(t),id=await a.addSite(),axe=await readFile(createRequire(import.meta.url).resolve('axe-core'),'utf8'),{context}=await browse(t,a)
+ await context.addCookies(a.owner.split('; ').map(pair=>{const [name,...value]=pair.split('=');return {name,value:value.join('='),url:a.origin}}))
+ await context.route(a.origin+'/app/action',async route=>{const request=route.request(),response=await a.request('/app/action',{method:'POST',headers:request.headers(),body:request.postData()??undefined}),location=response.headers.get('location');if(response.status!==303||!location)return route.fulfill({status:response.status,headers:Object.fromEntries(response.headers),body:Buffer.from(await response.arrayBuffer())});return route.fulfill({status:200,contentType:'text/html',body:`<!doctype html><title>Redirecting</title><meta http-equiv="refresh" content="0;url=${location.replaceAll('&','&amp;').replaceAll('"','&quot;')}">`})})
+ const page=await context.newPage(),cdp=await context.newCDPSession(page)
+ const scanned=async label=>{const violations=await page.evaluate(`${axe}\n;axe.run(document,{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21a','wcag21aa','wcag22aa']}}).then(r=>r.violations.map(v=>v.id+': '+v.nodes.map(n=>n.target.join(' ')).join(', ')))`);assert.deepEqual(violations,[],label);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`${label} scrolls sideways`)}
+ await page.goto(a.origin+'/app?section=alerts')
+ // Installable: Chrome finds the manifest's name, start URL, standalone display and icons.
+ assert.deepEqual((await cdp.send('Page.getInstallabilityErrors')).installabilityErrors,[])
+ // Turning alerts on registers the service worker; the test then stands in for the browser's push service.
+ await page.getByRole('button',{name:'Turn on alerts in this browser'}).click()
+ await page.waitForFunction(async()=>Boolean((await navigator.serviceWorker.getRegistration('/'))?.active))
+ const {createECDH,createDecipheriv,createPublicKey,randomBytes,verify}=await import('node:crypto')
+ const browser=createECDH('prime256v1');browser.generateKeys()
+ const b64url=b=>Buffer.from(b).toString('base64url'),auth=randomBytes(16),key=await page.getAttribute('[data-push]','data-key')
+ const subscription=endpoint=>({endpoint,keys:{p256dh:b64url(browser.getPublicKey()),auth:b64url(auth)}})
+ const subscribe=(endpoint,cookie=a.owner)=>a.post('/api/vane/push/subscribe',subscription(endpoint),cookie)
+ assert.equal((await subscribe('https://push.example/send/browser-1')).status,201)
+ assert.equal((await subscribe('http://127.0.0.1:9/send')).status,400,'a private or plain-http endpoint is refused')
+ const delivered=[];let answer=201
+ a.fixtureSites['https://push.example']=async request=>{delivered.push({url:request.url,headers:Object.fromEntries(request.headers),body:Buffer.from(await request.arrayBuffer())});return new Response(null,{status:answer})}
+ // RFC 8291: the browser's key and auth secret decrypt the aes128gcm record; RFC 8292: the VAPID JWT verifies with the installation's key.
+ const hmac=(k,d)=>createHmac('sha256',k).update(d).digest()
+ const decrypt=body=>{const salt=body.subarray(0,16),idlen=body[20],sender=body.subarray(21,21+idlen),sealed=body.subarray(21+idlen),shared=browser.computeSecret(sender)
+  const ikm=hmac(hmac(auth,shared),Buffer.concat([Buffer.from('WebPush: info\0'),browser.getPublicKey(),sender,Buffer.from([1])])),prk=hmac(salt,ikm)
+  const decipher=createDecipheriv('aes-128-gcm',hmac(prk,Buffer.from('Content-Encoding: aes128gcm\0\x01')).subarray(0,16),hmac(prk,Buffer.from('Content-Encoding: nonce\0\x01')).subarray(0,12));decipher.setAuthTag(sealed.subarray(-16))
+  const plain=Buffer.concat([decipher.update(sealed.subarray(0,-16)),decipher.final()]);assert.equal(plain.at(-1),2,'one final record');return plain.subarray(0,-1).toString()}
+ for(const width of [390,1440]){await page.setViewportSize({width,height:900});await page.goto(a.origin+'/app?section=alerts');await scanned(`${width} browser alerts`)}
+ await page.getByRole('button',{name:'Send a test alert'}).press('Enter');await page.waitForURL(/notice=Test\+alert\+sent/)
+ assert.equal(delivered.length,1);const [sent]=delivered
+ assert.equal(sent.headers['content-encoding'],'aes128gcm');const [,jwt,k]=sent.headers.authorization.match(/^vapid t=([^,]+), k=(.+)$/);assert.equal(k,key)
+ const [head,claims,signature]=jwt.split('.'),raw=Buffer.from(k,'base64url'),publicKey=createPublicKey({key:{kty:'EC',crv:'P-256',x:b64url(raw.subarray(1,33)),y:b64url(raw.subarray(33,65))},format:'jwk'})
+ assert.ok(verify('sha256',Buffer.from(`${head}.${claims}`),{key:publicKey,dsaEncoding:'ieee-p1363'},Buffer.from(signature,'base64url')),'the VAPID JWT is signed with the installation key')
+ assert.equal(JSON.parse(Buffer.from(claims,'base64url')).aud,'https://push.example')
+ const alert=JSON.parse(decrypt(sent.body));assert.deepEqual(alert,{title:'Test alert',site:'Fern Studio',link:`${a.origin}/app/sites/${id}`},'only the title, site name and link')
+ // The installed service worker shows the delivered alert as a notification.
+ await cdp.send('ServiceWorker.enable');const registration=await new Promise(resolve=>{cdp.on('ServiceWorker.workerRegistrationUpdated',({registrations})=>{const r=registrations.find(r=>r.scopeURL===a.origin+'/'&&!r.isDeleted);if(r)resolve(r)})})
+ // The headless browser has no notification centre, so the worker's showNotification is recorded instead (the OS edge).
+ const worker=context.serviceWorkers().find(w=>w.url()===a.origin+'/vane-sw.js');await worker.evaluate(()=>{self.shown=[];self.registration.showNotification=(title,options)=>{self.shown.push([title,options.body,options.data.link]);return Promise.resolve()}})
+ await cdp.send('ServiceWorker.deliverPushMessage',{origin:a.origin,registrationId:registration.registrationId,data:decrypt(sent.body)})
+ let notifications=[];for(let i=0;i<50&&!notifications.length;i++){notifications=await worker.evaluate(()=>self.shown);if(!notifications.length)await page.waitForTimeout(100)}
+ assert.deepEqual(notifications,[['Test alert','Fern Studio',`${a.origin}/app/sites/${id}`]])
+ // A push service's 410 forgets the subscription; turning off forgets it too; both are audited.
+ answer=410;await page.goto(a.origin+'/app?section=alerts');await page.getByRole('button',{name:'Send a test alert'}).press('Enter');await page.waitForURL(/notice=No\+push/)
+ assert.deepEqual((await a.dump()).vane_push_subscriptions,[])
+ answer=201;await subscribe('https://push.example/send/browser-2');assert.equal((await a.post('/api/vane/push/unsubscribe',{endpoint:'https://push.example/send/browser-2'},a.owner)).status,200)
+ assert.deepEqual((await a.dump()).vane_push_subscriptions,[])
+ // Removing a team member (TEAM-001) deletes their browsers' subscriptions.
+ const member=await a.invite('alerts@example.test','member');assert.equal((await subscribe('https://push.example/send/member',member)).status,201)
+ const operators=await (await a.request('/auth/operators',{headers:{cookie:a.owner}})).json(),list=Array.isArray(operators)?operators:operators.operators
+ assert.equal((await a.form({operation:'team.remove',operatorId:list.find(p=>p.email==='alerts@example.test').id},a.owner)).status,303)
+ const after=await a.dump();assert.deepEqual(after.vane_push_subscriptions,[]);assert.ok(['push.subscribe','push.unsubscribe'].every(action=>after.vane_audit.some(e=>e.action===action)),'subscribing and unsubscribing are audited')
+ assert.ok(!JSON.stringify(after.vane_push_keys).includes('"d"'),'the VAPID private key is sealed')
+ assert.ok(a.egress.every(url=>new URL(url).origin==='https://push.example'||new URL(url).hostname==='api.resend.com'),'alerts go only to the push service')
+})
 test('API-004 an MCP client with a site-scoped Stats API key lists its sites and gets last week\'s top sources equal to the Stats API answer; another site, a missing or revoked key and a write tool without a grant are refused',async t=>{
  const a=await withApp(t),id=await a.addSite({paths:[]}),other=await a.addSite({name:'Oak Store',origin:'https://oak.example'})
  const now=Date.parse('2026-03-12T12:00:00Z')

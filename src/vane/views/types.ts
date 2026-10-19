@@ -2,6 +2,8 @@ export interface ViewData {
   actor: { id: string; role: string; displayName: string; access?: string; sites?: string[] | null }
   apiKeys?: (import('../api-keys').ApiKey & { creator: string; today: number | null })[]
   apiToken?: string
+  pushKey?: string
+  pushSubscriptions?: import('../push').PushSubscription[]
   people?: { id: string; email: string; name: string; status: string; access: string; sites: string[] | null }[]
   origin: string
   sites: any[]
