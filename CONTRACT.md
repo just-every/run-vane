@@ -420,8 +420,8 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 16 | 1 | 0 | 17 |
-| Target and push further | 9 | 22 | 60 | 91 |
-| All | 25 | 23 | 60 | 108 |
+| Target and push further | 10 | 21 | 60 | 91 |
+| All | 26 | 22 | 60 | 108 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -523,7 +523,7 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | `HOST-001` | Owner-run hosting with measured cost | target | partial | `deploy.json`; `wrangler.jsonc` | Owner-account deployment is declared; no measured cost per 100,000 pageviews or in-app cost panel. |
 | `HOST-002` | Runs on the owner's own computer | target | partial | `src/site/run.json`; `rer-project.json`; `tests/harness.mjs` | The built Worker runs locally under Miniflare with local D1 in every product test, and `/run` shows the one-line command; no test runs that command from an empty folder to a working report, offline, or moves a local installation to Cloudflare. |
 | `OPEN-001` | Free and open source under the MIT licence | target | done | `LICENSE`; `package.json` |  |
-| `DEMO-001` | Try Vane on realistic data | target | partial | `src/demo.ts`; `DEMO.md` | The local and hosted demo load three example sites and a pending change; no test journey covers the demo. |
+| `DEMO-001` | Try Vane on realistic data | target | done | `src/demo.ts`; `DEMO.md`; `tests/demo.journey.mjs`; `.github/workflows/verify.yml` (job `demo`) |  |
 | `MOBILE-001` | Phone-ready, accessible dashboard | target | partial | `src/vane/views/shell.ts`; `src/vane/views/html.ts` | Server-rendered views exist; no 390 px or keyboard journey, accessibility scan, PWA or web push. |
 | `MOBILE-002` | Native iOS and Android apps | target | missing |  | No native apps. |
 | `AGENT-001` | Maintain trustworthy instrumentation | push-further | missing |  | No instrumentation agent; owner-approved settings preparation is not an analytics agent. |
