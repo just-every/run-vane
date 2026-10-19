@@ -30,6 +30,10 @@ Open your site, then **Settings**. Copy the tag under **Install the script** int
 
 When consent is required, load the script after consent and set `window.vaneConsent = true` before it runs. If your website uses a Content Security Policy, allow your Vane origin in `script-src` and `connect-src`.
 
+### Trying the script on your computer
+
+`rer dev` runs Vane on your own computer at `http://127.0.0.1`. Chrome does not let a page served from a public website send requests to `127.0.0.1` or `localhost` (Local Network Access) unless the visitor allows it, so a tag pasted into your live website does not reach a local Vane, and the page shows no error. To try the script locally, serve a test page from your computer as well: for example, put the tag in an `index.html` in an empty folder, run `npx serve` there, and add a site whose origin is that page's exact address, such as `http://localhost:3000`. For your live website, deploy Vane and copy the tag from the deployed installation.
+
 Owners and administrators can then choose **Verify installation**. Vane loads your homepage, checks the script, its site ID, your origin, your Content Security Policy, the consent flag and the path, and names the exact cause of any failure. It then waits up to 60 seconds for the homepage's first page load, so open it in another tab while it waits. Until a first page load arrives, the site shows **Awaiting first event** on the sites overview.
 
 Visit a page, then `/thanks?utm_campaign=launch`. A load of `/thanks` counts as the `signup` goal. You do not need a second event script.

@@ -48,7 +48,9 @@ const literal=(value:string)=>`'${value.replace(/'/g,"''")}'`
 // A wildcard is or is not on a page, and every matches, is decided in code over the distinct values in the window.
 const resolved=(f:Filter)=>f.op==='matches'||(f.op==='is'||f.op==='is_not')&&(f.dimension==='page'||f.dimension==='entry')&&f.value.includes('*')
 // The event set of the kept visits over local days [from, to), drawn from `base` (the hostname-filtered events).
-export async function segmentEvents(env:Env,scope:string,filters:Filter[],from:string,to:string,base:string,sourceRules:SourceRule[]=[]):Promise<string> {
+// The kept visits are found once per report: the IDs of their page loads and goal events are written to vane_report_kept
+// under a fresh report ID, every table reads those events by primary key, and release() deletes them when the report returns.
+export async function keptVisits(env:Env,scope:string,filters:Filter[],from:string,to:string,base:string,sourceRules:SourceRule[]=[]):Promise<{events:string,release:()=>Promise<void>}> {
  const sites=(row:string)=>`${row}.site_id IN (SELECT value FROM json_each(${literal(scope)}))`,days=(row:string)=>`${row}.day>=${literal(from)} AND ${row}.day<${literal(to)}`
  const expr=(f:Filter,row:string)=>f.dimension==='source'?sourceNameSql(sourceRules,`${row}.source`):dimensionOf(f.dimension)!.sql!(row)
  const positive=async(f:Filter,row:string)=>{
@@ -67,12 +69,16 @@ export async function segmentEvents(env:Env,scope:string,filters:Filter[],from:s
   if(d.scope==='prop')return `EXISTS(SELECT 1 FROM vane_event_props pr WHERE (pr.event_id=l.id OR pr.event_id IN (SELECT ce.id FROM vane_custom_events ce WHERE ce.page_id=l.id)) AND pr.key=${literal(d.key!)} AND ${await positive(f,'pr')})`;
   return positive(f,'l')}))
  const having=filters.map((f,i)=>dimensionOf(f.dimension)!.scope==='first'?`MAX(CASE WHEN first=1 AND ${negative(f)?'NOT ':''}f${i} THEN 1 ELSE 0 END)=1`:`MAX(f${i})=${negative(f)?0:1}`).join(' AND ')
- return `(SELECT * FROM ${base} e WHERE ${sites('e')} AND ${days('e')} AND substr(e.id,1,length(e.site_id)+37) IN (WITH s AS (SELECT l.id,l.day,l.visitor,l.at,${flags.map((sql,i)=>`(${sql}) AS f${i}`).join(',')},LAG(l.at) OVER w AS prev_at,${gapSql('l')} AS gap FROM ${base} l WHERE ${sites('l')} AND ${days('l')} AND l.kind='pageview' AND l.visitor IS NOT NULL AND l.at IS NOT NULL WINDOW w AS (PARTITION BY l.day,l.visitor ORDER BY l.at,l.id)),
+ const report=uid();
+ await env.DB.prepare(`INSERT INTO vane_report_kept(report,id,at) SELECT ?,e.id,? FROM ${base} e WHERE ${sites('e')} AND ${days('e')} AND substr(e.id,1,length(e.site_id)+37) IN (WITH s AS (SELECT l.id,l.day,l.visitor,l.at,${flags.map((sql,i)=>`(${sql}) AS f${i}`).join(',')},LAG(l.at) OVER w AS prev_at,${gapSql('l')} AS gap FROM ${base} l WHERE ${sites('l')} AND ${days('l')} AND l.kind='pageview' AND l.visitor IS NOT NULL AND l.at IS NOT NULL WINDOW w AS (PARTITION BY l.day,l.visitor ORDER BY l.at,l.id)),
 t AS (SELECT *,CASE WHEN prev_at IS NULL OR at-prev_at>gap THEN 1 ELSE 0 END AS first FROM s),
 u AS (SELECT *,SUM(first) OVER (PARTITION BY day,visitor ORDER BY at,id ROWS UNBOUNDED PRECEDING) AS visit FROM t),
 k AS (SELECT day,visitor,visit FROM u GROUP BY day,visitor,visit HAVING ${having})
-SELECT u.id FROM u JOIN k USING(day,visitor,visit)))`
+SELECT u.id FROM u JOIN k USING(day,visitor,visit))`).bind(report,clock()).run();
+ return {events:`(SELECT e.* FROM vane_report_kept r CROSS JOIN vane_events e ON e.id=r.id WHERE r.report=${literal(report)})`,release:async()=>{await env.DB.prepare('DELETE FROM vane_report_kept WHERE report=?').bind(report).run()}};
 }
+// A report cut short before release (a Worker stopped mid-request) leaves its rows; the 5-minute cron deletes them after an hour.
+export const expireKept=(env:Env,now:number)=>env.DB.prepare('DELETE FROM vane_report_kept WHERE at<?').bind(now-3600000).run()
 // The earliest local day a filtered report reads: its range or compared period, less the 8 weeks REPORT-003's baseline needs.
 export const segmentStart=(from:string,previousFrom:string)=>day(Date.parse(from<previousFrom?from:previousFrom)-56*86400000)
 

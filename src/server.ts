@@ -9,6 +9,7 @@ import { autoEventResponse } from './vane/auto-events'
 import { customEventResponse } from './vane/custom-events'
 import { exposureResponse } from './vane/experiments'
 import { expireSalts } from './vane/visitors'
+import { expireKept } from './vane/segments'
 import { runExports } from './vane/warehouse'
 import { runWebhooks } from './vane/webhooks'
 import { runReports, unsubscribeResponse } from './vane/email-reports'
@@ -86,6 +87,7 @@ export default withDemo({
   // API-002: each scheduled warehouse export sends the dates that have ended since its last run.
   async scheduled(_controller, env) {
     await expireSalts(runtimeBindings(env), clock())
+    await expireKept(runtimeBindings(env), clock())
     await runExports(runtimeBindings(env), clock())
     // API-003: queue ended minutes' goal conversions and send due webhook deliveries.
     await runWebhooks(runtimeBindings(env), clock())

@@ -1102,6 +1102,8 @@ test('DASH-007 filtering the report by Organic Search, mobile and not /blog/* ke
  // Each comparison keeps whole visits: acquisition and device by the first page load, page and goal by any page load (or none).
  for(const [filter,visits] of [['channel:is:Organic Search',5],['source:is:Google',5],['utm_medium:is:email',1],['device:is_not:desktop',5],['entry:is:/pricing',1],['page:contains:BLOG',2],['page:not_contains:blog',4],['page:matches:^/blog/[a-z]+$',1],['page:is:/blog/**',2],['goal:is:signup',2],['hostname:is:fern.example',6],['browser_version:matches:^Chrome ',1],['os_version:contains:ios',5]])assert.equal((await summary('filter='+encodeURIComponent(filter))).visits,visits,filter)
  assert.equal((await a.request(`/api/vane/summary?siteId=${id}&filter=${encodeURIComponent('page:matches:(')}`,owner)).status,400,'an invalid regular expression is refused')
+ // A filtered report finds its kept visits once and deletes them when it returns.
+ assert.deepEqual((await a.dump()).vane_report_kept,[],'no kept-visit rows outlive their report')
  // In the browser: click Organic Search in the channel table, add the device and page filters, and save the segment.
  const {context}=await browse(t,a,{},{viewport:{width:1440,height:900}});await context.addCookies(a.owner.split('; ').map(pair=>{const [name,...value]=pair.split('=');return {name,value:value.join('='),url:a.origin}}))
  const tab=await context.newPage();await tab.goto(`${a.origin}/app/sites/${id}?section=report&${range}`)
