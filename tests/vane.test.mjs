@@ -1655,3 +1655,34 @@ test('INSTALL-008 a server sends pageviews and a custom event with its site toke
  assert.equal((await (await a.request(`/api/vane/summary?siteId=${other}&period=today`,owner)).json()).pageviews,0)
  const openapi=await (await a.request('/api/v1/openapi.json')).json();assert.ok(openapi.paths['/api/v1/events']&&openapi['x-event-limits'].events.events>0)
 })
+test('PRIVACY-003 each consent manager adapter and Google Consent Mode decide collection where the site\'s regions require consent: denied then granted from California, Germany and Texas, an unknown country fails closed, and the server holds the same rule',async t=>{
+ const a=await withApp(t),states={
+  onetrust:g=>`window.OnetrustActiveGroups=',C0001,${g?'C0002,':''}'`,cookiebot:g=>`window.Cookiebot={hasResponse:true,consent:{statistics:${g}}}`,termly:g=>`window.Termly={getConsentState:()=>({analytics:${g}})}`,
+  osano:g=>`window.Osano={cm:{getConsent:()=>({ANALYTICS:'${g?'ACCEPT':'DENY'}'})}}`,iubenda:g=>`window._iub={cs:{api:{getPreferences:()=>({purposes:{1:true,4:${g}}})}}}`,cookieyes:g=>`window.getCkyConsent=()=>({isUserActionCompleted:true,categories:{analytics:${g}}})`}
+ const regions=['EU','UK','US-CA'],sites={}
+ for(const adapter of [...Object.keys(states),'consent-mode'])sites[adapter]=await a.addSite({name:'Fern '+adapter,origin:`https://${adapter}.fern.example`,paths:[],consent:'required',declinedCounter:true,consentRegions:regions,...(adapter==='consent-mode'?{}:{consentAdapter:adapter})})
+ const pages={},page=(adapter,script)=>{const url=`https://${adapter}.fern.example/p${Object.keys(pages).length}`;pages[url]=`<!doctype html><title>Fixture</title><script>${script}</script><script src="${a.origin}/vane.js" data-site="${sites[adapter]}"></script>`;return url}
+ const {context}=await browse(t,a,pages);let where={}
+ // The visitor's location arrives as Cloudflare's request fields, as the edge sets them.
+ await context.route(a.origin+'/**',async route=>{const request=route.request(),url=new URL(request.url()),response=await a.request(url.pathname+url.search,{method:request.method(),headers:request.headers(),body:request.postData()??undefined,cf:where});return route.fulfill({status:response.status,headers:Object.fromEntries(response.headers),body:Buffer.from(await response.arrayBuffer())})})
+ const tab=await context.newPage()
+ // One page load: the script either collects it or sends only the declined-consent count.
+ const outcome=async(url,location)=>{where=location;const done=tab.waitForResponse(r=>/\/api\/vane\/(collect|declined\/)/.test(new URL(r.url()).pathname));await tab.goto(url);const r=await done;return new URL(r.url()).pathname==='/api/vane/collect'?[r.status(),JSON.parse(r.request().postData()).consent]:'declined'}
+ const california={country:'US',regionCode:'CA'},germany={country:'DE',regionCode:'BE'},texas={country:'US',regionCode:'TX'}
+ for(const adapter of Object.keys(states))for(const [location,required] of [[california,true],[germany,true],[texas,false]]){
+  assert.deepEqual(await outcome(page(adapter,states[adapter](false)),location),required?'declined':[202,'not-required'],`${adapter} denied in ${location.regionCode}`)
+  assert.deepEqual(await outcome(page(adapter,states[adapter](true)),location),required?[202,'granted']:[202,'not-required'],`${adapter} granted in ${location.regionCode}`)
+ }
+ // Google Consent Mode v2: the last analytics_storage default or update decides; window.vaneConsent comes first.
+ const gtag=`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('consent','default',{analytics_storage:'denied',ad_storage:'denied'});`
+ assert.equal(await outcome(page('consent-mode',gtag),germany),'declined')
+ assert.deepEqual(await outcome(page('consent-mode',gtag+`gtag('consent','update',{analytics_storage:'granted'})`),germany),[202,'granted'])
+ assert.equal(await outcome(page('cookiebot','window.vaneConsent=false;'+states.cookiebot(true)),germany),'declined','window.vaneConsent comes first')
+ assert.equal(await outcome(page('onetrust',states.onetrust(false)),{country:'XX'}),'declined','an unknown country (Cloudflare\'s XX) is asked for consent')
+ // The configuration door says only whether consent is needed, and collection enforces the same rule.
+ where=texas;const config=await (await a.request(`/api/vane/config/${sites.osano}`,{headers:{origin:'https://osano.fern.example'},cf:texas})).json();assert.equal(config.consent,'not-required');assert.equal(config.consentAdapter,'osano');assert.ok(!JSON.stringify(config).includes('US'))
+ const direct=(cf,consent)=>a.request('/api/vane/collect',{method:'POST',headers:{origin:'https://osano.fern.example','content-type':'application/json','user-agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36'},body:JSON.stringify(a.event(sites.osano,{consent})),cf})
+ assert.equal((await direct(germany,'not-required')).status,403);assert.equal((await direct(texas,'not-required')).status,202);assert.equal((await direct(germany,'granted')).status,202)
+ assert.ok(!JSON.stringify((await a.dump()).vane_events).match(/"(DE|BE|TX)"/),'no region is stored')
+ await context.close()
+})

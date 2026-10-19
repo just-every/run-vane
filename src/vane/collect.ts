@@ -1,4 +1,5 @@
 import { paymentReferrer } from './revenue'
+import { consentAccepted, consentRequired } from './consent'
 import { assignments } from './experiments'
 import { day, insist, site, siteOrigin, statement, VaneError, type Env } from './core'
 import { tracker } from './tracker'
@@ -30,9 +31,10 @@ export async function collector(request:Request,env:Env):Promise<Response|null> 
   if(request.method==='OPTIONS')return new Response(null,{status:204,headers:{...cors,'access-control-allow-origin':request.headers.get('origin')??'null','access-control-allow-methods':'POST','access-control-allow-headers':'content-type','access-control-max-age':'600'}});
   const value=await site(env,String(id));
   const origin=siteOrigin(value,request);cors={...cors,'access-control-allow-origin':origin};
-  // The script's configuration door serves only what the script uses; the owner's excluded addresses and countries
+  // The script's configuration door serves only what the script uses (PRIVACY-003: whether this visitor's region
+  // requires consent, never the region itself, and the consent manager to read); the owner's excluded addresses and countries
   // (COLLECT-003), goals, funnels and other settings stay in the installation.
-  if(match) { insist(request.method==='GET','method','GET required.',405); const c=value.config; return Response.json({consent:c.consent,sampleRate:c.sampleRate,...(c.declinedCounter?{declinedCounter:true}:{}),autoEvents:c.autoEvents??[],queryKeys:c.queryKeys??[],...(c.searchParam?{searchParam:c.searchParam}:{}),eventDefinitions:c.eventDefinitions??[]},{headers:cors}); }
+  if(match) { insist(request.method==='GET','method','GET required.',405); const c=value.config; return Response.json({consent:consentRequired(c,request)?'required':'not-required',...(c.consentAdapter?{consentAdapter:c.consentAdapter}:{}),sampleRate:c.sampleRate,...(c.declinedCounter?{declinedCounter:true}:{}),autoEvents:c.autoEvents??[],queryKeys:c.queryKeys??[],...(c.searchParam?{searchParam:c.searchParam}:{}),eventDefinitions:c.eventDefinitions??[]},{headers:cors}); }
   if(engage) {
    // METRIC-003: a ping names only the site and its own page load, at least 10 seconds and at most
    // 30 minutes after that load; the latest ping marks the page engaged and ends its time.
@@ -70,7 +72,7 @@ export async function collector(request:Request,env:Env):Promise<Response|null> 
   const excluded=excludedTraffic(request,value.config,typeof refHost==='string'&&!refHost.startsWith('android-app://')?refHost:null);
   if(excluded){await countExclusion(env,value.id,localDay(clock(),value.config.timeZone??'UTC'),excluded).run();throw new VaneError('excluded',`This traffic is excluded from collection (${excluded}).`,403)}
   const e={hostname:hostOf(origin),path,source:mail&&!utmSource&&!keptValue(payload.ref)?'webmail':visitSource(utmSource,keptValue(payload.ref),refHost,own),referrer:referrer&&referrer.protocol!=='android-app:'&&!mail&&!own.includes(referrer.hostname.toLowerCase())?referrer.hostname.toLowerCase()+redactPath(referrer.pathname||'/'):null,campaign:keptValue(payload.campaign)??'none',utmSource,utmMedium:keptValue(utm.medium),utmTerm:keptValue(utm.term),utmContent:keptValue(utm.content),paidClick:payload.click?1:0,query:kept.length?kept.join('&'):null};
-  insist(payload.consent===(value.config.consent==='required'?'granted':'not-required'),'consent','Consent is required for collection.',403);
+  insist(consentAccepted(value.config,request,payload.consent),'consent','Consent is required for collection.',403);
   const now=clock(),today=localDay(now,value.config.timeZone??'UTC'),eventId=value.id+':'+payload.id,props=cleanProps(payload.props);
   let channel=channelOf(e.source,e.utmMedium,e.paidClick===1);
   // CONV-006: a return from a payment processor keeps the visitor's latest earlier acquisition that day (else direct).
