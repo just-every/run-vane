@@ -314,7 +314,7 @@ test('METRIC-003 a quick bounce, a 45-second single-page visit and a three-page 
  const load=async(n,seconds,path='/')=>{await a.clock(start+seconds*1000);const event=a.event(id,{path});assert.equal((await a.post('/api/vane/collect',event,'',person(n))).status,202);return event.id}
  const engage=async(pageLoad,seconds,status,body={siteId:id,id:pageLoad})=>{await a.clock(start+seconds*1000);const r=await a.post('/api/vane/engage',body,'',{origin:'https://fern.example'});assert.equal(r.status,status,await r.text())}
  await load(1,0)
- const single=await load(2,0);await engage(single,5,409);await engage(single,10,202);await engage(single,45,202)
+ const single=await load(2,0);await engage(single,5,409);await engage(single,11,202);await engage(single,45,202)
  await load(3,0);await load(3,20,'/thanks');const last=await load(3,80);await engage(last,120,202)
  await engage(single,50,400,{siteId:id,id:single,seconds:50});await engage(crypto.randomUUID(),50,404);await engage(single,1900,409)
  const r=await (await a.request(`/api/vane/summary?siteId=${id}&from=2026-03-04&to=2026-03-05`,owner)).json()

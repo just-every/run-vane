@@ -2503,7 +2503,7 @@
       "executable": false
     },
     "tests/vane.test.mjs": {
-      "sha256": "f4c0095135bb338f89e8168765511391b0ce8c2801bf519f9c7ff67c15b4f9ff",
+      "sha256": "9f596e178914e7795c2aa4e7e305826cc095363f45984cca28e806ea6cde16a4",
       "executable": false
     },
     "tsconfig.json": {
