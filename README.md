@@ -170,6 +170,11 @@ environment file outside this checkout, or your process environment. RER
 supplies initial session/setup secrets and claims the owner. Never print or
 commit values.
 
+To show later bounces and spam complaints on email reports (REPORT-001), add the
+provider's webhook for delivery events pointing at `https://<your origin>/api/vane/mail-events`
+and set its signing secret (Resend `whsec_...`) or public key (SendGrid) as the
+`MAIL_WEBHOOK_KEY` Worker secret.
+
 ```sh
 rer deploy --env-file /absolute/private/vane-deploy.env
 ```

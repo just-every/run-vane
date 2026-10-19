@@ -19,6 +19,8 @@ export interface ViewData {
   webhookSecret?: string
   reportSubscriptions?: import('../email-reports').Subscription[]
   reportSends?: Awaited<ReturnType<typeof import('../email-reports').reportSends>>
+  mailEvents?: boolean
+  mailStops?: { email: string; status: string; occurred_at: number }[]
   warehouse?: { endpoint: string; bucket: string; region: string; prefix: string; accessKeyId: string; lastDay: string; lastResult: string | null; createdAt: number } | null
   secret?: string
   shares?: import('../share').ShareLink[]

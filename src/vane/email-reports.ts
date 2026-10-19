@@ -6,13 +6,16 @@ import { createInsightsService } from './reports'
 import { moverText } from './explain'
 import { operatorMail } from '../mail.server.mjs'
 import { escape } from './views/html'
+import { mailStop, STOPS } from './mail-events'
 // REPORT-001: daily, weekly and monthly email reports. Anyone who may open a site subscribes their own address; the
 // owner also adds external recipients. A report is due at the chosen hour in the site's time zone (daylight saving
 // included): daily ones every day for the day before, weekly ones on the chosen weekday (Monday by default) for the
 // seven days before, monthly ones on the 1st for the month before. The cron checks every 5 minutes. A send keeps one
 // delivery ID on every attempt, so the provider never delivers it twice; a temporary failure (no answer, rate limit or
 // provider error) is retried after 15 minutes, 2 hours and 12 hours, then shows as failed, and a rejected message is a
-// permanent failure, not retried. Every email has a one-click unsubscribe link.
+// permanent failure, not retried. Every email has a one-click unsubscribe link. An address the mail provider later
+// reports as bounced permanently, marked as spam or suppressed (mail-events.ts) gets no further report email: each
+// send to it fails at once with that reason.
 const DAY=86400000,RETRIES=[900000,7200000,43200000]
 export const FREQUENCIES={daily:'Daily',weekly:'Weekly',monthly:'Monthly'} as const
 export const WEEKDAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
@@ -75,17 +78,19 @@ function render(value:Site,s:Subscription,r:any,from:string,to:string,link:strin
 async function deliver(env:Env,send:{id:string,subscription_id:string,site_id:string,email:string,period_from:string,period_to:string,attempts:number},now:number) {
  const s=(await rows<Subscription>(env,'SELECT * FROM vane_report_subscriptions WHERE id=?',send.subscription_id))[0]
  if(!s)return statement(env,"UPDATE vane_report_sends SET state='failed',reason=? WHERE id=?",'unsubscribed before it was sent',send.id).run()
+ const stop=await mailStop(env,send.email)
+ if(stop)return statement(env,"UPDATE vane_report_sends SET state='failed',next_at=?,reason=? WHERE id=?",now,`not sent: the mail provider reported an earlier report email to this address ${STOPS[stop.status]} on ${new Date(stop.occurred_at).toISOString().slice(0,10)}; reports to it stopped`,send.id).run()
  const value=await site(env,send.site_id),r=await createInsightsService(env,value,now,{from:send.period_from,to:send.period_to,compare:'previous',segment:s.segment_id}).list() as any
  // A fresh token per send keeps the link working while only its SHA-256 is stored.
  const token='vane_u_'+Array.from(crypto.getRandomValues(new Uint8Array(24)),b=>b.toString(16).padStart(2,'0')).join(''),link=`${env.AUTH_ORIGIN.replace(/\/$/,'')}/reports/unsubscribe/${token}`
  await statement(env,'UPDATE vane_report_subscriptions SET token_hash=? WHERE id=?',await digest(token),s.id).run()
  const message=render(value,s,r,send.period_from,send.period_to,link),mail=operatorMail(env)
- let status='',code=''
- try{if(!mail)throw new Error('mail');const result=await mail.send({deliveryId:send.id,from:env.MAIL_FROM!,to:[send.email],...message,headers:{},...(link.startsWith('https://')?{unsubscribe:{url:link,oneClick:true}}:{})} as any);status=result.status;code=result.code??''}catch{status='invalid'}
+ let status='',code='',messageId:string|null=null
+ try{if(!mail)throw new Error('mail');const result=await mail.send({deliveryId:send.id,from:env.MAIL_FROM!,to:[send.email],...message,headers:{},...(link.startsWith('https://')?{unsubscribe:{url:link,oneClick:true}}:{})} as any);status=result.status;code=result.code??'';messageId=result.providerMessageId??null}catch{status='invalid'}
  const attempt=send.attempts+1,sent=status==='accepted'||status==='development',temporary=status==='uncertain'||status==='rate_limited'
  const reason=sent?null:temporary?(attempt>RETRIES.length?`temporary failure (${status}) on all ${attempt} attempts`:`temporary failure (${status}); retry in ${RETRIES[attempt-1]!/60000} min`):status==='invalid'?'mail is not configured or the message was refused before sending':`rejected by the mail provider${code?` (${code})`:''}; not retried`
  const state=sent?'sent':temporary&&attempt<=RETRIES.length?'pending':'failed'
- await statement(env,'UPDATE vane_report_sends SET state=?,attempts=?,next_at=?,reason=?,sent_at=? WHERE id=?',state,attempt,state==='pending'?now+RETRIES[attempt-1]!:now,reason,sent?now:null,send.id).run()
+ await statement(env,'UPDATE vane_report_sends SET state=?,attempts=?,next_at=?,reason=?,sent_at=?,provider_message_id=? WHERE id=?',state,attempt,state==='pending'?now+RETRIES[attempt-1]!:now,reason,sent?now:null,messageId,send.id).run()
 }
 export async function runReports(env:Env,now=clock()) {
  // Due subscriptions become sends (a removed member's own subscription ends instead).
@@ -97,4 +102,4 @@ export async function runReports(env:Env,now=clock()) {
  for(const send of await rows<any>(env,"SELECT * FROM vane_report_sends WHERE state='pending' AND next_at<=? ORDER BY created_at LIMIT 50",now))await deliver(env,send,now)
 }
 export const reportSubscriptions=(env:Env,siteId:string)=>rows<Subscription>(env,'SELECT * FROM vane_report_subscriptions WHERE site_id=? ORDER BY created_at',siteId)
-export const reportSends=(env:Env,siteId:string)=>rows<{id:string,email:string,period_from:string,period_to:string,state:string,attempts:number,reason:string|null,created_at:number,sent_at:number|null}>(env,'SELECT id,email,period_from,period_to,state,attempts,reason,created_at,sent_at FROM vane_report_sends WHERE site_id=? ORDER BY created_at DESC LIMIT 20',siteId)
+export const reportSends=(env:Env,siteId:string)=>rows<{id:string,email:string,period_from:string,period_to:string,state:string,attempts:number,reason:string|null,created_at:number,sent_at:number|null,provider_status:string|null,provider_at:number|null}>(env,'SELECT id,email,period_from,period_to,state,attempts,reason,created_at,sent_at,provider_status,provider_at FROM vane_report_sends WHERE site_id=? ORDER BY created_at DESC LIMIT 20',siteId)

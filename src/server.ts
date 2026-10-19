@@ -13,6 +13,7 @@ import { expireKept } from './vane/segments'
 import { runExports } from './vane/warehouse'
 import { runWebhooks } from './vane/webhooks'
 import { runReports, unsubscribeResponse } from './vane/email-reports'
+import { mailEventResponse } from './vane/mail-events'
 import { clock, clockResponse } from './vane/clock'
 import { vaneResponse } from './vane/routes'
 import { apiDoor } from './vane/api-door'
@@ -69,6 +70,8 @@ export default withDemo({
     if (shared) return shared
     const unsubscribed = await unsubscribeResponse(request, runtimeBindings(env))
     if (unsubscribed) return unsubscribed
+    const mailEvent = await mailEventResponse(request, runtimeBindings(env))
+    if (mailEvent) return mailEvent
     const keyed = await apiDoor(request, env)
     if (keyed) return keyed
     const auth = await authResponse(request, env)

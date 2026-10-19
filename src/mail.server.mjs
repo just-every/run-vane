@@ -1,4 +1,5 @@
 import { createMailSender } from './modules/mail/index.mjs'
+export { createD1EventStore, createDeliveryEventIntake, verifyWebhook } from './modules/mail/index.mjs'
 
 export function operatorMail(env) {
  if (env.RER_DEMO === '1') return createMailSender({ provider: 'development', mode: 'development' })

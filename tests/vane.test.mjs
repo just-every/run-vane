@@ -1810,12 +1810,13 @@ test('API-003 a signed webhook receives a goal burst as per-minute counts once e
  assert.ok(a.egress.every(url=>url.startsWith('https://hooks.fixture.example/')||url.includes('resend')),'deliveries go only to the endpoint')
  const hook=(await a.dump()).vane_webhooks[0].id;assert.equal((await a.form({operation:'webhook.delete',id:hook},a.owner)).status,303);assert.ok((await a.dump()).vane_audit.some(e=>e.action==='webhook.delete'))
 })
-test('REPORT-001 two weekly subscribers get the Monday 8:00 New York report once each across a daylight-saving change with the dashboard\'s figures, one-click unsubscribe stops it, temporary failures retry after 15 minutes and 2 hours, four failures show as failed, and a rejected message is not retried',async t=>{
- const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({paths:[],timeZone:'America/New_York',goals:{signup:'/thanks'}})
+test('REPORT-001 two weekly subscribers get the Monday 8:00 New York report once each across a daylight-saving change with the dashboard\'s figures, one-click unsubscribe stops it, temporary failures retry after 15 minutes and 2 hours, four failures show as failed, a rejected message is not retried, and later signed provider bounces and complaints show on the sends and stop further reports to that address',async t=>{
+ const key=`whsec_${Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString('base64')}`,a=await installation({vars:{MAIL_WEBHOOK_KEY:key}});t.after(()=>a.close())
+ const owner={headers:{cookie:a.owner}},id=await a.addSite({paths:[],timeZone:'America/New_York',goals:{signup:'/thanks'}})
  for(const [n,at,path] of [[1,'2026-02-24T15:00:00Z','/'],[2,'2026-02-25T16:00:00Z','/pricing'],[2,'2026-02-25T16:02:00Z','/thanks'],[3,'2026-02-27T18:00:00Z','/'],[4,'2026-03-04T15:00:00Z','/']]){await a.clock(Date.parse(at));assert.equal((await a.post('/api/vane/collect',a.event(id,{path}),'',{origin:'https://fern.example','cf-connecting-ip':'203.0.113.'+n,'user-agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36'})).status,202)}
  // The mail provider's edge: each address gets the statuses queued for it, then 200.
  const mails=[],plan={'retry@client.example':[500,500],'down@client.example':[500,500,500,500],'gone@client.example':[422]}
- a.fixtureSites['https://api.resend.com']=async request=>{const body=await request.json(),to=body.to[0];if(!/ report, /.test(body.subject)){a.sentMail.push(body);return Response.json({id:crypto.randomUUID()})}const status=plan[to]?.shift()??200;mails.push({to,subject:body.subject,text:body.text,key:request.headers.get('idempotency-key'),status});return status===200?Response.json({id:crypto.randomUUID()}):Response.json({message:'refused'},{status})}
+ a.fixtureSites['https://api.resend.com']=async request=>{const body=await request.json(),to=body.to[0];if(!/ report, /.test(body.subject)){a.sentMail.push(body);return Response.json({id:crypto.randomUUID()})}const status=plan[to]?.shift()??200,mid=crypto.randomUUID();mails.push({to,subject:body.subject,text:body.text,key:request.headers.get('idempotency-key'),status,mid});return status===200?Response.json({id:mid}):Response.json({message:'refused'},{status})}
  const subscribe=body=>a.form({operation:'report.subscribe',siteId:id,frequency:'weekly',weekday:'1',hour:'8',...body},a.owner),at=async iso=>{await a.clock(Date.parse(iso));await a.scheduled()},to=address=>mails.filter(m=>m.to===address)
  await a.clock(Date.parse('2026-02-27T20:00:00Z'));assert.equal((await subscribe({})).status,303);assert.equal((await subscribe({email:'cfo@client.example'})).status,303)
  assert.equal((await a.form({operation:'team.invite',email:'viewer@example.test',role:'viewer',scope:'all'},a.owner)).status,303)
@@ -1841,5 +1842,30 @@ test('REPORT-001 two weekly subscribers get the Monday 8:00 New York report once
  assert.match(sends,/<td>retry@client\.example<\/td><td>[^<]*<\/td><td>sent<\/td><td class="vane-number">3<\/td>/)
  // Only the owner adds an external recipient; a viewer subscribes their own address.
  const viewer=await a.accept('viewer@example.test');assert.equal((await a.form({operation:'report.subscribe',siteId:id,frequency:'weekly',weekday:'1',hour:'8',email:'someone@client.example'},viewer)).status,403);assert.equal((await a.form({operation:'report.subscribe',siteId:id,frequency:'monthly',weekday:'1',hour:'8'},viewer)).status,303)
+ // Later provider events, signed as Resend signs them (Svix), reach /api/vane/mail-events through the installation's key.
+ let now=Date.parse('2026-03-18T00:19:00Z')
+ const event=(type,mid,to,{id=crypto.randomUUID(),at=now,secret=key}={})=>{const raw=JSON.stringify({type,created_at:new Date(at).toISOString(),data:{email_id:mid,to:[to]}}),ts=Math.floor(now/1000);return {raw,headers:{'content-type':'application/json','svix-id':id,'svix-timestamp':String(ts),'svix-signature':`v1,${createHmac('sha256',Buffer.from(secret.slice(6),'base64')).update(`${id}.${ts}.${raw}`).digest('base64')}`}}}
+ const deliver=e=>a.request('/api/vane/mail-events',{method:'POST',headers:e.headers,body:e.raw}),row=async email=>unlinked(await (await a.request(`/app/sites/${id}?section=settings`,owner)).text()).match(new RegExp(`<tr><td>[^<]*</td><td>${email.replace('.','\\.')}</td>.*?</tr>`,'g'))??[]
+ const retried=to('retry@client.example').at(-1).mid
+ assert.ok((await row('retry@client.example'))[0].includes('<td>no provider event yet</td>'),'connected, nothing reported yet')
+ assert.equal((await deliver(event('email.delivered',retried,'retry@client.example',{secret:`whsec_${Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString('base64')}`}))).status,401,'a wrong signature is refused')
+ assert.equal((await deliver(event('email.bounced',retried,'other@client.example'))).status,409,'an event must name the send\'s own address')
+ assert.deepEqual(await (await deliver(event('email.bounced',crypto.randomUUID(),'owner@example.test'))).json(),{ok:true,kept:false,reason:'not a report email'})
+ assert.equal((await deliver(event('email.delivered',retried,'retry@client.example'))).status,200)
+ assert.match((await row('retry@client.example'))[0],/<td>sent<\/td><td class="vane-number">3<\/td><td><\/td><td>delivered to the recipient’s mail server \(provider event, Mar 18, 2026\)<\/td>/)
+ // The provider reports a permanent bounce hours later: it shows on the send at once, and an identical retry changes nothing.
+ now=Date.parse('2026-03-18T05:00:00Z');await a.clock(now);const bounce=event('email.bounced',retried,'retry@client.example',{id:'msg_bounce_1'})
+ assert.equal((await deliver(bounce)).status,200);assert.equal((await deliver(bounce)).status,200)
+ assert.equal((await deliver(event('email.complained',retried,'retry@client.example',{id:'msg_bounce_1'}))).status,409,'one provider event identity, one body')
+ const settings=await (await a.request(`/app/sites/${id}?section=settings`,owner)).text()
+ assert.match(settings,/<td>bounced permanently; reports to this address stopped \(provider event, Mar 18, 2026\)<\/td>/);assert.match(settings,/retry@client\.example: Daily at 06:00 <strong data-mail-stop>Reports stopped: the mail provider reported this address bounced permanently on Mar 18, 2026\.<\/strong>/)
+ // A spam complaint on the owner's last weekly report stops theirs too; the next due sends fail at once, unsent, with the reason.
+ assert.equal((await deliver(event('email.complained',to('owner@example.test').at(-1).mid,'owner@example.test'))).status,200)
+ const before={retry:to('retry@client.example').length,owner:to('owner@example.test').length}
+ await at('2026-03-18T10:01:00Z');await at('2026-03-23T12:01:00Z')
+ assert.deepEqual({retry:to('retry@client.example').length,owner:to('owner@example.test').length},before,'no report email to a stopped address')
+ assert.match((await row('retry@client.example'))[0],/<td>failed<\/td><td class="vane-number">0<\/td><td>not sent: the mail provider reported an earlier report email to this address bounced permanently on 2026-03-18; reports to it stopped<\/td>/)
+ assert.match((await row('owner@example.test'))[0],/<td>failed<\/td><td class="vane-number">0<\/td><td>not sent: the mail provider reported an earlier report email to this address marked as spam on 2026-03-18; reports to it stopped<\/td>/)
+ assert.ok(to('down@client.example').length>4,'other addresses keep their reports')
  assert.ok(!JSON.stringify(await a.dump()).includes(link.pathname.split('/').pop()),'only the unsubscribe token\'s hash is kept')
 })
