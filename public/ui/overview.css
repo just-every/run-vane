@@ -1,0 +1,199 @@
+/* The Overview: top bar, metric cards, chart, four short tables and the What changed panel, then the report groups. */
+.vane-topbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 14px; margin: 0 0 24px; }
+.rer-themed .vane-app .vane-range { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; flex: 0 1 auto; }
+.vane-range-pick { display: flex; align-items: center; gap: 12px; }
+.rer-themed .vane-app label.vane-bar-select { position: relative; display: block; }
+.vane-bar-select > .vane-icon { position: absolute; z-index: 1; top: 11px; left: 12px; color: var(--body); pointer-events: none; }
+.vane-bar-select:has(> .vane-icon) select { padding-inline-start: 42px; }
+.rer-themed .vane-topbar select { min-height: 44px; width: auto; min-width: 170px; field-sizing: content; color: var(--ink); font-size: 15px; }
+.vane-range-dates { color: var(--body); font-size: 14.5px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.vane-more { position: relative; }
+.rer-themed .vane-more > summary { display: inline-flex; align-items: center; min-height: 44px; padding: 0 4px; color: var(--blue-ink); font-size: 14.5px; list-style: none; }
+.vane-more > summary::-webkit-details-marker { display: none; }
+.vane-more > summary::after { content: ''; width: 6px; height: 6px; margin: -3px 0 0 8px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg); }
+.vane-more[open] > summary::after { margin-top: 3px; transform: rotate(-135deg); }
+.vane-more-body { position: absolute; z-index: 15; top: calc(100% + 6px); left: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 14px; width: min(560px, calc(100vw - 48px)); padding: 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: var(--card-shadow); }
+.vane-more-body > .vane-help, .vane-more-body > .vane-check { grid-column: 1 / -1; }
+.rer-themed .vane-topbar .vane-range > button { min-height: 44px; border-radius: 10px; padding: 9px 16px; }
+.vane-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.rer-themed .vane-chip { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 8px 14px; border-radius: 10px; background: var(--blue-tint); color: #18326e; font-size: 14.5px; text-decoration: none; }
+.vane-chip span[aria-hidden] { color: #6f8fc6; font-size: 19px; line-height: 1; }
+.rer-themed .vane-topbar .vane-button { min-height: 44px; padding: 9px 16px; border-radius: 10px; }
+.rer-themed .vane-topbar .vane-share { margin-left: auto; }
+
+.vane-filters:not(.is-open):not(:target) { display: none; }
+.vane-filters { scroll-margin-top: 16px; }
+
+.vane-overview { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 14px; align-items: stretch; }
+.vane-overview-main { min-width: 0; }
+.vane-overview-head { margin: 0 0 16px; }
+.rer-themed .vane-app .vane-subtitle { margin: 6px 0 0; color: var(--body); font-size: 15px; line-height: 1.5; }
+.rer-themed .vane-app .vane-partial { margin: -6px 0 14px; font-size: 12.5px; }
+
+/* Metric cards: the selected one drives the chart; definitions open on hover or focus. */
+.vane-metrics { display: grid; grid-template-columns: 1.2fr .96fr .96fr .96fr 1.08fr; gap: 11px; margin-bottom: 16px; }
+.vane-kpi { position: relative; display: grid; grid-template-columns: 20px minmax(0, 1fr); align-content: start; column-gap: 8px; margin: 0; padding: 16px 15px 14px; min-height: 138px; }
+.vane-kpi.is-selected { border: 1.5px solid var(--blue); box-shadow: none; }
+.vane-kpi > * { grid-column: 1 / -1; }
+.vane-kpi > .vane-kpi-icon { grid-column: 1; grid-row: 1; color: var(--blue); }
+.vane-app .vane-kpi > h2 { grid-column: 2; grid-row: 1; margin: 0 0 10px; color: #42506e; font-family: var(--font-body); font-size: 13.5px; font-weight: 400; letter-spacing: 0; line-height: 20px; white-space: nowrap; }
+.rer-themed .vane-app .vane-kpi .vane-metric { margin: 0; color: var(--ink); font-family: var(--font-head); font-size: 30px; line-height: 1.1; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.rer-themed .vane-app .vane-kpi.is-selected .vane-metric { font-size: 32px; }
+.vane-kpi > .vane-help { position: absolute; z-index: 3; top: calc(100% + 6px); left: 0; right: 0; width: auto; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); box-shadow: var(--card-shadow); color: var(--body); font-size: 13px; clip: rect(0, 0, 0, 0); clip-path: inset(50%); }
+.vane-kpi:hover > .vane-help, .vane-kpi:focus-within > .vane-help { clip: auto; clip-path: none; }
+.rer-themed .vane-app .vane-delta { order: 0; margin: 6px 0 0; color: var(--body); font-size: 12.5px; line-height: 1.4; }
+.vane-delta .vane-change { display: flex; align-items: center; gap: 4px; margin-bottom: 1px; font-size: 18px; }
+.vane-delta.is-up .vane-change::before { content: '↑'; }
+.vane-delta.is-down .vane-change::before { content: '↓'; }
+.vane-delta.is-good .vane-change { color: var(--green-ink); }
+.vane-delta.is-bad .vane-change { color: var(--coral-ink); }
+.vane-delta.is-flat .vane-change { color: var(--body); }
+.rer-themed .vane-app .vane-kpi-extra { margin: 4px 0 0; color: #42506e; font-size: 12.5px; }
+.vane-kpi-link { position: absolute; inset: 0; z-index: 2; border-radius: inherit; }
+.vane-kpi:hover:not(.is-selected) { border-color: #c9d6ee; }
+
+/* The chart card: metric title and legend, HTML axes around a stretched plot, companions and the data table. */
+.vane-chart-panel { padding: 20px 25px 16px; margin-bottom: 14px; }
+.vane-chart-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 20px; margin-bottom: 8px; }
+.vane-app .vane-chart-head h2 { margin: 0; font-size: 19px; }
+.rer-themed .vane-app .vane-chart-legend { display: flex; gap: 18px; margin: 0; color: #42506e; font-size: 13px; }
+.vane-chart-legend span { display: inline-flex; align-items: center; gap: 8px; }
+.vane-chart-legend span::before { content: ''; width: 10px; height: 10px; border-radius: 50%; background: var(--blue); }
+.vane-chart-legend .vane-legend-then::before { background: #b9cff8; }
+.rer-themed .vane-app .vane-chart-callout { display: inline-flex; flex-wrap: wrap; gap: 4px 8px; margin: 2px 0 6px; padding: 6px 10px; border: 1px solid #f6c9d1; border-radius: 8px; background: var(--coral-tint); color: var(--ink); font-size: 13px; }
+.vane-chart-callout span { color: var(--coral-ink); }
+.vane-chart-figure { margin: 0 0 10px; }
+.vane-plot { display: grid; grid-template-columns: 38px minmax(0, 1fr); margin: 10px 0 0; }
+.vane-chart-y { display: flex; flex-direction: column; justify-content: space-between; height: 180px; padding: 10px 10px 7px 0; color: var(--body); font-size: 12px; text-align: right; font-variant-numeric: tabular-nums; }
+.vane-chart-y span { display: flex; align-items: center; justify-content: flex-end; height: 0; white-space: nowrap; }
+.vane-plot-area { min-width: 0; padding-right: 18px; }
+.vane-chart { display: block; width: 100%; height: auto; overflow: visible; color: var(--blue); }
+.vane-plot-area .vane-chart { height: 180px; }
+.vane-chart-grid { stroke: var(--line-soft); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.vane-chart-axis { stroke: var(--line); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.vane-chart-area { fill: url(#vane-chart-fill); }
+.vane-chart-line { fill: none; stroke: var(--blue); stroke-width: 2.2; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.vane-chart-compare { fill: none; stroke: #a9c3f5; stroke-width: 2; stroke-dasharray: 2 6; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.vane-chart-dot { stroke: var(--blue); stroke-width: 8; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.vane-chart-dot.vane-chart-flag { stroke: var(--coral); stroke-width: 10; }
+.vane-chart-running { fill: none; stroke: var(--blue); stroke-width: 2; stroke-dasharray: 3 5; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.vane-chart-figure .vane-annotations { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 6px 0; padding: 0; list-style: none; color: var(--body); font-size: 13px; }
+.vane-chart-figure .vane-annotations li { display: inline-flex; align-items: baseline; gap: 6px; margin: 0; }
+.vane-chart-figure .vane-annotations li::before { content: ''; flex: none; width: 0; height: 11px; border-left: 1.5px dashed #7f9bd6; }
+.vane-chart-compare-dot { stroke: #b9cff8; stroke-width: 6; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.vane-chart-point, .vane-chart-compare-point { fill: transparent; }
+.vane-chart-annotation { stroke: #7f9bd6; stroke-width: 1.2; stroke-dasharray: 3 4; vector-effect: non-scaling-stroke; }
+.vane-chart-x { display: flex; justify-content: space-between; margin-top: 8px; color: var(--body); font-size: 12px; line-height: 1.35; text-align: center; }
+.vane-chart-x span { display: flex; justify-content: center; width: 0; white-space: nowrap; }
+.vane-chart-x span.is-flagged { color: var(--coral-ink); font-weight: 600; }
+.rer-themed .vane-app .vane-chart-dates { margin: 4px 0; }
+.vane-chart-key { display: inline-block; width: 16px; height: 0; border-top: 2px solid var(--blue); vertical-align: middle; }
+.vane-chart-key-compare { border-top: 2px dashed #a9c3f5; }
+.vane-chart-foot { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px 20px; margin-top: 8px; padding-top: 12px; border-top: 1px solid var(--line-soft); }
+.vane-chart-foot > .vane-chart-data[open] { grid-column: 1 / -1; }
+.vane-chart-data { margin: 0; }
+.vane-metrics-more { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 0; }
+.vane-metrics-more > .vane-panel { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: baseline; column-gap: 12px; margin: 0; padding: 0; border: 0; box-shadow: none; }
+.vane-app .vane-metrics-more h2 { grid-column: 1 / -1; margin: 0 0 2px; color: #42506e; font-family: var(--font-body); font-size: 13px; font-weight: 500; }
+.rer-themed .vane-app .vane-metrics-more .vane-metric { margin: 0; font-family: var(--font-head); font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.rer-themed .vane-app .vane-metrics-more p:not(.vane-metric) { margin: 0; color: var(--body); font-size: 12.5px; }
+.vane-metrics-more .vane-help { grid-column: 1 / -1; }
+
+/* Four short tables with thin bars. */
+.vane-shorts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.vane-short-card { display: flex; flex-direction: column; margin: 0; padding: 16px 14px 14px; }
+.vane-app .vane-short-title { margin: 0 0 10px; font-size: 15.5px; }
+.vane-app table.vane-short { table-layout: fixed; font-size: 13px; }
+.vane-short th:first-child { width: auto; }
+.vane-short th:nth-child(2), .vane-short td:nth-child(2) { width: 62px; }
+.vane-short-sub { display: block; margin-top: 2px; color: var(--body); font-size: 12px; font-weight: 400; }
+.vane-app .vane-short thead th { padding: 0 0 6px; font-size: 12px; }
+.vane-app .vane-short th, .vane-app .vane-short td { padding: 8px 0 6px; vertical-align: top; }
+.vane-app .vane-short td { padding-left: 6px; color: var(--ink); }
+.vane-short-label { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.vane-short-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rer-themed .vane-short-name a { color: #1f2f55; text-decoration: none; }
+.rer-themed .vane-short-name a:hover { color: var(--blue-ink); text-decoration: underline; }
+.vane-bar { display: block; width: 100%; height: 4px; margin-top: 6px; }
+.vane-bar-track { fill: transparent; }
+.vane-bar-fill { fill: #5a9bff; }
+tr[data-flagged] .vane-bar-fill { fill: var(--coral); }
+.vane-flag { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; background: var(--coral); color: #fff; font-size: 11px; font-weight: 700; line-height: 1; }
+.vane-avatar { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 6px; color: #fff; font-size: 11px; font-weight: 700; }
+.vane-tone-0 { background: #4f7ff0; } .vane-tone-1 { background: #f08a3c; } .vane-tone-2 { background: #1fa463; } .vane-tone-3 { background: #8b4fe0; } .vane-tone-4 { background: #e2557a; }
+.rer-themed .vane-more-link { display: inline-flex; align-items: center; gap: 6px; margin-top: auto; padding-top: 12px; font-size: 13.5px; text-decoration: none; }
+.vane-more-link .vane-icon { width: 15px; height: 15px; }
+
+/* What changed: the finding, its evidence, the change waiting for the owner and the latest day's result. */
+.vane-moved { position: sticky; top: 16px; align-self: start; min-height: calc(100vh - 100px); margin: 0; padding: 22px 18px; }
+.vane-moved-head { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+.vane-moved-mark { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 50%; background: var(--blue-tint); color: var(--blue); }
+.vane-moved-mark .vane-icon { width: 18px; height: 18px; }
+.vane-app .vane-moved-head h2 { margin: 0; font-size: 21px; }
+.rer-themed .vane-app .vane-moved-finding { margin: 0 0 6px; color: var(--ink); font-family: var(--font-head); font-size: 21px; line-height: 1.3; font-weight: 700; letter-spacing: -.01em; }
+.rer-themed .vane-app .vane-moved-detail { margin: 0 0 24px; color: var(--body); font-size: 16px; }
+.vane-app .vane-moved h3 { margin: 28px 0 10px; font-family: var(--font-head); font-size: 18px; font-weight: 700; }
+.vane-app .vane-evidence { margin: 0; padding: 0; list-style: none; border: 1px solid var(--line); border-radius: 10px; background: #f8fbff; overflow: hidden; }
+.vane-evidence li + li { border-top: 1px solid var(--line); }
+.rer-themed .vane-evidence a { display: flex; align-items: center; gap: 12px; min-height: 65px; padding: 12px 16px; color: var(--ink); text-decoration: none; }
+.vane-evidence a:hover { background: var(--surface); }
+.vane-evidence a > .vane-icon:first-child { color: #5a6a8c; }
+.vane-evidence a > span, .vane-proposed > span, .vane-result > span { display: grid; flex: 1; gap: 1px; min-width: 0; }
+.vane-evidence strong { overflow-wrap: anywhere; font-size: 15px; font-weight: 500; }
+.vane-evidence small, .vane-proposed small, .vane-result small { color: var(--body); font-size: 14px; overflow-wrap: anywhere; }
+.vane-chevron { width: 16px; height: 16px; color: #7a87a3; }
+.vane-proposed { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 10px; background: var(--blue-tint); }
+.vane-proposed > .vane-icon { width: 24px; height: 24px; color: var(--blue); }
+.vane-proposed strong { font-size: 14.5px; }
+.vane-moved-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+.rer-themed .vane-app .vane-moved-actions form { display: block; }
+.rer-themed .vane-app .vane-moved-actions button, .rer-themed .vane-app .vane-moved-actions .vane-button { width: 100%; min-height: 48px; padding-inline: 12px; }
+.rer-themed .vane-app .vane-moved-actions .vane-help { margin: 0; align-self: center; }
+.rer-themed .vane-app .vane-authority { display: flex; align-items: flex-start; gap: 8px; margin: 12px 0 0; color: var(--body); font-size: 13px; }
+.vane-authority .vane-icon { width: 17px; height: 17px; margin-top: 1px; }
+.rer-themed .vane-result { display: flex; align-items: center; gap: 12px; margin-top: 30px; padding: 17px 16px; border: 1px solid #c6ead6; border-radius: 10px; background: var(--green-tint); color: var(--ink); text-decoration: none; }
+.vane-result strong { font-size: 14.5px; }
+.vane-result-icon { width: 26px; height: 26px; padding: 5px; border-radius: 50%; background: var(--green); color: #fff; stroke-width: 2.4; }
+.rer-themed .vane-result.is-out { border-color: #f6c9d1; background: var(--coral-tint); }
+.vane-result.is-out .vane-result-icon { background: var(--coral); }
+
+/* The report groups below the Overview, each reached from the rail. */
+.vane-group { margin-top: 44px; padding-top: 28px; border-top: 1px solid var(--line); scroll-margin-top: 8px; }
+.vane-group-head { margin-bottom: 18px; }
+.vane-app .vane-group-title { margin: 0; font-size: 24px; letter-spacing: -.02em; }
+.rer-themed .vane-app .vane-group-head p { margin: 4px 0 0; color: var(--body); font-size: 14.5px; }
+
+@media (max-width: 1360px) {
+  .vane-shorts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 1180px) {
+  .vane-overview { grid-template-columns: minmax(0, 1fr); }
+  .vane-moved { position: static; min-height: 0; }
+  .vane-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 680px) {
+  .rer-themed .vane-app h1 { font-size: 28px; }
+  .vane-topbar { gap: 10px; }
+  .rer-themed .vane-app .vane-range { display: grid; grid-template-columns: minmax(0, 1fr) auto; width: 100%; }
+  .vane-range-pick { grid-column: 1 / -1; flex-wrap: wrap; }
+  .rer-themed .vane-topbar .vane-range-pick select { width: auto; }
+  .rer-themed .vane-topbar label.vane-bar-select:not(:has(.vane-icon)) { grid-column: 1 / -1; }
+  .rer-themed .vane-topbar label.vane-bar-select:not(:has(.vane-icon)) select { width: 100%; }
+  .vane-more-body { position: static; grid-template-columns: minmax(0, 1fr); width: auto; margin-top: 6px; box-shadow: none; }
+  .vane-more { grid-column: 1 / -1; }
+  .vane-more[open] { grid-column: 1 / -1; }
+  .rer-themed .vane-topbar .vane-share { margin-left: 0; }
+  .vane-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .vane-metrics > .vane-kpi:last-child { grid-column: 1 / -1; }
+  .vane-kpi { min-height: 0; padding: 14px 14px 12px; }
+  .rer-themed .vane-app .vane-kpi .vane-metric, .rer-themed .vane-app .vane-kpi.is-selected .vane-metric { font-size: 26px; }
+  .vane-chart-panel { padding: 16px 14px 14px; }
+  .vane-plot { grid-template-columns: 34px minmax(0, 1fr); }
+  .vane-plot-area .vane-chart, .vane-chart-y { height: 180px; }
+  .vane-chart-y { padding: 10px 8px 7px 0; }
+  .vane-plot-area { padding-right: 14px; }
+  .vane-chart-x { font-size: 11px; }
+  .vane-shorts, .vane-metrics-more, .vane-chart-foot { grid-template-columns: minmax(0, 1fr); }
+  .vane-short th:nth-child(2), .vane-short td:nth-child(2) { width: 84px; }
+  .vane-group-title { font-size: 21px; }
+}

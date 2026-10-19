@@ -4,9 +4,12 @@ Run `rer demo` for a fresh, signed-in Vane Demo. Stop it with `rer demo --stop`.
 The demo uses `.rer/demo/`, leaves `.wrangler/state` alone, and deletes its data
 on stop. Another start gets a new workspace. There is no demo bar or outbox.
 
-Three configured websites have two weeks of recent page loads, visits (with
-engagement and bounces), sources, campaigns and goals, approved site history and
-a pending settings change (excluding preview pages) to review.
+Three configured US websites have nine weeks of recent page loads (enough for the
+day-of-week baseline), visits with engagement, bounces and returning visitors,
+devices, browsers, sources, channels, a newsletter campaign and goals, approved site
+history and a pending settings change (excluding preview pages) to review. Fern &
+Field's shop pages went unrecorded for one day five days ago, after an annotated
+deploy, so its Overview shows that day outside normal variation and the recovery.
 `src/demo.ts` loads real records with fixed IDs and never fetches. Verify's `demo`
 job (`tests/demo.journey.mjs`) starts `rer demo` in CI, opens each example site,
 approves the pending change, stops it and checks that its data is gone and the

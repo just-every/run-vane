@@ -1,0 +1,64 @@
+/* Screen layouts beyond the Overview: sites, settings, history, real-time, approvals, team and the public pages. */
+/* Plain metric tiles (real-time, revenue, the public page) share the card look without picking a chart. */
+.vane-metrics > .vane-panel:not(.vane-kpi) { margin: 0; padding: 16px 18px; }
+.vane-metrics:not(:has(.vane-kpi)) { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+.vane-app .vane-metrics > .vane-panel:not(.vane-kpi) h2 { margin: 0 0 8px; color: #42506e; font-family: var(--font-body); font-size: 14px; font-weight: 500; }
+.rer-themed .vane-app .vane-metric { margin: 0 0 8px; color: var(--ink); font-family: var(--font-head); font-size: 30px; line-height: 1.1; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.rer-themed .vane-app .vane-metrics > .vane-panel:not(.vane-kpi) p:not(.vane-metric) { font-size: 13px; color: var(--body); margin-bottom: 4px; }
+
+/* Your sites: the heading card, the list with sparklines and the add-a-site form side by side. */
+.vane-sites-heading { margin-top: 8px; }
+.vane-sites-layout, .vane-settings-layout { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; }
+.vane-sites-layout > .vane-panel, .vane-settings-layout > .vane-panel { margin-bottom: 0; }
+.vane-settings-layout > #share, .vane-settings-layout > .vane-panel:has(.vane-config-form), .vane-settings-layout > .vane-panel:has(table) { grid-column: 1 / -1; }
+.vane-sites { margin: 0; padding: 0; list-style: none; }
+.vane-sites li { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--line-soft); }
+.vane-sites li:first-child { padding-top: 4px; }
+.vane-sites li:last-child { padding-bottom: 0; border-bottom: 0; }
+.vane-sites li > div { flex: 1; min-width: 0; }
+.vane-sites li > a { flex: none; font-size: 14px; text-decoration: none; }
+.rer-themed .vane-site-name { color: var(--ink); font-size: 16px; font-weight: 600; text-decoration: none; }
+.rer-themed .vane-sites p { margin: 3px 0 0; color: var(--body); font-size: 13.5px; overflow-wrap: anywhere; }
+.vane-site-stats [data-change^="-"] { color: var(--coral-ink); }
+.vane-sparkline { flex: none; width: 104px; height: 28px; color: var(--blue); }
+.vane-sparkline polyline { fill: none; stroke: currentColor; stroke-width: 1.6; vector-effect: non-scaling-stroke; }
+.vane-sites-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; min-height: 260px; padding: 28px 16px; text-align: center; color: var(--body); }
+.vane-sites-empty svg { color: var(--blue); }
+.vane-sites-empty p { max-width: 34ch; }
+
+/* Approvals: one card per proposal, its values folded. */
+.vane-proposal + .vane-proposal { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--line); }
+.vane-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.vane-proposal .vane-row h3 { margin: 0; }
+
+/* Real-time: the refreshing block. */
+[data-realtime] > .vane-help:first-child { margin-bottom: 14px; }
+
+/* Public stats and shared links: no rail, a centred column with the mark on top. */
+.rer-themed body.vane-app:not(.vane-shell) { padding: 32px 24px 48px; }
+.rer-themed body.vane-app:not(.vane-shell) > main { max-width: 1100px; margin: 0 auto; }
+.rer-themed body.vane-app:not(.vane-shell) .rer-brand { margin-bottom: 24px; font-family: var(--font-head); font-size: 22px; font-weight: 700; }
+.rer-themed body.vane-app:not(.vane-shell) h1 { margin-bottom: 20px; }
+/* SHARE-001: a shared link opened with ?theme=dark. */
+.vane-dark { --rer-page: #0f131c; --rer-surface: #171c27; --rer-text: #eef2f8; --rer-muted: #aab4c8; --rer-border: #5b6680; --rer-accent: #7ea2ff; --rer-accent-text: #0b0d14; --rer-link: #eef2f8; --rer-tint: #1f2a44; --paper: #0f131c; --surface: #171c27; --ink: #eef2f8; --body: #aab4c8; --line: #2a3142; --line-soft: #222838; --track: #2a3142; --blue-ink: #9db8ff; background: var(--rer-page); color: var(--rer-text); }
+.vane-dark .vane-panel { background: var(--surface); }
+
+@media (max-width: 1100px) {
+  .vane-sites-layout, .vane-settings-layout { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 680px) {
+  .vane-heading { flex-wrap: wrap; margin-top: 4px; }
+  .vane-panel { padding: 16px; }
+  .vane-breakdowns, .vane-form-grid, .vane-collection-options { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .vane-sites li { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .vane-sites li > div { width: 100%; }
+  .rer-themed .vane-app dl { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .vane-app dd { margin-bottom: 10px; }
+  .rer-themed .vane-app form.vane-filter, .rer-themed .vane-app .vane-filter { display: grid; }
+  .vane-filter label { flex: none; }
+  .rer-themed .vane-app form > button, .rer-themed .vane-app .vane-filter > button, .rer-themed .vane-app .vane-form-footer button { width: 100%; }
+  .vane-actions { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .rer-themed .vane-app .vane-actions button { width: 100%; }
+  .vane-code { font-size: 13px; }
+  .rer-themed body.vane-app:not(.vane-shell) { padding: 20px 16px 32px; }
+}

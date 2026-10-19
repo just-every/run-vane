@@ -1,7 +1,7 @@
 import { date, escape, hidden, operation, panel } from './html'
 import type { ViewData } from './types'
 
-const commands: Record<string, string> = {
+export const commands: Record<string, string> = {
   'site.prepare': 'Add site', 'site.create': 'Add site',
   'config.prepare': 'Update collection settings', 'site.configure': 'Update collection settings',
   'history.erase.prepare': 'Erase site history', 'history.erase': 'Erase site history',

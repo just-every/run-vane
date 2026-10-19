@@ -1,0 +1,73 @@
+/* The app shell: a slim white rail (mark, site switcher, destinations, account) beside the workspace.
+   Below 900px the rail becomes a top bar whose menu opens from a native disclosure. */
+.rer-themed body.vane-app { margin: 0; padding: 0; min-height: 100vh; background: var(--rer-page); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.rer-themed body.vane-shell { display: grid; grid-template-columns: 210px minmax(0, 1fr); align-items: start; }
+.vane-app *, .vane-app *::before, .vane-app *::after { box-sizing: border-box; }
+.rer-themed .vane-app main { width: auto; max-width: none; margin: 0; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; overflow-wrap: break-word; }
+.vane-icon { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+.vane-rail { position: sticky; top: 0; height: 100vh; overflow-y: auto; padding: 28px 15px 20px; border-right: 1px solid var(--line); background: rgba(255, 255, 255, .62); }
+.vane-rail-top { display: flex; flex-direction: column; min-height: 100%; }
+.rer-themed .vane-brand { display: block; margin: 0 8px 24px; color: var(--ink); text-decoration: none; }
+.rer-themed .vane-brand .rer-brand { margin: 0; gap: 10px; white-space: nowrap; font-family: var(--font-head); font-size: 23px; line-height: 1; font-weight: 700; letter-spacing: var(--rer-wordmark-tracking); }
+.rer-themed .vane-brand .rer-brand::before { width: 42px; height: 31px; }
+.vane-app .vane-menu > summary { display: none; }
+.vane-menu::details-content { display: contents; content-visibility: visible; }
+.vane-menu-body { display: flex; flex-direction: column; flex: 1; }
+
+.vane-switcher { position: relative; margin-bottom: 14px; }
+.vane-app .vane-switcher > summary { display: grid; gap: 6px; padding: 11px 36px 11px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: 0 1px 2px rgba(16, 32, 72, .04); cursor: pointer; list-style: none; background-image: linear-gradient(to top right, transparent calc(50% - 1.1px), var(--body) calc(50% - .55px), var(--body) calc(50% + .55px), transparent calc(50% + 1.1px)), linear-gradient(to top left, transparent calc(50% - 1.1px), var(--body) calc(50% - .55px), var(--body) calc(50% + .55px), transparent calc(50% + 1.1px)); background-repeat: no-repeat; background-position: right 20px 19px, right 14px 19px; background-size: 6px 6px; }
+.vane-switcher > summary::-webkit-details-marker { display: none; }
+.vane-switcher-name { overflow: hidden; color: var(--ink); font-size: 15px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.vane-live, .vane-live-quiet { display: flex; align-items: center; gap: 8px; color: var(--body); font-size: 12.5px; }
+.vane-live i { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 3px var(--green-tint); }
+.vane-switcher ul { position: absolute; z-index: 20; top: calc(100% + 6px); left: 0; right: -40px; margin: 0; padding: 6px; list-style: none; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: var(--card-shadow); }
+.rer-themed .vane-switcher ul a { display: grid; gap: 1px; padding: 8px 10px; border-radius: 8px; color: var(--ink); text-decoration: none; }
+.vane-switcher ul a:hover, .vane-switcher ul a[aria-current] { background: var(--blue-tint); }
+.vane-switcher ul strong { font-size: 14px; font-weight: 600; }
+.vane-switcher ul small { color: var(--body); font-size: 12px; overflow-wrap: anywhere; }
+
+.vane-nav { display: grid; gap: 2px; }
+.vane-nav + .vane-nav { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+.rer-themed .vane-nav a { display: flex; align-items: center; gap: 12px; min-height: 37px; padding: 8px 11px; border-radius: 9px; color: var(--body); font-size: 15px; text-decoration: none; }
+.vane-nav a .vane-icon { color: #6b7896; }
+.rer-themed .vane-nav a:hover { background: rgba(233, 240, 254, .6); color: var(--ink); }
+.rer-themed .vane-nav a[aria-current="page"] { background: var(--blue-tint); color: var(--blue-ink); font-weight: 500; }
+.vane-nav a[aria-current="page"] .vane-icon { color: var(--blue); }
+/* The report's groups live in the Overview's document: the targeted group lights its rail entry instead. */
+.rer-themed body:has(.vane-group:target) .vane-nav a[data-group="overview"] { background: transparent; color: var(--body); font-weight: 400; }
+body:has(.vane-group:target) .vane-nav a[data-group="overview"] .vane-icon { color: #6b7896; }
+.rer-themed body:has(#pages:target) .vane-nav a[data-group="pages"], .rer-themed body:has(#sources:target) .vane-nav a[data-group="sources"], .rer-themed body:has(#devices:target) .vane-nav a[data-group="devices"], .rer-themed body:has(#goals:target) .vane-nav a[data-group="goals"], .rer-themed body:has(#funnels:target) .vane-nav a[data-group="funnels"], .rer-themed body:has(#search:target) .vane-nav a[data-group="search"], .rer-themed body:has(#notes:target) .vane-nav a[data-group="notes"] { background: var(--blue-tint); color: var(--blue-ink); font-weight: 500; }
+.vane-count { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; margin-left: auto; padding: 0 6px; border-radius: 999px; background: var(--blue-tint); color: var(--blue-ink); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.vane-person { display: flex; align-items: center; gap: 10px; margin-top: auto; padding: 18px 8px 0; }
+.vane-initial { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%; background: var(--blue-tint); color: var(--blue-ink); font-weight: 600; }
+.vane-person > span:last-child { display: grid; gap: 3px; min-width: 0; }
+.vane-person strong { overflow: hidden; font-size: 14px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.vane-badge { display: inline-block; width: fit-content; padding: 2px 8px; border-radius: 999px; background: var(--blue-tint); color: var(--blue-ink); font-size: 12px; line-height: 1.4; font-weight: 600; white-space: nowrap; }
+
+.vane-workspace { display: flex; flex-direction: column; min-width: 0; min-height: 100vh; padding: 16px 14px 0; }
+.vane-workspace main { flex: 1; }
+.vane-footer { margin-top: 48px; padding: 18px 0 24px; border-top: 1px solid var(--line); color: var(--body); font-size: 13px; }
+.vane-skip { position: fixed; left: 16px; top: -120px; z-index: 40; padding: 12px 20px; border: 2px solid var(--rer-focus); border-radius: 10px; background: var(--surface); }
+.vane-skip:focus { top: 16px; }
+.vane-sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.rer-themed body.vane-empty-sites .vane-workspace::after { content: ''; display: block; height: 150px; margin: 0 -24px; background: url('/brand/band.svg') center bottom / 100% auto no-repeat; opacity: .55; }
+
+@media (max-width: 900px) {
+  .rer-themed body.vane-shell { display: block; }
+  .vane-rail { position: sticky; z-index: 30; height: auto; overflow: visible; padding: 10px 16px; border-right: 0; border-bottom: 1px solid var(--line); background: rgba(255, 255, 255, .94); }
+  .vane-rail-top { flex-direction: row; align-items: center; justify-content: space-between; min-height: 0; }
+  .rer-themed .vane-brand { margin: 0; }
+  .rer-themed .vane-brand .rer-brand { font-size: 20px; }
+  .rer-themed .vane-brand .rer-brand::before { width: 36px; height: 27px; }
+  .vane-app .vane-menu > summary { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); cursor: pointer; list-style: none; }
+  .vane-menu > summary::-webkit-details-marker { display: none; }
+  .vane-menu:not([open])::details-content { display: none; content-visibility: hidden; }
+  .vane-menu:not([open]) > .vane-menu-body { display: none; }
+  .vane-menu[open] > .vane-menu-body { position: absolute; top: 100%; left: 0; right: 0; max-height: calc(100vh - 64px); overflow-y: auto; padding: 16px; border-bottom: 1px solid var(--line); background: var(--surface); box-shadow: var(--card-shadow); }
+  .vane-switcher ul { right: 0; }
+  .vane-person { padding-top: 16px; }
+  .vane-workspace { min-height: 0; padding: 16px 16px 0; }
+  .rer-themed body.vane-empty-sites .vane-workspace::after { margin: 0 -16px; }
+}

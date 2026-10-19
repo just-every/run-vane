@@ -19,7 +19,8 @@ test('DEMO-001 rer demo opens a signed-in Vane with three example sites, two wee
  await page.goto(ready+'/app');assert.equal(new URL(page.url()).pathname,'/app','the demo opens signed in')
  const sites=await json('/api/vane/sites');assert.deepEqual(new Set(sites.map(s=>s.name)),new Set(['Fern & Field','Tide Studio','Northline Coffee']))
  for(const site of sites) {
-  await page.goto(`${ready}/app/sites/${site.id}?section=report`);await page.getByRole('heading',{name:site.name,level:1}).waitFor()
+  // The Overview names its site in the rail's site switcher above its heading.
+  await page.goto(`${ready}/app/sites/${site.id}?section=report`);await page.getByRole('heading',{name:'Overview',level:1}).waitFor();assert.equal((await page.locator('.vane-switcher-name').textContent()).trim(),site.name)
   // Two weeks: this week and the week before both have page loads, visits and goal conversions.
   const r=await json('/api/vane/summary?siteId='+site.id)
   for(const key of ['pageviews','previousPageviews','visits','previousVisits','goals','previousGoals','visitors'])assert.ok(r[key]>0,`${site.name} ${key}`)

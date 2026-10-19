@@ -8,6 +8,8 @@ export interface ViewData {
   site?: any
   report?: any
   live?: any
+  /** DASH-001: the selected site's current visitors, for the rail. */
+  liveVisitors?: number
   hook?: { created_at: number } | null
   github?: { created_at: number } | null
   secret?: string

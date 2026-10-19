@@ -9,9 +9,13 @@ import { timedFrom } from './visits'
 export const CURRENT_MS=300000
 const MINUTE=60000,WINDOW=30*MINUTE
 export interface LiveRow { label:string; visitors:number; previous:number }
+const current=`SELECT DISTINCT day,visitor FROM vane_events WHERE site_id=?1 AND kind='pageview' AND visitor IS NOT NULL AND day>=?2 AND ((at>?3 AND at<=?4) OR (engaged_at>?3 AND engaged_at<=?4))`
+// The rail's live count beside the site name: the current visitors alone.
+export async function currentVisitors(env:Env,value:Site,now:number):Promise<number> {
+ return Number((await rows<{n:number}>(env,`SELECT COUNT(*) AS n FROM (${current})`,value.id,localDay(now-86400000,value.config.timeZone??'UTC'),now-CURRENT_MS,now))[0]?.n??0)
+}
 async function live(env:Env,value:Site,now:number,hosts:boolean) {
  const scope=JSON.stringify([value.id]),zone=value.config.timeZone??'UTC',from=localDay(now-86400000,zone),to=localDay(now+86400000,zone)
- const current=`SELECT DISTINCT day,visitor FROM vane_events WHERE site_id=?1 AND kind='pageview' AND visitor IS NOT NULL AND day>=?2 AND ((at>?3 AND at<=?4) OR (engaged_at>?3 AND engaged_at<=?4))`
  const label=hosts?"COALESCE(hostname,'')||path":'path'
  const [count,pages]=await Promise.all([
   rows<{n:number}>(env,`SELECT COUNT(*) AS n FROM (${current})`,value.id,from,now-CURRENT_MS,now),

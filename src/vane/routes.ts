@@ -17,7 +17,7 @@ import { inventory } from './inventory'
 import { storeUse } from './capacity'
 import { createRollup, rollup, rollupReport, rollups } from './rollups'
 import { overview } from './overview'
-import { realtime } from './realtime'
+import { currentVisitors, realtime } from './realtime'
 import { saveSegment, segments } from './segments'
 import { previewSelector } from './event-definitions'
 import { shareLinks } from './share'
@@ -47,7 +47,7 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
   const all=(await sites(env)).filter(s=>open(s.id)),list=!selected&&!extra.rollup&&!extra.error&&(url.searchParams.get('section')??'report')==='report'?await overview(env,all,clock(),{period:url.searchParams.get('period'),sort:url.searchParams.get('sort'),q:url.searchParams.get('q')}):undefined;
   const live=selected&&url.searchParams.get('section')==='realtime';
   const settings=selected&&(extra.section??url.searchParams.get('section'))==='settings',hook=settings?(await rows<{created_at:number}>(env,'SELECT created_at FROM vane_annotation_hooks WHERE site_id=?',selected.id))[0]??null:undefined,github=settings?(await rows<{created_at:number}>(env,'SELECT created_at FROM vane_github_keys WHERE site_id=?',selected.id))[0]??null:undefined;
-  return renderApp({actor:actor as ViewData['actor'],origin:env.AUTH_ORIGIN,store:await storeUse(env),sites:all,overview:list,rollups:(await rollups(env)).filter(r=>r.sites.every((s:any)=>open(s.id))),site:selected,hook,github,shares:settings?await shareLinks(env,selected.id):undefined,segments:selected&&!live?await segments(env,selected.id):undefined,live:live?await realtime(env,selected,clock()):undefined,report:selected&&!live?await createInsightsService(env,selected,clock(),range).list():undefined,proposals,imports,audit,people,apiKeys:keys,section:url.searchParams.get('section')??undefined,notice:url.searchParams.get('notice')??undefined,...extra});
+  return renderApp({actor:actor as ViewData['actor'],origin:env.AUTH_ORIGIN,store:await storeUse(env),sites:all,overview:list,rollups:(await rollups(env)).filter(r=>r.sites.every((s:any)=>open(s.id))),site:selected,hook,github,shares:settings?await shareLinks(env,selected.id):undefined,segments:selected&&!live?await segments(env,selected.id):undefined,live:live?await realtime(env,selected,clock()):undefined,liveVisitors:selected?await currentVisitors(env,selected,clock()):undefined,report:selected&&!live?await createInsightsService(env,selected,clock(),range).list():undefined,proposals,imports,audit,people,apiKeys:keys,section:url.searchParams.get('section')??undefined,notice:url.searchParams.get('notice')??undefined,...extra});
  }
  try {
   const session=await operatorAuth(env).getSession(request);

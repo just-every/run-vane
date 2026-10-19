@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased — 19 October 2026
+
+- Carry the owner-picked app look through every app screen: a slim rail with the
+  swallow mark, site switcher and live count; an Overview with a top bar, five
+  metric cards that pick the chart, a stretched chart that marks days outside
+  normal variation, four short tables and a What changed panel with the change
+  waiting for approval; the full report groups below, reached from the rail.
+- Quiet one-pixel fields with a blue focus ring, near-black pill buttons and
+  Base's two-gradient select chevron on every screen, at 1440 and 390 px.
+- Load nine weeks of US demo traffic with devices, channels, returning visitors
+  and one annotated day when the shop's page loads went unrecorded.
+
 ## Unreleased — 16 October 2026
 
 - Run the hosted demo on rer 0.2.30's native Worker Loader host instead of a

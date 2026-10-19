@@ -1,0 +1,97 @@
+/* Shared surfaces: headings, white hairline cards, quiet forms, pill buttons, dense tables and notices. */
+.vane-app main :where(a) { color: var(--blue-ink); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.rer-themed .vane-app :focus-visible { outline: 2px solid var(--rer-focus); outline-offset: 2px; }
+.rer-themed .vane-app h1 { margin: 0; color: var(--ink); font-family: var(--font-head); font-size: 36px; line-height: 1.12; font-weight: 700; letter-spacing: -.025em; text-wrap: balance; }
+.vane-app h2 { margin: 0 0 14px; color: var(--ink); font-family: var(--font-head); font-size: 17px; line-height: 1.3; font-weight: 700; letter-spacing: -.01em; }
+.vane-app h3 { margin: 18px 0 8px; color: var(--ink); font-size: 15px; line-height: 1.35; font-weight: 600; }
+.rer-themed .vane-app p { margin: 0 0 12px; color: inherit; }
+.rer-themed .vane-app strong { font-weight: 600; }
+.vane-app ul, .vane-app ol { padding-left: 20px; }
+
+.vane-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin: 8px 0 24px; }
+.rer-themed .vane-heading p { margin: 6px 0 0; color: var(--body); font-size: 16px; }
+.rer-themed .vane-app .vane-eyebrow { margin: 0 0 6px; color: var(--body); font-size: 13px; font-weight: 500; overflow-wrap: anywhere; }
+
+.vane-panel { min-width: 0; margin-bottom: 20px; padding: 20px 22px; border: 1px solid var(--line); border-radius: 12px; background: linear-gradient(125deg, #ffffffd9, #ffffff99); box-shadow: none; }
+.vane-panel > :last-child, .rer-themed .vane-panel > p:last-child { margin-bottom: 0; }
+.vane-help { display: block; color: var(--body); font-size: 13px; line-height: 1.5; font-weight: 400; }
+.rer-themed .vane-app p.vane-help { color: var(--body); }
+.vane-empty { color: var(--body); }
+.vane-breakdowns, .vane-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.vane-breakdowns { margin-bottom: 20px; }
+.vane-breakdowns > .vane-panel { margin: 0; }
+.vane-breakdowns > .vane-panel:has(thead th:nth-child(7)) { grid-column: 1 / -1; }
+.vane-form-grid { gap: 16px; align-items: start; }
+
+/* Forms: thin quiet borders, a clear blue focus ring, labels above. */
+.rer-themed .vane-app form { display: grid; gap: 14px; margin: 0; }
+.rer-themed .vane-app label { display: grid; min-width: 0; gap: 6px; color: var(--body); font-size: 13.5px; font-weight: 500; }
+.rer-themed .vane-app input:not([type=checkbox]):not([type=hidden]):not([type=radio]), .vane-app textarea, .vane-app select { width: 100%; min-width: 0; min-height: 42px; margin: 0; padding: 9px 12px; border: 1px solid var(--rer-border); border-radius: 10px; background-color: var(--surface); color: var(--ink); font: inherit; font-size: 15px; line-height: 1.4; box-shadow: none; transition: border-color .12s, box-shadow .12s; }
+.rer-themed .vane-app input:not([type=checkbox]):not([type=hidden]):hover, .vane-app textarea:hover, .vane-app select:hover { border-color: #a9b6cb; }
+.rer-themed .vane-app input:not([type=checkbox]):not([type=hidden]):focus-visible, .rer-themed .vane-app textarea:focus-visible, .rer-themed .vane-app select:focus-visible { border-color: var(--blue); outline: 0; box-shadow: 0 0 0 3px rgba(29, 88, 240, .2); }
+/* Base #247: every single-choice select draws its chevron 14px in from the right border with 40px of end padding,
+   as two gradient strokes (the theme CSP allows no data: images); multiple and size>1 lists keep their native look. */
+.vane-app select:not([multiple],[size]:not([size="1"])) { --vane-chevron: var(--body); -webkit-appearance: none; appearance: none; padding-inline-end: 40px; text-overflow: ellipsis; background-image: linear-gradient(to top right, transparent calc(50% - 1.1px), var(--vane-chevron) calc(50% - .55px), var(--vane-chevron) calc(50% + .55px), transparent calc(50% + 1.1px)), linear-gradient(to top left, transparent calc(50% - 1.1px), var(--vane-chevron) calc(50% - .55px), var(--vane-chevron) calc(50% + .55px), transparent calc(50% + 1.1px)); background-repeat: no-repeat; background-position: right 20px center, right 14px center; background-size: 6px 6px; }
+.vane-app select:not([multiple],[size]:not([size="1"])):focus-visible { --vane-chevron: var(--ink); }
+.vane-app textarea { min-height: 92px; resize: vertical; font-family: var(--font-mono); font-size: 13.5px; }
+.vane-app input[type=file] { max-width: 100%; padding: 7px 10px; overflow-wrap: anywhere; font-size: 14px; }
+.vane-app input::placeholder, .vane-app textarea::placeholder { color: var(--soft); opacity: 1; }
+.rer-themed .vane-app label.vane-check { display: flex; align-items: flex-start; gap: 10px; color: var(--ink); font-size: 14px; font-weight: 400; }
+.rer-themed .vane-app input[type=checkbox], .rer-themed .vane-app input[type=radio] { flex: none; width: 18px; height: 18px; min-height: 0; margin: 2px 0 0; padding: 0; border: 0; accent-color: var(--blue); }
+.rer-themed .vane-app label:has(> input[type=radio]) { display: flex; align-items: flex-start; gap: 10px; color: var(--ink); font-size: 14px; font-weight: 400; }
+.vane-app fieldset { min-width: 0; margin: 0; padding: 16px; border: 1px solid var(--line); border-radius: 12px; display: grid; gap: 10px; }
+.vane-app legend { padding: 0 6px; color: var(--ink); font-weight: 600; font-size: 14px; }
+.vane-form-footer { display: grid; gap: 12px; padding-top: 6px; }
+.rer-themed .vane-form-footer p { color: var(--body); font-size: 13px; }
+.vane-collection-options { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 16px; align-items: start; }
+.rer-themed .vane-app form.vane-filter, .rer-themed .vane-filter { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; margin-bottom: 14px; }
+.vane-filter label { flex: 1 1 160px; }
+
+/* Buttons: near-black pills for the main action, white outlined for the rest. */
+.rer-themed .vane-app button, .rer-themed .vane-app .vane-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: fit-content; max-width: 100%; min-height: 42px; margin: 0; padding: 9px 22px; border: 1px solid var(--button); border-radius: 999px; background: var(--button); color: #fff; font: inherit; font-size: 14.5px; font-weight: 500; line-height: 1.2; text-decoration: none; white-space: nowrap; cursor: pointer; box-shadow: none; }
+.rer-themed .vane-app button:hover, .rer-themed .vane-app .vane-button:hover { background: var(--button-hover); border-color: var(--button-hover); }
+.rer-themed .vane-app .vane-secondary, .rer-themed .vane-app button.vane-secondary { border-color: var(--rer-border); background: var(--surface); color: var(--ink); }
+.rer-themed .vane-app .vane-secondary:hover { border-color: #a9b6cb; background: #f7f9fc; }
+.rer-themed .vane-app .vane-danger { border-color: var(--rer-danger); background: var(--surface); color: var(--rer-danger); }
+.rer-themed .vane-app .vane-danger:hover { background: #fdf1f3; }
+.vane-actions { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 10px; margin-top: 14px; }
+.vane-inline-form { display: inline; margin-left: 8px; }
+.rer-themed .vane-app .vane-inline-form button { min-height: 30px; padding: 4px 12px; border-color: var(--rer-border); background: var(--surface); color: var(--ink); font-size: 13px; }
+
+/* Dense tables with hairlines and tabular figures. */
+.vane-table-scroll { position: relative; max-width: 100%; overflow-x: auto; }
+/* Tables take the width their columns need (up to a readable cell) and scroll inside their region beyond it. */
+.vane-table-scroll > table { width: max-content; min-width: 100%; }
+.vane-table-scroll th, .vane-table-scroll td { max-width: 30em; overflow-wrap: break-word; }
+.vane-app table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
+.vane-app caption { padding-bottom: 10px; color: var(--body); font-size: 13px; text-align: left; }
+.vane-app th, .vane-app td { padding: 9px 10px; border-bottom: 1px solid var(--line-soft); vertical-align: top; overflow-wrap: anywhere; }
+.vane-app th { font-weight: 400; color: var(--ink); }
+.vane-app thead th { padding-top: 0; border-bottom-color: var(--line); color: var(--body); font-size: 12.5px; font-weight: 500; }
+.vane-app th:first-child, .vane-app td:first-child { padding-left: 0; }
+.vane-app th:last-child, .vane-app td:last-child { padding-right: 0; }
+.vane-app tbody tr:last-child > * { border-bottom: 0; }
+.vane-number { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.vane-app td.vane-number[data-change^="-"] { color: var(--coral-ink); }
+.vane-app td.vane-number[data-change]:not([data-change^="-"]):not([data-change="0"]) { color: var(--green-ink); }
+.vane-table-scroll table[data-live], .vane-table-scroll table[data-funnel], .vane-table-scroll table[data-variation], .vane-table-scroll[aria-label="Import preview records"] table, .vane-table-scroll[aria-label="Import journal"] table { min-width: 560px; }
+.rer-themed .vane-app dl { display: grid; grid-template-columns: minmax(140px, auto) minmax(0, 1fr); gap: 8px 24px; margin: 0 0 16px; font-size: 14px; }
+.vane-app dt { color: var(--body); }
+.vane-app dd { margin: 0; overflow-wrap: anywhere; }
+
+/* Status, code and disclosures. */
+.vane-notice, .vane-error { margin: 0 0 20px; padding: 13px 16px; border: 1px solid var(--line); border-left: 3px solid var(--blue); border-radius: 12px; background: var(--surface); font-size: 14.5px; overflow-wrap: anywhere; }
+.vane-error { border-left-color: var(--rer-danger); background: #fffafb; }
+.vane-change { font-weight: 600; }
+.vane-code { max-width: 100%; margin: 14px 0; padding: 14px 16px; border-radius: 10px; background: var(--rer-code); color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13.5px; line-height: 1.55; }
+.vane-app code { font-family: var(--font-mono); font-size: .92em; }
+.vane-script { position: relative; margin-bottom: 16px; }
+.vane-script .vane-code { margin-bottom: 0; padding-right: 56px; }
+.rer-themed .vane-app .vane-copy { position: absolute; top: 6px; right: 6px; width: 40px; min-height: 40px; height: 40px; padding: 8px; border-color: transparent; border-radius: 10px; background: transparent; color: var(--ink); }
+.rer-themed .vane-app .vane-copy:hover { background: var(--surface); }
+.vane-copy-status { display: block; color: var(--body); font-size: 13px; }
+.vane-copy-status:not(:empty) { margin-top: 8px; }
+.vane-app summary { min-height: 40px; padding: 8px 0; color: var(--ink); font-weight: 500; cursor: pointer; }
+.vane-annotations { margin: 8px 0; padding-left: 18px; font-size: 14px; }
+.vane-annotations li { margin-bottom: 4px; }
+.vane-csv-links { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 0; padding: 0; list-style: none; font-size: 14px; }

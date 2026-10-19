@@ -41,3 +41,14 @@ export function breakdown(title: string, rows: {label: string; count: number; pr
   if (!rows.length) return panel(title, '<p class="vane-empty">No recorded activity in this period or the compared one.</p>')
   return panel(title, `<div class="vane-table-scroll" role="region" aria-label="${escape(title)}" tabindex="0"><table><caption class="vane-sr-only">${escape(title)}</caption><thead><tr><th scope="col">${escape(title === 'Goals' ? 'Goal' : title === 'Pages' ? 'Path' : title === 'Sources' ? 'Source' : 'Campaign')}</th><th scope="col" class="vane-number">${title === 'Goals' ? 'Conversions' : 'Pageviews'}</th><th scope="col" class="vane-number">Compared period</th>${changeHead}</tr></thead><tbody>${rows.map(row => `<tr><th scope="row">${(href => href ? `<a href="${escape(href)}" data-filter-link>${escape(row.label)}</a>` : escape(row.label))(filter?.(row.label))}</th><td class="vane-number">${count(row.count)}</td><td class="vane-number">${count(row.previous)}</td>${change(row.count, row.previous)}</tr>`).join('')}</tbody></table></div>`)
 }
+
+// Display dates for the app shell: "Wed, Oct 14" and "Oct 13 to 19" from ISO days (UTC calendar days).
+const calendar = (iso: string) => new Date(`${iso.slice(0, 10)}T00:00:00Z`)
+export const shortDay = (iso: string) => calendar(iso).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' })
+export const monthDay = (iso: string) => calendar(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })
+/** The range from a first day to an exclusive end, as people read it: "Oct 13 to 19" or "Sep 28 to Oct 4". */
+export function rangeText(from: string, to: string): string {
+  const last = new Date(calendar(to).getTime() - 86400000).toISOString().slice(0, 10)
+  if (last <= from) return monthDay(from)
+  return from.slice(0, 7) === last.slice(0, 7) ? `${monthDay(from)} to ${Number(last.slice(8, 10))}` : `${monthDay(from)} to ${monthDay(last)}`
+}
