@@ -1081,3 +1081,24 @@ test('DASH-007 filtering the report by Organic Search, mobile and not /blog/* ke
  assert.ok((await (await a.request('/api/vane/audit',owner)).json()).some(e=>e.action==='segment.save'&&e.detail.includes('Organic mobile')))
  assert.equal((await a.form({operation:'segment.delete',siteId:id,id:segment},a.owner)).status,303);assert.equal((await a.request(`/api/vane/summary?siteId=${id}&segment=${segment}`,owner)).status,404)
 })
+test('INSTALL-007 a TanStack React Router app and a hash-routed one each record four views with their paths and no duplicates, and manual pageviews replace automatic ones',async t=>{
+ const a=await withApp(t),id=await a.addSite({paths:[]})
+ const {build}=await import('esbuild'),bundle=(await build({entryPoints:[new URL('./fixtures/spa-router.jsx',import.meta.url).pathname],bundle:true,write:false,format:'iife',jsx:'automatic',minify:true,define:{'process.env.NODE_ENV':'"production"'},logLevel:'silent'})).outputFiles[0].text.replaceAll('</script','<\\/script')
+ const app=(hashed,attrs='')=>`<!doctype html><title>Fern app</title><div id="app"></div><script>${hashed?'window.FIXTURE_HASH=true;':''}${bundle}</script><script src="${a.origin}/vane.js" data-site="${id}"${attrs}></script>`
+ const manual=`<!doctype html><title>Fern manual</title><script>window.vane=window.vane||function(){(vane.q=vane.q||[]).push(arguments)};vane('pageview')</script><script src="${a.origin}/vane.js" data-site="${id}" data-manual></script>`
+ const {context}=await browse(t,a,{'https://fern.example/':app(false),'https://fern.example/app/':app(true,' data-hash'),'https://fern.example/manual':manual})
+ const paths=async()=>(await a.dump()).vane_events.filter(e=>e.kind==='pageview').map(e=>e.path).sort()
+ const collected=tab=>tab.waitForResponse(r=>new URL(r.url()).pathname==='/api/vane/collect'&&r.status()===202)
+ const tour=async(url,expected)=>{const tab=await context.newPage(),first=collected(tab);await tab.goto(url);await first
+  for(const to of ['/pricing','/docs','/about']){const sent=collected(tab);await tab.getByRole('link',{name:'Go '+to,exact:true}).click();await tab.getByRole('heading',{name:'View '+to}).waitFor();await sent}
+  // Clicking the current view again and replacing its history entry are not new pageviews.
+  await tab.getByRole('link',{name:'Go /about',exact:true}).click();await tab.evaluate(()=>history.pushState({},'',location.href));await tab.waitForTimeout(500)
+  assert.deepEqual(await paths(),expected);await tab.close()}
+ await tour('https://fern.example/',['/','/about','/docs','/pricing'])
+ await tour('https://fern.example/app/',['/','/about','/app/','/app/about','/app/docs','/app/pricing','/docs','/pricing'])
+ // Manual mode: the queued call and vane('pageview', {url}) are recorded; History API navigation is not.
+ const tab=await context.newPage(),first=collected(tab);await tab.goto('https://fern.example/manual');await first
+ const second=collected(tab);await tab.evaluate(()=>{history.pushState({},'','/manual/step-1');vane('pageview',{url:'/manual/step-2?utm_source=newsletter'})});await second;await tab.waitForTimeout(500)
+ const rows=(await a.dump()).vane_events.filter(e=>e.kind==='pageview'&&e.path.startsWith('/manual'));assert.deepEqual(rows.map(e=>[e.path,e.utm_source]).sort(),[['/manual',null],['/manual/step-2','newsletter']])
+ const settings=await (await a.request(`/app/sites/${id}?section=settings`,{headers:{cookie:a.owner}})).text();assert.ok(settings.includes('data-spa-help')&&settings.includes('data-hash')&&settings.includes('data-manual'))
+})
