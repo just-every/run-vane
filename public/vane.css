@@ -162,3 +162,9 @@
 @media (prefers-reduced-motion: no-preference) {
   .vane-app button:hover, .vane-button:hover { opacity: .88; }
 }
+.vane-chart-figure { margin: 0 0 12px; }
+.vane-chart { display: block; width: 100%; height: auto; color: var(--rer-accent); }
+.vane-chart-axis { stroke: var(--rer-border); stroke-width: 1; }
+.vane-chart-line { fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; }
+.vane-chart-point { fill: currentColor; }
+.vane-chart-data summary { cursor: pointer; margin-bottom: 8px; }

@@ -122,7 +122,7 @@ These clauses restate what the released first contract and ACCEPTANCE.md promise
 
 - **DASH-001 — Real-time dashboard.** A real-time view shows current visitors (active in the last 5 minutes), pageviews per minute for the last 30 minutes, and live top pages, sources and locations, refreshing at least every 15 seconds without a reload. **Acceptance evidence:** Send events while the real-time view is open. Current visitors and the live lists update within 15 seconds and drop once the visitors go idle for 5 minutes.
 
-- **DASH-002 — Historical time series in the site's time zone.** The main chart plots visitors, visits, pageviews, bounce rate, duration, conversions and revenue by hour, day, week or month. Preset ranges cover today, yesterday, the last 7, 30 and 90 days, month to date, last month, year to date, the last 12 months and all time, and any custom range can be chosen. Days start at midnight in the site's time zone, which defaults to the owner's US time zone and handles daylight-saving changes. Every chart has an accessible data table. **Acceptance evidence:** Seed events either side of a US daylight-saving change and midnight in America/Chicago. The daily buckets follow local days, each preset range returns the expected totals, and the data table matches the chart.
+- **DASH-002 — Historical time series in the site's time zone.** The main chart plots visitors, visits, pageviews, bounce rate, duration, conversions and revenue by hour, day, week or month. Preset ranges cover today, yesterday, the last 7, 30 and 90 days, month to date, last month, year to date, the last 12 months and all time, and any custom range can be chosen. Days start at midnight in the site's time zone, which defaults to the owner's US time zone and handles daylight-saving changes. Every chart has an accessible data table. The exact rules: a range is local dates, end exclusive; the last 7, 30 and 90 days end with today, month and year to date run through today, the last 12 months start on the first of the month eleven months before this one, and all time starts on the site's earliest event day; filled From and Until dates make a custom range. The chart defaults to hourly up to 2 days, daily up to 92, weekly up to 731 and monthly beyond; hourly covers at most 31 days and daily at most two years. An hour is a real hour from local midnight, labelled with its local time and zone abbreviation, so a fall-back day has 25 hours (01:00 CDT, then 01:00 CST) and a spring-forward day 23; weeks start on Monday, and the first and last weeks and months are cut to the range. A bucket's visitors are its days' daily unique visitors summed (an hour counts its distinct visitor hashes); a visit, its bounce and its duration (the chart plots the average) belong to the bucket of its first page load; pageviews and goal conversions count where they happened. Imported history has dates but no times, so it appears in daily, weekly and monthly buckets and not hourly ones. The add-site form fills in the time zone the owner's browser reports; a site prepared without one, such as through the command API, uses UTC until the owner changes it. This is done when every metric that exists today is charted; revenue joins the chart and its data table when revenue goals ship (`CONV-006`), and `CONV-006` is not done until it does. **Acceptance evidence:** Seed events either side of a US daylight-saving change and midnight in America/Chicago. The daily buckets follow local days, each preset range returns the expected totals, and the data table matches the chart.
 
 - **DASH-003 — Page, entry and exit reports.** Page reports list top pages, entry (landing) pages and exit pages, each with visitors, pageviews, bounce rate, time on page, scroll depth and conversion rate. Pages can be grouped by path prefix or by a rewrite rule. When a site has more than one hostname, each row shows its hostname and the same path on two hostnames is two rows (`DASH-013`). **Acceptance evidence:** Seed visits with known entry and exit pages. The three tables match, and grouping by `/blog/*` sums the posts correctly.
 
@@ -352,7 +352,7 @@ The approved homepage (17 Oct 2026, `HOME-001`) states 80 capabilities in its co
 | 18 | Visitors: "the method is published" | `METRIC-004` | partial |
 | 19 | Visitors card: "38 online now" | `DASH-001` | missing |
 | 20 | Visitors card: Unique visitors 28,416 ↑ 12%, Visits, Bounce rate, Visit duration tiles | `METRIC-001`, `METRIC-002`, `METRIC-003`, `DASH-008` | partial |
-| 21 | Visitors card: Seven-day line chart | `DASH-002` | partial |
+| 21 | Visitors card: Seven-day line chart | `DASH-002` | done |
 | 22 | Visitors chip: Salt rotated at midnight · yesterday's visitors can't be linked | `METRIC-001` | done |
 | 23 | Sources: "Sources" | `DASH-004`, `DASH-014` | done |
 | 24 | Sources: "pages" | `DASH-003` | done |
@@ -360,7 +360,7 @@ The approved homepage (17 Oct 2026, `HOME-001`) states 80 capabilities in its co
 | 26 | Sources: "countries" | `DASH-005` | missing |
 | 27 | Sources: "devices and browsers" | `DASH-006` | done |
 | 28 | Sources: "live" | `DASH-001` | missing |
-| 29 | Sources: "over any period" | `TRAFFIC-001`, `DASH-002` | partial |
+| 29 | Sources: "over any period" | `TRAFFIC-001`, `DASH-002` | done |
 | 30 | Sources: "with filters" | `DASH-007` | missing |
 | 31 | Sources: "and comparisons" | `DASH-008` | partial |
 | 32 | Sources card: Country: United States filter | `DASH-005`, `DASH-007` | missing |
@@ -410,7 +410,7 @@ The approved homepage (17 Oct 2026, `HOME-001`) states 80 capabilities in its co
 | 76 | Quiet details: Data retention: "Keep raw events as long as you choose" | `RETENTION-002` | partial |
 | 77 | Closing: "Open source website analytics without cookies" | `OPEN-001`, `COLLECT-001`, `METRIC-001` | done |
 | 78 | Closing: "Free and open source, MIT licensed" | `OPEN-001` | done |
-| 79 | Closing card: Today · 4,812 visitors | `METRIC-001`, `DASH-002` | partial |
+| 79 | Closing card: Today · 4,812 visitors | `METRIC-001`, `DASH-002` | done |
 | 80 | Closing card: Weekly report sent | `REPORT-001` | missing |
 
 ## Status
@@ -420,8 +420,8 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 17 | 0 | 0 | 17 |
-| Target and push further | 23 | 15 | 53 | 91 |
-| All | 40 | 15 | 53 | 108 |
+| Target and push further | 24 | 14 | 53 | 91 |
+| All | 41 | 14 | 53 | 108 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -461,7 +461,7 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | `METRIC-005` | Consented visitor mode: returning visitors and retention | target | missing |  | No consented mode, returning visitors or retention cohorts. |
 | `METRIC-006` | Scroll depth and time on page | target | done | `src/vane/tracker.ts`; `src/vane/collect.ts`; `src/vane/visits.ts`; `src/vane/privacy.ts`; `src/vane/views/report.ts`; `src/vane/methodology.ts`; `migrations/core/0020_vane_scroll.sql`; `tests/vane.test.mjs` |  |
 | `DASH-001` | Real-time dashboard | target | missing |  | No real-time view. |
-| `DASH-002` | Historical time series in the site's time zone | target | partial | `src/vane/reports.ts`; `src/vane/views/report.ts`; `tests/vane.test.mjs` | A custom date range is tested, and reports use the site's local dates; no chart, granularities, preset ranges or data table. |
+| `DASH-002` | Historical time series in the site's time zone | target | done | `src/vane/periods.ts`; `src/vane/series.ts`; `src/vane/reports.ts`; `src/vane/views/chart.ts`; `src/vane/views/report.ts`; `src/vane/views/index.ts`; `tests/vane.test.mjs` |  |
 | `DASH-003` | Page, entry and exit reports | target | done | `src/vane/visits.ts`; `src/vane/reports.ts`; `src/vane/routes.ts`; `src/vane/views/report.ts`; `tests/vane.test.mjs` |  |
 | `DASH-004` | Channels, referrers and UTM campaigns | target | done | `src/vane/channels.ts`; `src/vane/collect.ts`; `src/vane/visits.ts`; `tests/vane.test.mjs` |  |
 | `DASH-005` | Country, region and city | target | missing |  | No location dimensions. |

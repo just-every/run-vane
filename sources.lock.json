@@ -55,7 +55,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "1f7fd5234e96198d467ecf8ad8b2334e469a4b47ab61cc68f232889f9ecf4a71",
+      "sha256": "97c425beb12f18d233f00fa73ecbaaeb9055c29e0b80517345ba3b66aa13663e",
       "executable": false
     },
     "AGENTS.md": {
@@ -79,7 +79,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "9500cf6769bcc66f673ed76b20e5d67f5cc3880710862183c331b5f9c6538807",
+      "sha256": "a3c3bef252f869cacafc4fa3e82d70b66600a6de36baae30e97be879ee5fd790",
       "executable": false
     },
     "DEMO.md": {
@@ -491,7 +491,7 @@
       "executable": false
     },
     "public/vane.css": {
-      "sha256": "9aeaa262f1a90a5f02ba159c23b700bb02e50c6f16c599841548cf772fba528f",
+      "sha256": "4fc0e6deaee48bfb9102167137b3621fbbea9d30fe6b58a1b5a0c54cf114d3f1",
       "executable": false
     },
     "README.md": {
@@ -2478,6 +2478,10 @@
       "sha256": "11f6b73d60f4b9db54474b0ae50c0ab6ef5b63e27ff6f2aa68279560000d79e4",
       "executable": false
     },
+    "src/vane/periods.ts": {
+      "sha256": "cd8a2dc0a067ddd09ca2447a1a8b1e31c98133c8a8757b9c6d8396c4108b223b",
+      "executable": false
+    },
     "src/vane/privacy-signals.ts": {
       "sha256": "72c5bf2ff5aa6a19811331eb1e13e823a17e928114c257ad7a5ccd282d30737e",
       "executable": false
@@ -2495,15 +2499,19 @@
       "executable": false
     },
     "src/vane/reports.ts": {
-      "sha256": "498ec2fdd0b942e367c428a1f587663efe336af760f70d02b1d9edc72eef946f",
+      "sha256": "0c04fc797662d7f7248f5c4d0b4412176c049a580b8e88c9ed0a0a53f213c7a0",
       "executable": false
     },
     "src/vane/routes.ts": {
-      "sha256": "ca58ed2763c401b797f38b88b8ead027728e7088f78183b1bf38ada388cbda70",
+      "sha256": "e302ee9d78d4bf3735eeed05ae1019a113adc442b8353aa3f9088edbde372a7f",
       "executable": false
     },
     "src/vane/search.ts": {
       "sha256": "a7609b57b6339515c2152b8cc304ef7e3cb91788853aceb253b1153d5ec83a2d",
+      "executable": false
+    },
+    "src/vane/series.ts": {
+      "sha256": "29c148011a772e82a77cf0d72b2217178e5de5521d9fa8641490c0336d22ba4a",
       "executable": false
     },
     "src/vane/sources.ts": {
@@ -2526,6 +2534,10 @@
       "sha256": "17e7a4edfcb82f908975979a1be852d35ea44df2d2a21324ada2b25c67ca7e74",
       "executable": false
     },
+    "src/vane/views/chart.ts": {
+      "sha256": "bbe9d2d29b6abbacfc5f612e9f01bfc0d5420f8633a43045e4f34db343873f40",
+      "executable": false
+    },
     "src/vane/views/history.ts": {
       "sha256": "a0d58c56f2a11e94d28480f15950119f19e85a55a6352deee32739b4f009073f",
       "executable": false
@@ -2535,7 +2547,7 @@
       "executable": false
     },
     "src/vane/views/index.ts": {
-      "sha256": "b43c800b503252e119cf8b644cf8234860d7a65a172b8e9abc10fc1e0660da96",
+      "sha256": "c78b54ed517b310203497469dfe08ddf709603969cd699aab11bbd04b75fba86",
       "executable": false
     },
     "src/vane/views/public.ts": {
@@ -2543,7 +2555,7 @@
       "executable": false
     },
     "src/vane/views/report.ts": {
-      "sha256": "e91dc428129bd1b5ac25fce722c7008de953dea6d57e6240fd8e24d83c767bf1",
+      "sha256": "2c1b884382b4edd441a8a9aa6640d59e9b5b9504ea952a0811116abe18f59c3f",
       "executable": false
     },
     "src/vane/views/script-copy.ts": {
@@ -2551,7 +2563,7 @@
       "executable": false
     },
     "src/vane/views/settings.ts": {
-      "sha256": "d547889de0307c7c0d60f8cc7b1040b7ca0ac5947358f619bf473d85c5bd5e57",
+      "sha256": "22d1987d3598bfcc8f46d31d317be57b99bff233e506b698086e0344fba881f9",
       "executable": false
     },
     "src/vane/views/shell.ts": {
@@ -2571,7 +2583,7 @@
       "executable": false
     },
     "src/vane/visits.ts": {
-      "sha256": "6e550741b46feea5fdeb8bb3ee214251f11ff9044abd2911da6ff499f6dfb285",
+      "sha256": "032acd72707ad24da8273e1b154a5c7c5802d2a303b3eaff33a4477e809d1dbf",
       "executable": false
     },
     "test-budget.json": {
@@ -2599,7 +2611,7 @@
       "executable": false
     },
     "tests/vane.test.mjs": {
-      "sha256": "d8bdc745d9f869d558bce2ce2695143ad960f3bcf9dac7a3d91030d10334c262",
+      "sha256": "603fd43c465cd5e887891cb9b6a133cf04a95041c908d39b80a3867651ad3fc1",
       "executable": false
     },
     "tsconfig.json": {

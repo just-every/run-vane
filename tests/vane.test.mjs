@@ -673,3 +673,37 @@ test('COVERAGE-001 declined consent, excluded paths, privacy signals, sampling, 
  const after=await (await a.request('/api/vane/summary?siteId='+id,owner)).json();assert.deepEqual([after.deletedHistory.map(d=>d.reason),after.exclusions],[['owner-erasure'],[]])
  assert.ok((await (await a.request(`/app/sites/${id}?section=report`,owner)).text()).includes('Deleted history</dt><dd>Events before'))
 })
+test('DASH-002 events either side of the November daylight-saving change and midnight in America/Chicago fall in local days and hours, every preset range returns its totals, and the data table matches the chart',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}}
+ await a.clock(Date.parse('2025-05-01T17:00:00Z'));const id=await a.addSite({timeZone:'America/Chicago'})
+ // Local times: noon on five earlier days, then 23:30 CDT on 31 October, 00:30 and 01:30 CDT, 01:30 CST (the repeated hour) and 23:50 CST on 1 November, and 00:10 CST on 2 November.
+ for(const [at,path] of [['2025-06-01T17:00:00Z','/'],['2025-12-01T18:00:00Z','/'],['2026-01-10T18:00:00Z','/'],['2026-08-15T17:00:00Z','/'],['2026-10-10T17:00:00Z','/'],['2026-11-01T04:30:00Z','/'],['2026-11-01T05:30:00Z','/'],['2026-11-01T06:30:00Z','/'],['2026-11-01T07:30:00Z','/'],['2026-11-02T05:50:00Z','/'],['2026-11-02T06:10:00Z','/thanks']]){await a.clock(Date.parse(at));assert.equal((await a.collect(a.event(id,{path}))).status,202,at)}
+ await a.clock(Date.parse('2026-11-02T18:00:00Z'))
+ const summary=async query=>{const r=await a.request(`/api/vane/summary?siteId=${id}${query}`,owner);assert.equal(r.status,200,query);return r.json()}
+ const presets={today:['2026-11-02','2026-11-03',1],yesterday:['2026-11-01','2026-11-02',4],'7d':['2026-10-27','2026-11-03',6],'30d':['2026-10-04','2026-11-03',7],'90d':['2026-08-05','2026-11-03',8],month:['2026-11-01','2026-11-03',5],'last-month':['2026-10-01','2026-11-01',2],year:['2026-01-01','2026-11-03',9],'12mo':['2025-12-01','2026-11-03',10],all:['2025-06-01','2026-11-03',11]}
+ const sum=(r,key)=>r.series.reduce((n,b)=>n+b[key],0)
+ for(const [period,[from,to,pageviews]] of Object.entries(presets))for(const interval of ['','week','month']){
+  const r=await summary(`&period=${period}&interval=${interval}`)
+  assert.deepEqual([r.from,r.to,r.pageviews],[from,to,pageviews],period)
+  // Hours count their own distinct hashes, so only daily and longer buckets add up to the range's daily uniques.
+  assert.deepEqual([sum(r,'pageviews'),sum(r,'visits'),r.interval==='hour'?r.visitors:sum(r,'visitors'),sum(r,'conversions')],[r.pageviews,r.visits,r.visitors,r.goals],`${period} by ${r.interval}: the buckets add up to the totals`)
+ }
+ // Daily buckets follow local days: 23:30 on 31 October and 00:10 on 2 November stay out of 1 November.
+ const week=await summary('&period=7d');assert.equal(week.interval,'day')
+ assert.deepEqual(week.series.map(b=>[b.label,b.pageviews,b.visits,b.conversions]),[['2026-10-27',0,0,0],['2026-10-28',0,0,0],['2026-10-29',0,0,0],['2026-10-30',0,0,0],['2026-10-31',1,1,0],['2026-11-01',4,4,0],['2026-11-02',1,1,1]])
+ // The fall-back day has 25 hourly buckets; 01:00 happens twice, once in CDT and once in CST.
+ const day=await summary('&period=yesterday');assert.equal(day.interval,'hour');assert.equal(day.series.length,25)
+ assert.deepEqual(day.series.filter(b=>b.pageviews).map(b=>b.label),['2026-11-01 00:00 CDT','2026-11-01 01:00 CDT','2026-11-01 01:00 CST','2026-11-01 23:00 CST'])
+ assert.equal((await a.request(`/api/vane/summary?siteId=${id}&period=90d&interval=hour`,owner)).status,400,'hourly charts cover at most 31 days')
+ // The page draws the chosen metric and lists every bucket in its data table; each point equals its table cell.
+ for(const [query,metric,expected] of [['period=7d&metric=pageviews','pageviews',['0','0','0','0','1','4','1']],['period=yesterday&metric=visits','visits',null]]){
+  const html=await (await a.request(`/app/sites/${id}?section=report&${query}`,owner)).text()
+  const points=[...html.matchAll(/<circle class="vane-chart-point"[^>]*data-value="([^"]*)"/g)].map(m=>m[1]),cells=[...html.matchAll(new RegExp(`<td class="vane-number" data-metric="${metric}">([^<]*)</td>`,'g'))].map(m=>m[1])
+  assert.equal(points.length,metric==='pageviews'?7:25,query);assert.deepEqual(points,cells,query);if(expected)assert.deepEqual(points,expected)
+  assert.match(html,/<svg class="vane-chart"[^>]*role="img"/);assert.match(html,/<caption>[^<]* by (day|hour), [^<]*America\/Chicago\)<\/caption>/)
+ }
+ // A new site's time zone starts as the zone the owner's browser reports.
+ const {context}=await browse(t,a,{},{timezoneId:'America/Chicago'});await context.addCookies(a.owner.split('; ').map(pair=>{const [name,...value]=pair.split('=');return {name,value:value.join('='),url:a.origin}}))
+ const page=await context.newPage();await page.goto(a.origin+'/app',{waitUntil:'networkidle'})
+ assert.equal(await page.getByRole('textbox',{name:'Time zone'}).inputValue(),'America/Chicago')
+})
