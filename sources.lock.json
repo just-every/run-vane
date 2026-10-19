@@ -2579,7 +2579,7 @@
       "executable": false
     },
     "src/vane/bing/report.ts": {
-      "sha256": "d6fa85b407061cea26e70be12420d083c12c01e46f980eaeab240ffdd6c50643",
+      "sha256": "c17d32026e26638b3037cb9e4f465cfa1d10cc34da54dcb90d315997d345c315",
       "executable": false
     },
     "src/vane/bing/store.ts": {

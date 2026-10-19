@@ -33,7 +33,7 @@ export async function report(env:Env,actor:Actor,siteId:string,from:string,to:st
   provider:'bing' as const,from,to,
   connection:{connected:Boolean(config),property:config?.property??values[0]?.property??null,connectedAt:config?.connected_at??null,lastSyncAt:config?.last_sync_at??null,lastAttemptAt:config?.last_attempt_at??null,nextSyncAt:config?.next_sync_at??null,error:config?.error??null,queryPagesError:config?.query_pages_error??null},
   queries:group(by('query'),['query']),pages:group(by('page'),['page']),dates:group(by('date'),['day']),
-  queryPages:group(by('query-page'),['query','page']).map(value=>({...value,path:value.page})),
+  queryPages:group(by('query-page'),['query','page']).map(value=>({...value,query:value.query as string,path:value.page as string})),
   rows:values.map(value=>({date:value.day,kind:value.kind,query:value.query||null,page:value.page||null,...metrics(value),fetchedAt:value.fetched_at})),
   metadata:{
    position:'Bing AvgImpressionPosition, weighted by source impressions when rows are combined. Site/date totals do not provide position.',
