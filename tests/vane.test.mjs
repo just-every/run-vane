@@ -1134,6 +1134,29 @@ test('CONV-002 Signup with plan=pro and plan=free through vane() and CSS classes
  assert.ok((await (await a.request('/api/vane/inventory?siteId='+id,owner)).json()).fields.some(f=>f.table==='vane_event_props'))
  const published=await (await a.request(`/stats/${id}?from=${day}&to=${new Date(Date.parse(day)+86400000).toISOString().slice(0,10)}`)).text();assert.ok(published.includes('/essay')&&!/Signup|Callback|Event properties|Page properties/.test(published),'public stats show no custom event or property')
 })
+test('CONV-007 a test purchase through the standard ecommerce events fills the ready-made ecommerce funnel and the product report with the product, quantity and revenue, and malformed or personal product lines are refused',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({paths:[]})
+ const page=title=>`<!doctype html><title>${title}</title><script src="${a.origin}/vane.js" data-site="${id}"></script>`,pages=Object.fromEntries(['product','cart','thanks'].map(p=>[`https://fern.example/${p}`,page(p)]))
+ const {context}=await browse(t,a,pages),visit=async(tab,url)=>{const loaded=tab.waitForResponse(r=>new URL(r.url()).pathname==='/api/vane/collect'&&r.status()===202);await tab.goto(url);await loaded}
+ const send=async(tab,name,items,currency='USD')=>{const sent=tab.waitForResponse(r=>new URL(r.url()).pathname==='/api/vane/custom');await tab.evaluate(([n,i,c])=>vane(n,{items:i,currency:c}),[name,items,currency]);assert.equal((await sent).status(),202,name)}
+ const tee=(quantity=1)=>({sku:'TEE-1',name:'Fern tee',category:'Shirts',quantity,price:25}),mug={sku:'MUG-1',name:'Fern mug',category:'Kitchen',quantity:1,price:12.5}
+ // One shopper buys two tees and a mug across three page loads of one visit.
+ const one=await context.newPage();await visit(one,'https://fern.example/product');await send(one,'Product view',[tee()]);await send(one,'Add to cart',[tee(2)])
+ await visit(one,'https://fern.example/cart');await send(one,'Add to cart',[mug]);await send(one,'Begin checkout',[tee(2),mug]);await visit(one,'https://fern.example/thanks');await send(one,'Purchase',[tee(2),mug])
+ // A second shopper (another network) views and adds one tee, then stops.
+ const {context:other}=await browse(t,a,pages,{extraHTTPHeaders:{'cf-connecting-ip':'198.51.100.7'}}),two=await other.newPage();await visit(two,'https://fern.example/product');await send(two,'Product view',[tee()]);await send(two,'Add to cart',[tee()])
+ // Through the public door: a euro purchase keeps its own currency, rounded to its minor units; malformed or personal lines are refused.
+ const pageId=(await a.dump()).vane_events.find(e=>e.kind==='pageview'&&e.path==='/thanks').id.split(':')[1],custom=body=>a.post('/api/vane/custom',{id:crypto.randomUUID(),siteId:id,page:pageId,consent:'not-required',...body},'',{origin:'https://fern.example'})
+ assert.equal((await custom({name:'Purchase',items:[{...tee(),price:19.999}],currency:'eur'})).status,202)
+ for(const [body,why] of [[{name:'Signup',items:[tee()],currency:'USD'},'only the standard events carry lines'],[{name:'Purchase',items:[{...tee(),name:'jo@example.com'}],currency:'USD'},'an email address refuses the event'],[{name:'Purchase',items:[tee(0)],currency:'USD'},'a quantity is at least 1'],[{name:'Purchase',items:[tee()],currency:'XYZ'},'an unknown currency'],[{name:'Purchase',items:[tee()]},'lines need a currency'],[{name:'Purchase',items:[{...tee(),email:'x'}],currency:'USD'},'only the declared line fields'],[{name:'Purchase',items:Array.from({length:51},tee),currency:'USD'},'at most 50 lines']])assert.equal((await custom(body)).status,400,why)
+ assert.ok(!JSON.stringify(await a.dump()).includes('jo@example.com'),'the refused line is not stored')
+ const day=(await a.dump()).vane_events[0].day,to=new Date(Date.parse(day)+86400000).toISOString().slice(0,10),summary=await (await a.request(`/api/vane/summary?siteId=${id}&from=${day}&to=${to}`,owner)).json()
+ assert.deepEqual(summary.products.map(r=>[r.sku,r.currency,r.views,r.added,r.checkouts,r.purchased,r.revenue]),[['TEE-1','USD',2,3,2,2,50],['TEE-1','EUR',0,0,0,1,20],['MUG-1','USD',0,1,1,1,12.5]])
+ const funnel=summary.funnels.find(f=>f.name==='Ecommerce');assert.deepEqual(funnel.steps.map(s=>[s.label,s.visits]),[['event:Product view',2],['event:Add to cart',2],['event:Begin checkout',1],['event:Purchase',1]])
+ const html=unlinked(await (await a.request(`/app/sites/${id}?section=report&from=${day}&to=${to}`,owner)).text())
+ for(const row of ['<th scope="row">Fern tee</th><td>TEE-1</td><td>Shirts</td><td class="vane-number">2</td>','$50.00','€20.00','$12.50','data-funnel="Ecommerce"','<th scope="row">4. event:Purchase</th><td class="vane-number">1</td>'])assert.ok(html.includes(row),row)
+ assert.ok((await (await a.request('/api/vane/inventory?siteId='+id,owner)).json()).fields.some(f=>f.table==='vane_ecommerce_lines'))
+})
 test('CONV-009 a click on #book-demo, a contact form, a visible pricing table and a docs pageview defined in the app, previewed against the live page and approved, arrive as custom events with no site code change',async t=>{
  const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({paths:[]})
  const html=`<!doctype html><title>Fern</title><button id="book-demo" class="cta">Book a demo</button><form class="contact" action="/" onsubmit="return false"><button>Send</button></form><div style="height:3000px"></div><section id="pricing">Pricing</section><script src="${a.origin}/vane.js" data-site="${id}"></script>`

@@ -31,6 +31,8 @@ export function changeText(current: unknown, previous: unknown): string {
   return `${difference > 0 ? '+' : ''}${count(difference)} (${percent})`
 }
 export const change = (current: unknown, previous: unknown) => `<td class="vane-number" data-change="${(Number(current) || 0) - (Number(previous) || 0)}">${changeText(current, previous)}</td>`
+// CONV-007/CONV-006: an amount in the currency it was recorded in, never converted here.
+export const money = (amount: unknown, currency: string) => new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(Number(amount) || 0)
 export const changeHead = '<th scope="col" class="vane-number">Change</th>'
 
 export function breakdown(title: string, rows: {label: string; count: number; previous: number}[] = [], filter?: (label: string) => string | null): string {

@@ -2,10 +2,12 @@ import { insist, site, siteOrigin, statement, VaneError, type Env } from './core
 import { clock } from './clock'
 import { excludedTraffic } from './traffic'
 import { cleanProps, droppedStatement, eventName, propStatements } from './properties'
+import { cleanLines, lineStatements } from './ecommerce'
 // CONV-002: a custom event, sent with vane('Signup', {props}) or by a vane-event-name=Signup class, names the page load it
 // happened on (its ID as the script sent it), so it belongs to that page load's visitor, day and visit; no IP address
 // or user agent is read for it. It is accepted from the site's registered origin with consent as configured, once
-// per event ID, and refused for excluded traffic (COLLECT-003) without a second count.
+// per event ID, and refused for excluded traffic (COLLECT-003) without a second count. CONV-007: the standard
+// ecommerce events also carry product lines and their currency.
 export async function customEventResponse(request:Request,env:Env):Promise<Response|null> {
  if(new URL(request.url).pathname!=='/api/vane/custom')return null;
  let cors:Record<string,string>={'vary':'Origin','cache-control':'no-store'};
@@ -15,14 +17,14 @@ export async function customEventResponse(request:Request,env:Env):Promise<Respo
   const text=await request.text();insist(text.length<=8192,'body','Event too large.',413);
   const payload=JSON.parse(text),value=await site(env,String(payload?.siteId));
   const origin=siteOrigin(value,request);cors={...cors,'access-control-allow-origin':origin};
-  insist(Object.keys(payload).every(key=>['id','siteId','page','name','props','consent'].includes(key))&&/^[a-f0-9-]{36}$/.test(payload.id)&&/^[a-f0-9-]{36}$/.test(payload.page),'fields','Only the declared custom-event fields are accepted.');
+  insist(Object.keys(payload).every(key=>['id','siteId','page','name','props','items','currency','consent'].includes(key))&&/^[a-f0-9-]{36}$/.test(payload.id)&&/^[a-f0-9-]{36}$/.test(payload.page),'fields','Only the declared custom-event fields are accepted.');
   insist(payload.consent===(value.config.consent==='required'?'granted':'not-required'),'consent','Consent is required for collection.',403);
   const excluded=excludedTraffic(request,value.config,null);insist(!excluded,'excluded',`This traffic is excluded from collection (${excluded}).`,403);
-  const name=eventName(payload.name),props=cleanProps(payload.props),id=value.id+':'+payload.id,pageId=value.id+':'+payload.page;
+  const name=eventName(payload.name),props=cleanProps(payload.props),{lines,currency}=cleanLines(name,payload.items,payload.currency),id=value.id+':'+payload.id,pageId=value.id+':'+payload.page;
   const page=await env.DB.prepare("SELECT day FROM vane_events WHERE id=? AND kind='pageview' AND site_id=?").bind(pageId,value.id).first<{day:string}>();
   insist(page,'page_load','No page load of this site has this ID.',404);
   if(await env.DB.prepare('SELECT 1 FROM vane_custom_events WHERE id=?').bind(id).first())return Response.json({accepted:true,duplicate:true},{headers:cors});
-  await env.DB.batch([statement(env,'INSERT OR IGNORE INTO vane_custom_events(id,site_id,day,page_id,name,at) VALUES(?,?,?,?,?,?)',id,value.id,page.day,pageId,name,clock()),...propStatements(env,id,value.id,page.day,props),...droppedStatement(env,value.id,page.day,props)]);
+  await env.DB.batch([statement(env,'INSERT OR IGNORE INTO vane_custom_events(id,site_id,day,page_id,name,at) VALUES(?,?,?,?,?,?)',id,value.id,page.day,pageId,name,clock()),...propStatements(env,id,value.id,page.day,props),...lineStatements(env,id,value.id,page.day,lines,currency),...droppedStatement(env,value.id,page.day,props)]);
   return Response.json({accepted:true},{status:202,headers:cors});
  } catch(error) { const e=error instanceof VaneError?error:new VaneError('invalid_event','Event could not be accepted.'); return Response.json({error:e.code,message:e.message},{status:e.status,headers:cors}); }
 }
