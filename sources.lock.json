@@ -2354,6 +2354,10 @@
       "sha256": "b59f0e2adde1c9af637948fda25f4237a23b639fc7cc3e87c2171a0569e4d3bc",
       "executable": false
     },
+    "src/vane/install-check.ts": {
+      "sha256": "0a8bc5894ef813aed76a44d159c651e3aff7b9617120523fdefd51d52eb01730",
+      "executable": false
+    },
     "src/vane/movein/carry.ts": {
       "sha256": "f7fd62cafc35d06c14d6ae7eb5ff0d0b54fedf92ee7ebd6fb519ba828df7a9f3",
       "executable": false
