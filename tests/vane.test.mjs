@@ -1385,3 +1385,54 @@ test('TEAM-001 an analyst invited to one site and a viewer invited to two act on
  const after=await roles();assert.equal(after['admin@example.test'],'owner');assert.equal(after['owner@example.test'],'admin')
  assert.ok((await a.dump()).vane_audit.some(e=>e.action==='team.transfer'&&e.subject===id('admin@example.test')))
 })
+test('API-001 a site-scoped Stats API key answers visitors by channel with a filter, a saved segment and a comparison equal to the dashboard, refuses another site, a revoked key and a burst over the published limit, the Plausible v2 route returns the same figures, and a provisioning key creates a site, a goal and a shared link that appear in the app',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({paths:[],goals:{signup:'/thanks'}}),other=await a.addSite({name:'Oak Store',origin:'https://oak.example'})
+ const desktop='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',iphone='Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1'
+ const start=Date.parse('2026-03-10T10:00:00Z'),google={referrer:'https://www.google.com/'},email={campaign:'spring',utm:{source:'newsletter',medium:'email'}}
+ const visit=async(at,n,agent,first,paths)=>{for(const [i,path] of paths.entries()){await a.clock(at+n*600000+i*60000);assert.equal((await a.post('/api/vane/collect',a.event(id,{source:undefined,campaign:undefined,...(i?{}:first),path}),'',{origin:'https://fern.example','cf-connecting-ip':'203.0.113.'+n,'user-agent':agent})).status,202)}}
+ // The compared day before, then this day: Organic Search and Email, on desktop and phones, some reaching /pricing.
+ await visit(start-86400000,1,desktop,google,['/','/pricing']);await visit(start-86400000,2,desktop,email,['/'])
+ for(const [n,agent,first,paths] of [[1,desktop,google,['/','/pricing']],[2,desktop,google,['/pricing','/thanks']],[3,desktop,email,['/','/pricing']],[4,iphone,google,['/pricing']],[5,desktop,email,['/']],[6,desktop,{},['/pricing']]])await visit(start,n,agent,first,paths)
+ assert.equal((await a.form({operation:'segment.save',siteId:id,name:'Pricing',filters:'page:is:/pricing'},a.owner)).status,303)
+ const segment=(await a.dump()).vane_segments[0].id
+ // The owner creates a read-only key for one site; it is shown once and only its SHA-256 is kept.
+ const created=await (await a.form({operation:'apikey.create',kind:'stats',label:'Reporting',[`site_${id}`]:'on'},a.owner)).text(),key=created.match(/data-api-key>(vane_k_[0-9a-f]{64})</)[1]
+ assert.ok(!(await (await a.request('/app?section=api',owner)).text()).includes(key),'shown once');assert.ok(!JSON.stringify(await a.dump()).includes(key),'only the hash is kept')
+ const bearer=token=>({headers:{authorization:'Bearer '+token}}),v1=(query,token=key)=>a.request('/api/v1/stats?'+query,bearer(token))
+ const query=`from=2026-03-10&to=2026-03-11&compare=previous&filter=device:is:desktop&segment=${segment}`
+ const dashboard=await (await a.request(`/api/vane/summary?siteId=${id}&${query}`,owner)).json()
+ const answer=await v1(`site_id=${id}&${query}&dimension=channel&metrics=visitors,visits,pageviews,bounce_rate`);assert.equal(answer.status,200,await answer.clone().text());const stats=await answer.json()
+ assert.deepEqual(stats.results,{visitors:dashboard.visitors,visits:dashboard.visits,pageviews:dashboard.pageviews,bounce_rate:dashboard.bounceRate});assert.equal(stats.results.visits,4,'desktop visits that reached /pricing: 1, 2, 3 and 6')
+ assert.deepEqual(stats.previous,{visitors:dashboard.previousVisitors,visits:dashboard.previousVisits,pageviews:dashboard.previousPageviews,bounce_rate:dashboard.previousBounceRate});assert.equal(stats.previous.visits,1)
+ assert.deepEqual(stats.breakdown.map(r=>[r.value,r.visitors,r.visits,r.previous]),dashboard.channels.map(r=>[r.label,r.visitors,r.visits,r.previous]))
+ assert.deepEqual(Object.fromEntries(stats.breakdown.filter(r=>r.visits).map(r=>[r.value,r.visits])),{'Organic Search':2,Email:1,Direct:1})
+ // The Plausible v2-compatible route answers a Plausible query with the same figures (date_range is inclusive, as Plausible's).
+ const plausible=body=>a.request('/api/v2/query',{method:'POST',headers:{authorization:'Bearer '+key,'content-type':'application/json'},body:JSON.stringify(body)})
+ const fixture={site_id:'fern.example',metrics:['visitors','visits','pageviews','bounce_rate'],date_range:['2026-03-10','2026-03-10'],filters:[['is','visit:device',['Desktop']]],include:{comparisons:{mode:'previous_period'}}}
+ const plain=await (await a.request(`/api/vane/summary?siteId=${id}&from=2026-03-10&to=2026-03-11&compare=previous&filter=device:is:Desktop`,owner)).json()
+ const totals=await (await plausible(fixture)).json();assert.deepEqual(totals.results[0].metrics,[plain.visitors,plain.visits,plain.pageviews,plain.bounceRate]);assert.deepEqual(totals.results[0].comparison.metrics,[plain.previousVisitors,plain.previousVisits,plain.previousPageviews,plain.previousBounceRate])
+ assert.deepEqual(totals.query.date_range,['2026-03-10','2026-03-10'])
+ const byChannel=await (await plausible({...fixture,dimensions:['visit:channel'],include:undefined})).json();assert.deepEqual(byChannel.results.map(r=>[r.dimensions[0],r.metrics[0],r.metrics[1]]),plain.channels.map(r=>[r.label,r.visitors,r.visits]))
+ // Another site, an unknown or revoked key, a stats key at the Sites API and a burst over the published limit are each refused.
+ assert.equal((await v1(`site_id=${other}&period=7d`)).status,403);assert.equal((await plausible({...fixture,site_id:'oak.example'})).status,403)
+ assert.equal((await v1(`site_id=${id}&period=7d`,'vane_k_'+'0'.repeat(64))).status,401);assert.equal((await a.request(`/api/v1/stats?site_id=${id}`)).status,401)
+ assert.equal((await a.request('/api/v1/sites',{method:'POST',headers:{authorization:'Bearer '+key,'content-type':'application/json'},body:'{}'})).status,403)
+ const openapi=await (await a.request('/api/v1/openapi.json')).json();assert.ok(openapi.paths['/api/v1/stats']&&openapi.paths['/api/v2/query']&&openapi.paths['/api/v1/sites']);const limit=openapi['x-rate-limits'].burst
+ await a.clock(Math.ceil(Date.now()/(limit.seconds*1000))*limit.seconds*1000+limit.seconds*1000)
+ const burst=[];for(let i=0;i<=limit.requests;i++)burst.push((await v1(`site_id=${id}&period=today&metrics=visitors`)));
+ assert.ok(burst.slice(0,limit.requests).every(r=>r.status===200),'within the limit');assert.equal(burst.at(-1).status,429);assert.ok(Number(burst.at(-1).headers.get('retry-after'))>0)
+ const keyId=(await a.dump()).vane_api_keys[0].id;assert.equal((await a.form({operation:'apikey.revoke',id:keyId},a.owner)).status,303)
+ await a.clock(Date.now()+3600000);assert.equal((await v1(`site_id=${id}&period=7d`)).status,401,'revoked at once')
+ // Only the owner creates a provisioning key; it creates a site, a goal and a shared link that appear in the app.
+ const admin=await a.invite('admin@example.test','admin');assert.equal((await a.form({operation:'apikey.create',kind:'provisioning',label:'Agency'},admin)).status,403)
+ const provisioning=(await (await a.form({operation:'apikey.create',kind:'provisioning',label:'Agency'},a.owner)).text()).match(/data-api-key>(vane_p_[0-9a-f]{64})</)[1]
+ const provision=(path,body)=>a.request(path,{method:'POST',headers:{authorization:'Bearer '+provisioning,'content-type':'application/json'},body:JSON.stringify(body)})
+ const made=await provision('/api/v1/sites',{name:'Birch Bakery',origin:'https://birch.example',paths:[],goals:{},consent:'not-required'});assert.equal(made.status,201,await made.clone().text());const birch=(await made.json()).site_id
+ assert.equal((await provision(`/api/v1/sites/${birch}/goals`,{name:'order',path:'/order/thanks'})).status,201)
+ const link=await provision(`/api/v1/sites/${birch}/shared-links`,{label:'Client view',reports:['totals']});assert.equal(link.status,201);const url=new URL((await link.json()).url)
+ assert.equal((await a.request(url.pathname)).status,200)
+ assert.match(await (await a.request('/app?section=api',owner)).text(),/Reporting<\/td>[\s\S]*?<td class="vane-number">\d+<\/td>/,'each key shows its requests today')
+ const settings=await (await a.request(`/app/sites/${birch}?section=settings`,owner)).text();assert.ok(settings.includes('Birch Bakery')&&settings.includes('order=/order/thanks'))
+ assert.ok((await a.dump()).vane_audit.some(e=>e.detail.includes('via key:Agency')))
+ assert.equal((await provision('/api/v1/sites',{name:'Bad',origin:'not an origin'})).status,400)
+})

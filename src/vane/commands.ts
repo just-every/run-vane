@@ -15,7 +15,7 @@ function analystChange(value:Site,input:any) {
  return {name:value.name,origin:value.origin,config};
 }
 // The command API is the agent door: proposals it prepares are audited as agent actions.
-export async function prepare(env:Env,actor:Actor,command:string,input:any,channel:'app'|'command API') {
+export async function prepare(env:Env,actor:Actor,command:string,input:any,channel:'app'|'command API'|`key:${string}`) {
  allow(actor,'analyst');
  insist(['site.create','site.configure','history.erase','site.delete'].includes(command),'command','Unknown preparation command.');
  // TEAM-001: an analyst prepares only settings changes, and a new site needs installation-wide access.

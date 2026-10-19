@@ -11,6 +11,7 @@ import { exposureResponse } from './vane/experiments'
 import { expireSalts } from './vane/visitors'
 import { clock, clockResponse } from './vane/clock'
 import { vaneResponse } from './vane/routes'
+import { apiDoor } from './vane/api-door'
 import { annotationDoor } from './vane/annotation-door'
 import { githubReleaseDoor } from './vane/github-releases'
 import { rejectedResponse } from './base/rejected-response'
@@ -62,6 +63,8 @@ export default withDemo({
     if (stats) return stats
     const shared = await shareResponse(request, runtimeBindings(env))
     if (shared) return shared
+    const keyed = await apiDoor(request, env)
+    if (keyed) return keyed
     const auth = await authResponse(request, env)
     if (auth) return auth
     const vane = await vaneResponse(request, env)

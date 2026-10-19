@@ -1,6 +1,7 @@
 import { operatorAuth, runtimeBindings, type Bindings } from '../auth.server'
 import { everySite, inScope, insist, role, rows, site, sites, VaneError, type Actor } from './core'
 import { invite, regrant, remove, team, teamActor, transferOwnership } from './team'
+import { apiKeys, createKey, revokeKey } from './api-keys'
 import { createInsightsService } from './reports'
 import { prepare } from './commands'
 import { preview, journal, MoveinError } from './movein/index'
@@ -40,11 +41,12 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
   const asked='section' in extra?extra.section:url.searchParams.get('section');
   const audit=!selected&&asked==='audit'?(everySite(actor!),await auditLog(env,actor!)):undefined;
   const people=!selected&&asked==='team'?await team(env,actor!):undefined;
+  const keys=!selected&&asked==='api'?await apiKeys(env,actor!):undefined;
   const imports=selected&&actor!.role==='owner'?await rows(env,'SELECT j.id,j.state,(SELECT COUNT(*) FROM ik_provenance p WHERE p.job_id=j.id) AS count FROM ik_jobs j JOIN vane_import_approvals a ON a.job_id=j.id WHERE a.site_id=? ORDER BY a.approved_at DESC',selected.id):[];
   const all=(await sites(env)).filter(s=>open(s.id)),list=!selected&&!extra.rollup&&!extra.error&&(url.searchParams.get('section')??'report')==='report'?await overview(env,all,clock(),{period:url.searchParams.get('period'),sort:url.searchParams.get('sort'),q:url.searchParams.get('q')}):undefined;
   const live=selected&&url.searchParams.get('section')==='realtime';
   const settings=selected&&(extra.section??url.searchParams.get('section'))==='settings',hook=settings?(await rows<{created_at:number}>(env,'SELECT created_at FROM vane_annotation_hooks WHERE site_id=?',selected.id))[0]??null:undefined,github=settings?(await rows<{created_at:number}>(env,'SELECT created_at FROM vane_github_keys WHERE site_id=?',selected.id))[0]??null:undefined;
-  return renderApp({actor:actor as ViewData['actor'],origin:env.AUTH_ORIGIN,store:await storeUse(env),sites:all,overview:list,rollups:(await rollups(env)).filter(r=>r.sites.every((s:any)=>open(s.id))),site:selected,hook,github,shares:settings?await shareLinks(env,selected.id):undefined,segments:selected&&!live?await segments(env,selected.id):undefined,live:live?await realtime(env,selected,clock()):undefined,report:selected&&!live?await createInsightsService(env,selected,clock(),range).list():undefined,proposals,imports,audit,people,section:url.searchParams.get('section')??undefined,notice:url.searchParams.get('notice')??undefined,...extra});
+  return renderApp({actor:actor as ViewData['actor'],origin:env.AUTH_ORIGIN,store:await storeUse(env),sites:all,overview:list,rollups:(await rollups(env)).filter(r=>r.sites.every((s:any)=>open(s.id))),site:selected,hook,github,shares:settings?await shareLinks(env,selected.id):undefined,segments:selected&&!live?await segments(env,selected.id):undefined,live:live?await realtime(env,selected,clock()):undefined,report:selected&&!live?await createInsightsService(env,selected,clock(),range).list():undefined,proposals,imports,audit,people,apiKeys:keys,section:url.searchParams.get('section')??undefined,notice:url.searchParams.get('notice')??undefined,...extra});
  }
  try {
   const session=await operatorAuth(env).getSession(request);
@@ -95,6 +97,9 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
     if(p.operation==='team.grant'){await regrant(env,actor,p);return redirect('/app?'+new URLSearchParams({section:'team',notice:'Access changed. It applies at once.'}))}
     if(p.operation==='team.remove'){await remove(env,actor,request,String(p.operatorId??''));return redirect('/app?'+new URLSearchParams({section:'team',notice:'Removed. Their sessions have ended.'}))}
     if(p.operation==='team.transfer'){await transferOwnership(env,actor,request,p);return redirect('/signin?returnTo=%2Fapp')}
+    // API-001: a new key is rendered once in this response, never put in a redirect URL.
+    if(p.operation==='apikey.create')return view(undefined,{section:'api',notice:'Key created. Copy it now: it is not shown again.',apiToken:await createKey(env,actor,p)});
+    if(p.operation==='apikey.revoke'){await revokeKey(env,actor,String(p.id??''));return redirect('/app?'+new URLSearchParams({section:'api',notice:'Key revoked. It is refused from now on.'}))}
     if(p.operation==='rollup.create')return redirect('/app/rollups/'+encodeURIComponent(await createRollup(env,actor,p))+'?'+new URLSearchParams({notice:'Roll-up created.'}));
     const result=await action(env,actor,p),query=new URLSearchParams({notice:result.notice,...(result.section?{section:result.section}:{})});
     // DASH-009: a new annotation secret is rendered once in this response, never put in a redirect URL.
