@@ -2851,11 +2851,11 @@
       "executable": false
     },
     "src/vane/search-console/snapshots.ts": {
-      "sha256": "934f45dcb13d4e6301e84668e655967e9c002c23ef96c7d247006ee83ba9e3f1",
+      "sha256": "74c56742abaf0cc12315a8820f9fe44de9ca13d51c8a6c029a844fd7af007baa",
       "executable": false
     },
     "src/vane/search-console/storage.ts": {
-      "sha256": "f75e6150369c4543d7a02e6eadc6ec9241af89f342f450240212b212978cb572",
+      "sha256": "134753e5fe35d478cbc1606f10ba8904b3db2984578378911fbf75b1e23f3cbd",
       "executable": false
     },
     "src/vane/search-console/sync.ts": {
@@ -3115,7 +3115,7 @@
       "executable": false
     },
     "tests/search-console.test.mjs": {
-      "sha256": "d4e0f21146f6b0e70e51587d8e4fa2eac4613f84e5c84574536f08fdc218f045",
+      "sha256": "2a53ed2096151d0fe1856c0268f7e5ebf545a76e797a341a02063f560cd4ed39",
       "executable": false
     },
     "tests/site.test.mjs": {

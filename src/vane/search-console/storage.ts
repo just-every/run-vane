@@ -13,3 +13,6 @@ export async function current(env:Env,c:Connection,lockId?:string) {
 }
 export const liveGuard='EXISTS(SELECT 1 FROM vane_search_connections WHERE site_id=? AND generation=? AND lock_id=?)'
 export const guardValues=(c:Connection,lockId:string)=>[c.site_id,c.generation,lockId]
+
+export const sourceDayGuard=liveGuard+" AND ?>=COALESCE((SELECT MAX(before_day) FROM vane_deletions WHERE site_id=?),'0000-01-01')"
+export const sourceDayValues=(c:Connection,lockId:string,date:string)=>[...guardValues(c,lockId),date,c.site_id]
