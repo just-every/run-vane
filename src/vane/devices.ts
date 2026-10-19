@@ -1,6 +1,7 @@
 // DASH-006: the server derives the device class, browser and major version, operating system and
 // version, and a screen-size class from the user agent and the script's optional viewport width.
-// The user agent is read here and for the visitor hash only; it is never stored.
+// The user agent is read here and for the visitor hash only; neither it nor the width in pixels is stored.
+// Limits: Windows 10 and 11 share a user agent (Windows 10/11); a desktop-mode iPad reads as macOS.
 export interface Device { device:'desktop'|'mobile'|'tablet'; browser:string; browserVersion:string|null; os:string; osVersion:string|null; screen:string|null }
 const first=(ua:string,patterns:[RegExp,string][]):[string,string|null]=>{for(const [pattern,name] of patterns){const m=ua.match(pattern);if(m)return [name,m[1]??null]}return ['Other',null]}
 const browsers:[RegExp,string][]=[[/Edg(?:e|A|iOS)?\/(\d+)/,'Edge'],[/OPR\/(\d+)/,'Opera'],[/SamsungBrowser\/(\d+)/,'Samsung Internet'],[/(?:Firefox|FxiOS)\/(\d+)/,'Firefox'],[/CriOS\/(\d+)/,'Chrome'],[/Chrome\/(\d+)/,'Chrome'],[/Version\/(\d+)[\d.]* (?:Mobile\/\S+ )?Safari\//,'Safari']]

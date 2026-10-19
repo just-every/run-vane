@@ -2387,7 +2387,7 @@
       "executable": false
     },
     "src/vane/devices.ts": {
-      "sha256": "951ac0dda44d6848aa0194e36066c2be23720e3899faff1507a74584117e0f1e",
+      "sha256": "648092813e3f89dd1d8bc1175642a91b631993db80c285e48f39f6865c58af8c",
       "executable": false
     },
     "src/vane/goals.ts": {
@@ -2403,7 +2403,7 @@
       "executable": false
     },
     "src/vane/methodology.ts": {
-      "sha256": "d95d27569eb9362af109e8d71a4d779e6887e72d450794ef4345d870a8213cec",
+      "sha256": "50f1b8db2ba38e9902d40695b37554681f300c9a73be6c8090b8734c7aadbff8",
       "executable": false
     },
     "src/vane/movein/carry.ts": {
@@ -2547,7 +2547,7 @@
       "executable": false
     },
     "tests/vane.test.mjs": {
-      "sha256": "859c595bea5d0160ece72ececf962bdfadb6a8043af3e185201da6d8ef222cea",
+      "sha256": "9d7df2a09a2d044ad733683ec6c87dbeef3d464d5f864a11f52000ef788dd195",
       "executable": false
     },
     "tsconfig.json": {

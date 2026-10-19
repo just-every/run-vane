@@ -415,8 +415,9 @@ test('DASH-006 iPhone Safari, Android Chrome, Windows Edge and an iPad fill the 
  const sent=tab.waitForResponse(response=>new URL(response.url()).pathname==='/api/vane/collect'&&response.request().method()==='POST');await tab.goto('https://oak.example/');const response=await sent
  assert.equal(response.status(),202);assert.equal(JSON.parse(response.request().postData()).width,390)
  assert.deepEqual(pick((await (await a.request('/api/vane/summary?siteId='+other,owner)).json()).screens),[['Mobile (under 576 px)',1,1]])
- const stored=JSON.stringify([await a.dump(),await a.archive()]);for(const fragment of ['Mozilla/5.0','Pixel 8','AppleWebKit','HeadlessChrome'])assert.equal(stored.includes(fragment),false,fragment)
- assert.ok((await (await a.request('/methodology')).text()).includes('The user agent is then discarded; only these classes are stored.'))
+ const dump=await a.dump(),stored=JSON.stringify([dump,await a.archive()]);for(const fragment of ['Mozilla/5.0','Pixel 8','AppleWebKit','HeadlessChrome'])assert.equal(stored.includes(fragment),false,fragment)
+ for(const row of dump.vane_events)assert.ok(!Object.values(row).some(value=>[390,412,1536,820,'390','412','1536','820'].includes(value)),'only the screen class is stored, never the width')
+ const methodology=await (await a.request('/methodology')).text();for(const phrase of ['never the user agent or the width in pixels','Windows 10/11','counts as a macOS desktop'])assert.ok(methodology.includes(phrase),phrase)
  await context.close()
 })
 test('DASH-012 with a named search parameter, a term two visitors searched is reported with searches per visit, start pages and exits, and an email-like term never appears',async t=>{
