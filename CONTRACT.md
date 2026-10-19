@@ -420,8 +420,8 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 16 | 1 | 0 | 17 |
-| Target and push further | 8 | 22 | 61 | 91 |
-| All | 24 | 23 | 61 | 108 |
+| Target and push further | 9 | 22 | 60 | 91 |
+| All | 25 | 23 | 60 | 108 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -457,9 +457,9 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | `METRIC-001` | Cookie-free unique visitors from daily-rotating salted hashes | target | done | `src/vane/visitors.ts`; `src/vane/collect.ts`; `src/vane/reports.ts`; `src/vane/methodology.ts`; `src/server.ts`; `migrations/core/0018_vane_visitors.sql`; `tests/vane.test.mjs` |  |
 | `METRIC-002` | Visits and pages per visit | target | done | `src/vane/visits.ts`; `src/vane/reports.ts`; `src/vane/collect.ts`; `src/vane/clock.ts`; `src/vane/views/report.ts`; `src/vane/methodology.ts`; `migrations/core/0019_vane_visits.sql`; `tests/vane.test.mjs` |  |
 | `METRIC-003` | Bounce rate and visit duration | target | done | `src/vane/tracker.ts`; `src/vane/collect.ts`; `src/vane/visits.ts`; `src/vane/views/report.ts`; `src/vane/methodology.ts`; `tests/vane.test.mjs` |  |
-| `METRIC-004` | Methodology disclosed and versioned | target | partial | `src/vane/methodology.ts`; `src/vane/views/report.ts`; `src/vane/reports.ts` | A public `/methodology` page defines page loads, unique visitors (hash recipe, salt lifetime, sum of daily uniques), goals, sources and campaigns, the script's fields, both storage exceptions, the privacy-signal stance, and visits, bounce rate, visit duration and time on page; no definitions of scroll depth or revenue, and no versioned definition annotations. |
+| `METRIC-004` | Methodology disclosed and versioned | target | partial | `src/vane/methodology.ts`; `src/vane/views/report.ts`; `src/vane/reports.ts` | A public `/methodology` page defines page loads, unique visitors (hash recipe, salt lifetime, sum of daily uniques), goals, sources and campaigns, the script's fields, both storage exceptions, the privacy-signal stance, and visits, bounce rate, visit duration, time on page and scroll depth; no definition of revenue, and no versioned definition annotations. |
 | `METRIC-005` | Consented visitor mode: returning visitors and retention | target | missing |  | No consented mode, returning visitors or retention cohorts. |
-| `METRIC-006` | Scroll depth and time on page | target | missing |  | No scroll depth or time on page. |
+| `METRIC-006` | Scroll depth and time on page | target | done | `src/vane/tracker.ts`; `src/vane/collect.ts`; `src/vane/visits.ts`; `src/vane/privacy.ts`; `src/vane/views/report.ts`; `src/vane/methodology.ts`; `migrations/core/0020_vane_scroll.sql`; `tests/vane.test.mjs` |  |
 | `DASH-001` | Real-time dashboard | target | missing |  | No real-time view. |
 | `DASH-002` | Historical time series in the site's time zone | target | partial | `src/vane/reports.ts`; `src/vane/views/report.ts`; `tests/vane.test.mjs` | A custom date range is tested, and reports use the site's local dates; no chart, granularities, preset ranges or data table. |
 | `DASH-003` | Page, entry and exit reports | target | partial | `src/vane/reports.ts`; `src/vane/views/report.ts` | A pages breakdown by page-load count exists; no entry or exit pages, per-page metrics or grouping. |
@@ -476,7 +476,7 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | `DASH-014` | Named sources for referrer domains and app referrers | target | missing |  | The tracker sends only the referring hostname, and collection reports it only when it is on the site's source allowlist; no maintained source list, app-referrer grouping, named sources or owner grouping rules. |
 | `PERF-001` | Page performance | target | missing |  | No page performance collection. |
 | `HEAT-001` | Aggregate click and scroll maps | target | missing |  | No click or scroll maps. |
-| `CONV-001` | Pageview goals with patterns and conversion rates | target | partial | `src/vane/privacy.ts`; `src/vane/collect.ts`; `tests/vane.test.mjs` | Exact-path pageview goals are counted and tested; no wildcard patterns, scroll-depth goals, unique converters or conversion rate. |
+| `CONV-001` | Pageview goals with patterns and conversion rates | target | partial | `src/vane/privacy.ts`; `src/vane/collect.ts`; `tests/vane.test.mjs` | Exact-path pageview goals and exact-path scroll-depth goals (from `METRIC-006`) are counted and tested; no wildcard patterns, unique converters or conversion rate. |
 | `CONV-002` | Custom events with properties | target | missing |  | No custom events or properties. |
 | `CONV-003` | Automatic outbound-link, file-download, 404 and form-submission events | target | missing |  | No automatic outbound, download, 404 or form events. |
 | `CONV-004` | Conversion rates by source, campaign, landing page and audience | target | missing |  | Goals are broken down by goal only, not by source, campaign, landing page or audience. |

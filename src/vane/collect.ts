@@ -23,14 +23,17 @@ export async function collector(request:Request,env:Env):Promise<Response|null> 
   cors={...cors,'access-control-allow-origin':value.origin};
   if(match) { insist(request.method==='GET','method','GET required.',405); return Response.json(value.config,{headers:cors}); }
   if(engage) {
-   // METRIC-003: a field-free ping names only the site and its own page load, at least 10 seconds and
-   // at most 30 minutes after that load; the latest ping marks the page engaged and ends its time.
-   insist(Object.keys(payload??{}).every(key=>['id','siteId'].includes(key))&&/^[a-f0-9-]{36}$/.test(payload.id),'fields','An engagement ping carries only the site and page-load IDs.');
-   const at=clock(),eventId=value.id+':'+payload.id,load=await env.DB.prepare("SELECT at FROM vane_events WHERE id=? AND kind='pageview'").bind(eventId).first<{at:number|null}>();
+   // METRIC-003: a ping names only the site and its own page load, at least 10 seconds and at most
+   // 30 minutes after that load; the latest ping marks the page engaged and ends its time.
+   // METRIC-006: it carries the deepest scroll reached, and scroll-depth goals count against it.
+   insist(Object.keys(payload??{}).every(key=>['id','siteId','scroll'].includes(key))&&/^[a-f0-9-]{36}$/.test(payload.id),'fields','An engagement ping carries only the site and page-load IDs and the scroll depth.');
+   insist(Number.isInteger(payload.scroll)&&payload.scroll>=0&&payload.scroll<=100,'scroll','Scroll depth is a whole percentage from 0 to 100.');
+   const at=clock(),eventId=value.id+':'+payload.id,load=await env.DB.prepare("SELECT at,path FROM vane_events WHERE id=? AND kind='pageview'").bind(eventId).first<{at:number|null,path:string}>();
    insist(typeof load?.at==='number','page_load','No timed page load has this ID.',404);
    insist(at-load.at>=ENGAGED_AFTER_MS,'engagement','Engagement counts after 10 seconds on the page.',409);
    insist(at-load.at<=VISIT_GAP_MS,'expired','Engagement more than 30 minutes after its page load is not counted.',409);
-   await env.DB.prepare('UPDATE vane_events SET engaged_at=MAX(COALESCE(engaged_at,0),?) WHERE id=?').bind(at,eventId).run();
+   const goals=Object.entries(value.config.scrollGoals??{}).filter(([,goal])=>goal.path===load.path);
+   await env.DB.batch([statement(env,'UPDATE vane_events SET engaged_at=MAX(COALESCE(engaged_at,0),?),scroll=MAX(COALESCE(scroll,0),?) WHERE id=?',at,payload.scroll,eventId),...goals.map(([name,goal])=>statement(env,'INSERT OR IGNORE INTO vane_events(id,site_id,day,kind,path,source,campaign,consent,sample_rate,visitor,at) SELECT id||?,site_id,day,?,path,source,campaign,consent,sample_rate,visitor,at FROM vane_events WHERE id=? AND scroll>=?',':'+name,name,eventId,goal.depth))]);
    return Response.json({accepted:true},{status:202,headers:cors});
   }
   insist(payload&&Object.keys(payload).every(key=>['id','siteId','path','source','campaign','consent'].includes(key)),'fields','Only the declared anonymous fields are accepted.');

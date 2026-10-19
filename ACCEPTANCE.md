@@ -44,7 +44,7 @@ Each clause in CONTRACT.md is accepted by the evidence below, run through a publ
 - `METRIC-003` Bounce rate and visit duration (done): Simulate a quick bounce, a single-page visit with 45 seconds of engagement, and a three-page visit. The bounce rate, visit durations and per-page time match the definitions (`tests/vane.test.mjs`, with the script's pings proven in a browser).
 - `METRIC-004` Methodology disclosed and versioned (partial): Open the methodology page signed out and follow each metric's definition link from the dashboard. The page states the roll-up rules and the two storage exceptions. Change the visit timeout and see a definition annotation dated on the charts.
 - `METRIC-005` Consented visitor mode: returning visitors and retention (missing): With consent granted, visit on day 1 and day 8 and see one returning visitor in the week-2 cohort. Without consent, the same visits count as cookie-free daily visitors. A revoke deletes the identifier.
-- `METRIC-006` Scroll depth and time on page (missing): Scroll a long fixture page to 50% and to 100% in separate visits. The page shows the average depth and the 75% share as expected.
+- `METRIC-006` Scroll depth and time on page (done): Scroll a long fixture page to 50% and to 100% in separate visits. The page shows the average depth and the 75% share as expected (`tests/vane.test.mjs`, in a browser; time on page is proven under `METRIC-003`).
 
 ## Dashboards and analysis
 
