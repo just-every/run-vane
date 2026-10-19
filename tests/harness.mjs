@@ -6,7 +6,7 @@ import { randomBytes } from 'node:crypto'
 import assert from 'node:assert/strict'
 const require=createRequire(import.meta.url),{unstable_splitSqlQuery:split}=require('wrangler')
 const origin='http://127.0.0.1:8787'
-export async function installation() {
+export async function installation({setup=true}={}) {
  const root=resolve('dist/server'),config=JSON.parse(await readFile(join(root,'wrangler.json'),'utf8'))
  const paths=await readdir(root,{recursive:true})
  const entry=join(root,config.main)
@@ -27,7 +27,7 @@ export async function installation() {
  assert.equal(bootstrap.status,303,await bootstrap.clone().text())
  const cookieOf=response=>response.headers.getSetCookie().map(line=>line.split(';')[0]).join('; ')
  const owner=cookieOf(bootstrap)
- await request('/setup',{method:'POST',headers:{origin,'content-type':'application/x-www-form-urlencoded',cookie:owner},body:'confirm=yes'})
+ if(setup)await request('/setup',{method:'POST',headers:{origin,'content-type':'application/x-www-form-urlencoded',cookie:owner},body:'confirm=yes'})
  async function invite(email,role) {
   const response=await post('/auth/invite',{email,role,displayName:role},owner);assert.equal(response.status,202,await response.text())
   const message=sentMail.findLast(message=>JSON.stringify(message.to).includes(email))
@@ -43,6 +43,6 @@ export async function installation() {
  const event=(siteId,extra={})=>({siteId,id:crypto.randomUUID(),path:'/',source:'search.example',campaign:'launch',consent:'not-required',...extra})
  const collect=(value,siteOrigin='https://fern.example')=>post('/api/vane/collect',value,'',{origin:siteOrigin})
  const archive=async()=>{const r=await request('/api/vane/export',{headers:{cookie:owner}});assert.equal(r.status,200);return r.json()}
- return {origin,request,post,form,owner,invite,sentMail,egress,addSite,event,collect,archive,close:()=>mf.dispose()}
+ return {origin,cookieOf,request,post,form,owner,invite,sentMail,egress,addSite,event,collect,archive,close:()=>mf.dispose()}
  } catch(error) {await mf.dispose();throw error}
 }

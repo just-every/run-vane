@@ -4,6 +4,19 @@ import { readFile } from 'node:fs/promises'
 import { installation } from './harness.mjs'
 const fixture=JSON.parse(await readFile(new URL('./fixtures/umami-events.json',import.meta.url),'utf8'))
 async function withApp(t){const app=await installation();t.after(()=>app.close());return app}
+// A real browser whose requests are all recorded: the built Worker serves the installation's origin, `pages` serves fixture pages, and anything else is refused.
+async function browse(t,a,pages={}){
+ const {chromium}=await import('@playwright/test'),browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']});t.after(()=>browser.close())
+ const context=await browser.newContext(),requests=[]
+ await context.route('**/*',async route=>{
+  const request=route.request(),url=new URL(request.url());requests.push(url.origin)
+  if(pages[url.href])return route.fulfill({contentType:'text/html',body:pages[url.href]})
+  if(url.origin!==a.origin)return route.abort()
+  const response=await a.request(url.pathname+url.search,{method:request.method(),headers:request.headers(),body:request.postData()??undefined})
+  return route.fulfill({status:response.status,headers:Object.fromEntries(response.headers),body:Buffer.from(await response.arrayBuffer())})
+ })
+ return {context,requests}
+}
 async function movein(app,siteId,document=fixture){const r=await app.post('/api/vane/import-preview',{siteId,document},app.owner);assert.equal(r.status,200,await r.clone().text());const p=await r.json();const a=await app.post('/api/vane/import-apply',{siteId,document:p.carry,fingerprint:p.fingerprint},app.owner);assert.equal(a.status,200,await a.clone().text());return {preview:p,applied:await a.json()}}
 
 test('HTTP-001 and ACCESS-002: one Worker serves honest public doors; every private door rejects anonymous and cross-origin requests',async t=>{
@@ -113,15 +126,7 @@ test('TRAFFIC-001 the default seven-day report compares totals and every breakdo
 test('PRIVACY-005 visitor data stays in the installation: the script talks only to its own origin, and collection, reports, import and export make no outbound request',async t=>{
  const a=await withApp(t),id=await a.addSite(),before=a.egress.length,seed=JSON.parse(await readFile(new URL('../seed.json',import.meta.url),'utf8'))
  assert.deepEqual(seed.externals.map(external=>external.id),['cloudflare'])
- const {chromium}=await import('@playwright/test'),browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']});t.after(()=>browser.close())
- const context=await browser.newContext(),requests=[]
- await context.route('**/*',async route=>{
-  const request=route.request(),url=new URL(request.url());requests.push(url.origin)
-  if(url.origin==='https://fern.example')return route.fulfill({contentType:'text/html',body:`<!doctype html><title>Fern Studio</title><h1>Thanks</h1><script src="${a.origin}/vane.js" data-site="${id}"></script>`})
-  if(url.origin!==a.origin)return route.abort()
-  const response=await a.request(url.pathname+url.search,{method:request.method(),headers:request.headers(),body:request.postData()??undefined})
-  return route.fulfill({status:response.status,headers:Object.fromEntries(response.headers),body:Buffer.from(await response.arrayBuffer())})
- })
+ const {context,requests}=await browse(t,a,{'https://fern.example/thanks':`<!doctype html><title>Fern Studio</title><h1>Thanks</h1><script src="${a.origin}/vane.js" data-site="${id}"></script>`})
  const page=await context.newPage(),collected=page.waitForResponse(response=>new URL(response.url()).pathname==='/api/vane/collect'&&response.request().method()==='POST')
  await page.goto('https://fern.example/thanks')
  assert.equal((await collected).status(),202)
@@ -132,4 +137,31 @@ test('PRIVACY-005 visitor data stays in the installation: the script talks only 
  for(const path of ['/app','/api/vane/sites',...['report','settings','history','approvals'].map(section=>`/app/sites/${id}?section=${section}`)])assert.equal((await a.request(path,{headers:{cookie:a.owner}})).status,200,path)
  await movein(a,id);assert.equal((await a.archive()).payload.tables.vane_events.length,3)
  assert.deepEqual(a.egress.slice(before),[])
+ await context.close()
+})
+test('LOBBY-001 a fresh installation keeps its themed Lobby, first-run setup, email-link sign-in and /app, with no landing-drawing figures in analytics',async t=>{
+ const a=await installation({setup:false});t.after(()=>a.close())
+ const themed=async(path,cookie='')=>{const r=await a.request(path,{headers:{cookie}});assert.equal(r.status,200,path);const html=await r.text();assert.match(html,/<link rel="stylesheet" href="\/rer-theme\.css">/,path);return html}
+ const lobby=await themed('/');await themed('/signin')
+ assert.equal((await a.request('/app',{headers:{cookie:a.owner}})).headers.get('location'),'/setup')
+ await themed('/setup',a.owner)
+ assert.equal((await a.request('/setup',{method:'POST',headers:{origin:a.origin,'content-type':'application/x-www-form-urlencoded',cookie:a.owner},body:'confirm=yes'})).status,303)
+ assert.equal((await a.request('/setup',{headers:{cookie:a.owner}})).headers.get('location'),'/app')
+ assert.equal((await a.post('/auth/signout',{},a.owner)).status,204)
+ assert.equal((await a.post('/auth/magic-link',{email:'owner@example.test'})).status,202)
+ const link=new URL(a.sentMail.at(-1).html.match(/href="([^"]*\/auth\/confirm\?token=[^"]+)"/)[1].replaceAll('&amp;','&'))
+ const confirmed=await a.post('/auth/confirm',{token:link.searchParams.get('token')});assert.equal(confirmed.status,303)
+ const owner=a.cookieOf(confirmed),app=await themed('/app',owner)
+ assert.match(app,/<link rel="stylesheet" href="\/vane\.css">/)
+ assert.deepEqual(await (await a.request('/api/vane/sites',{headers:{cookie:owner}})).json(),[])
+ for(const figure of ['Juniper','4,812','28,416','3,912'])for(const html of [lobby,app])assert.equal(html.includes(figure),false,figure)
+ const {context}=await browse(t,a);await context.addCookies(owner.split('; ').map(pair=>{const [name,...value]=pair.split('=');return {name,value:value.join('='),url:a.origin}}))
+ const page=await context.newPage()
+ for(const [path,title] of [['/','Vane'],['/app','Sites']]){
+  assert.equal((await page.goto(a.origin+path,{waitUntil:'networkidle'})).status(),200,path)
+  assert.ok((await page.title()).includes(title),path)
+  assert.notEqual(await page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue('--rer-page').trim()),'',`${path} carries the shared theme tokens`)
+  assert.equal(await page.evaluate(()=>/Juniper|4,812|28,416|3,912/.test(document.body.innerText)),false,path)
+ }
+ await context.close()
 })

@@ -19,7 +19,7 @@ Each clause in CONTRACT.md is accepted by the evidence below, run through a publ
 - `RUNSITE-001` The public run site reaches installation and every guide (done): `rer build --site`, then follow every local link from the built homepage and guides (`tests/site.test.mjs`).
 - `DOCS-001` Documentation built from repository Markdown (done): Build the site and open each guide. Code blocks, tables and heading anchors render, and the clipboard control copies the block (`tests/site.test.mjs`).
 - `HOME-001` The approved homepage in the shared theme (partial): The independent visual gate compares the built homepage at 1440 and 390 px with the approved specification and picks.
-- `LOBBY-001` The installed Lobby and real sign-in stay intact (partial): On a fresh installation, bootstrap the owner, complete `/setup`, sign in by email link and open `/app`. No landing-drawing numbers appear in analytics.
+- `LOBBY-001` The installed Lobby and real sign-in stay intact (done): On a fresh installation, bootstrap the owner, complete `/setup`, sign in by email link and open `/app`. No landing-drawing numbers appear in analytics (`tests/vane.test.mjs`).
 - `DEPLOY-001` Run-site deployment stays behind its switch (done): With the variable unset, the run-site workflow skips deployment. The identifiers in `wrangler.jsonc`, `package.json` and `edition.json` are unchanged.
 
 ## Install and collection

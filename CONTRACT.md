@@ -419,9 +419,9 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Published | 14 | 3 | 0 | 17 |
+| Published | 15 | 2 | 0 | 17 |
 | Target and push further | 2 | 25 | 64 | 91 |
-| All | 16 | 28 | 64 | 108 |
+| All | 17 | 27 | 64 | 108 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -440,7 +440,7 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | `RUNSITE-001` | The public run site reaches installation and every guide | published | done | `src/base/run-site.ts`; `tests/site.test.mjs` |  |
 | `DOCS-001` | Documentation built from repository Markdown | published | done | `src/site/docs/render.ts`; `src/site/docs/pages.ts`; `tests/site.test.mjs` |  |
 | `HOME-001` | The approved homepage in the shared theme | published | partial | `src/site/landing/page.ts` and its section files in `src/site/landing/` | The approved page ships; the 1440 and 390 px visual gate runs outside the repository and no repository test checks the phone stacking. |
-| `LOBBY-001` | The installed Lobby and real sign-in stay intact | published | partial | `src/base/lobby.ts`; `tests/harness.mjs`; `tests/email-link.mjs` | Bootstrap, setup and email-link sign-in are exercised; no journey opens the Lobby and /app in a browser or asserts that landing-drawing figures never reach analytics. |
+| `LOBBY-001` | The installed Lobby and real sign-in stay intact | published | done | `src/base/lobby.ts`; `tests/harness.mjs`; `tests/vane.test.mjs`; `tests/email-link.mjs` |  |
 | `DEPLOY-001` | Run-site deployment stays behind its switch | published | done | `.github/workflows/run-site.yml`; `wrangler.jsonc` |  |
 | `INSTALL-001` | One script tag with live install verification | target | partial | `src/vane/views/settings.ts`; `src/vane/views/script-copy.ts` | The snippet and copy control exist; there is no Verify installation check, failure diagnosis or awaiting-first-event state. |
 | `INSTALL-002` | WordPress and WooCommerce plugin | target | missing |  | No WordPress or WooCommerce plugin. |
