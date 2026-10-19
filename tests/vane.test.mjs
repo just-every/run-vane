@@ -1,3 +1,4 @@
+import './search-console.test.mjs'
 import './matomo.test.mjs'
 import test from 'node:test'
 import assert from 'node:assert/strict'

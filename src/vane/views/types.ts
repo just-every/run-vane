@@ -8,6 +8,10 @@ export interface ViewData {
   origin: string
   sites: any[]
   site?: any
+  searchConsole?:any
+  bing?:any
+  googleKeywordPage?:string|null
+  bingKeywordPage?:string|null
   report?: any
   live?: any
   /** DASH-001: the selected site's current visitors, for the rail. */

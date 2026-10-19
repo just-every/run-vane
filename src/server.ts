@@ -14,6 +14,7 @@ import { runExports } from './vane/warehouse'
 import { runWebhooks } from './vane/webhooks'
 import { runReports, unsubscribeResponse } from './vane/email-reports'
 import { mailEventResponse } from './vane/mail-events'
+import { sync as syncSearchConsole } from './vane/search-console'
 import { runAlerts } from './vane/traffic-alerts'
 import { runFollowUps } from './vane/follow-up'
 import { clock, clockResponse } from './vane/clock'
@@ -100,5 +101,6 @@ export default withDemo({
     await runReports(runtimeBindings(env), clock())
     await runAlerts(runtimeBindings(env), clock())
     await runFollowUps(runtimeBindings(env), clock())
+    await syncSearchConsole(runtimeBindings(env), clock())
   },
 } satisfies ExportedHandler<Bindings>, { seed: seedDemo })

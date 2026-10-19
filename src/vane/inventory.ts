@@ -8,7 +8,7 @@ import { retentionPhrase } from './retention'
 // location (DASH-005), Search Console and Bing (SEARCH-001/002), ad platforms (ADS-001), outcome sources
 // (CONV-008, custom events and properties CONV-002 now listed), Slack/Teams delivery (REPORT-002) and webhooks (API-003).
 export interface Field { name:string; table:string; columns:string[]; description:string }
-export function inventory(site:Site) {
+export function inventory(site:Site,searchConnected=false) {
  const c=site.config,auto=c.autoEvents??[],page='vane_events'
  const fields:Field[]=[
   {name:'Imported source reports',table:'vane_import_reports',columns:['id','site_id','import_job','day','provider','report','dimensions_json','metrics_json','definitions_json'],description:'Sanitized Matomo aggregate reports: local source date, report method, dimension labels, numeric measures and source goal definitions. No visitor logs, IP addresses, user agents or API tokens; coverage remains unknown. Each source report stays separate from native event totals.'},
@@ -50,12 +50,18 @@ export function inventory(site:Site) {
   {name:'Annotation webhook secret',table:'vane_annotation_hooks',columns:['site_id','secret_hash','created_at','created_by'],description:'Only the SHA-256 of the owner’s annotation webhook secret, when one exists, with when and by whom it was created.'},
   ...(c.signalCounter?[{name:'Privacy-signal count',table:'vane_signals',columns:['site_id','day','count'],description:'A daily count of page loads that sent Global Privacy Control or Do Not Track; nothing else about them.'}]:[]),
  ]
+ if(searchConnected)fields.push(
+  {name:'Google Search Console connection',table:'vane_search_connections',columns:['site_id','generation','sealed_tokens','property','properties_json','connected_by','connected_at','last_sync','next_sync','last_error','lock_id','lock_until'],description:'Owner-approved read-only Google OAuth tokens encrypted with AES-GCM, the selected property, connection identity and sync timing. Tokens are deleted on disconnect and excluded from archives.'},
+  {name:'Google OAuth approval',table:'vane_search_oauth_states',columns:['state_hash','site_id','actor_id','session_hash','redirect_uri','expires_at','consumed_at'],description:'A one-use ten-minute approval bound to the owner’s native session and site. Only hashes of the random state and native session are stored. Never archived.'},
+  {name:'Google source dates',table:'vane_search_days',columns:['site_id','day','property','snapshot_id','status','checked_at','published_at'],description:'Pacific source dates, pending or finalized, with the published snapshot pointer and check time.'},
+  {name:'Google search aggregates',table:'vane_search_rows',columns:['site_id','day','snapshot_id','grain','query','page','path','clicks','impressions','ctr','position'],description:'Redacted query and page labels, independent overall/query/page/query-page grains, clicks, impressions, CTR and average position. No visitor attribution.'}
+ );
  const discarded=['IP address and user agent: used once for the visitor hash and device classes, then discarded','viewport width: turned into the screen-size class','query strings other than kept parameters, URL fragments and page titles: never stored','click-ID values (gclid, fbclid, msclkid): only the paid-click flag is kept']
  const identifiers=['Default mode: no cookie and no browser storage; the server’s visitor hash changes every day.','Consented mode: not offered by this release, so no identifier is stored on any device.']
  const salt=`A random salt per site and day, rotated at midnight in ${c.timeZone??'UTC'} and deleted within 24 hours.`
  const retention=retentionPhrase(c)
- const processors=['Cloudflare (Workers and D1), which hosts this installation']
- return {fields,discarded,identifiers,salt,retention,processors,policyText:policyText(site,auto)}
+ const processors=['Cloudflare (Workers and D1), which hosts this installation',...(searchConnected?['Google Search Console, connected by the owner for read-only search aggregates']:[])]
+ return {fields,discarded,identifiers,salt,retention,processors,policyText:[...policyText(site,auto),...(searchConnected?['The owner connects Google Search Console to read aggregate search queries, landing pages, clicks and impressions. Personal-looking labels are redacted. This does not identify which person searched or send our collected visits to Google.']:[])]}
 }
 function policyText(site:Site,auto:string[]):string[] {
  const c=site.config

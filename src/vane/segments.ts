@@ -50,7 +50,7 @@ const resolved=(f:Filter)=>f.op==='matches'||(f.op==='is'||f.op==='is_not')&&(f.
 // The event set of the kept visits over local days [from, to), drawn from `base` (the hostname-filtered events).
 // The kept visits are found once per report: the IDs of their page loads and goal events are written to vane_report_kept
 // under a fresh report ID, every table reads those events by primary key, and release() deletes them when the report returns.
-export async function keptVisits(env:Env,scope:string,filters:Filter[],from:string,to:string,base:string,sourceRules:SourceRule[]=[]):Promise<{events:string,release:()=>Promise<void>}> {
+export async function keptVisits(env:Env,scope:string,filters:Filter[],from:string,to:string,base:string,sourceRules:SourceRule[]=[],entryPaths?:string[]):Promise<{events:string,release:()=>Promise<void>}> {
  const sites=(row:string)=>`${row}.site_id IN (SELECT value FROM json_each(${literal(scope)}))`,days=(row:string)=>`${row}.day>=${literal(from)} AND ${row}.day<${literal(to)}`
  const expr=(f:Filter,row:string)=>f.dimension==='source'?sourceNameSql(sourceRules,`${row}.source`):dimensionOf(f.dimension)!.sql!(row)
  const positive=async(f:Filter,row:string)=>{
@@ -68,7 +68,8 @@ export async function keptVisits(env:Env,scope:string,filters:Filter[],from:stri
   if(d.scope==='event')return `EXISTS(SELECT 1 FROM vane_custom_events ce WHERE ce.page_id=l.id AND ${await positive(f,'ce')})`;
   if(d.scope==='prop')return `EXISTS(SELECT 1 FROM vane_event_props pr WHERE (pr.event_id=l.id OR pr.event_id IN (SELECT ce.id FROM vane_custom_events ce WHERE ce.page_id=l.id)) AND pr.key=${literal(d.key!)} AND ${await positive(f,'pr')})`;
   return positive(f,'l')}))
- const having=filters.map((f,i)=>dimensionOf(f.dimension)!.scope==='first'?`MAX(CASE WHEN first=1 AND ${negative(f)?'NOT ':''}f${i} THEN 1 ELSE 0 END)=1`:`MAX(f${i})=${negative(f)?0:1}`).join(' AND ')
+ if(entryPaths!==undefined)flags.push(`l.channel='Organic Search' AND l.path IN (SELECT value FROM json_each(${literal(JSON.stringify(entryPaths))}))`);
+ const having=[...filters.map((f,i)=>dimensionOf(f.dimension)!.scope==='first'?`MAX(CASE WHEN first=1 AND ${negative(f)?'NOT ':''}f${i} THEN 1 ELSE 0 END)=1`:`MAX(f${i})=${negative(f)?0:1}`),...(entryPaths!==undefined?[`MAX(CASE WHEN first=1 AND f${filters.length} THEN 1 ELSE 0 END)=1`]:[])].join(' AND ')
  const report=uid();
  await env.DB.prepare(`INSERT INTO vane_report_kept(report,id,at) SELECT ?,e.id,? FROM ${base} e WHERE ${sites('e')} AND ${days('e')} AND substr(e.id,1,length(e.site_id)+37) IN (WITH s AS (SELECT l.id,l.day,l.visitor,l.at,${flags.map((sql,i)=>`(${sql}) AS f${i}`).join(',')},LAG(l.at) OVER w AS prev_at,${gapSql('l')} AS gap FROM ${base} l WHERE ${sites('l')} AND ${days('l')} AND l.kind='pageview' AND l.visitor IS NOT NULL AND l.at IS NOT NULL WINDOW w AS (PARTITION BY l.day,l.visitor ORDER BY l.at,l.id)),
 t AS (SELECT *,CASE WHEN prev_at IS NULL OR at-prev_at>gap THEN 1 ELSE 0 END AS first FROM s),

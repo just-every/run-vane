@@ -80,7 +80,7 @@ Each clause in CONTRACT.md is accepted by the evidence below, run through a publ
 
 ## Search and advertising
 
-- `SEARCH-001` Google Search Console keywords (missing): Against a Search Console API fixture, connect, read the queries, filter by a query and disconnect. The query and page figures match the fixture, and the tokens are removed after disconnect. With a fixture that has not yet published its last two days, those days show as pending with the next sync time. After the fixture publishes them, the next sync fills both days in once with the fixture's figures, and each query lists its landing pages with their clicks and Vane visitors.
+- `SEARCH-001` Google Search Console keywords (done): Against a Search Console API fixture, connect, read the queries, filter by a query and disconnect. The query and page figures match the fixture, and the tokens are removed after disconnect. With a fixture that has not yet published its last two days, those days show as pending with the next sync time. After the fixture publishes them, the next sync fills both days in once with the fixture's figures, and each query lists its landing pages with their clicks and Vane visitors. Read-only session-bound OAuth, site scope, 16-month source sync, CSV/ZIP, sealed credentials omitted from archives and disconnect are exercised through the public doors at 1440 and 390 (`tests/search-console.test.mjs`).
 - `SEARCH-002` Bing Webmaster Tools keywords (missing): Against a Bing API fixture, connect and see Bing queries beside Google's with matching figures.
 - `ADS-001` Ad spend matched to campaigns (missing): Against ad API fixtures, connect two platforms and map one campaign by hand. Spend, CPA and ROAS per campaign match the fixtures and the confirmed revenue.
 

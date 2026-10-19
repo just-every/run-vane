@@ -69,6 +69,16 @@
         "Aggregate traffic, goal and ecommerce reports; no visitor logs"
       ],
       "adapters": []
+    },
+    {
+      "id": "google-search-console",
+      "required": false,
+      "why": "Owner-approved read-only Google Search Console OAuth (SEARCH-001)",
+      "data": [
+        "OAuth code and read-only credentials at fixed official Google endpoints",
+        "Selected property and source date range; aggregate search query/page figures returned; no Vane visitor rows sent"
+      ],
+      "adapters": []
     }
   ],
   "env": [],

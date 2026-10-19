@@ -9,7 +9,7 @@ export function reportQuery(report: any, filters: string[], segment: string | nu
   if (report.compare && report.compare !== 'previous') query.set('compare', report.compare)
   if (report.compare === 'custom') { query.set('compareFrom', report.previousFrom); query.set('compareTo', report.previousTo) }
   if (report.weekdays) query.set('weekdays', 'on')
-  for (const key of ['metric', 'group', 'goal']) if (report[key]) query.set(key, report[key])
+  for (const key of ['metric', 'group', 'goal','searchQuery','searchProvider']) if (report[key]) query.set(key, report[key])
   if (report.host) { query.set('hostOp', report.host.op); query.set('host', report.host.value) }
   if (segment) query.set('segment', segment)
   for (const filter of filters) query.append('filter', filter)

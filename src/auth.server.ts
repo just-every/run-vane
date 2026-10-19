@@ -11,6 +11,9 @@ import branding from './branding.json'
 const theme = { href: '/rer-theme.css', productName: branding.name, accentColor: branding.primaryColor }
 
 export interface Bindings {
+ /** SEARCH-001: optional installation-owned Google OAuth application credentials. */
+ GOOGLE_CLIENT_ID?:string
+ GOOGLE_CLIENT_SECRET?:string
  DB: D1Database
  /** Built browser files; hosted deploys run the Worker first (staticAssetResponse). */
  ASSETS?: Fetcher

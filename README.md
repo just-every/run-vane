@@ -272,3 +272,9 @@ Reporting API method, local date and currency, and upload the unformatted flat
 CSV. A summary report contains one data row; a breakdown contains one per
 label. Repeat for each report. No column names are guessed or mapped to a
 different source metric.
+### Google Search Console
+
+Create a Google OAuth web client with the Search Console API enabled. Set Worker secrets `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`; register `https://<installation>/api/vane/search-console/callback` as the authorized redirect URI. The owner connects in site settings, approves only `webmasters.readonly`, then chooses a property returned by Google. No Google account is needed to use native Vane analytics.
+
+Source dates are Pacific dates and end dates are exclusive in Vane. Sync a custom source range in settings to fetch any available part of Google's 16-month history. Daily checks revisit unpublished dates; an absent date stays pending. Source query/page sets omit anonymized or lower-ranked rows and need not sum to overall totals. Clicking a query filters Vane's organic visits by its sanitized landing paths; Vane visitors are daily unique hashes, not identified Google searchers. Disconnect revokes and deletes credentials while retaining fetched, exportable source aggregates.
+

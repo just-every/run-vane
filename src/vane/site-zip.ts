@@ -1,5 +1,5 @@
 import { aggregateCsvRow, importedReports } from './movein/aggregate-reports'
-import { type Env, type Site } from './core'
+import { rows, type Env, type Site } from './core'
 import { timedFrom } from './visits'
 import { sourceNameSql } from './sources'
 import { toCsv } from './csv'
@@ -49,5 +49,7 @@ SELECT day,${Object.keys(columns).map(name=>`"${name}"`).join(',')},COUNT(DISTIN
  ]
  const sourceReports=await importedReports(env,[value.id],ALL[0],ALL[1]);
  for(const method of new Set(sourceReports.map(r=>r.report))){const records=sourceReports.filter(r=>r.report===method);files.push({name:`matomo_${method}_${records[0]!.day}_${records.at(-1)!.day}.csv`,text:toCsv(records.map(aggregateCsvRow))})}
+ const searchRows=await rows<Record<string,unknown>>(env,"SELECT r.day,r.grain,r.query,r.page,r.path,r.clicks,r.impressions,r.ctr,r.position FROM vane_search_rows r JOIN vane_search_days d ON d.site_id=r.site_id AND d.day=r.day AND d.snapshot_id=r.snapshot_id WHERE r.site_id=? AND d.status='final' ORDER BY r.day,r.grain,r.query,r.page",value.id);
+ if(searchRows.length)files.push({name:'google_search.csv',text:toCsv(searchRows)});
  return {name:`vane-${value.id}_${first}_${last}.zip`,bytes:zip(files,now)}
 }
