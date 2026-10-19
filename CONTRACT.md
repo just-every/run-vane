@@ -70,7 +70,7 @@ These clauses restate what the released first contract and ACCEPTANCE.md promise
 
 - **DOCS-001 — Documentation built from repository Markdown.** `/docs` renders the repository's Markdown guides with readable code blocks, tables, section links and optional copy-to-clipboard controls. **Acceptance evidence:** Build the site and open each guide. Code blocks, tables and heading anchors render, and the clipboard control copies the block.
 
-- **HOME-001 — The approved homepage in the shared theme.** The run site serves the owner-approved design-desk landing page (17 Oct 2026: the weather vane in an open sky, the swallow mark, Inter Tight and Inter type) in the shared theme with locally served fonts and artwork. At phone width its hero cards and every section's drawing stack under their copy. Its Juniper Coffee figures are explanatory drawings and are never seeded as analytics. **Acceptance evidence:** The independent visual gate compares the built homepage at 1440 and 390 px with the approved specification and picks.
+- **HOME-001 — The approved homepage in the shared theme.** The run site serves the owner-approved design-desk landing page (17 Oct 2026: the weather vane in an open sky, the swallow mark, Inter Tight and Inter type) in the shared theme with locally served fonts and artwork. At phone width its hero cards and every section's drawing stack under their copy. Its Juniper Coffee figures are explanatory drawings and are never seeded as analytics. **Acceptance evidence:** The independent visual gate compares the built homepage at 1440 and 390 px with the approved specification and picks. In the repository, a browser opens the built homepage at 390 and 1440 px: at 390 px the hero cards and every section's drawing sit under their copy with no sideways scrolling, at 1440 px each drawing sits beside its copy, and every font, image and style comes from the run site itself, with Inter Tight and Inter loaded.
 
 - **LOBBY-001 — The installed Lobby and real sign-in stay intact.** An installed instance keeps its Lobby at `/`, real sign-in and first-run setup flows, and its existing authenticated routes, all in the shared Vane theme. **Acceptance evidence:** On a fresh installation, bootstrap the owner, complete `/setup`, sign in by email link and open `/app`. No landing-drawing numbers appear in analytics.
 
@@ -419,9 +419,9 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Published | 16 | 1 | 0 | 17 |
+| Published | 17 | 0 | 0 | 17 |
 | Target and push further | 17 | 18 | 56 | 91 |
-| All | 33 | 19 | 56 | 108 |
+| All | 34 | 18 | 56 | 108 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -439,7 +439,7 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | `RETENTION-001` | The declared retention window erases older history | published | done | `src/vane/actions.ts`; `tests/vane.test.mjs` |  |
 | `RUNSITE-001` | The public run site reaches installation and every guide | published | done | `src/base/run-site.ts`; `tests/site.test.mjs` |  |
 | `DOCS-001` | Documentation built from repository Markdown | published | done | `src/site/docs/render.ts`; `src/site/docs/pages.ts`; `tests/site.test.mjs` |  |
-| `HOME-001` | The approved homepage in the shared theme | published | partial | `src/site/landing/page.ts` and its section files in `src/site/landing/` | The approved page ships; the 1440 and 390 px visual gate runs outside the repository and no repository test checks the phone stacking. |
+| `HOME-001` | The approved homepage in the shared theme | published | done | `src/site/landing/page.ts` and its section files in `src/site/landing/`; `tests/site.test.mjs` |  |
 | `LOBBY-001` | The installed Lobby and real sign-in stay intact | published | done | `src/base/lobby.ts`; `tests/harness.mjs`; `tests/vane.test.mjs`; `tests/email-link.mjs` |  |
 | `DEPLOY-001` | Run-site deployment stays behind its switch | published | done | `.github/workflows/run-site.yml`; `wrangler.jsonc` |  |
 | `INSTALL-001` | One script tag with live install verification | target | done | `src/vane/install-check.ts`; `src/vane/actions.ts`; `src/vane/views/settings.ts`; `src/vane/views/script-copy.ts`; `tests/vane.test.mjs` |  |

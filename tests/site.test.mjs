@@ -9,6 +9,22 @@ const files = await readdir(root, { recursive: true })
 const pages = files.filter(file => file.endsWith('.html'))
 const exists = path => files.includes(path) || files.includes(path + '.html') || files.includes(path + '/index.html')
 
+// The built run site served over HTTP to a real headless browser.
+async function serve() {
+  const { chromium } = await import('@playwright/test')
+  const types = { '.html': 'text/html', '.css': 'text/css', '.woff2': 'font/woff2', '.svg': 'image/svg+xml', '.png': 'image/png', '.webp': 'image/webp', '.jpg': 'image/jpeg' }
+  const server = createServer(async (request, response) => {
+    const path = decodeURIComponent(new URL(request.url, 'http://localhost').pathname).replace(/\/$/, '') || '/index'
+    for (const file of [path, path + '.html']) {
+      try { const body = await readFile(resolve(root, '.' + file)); response.writeHead(200, { 'content-type': types[extname(file)] ?? 'application/octet-stream' }); return response.end(body) } catch {}
+    }
+    response.writeHead(404).end()
+  })
+  await new Promise(done => server.listen(0, '127.0.0.1', done))
+  const browser = await chromium.launch({ headless: true, args: ['--use-mock-keychain', '--password-store=basic'] })
+  return { browser, server, base: `http://127.0.0.1:${server.address().port}` }
+}
+
 test('a visitor can follow the public homepage to run instructions and every repository guide', async () => {
   const home = await readFile(resolve(root, 'index.html'), 'utf8')
   const targets = [...home.matchAll(/href="([^"]+)"/g)].map(match => match[1])
@@ -49,20 +65,9 @@ test('DOCS-001 each built guide renders its Markdown code blocks, tables and hea
   }
   assert.ok(blocks > 0, 'the guides include code blocks to copy')
 
-  const { chromium } = await import('@playwright/test')
-  const types = { '.html': 'text/html', '.css': 'text/css', '.woff2': 'font/woff2', '.svg': 'image/svg+xml' }
-  const server = createServer(async (request, response) => {
-    const path = decodeURIComponent(new URL(request.url, 'http://localhost').pathname).replace(/\/$/, '') || '/index'
-    for (const file of [path, path + '.html']) {
-      try { const body = await readFile(resolve(root, '.' + file)); response.writeHead(200, { 'content-type': types[extname(file)] ?? 'application/octet-stream' }); return response.end(body) } catch {}
-    }
-    response.writeHead(404).end()
-  })
-  await new Promise(done => server.listen(0, '127.0.0.1', done))
-  const browser = await chromium.launch({ headless: true, args: ['--use-mock-keychain', '--password-store=basic'] })
+  const { browser, server, base } = await serve()
   try {
     const context = await browser.newContext()
-    const base = `http://127.0.0.1:${server.address().port}`
     await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: base })
     const page = await context.newPage()
     for (const guide of ['commands', 'history']) {
@@ -71,6 +76,44 @@ test('DOCS-001 each built guide renders its Markdown code blocks, tables and hea
       await block.getByRole('button', { name: 'Copy' }).click()
       await page.waitForFunction(() => document.querySelector('.docs-copy').textContent === 'Copied')
       assert.equal(await page.evaluate(() => navigator.clipboard.readText()), await block.locator('code').textContent(), `${guide} copy control copies its block`)
+    }
+  } finally {
+    await browser.close()
+    server.close()
+  }
+})
+
+test('HOME-001 at 390 px the hero cards and every section drawing stack under their copy without sideways scrolling, and sit beside it at 1440 px', async () => {
+  const { browser, server, base } = await serve()
+  try {
+    const layout = async width => {
+      const page = await browser.newPage({ viewport: { width, height: 900 } }), origins = new Set(), failed = []
+      page.on('request', request => origins.add(new URL(request.url()).origin))
+      page.on('response', response => { if (response.status() >= 400) failed.push(response.url()) })
+      await page.goto(base + '/', { waitUntil: 'networkidle' })
+      await page.evaluate(() => document.fonts.ready)
+      const result = await page.evaluate(() => {
+        const box = element => element.getBoundingClientRect()
+        const below = (copy, drawing) => box(drawing).top >= box(copy).bottom - 1
+        const sections = [...document.querySelectorAll('section.feature')].map(section => ({ id: section.id, below: below(section.querySelector('.feature-copy'), section.querySelector('.feature-drawing')) }))
+        const hero = document.querySelector('.hero-copy'), cards = [...document.querySelectorAll('.hero .sky-card')].filter(card => box(card).width > 0)
+        const fonts = [...document.fonts].filter(font => font.status === 'loaded').map(font => font.family.replace(/"/g, ''))
+        return { fonts, sections, cards: cards.length, cardsBelow: cards.every(card => below(hero, card)), scroll: document.documentElement.scrollWidth - document.documentElement.clientWidth }
+      })
+      await page.close()
+      return { ...result, origins: [...origins], failed }
+    }
+    const phone = await layout(390), desk = await layout(1440)
+    assert.ok(phone.sections.length >= 5, 'the homepage has its feature sections')
+    for (const section of phone.sections) assert.ok(section.below, `${section.id} drawing stacks under its copy at 390 px`)
+    assert.ok(phone.cards >= 4 && phone.cardsBelow, 'hero cards stack under the hero copy at 390 px')
+    assert.equal(phone.scroll, 0, 'no sideways scrolling at 390 px')
+    for (const section of desk.sections) assert.ok(!section.below, `${section.id} drawing sits beside its copy at 1440 px`)
+    assert.equal(desk.scroll, 0)
+    for (const view of [phone, desk]) {
+      assert.deepEqual(view.origins, [base], 'fonts, artwork and styles are served by the run site itself')
+      assert.deepEqual(view.failed, [], 'every font, image and style the page requests is served')
+      for (const family of ['Inter Tight', 'Inter']) assert.ok(view.fonts.includes(family), `${family} loads`)
     }
   } finally {
     await browser.close()
