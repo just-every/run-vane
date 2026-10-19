@@ -30,7 +30,7 @@ test('HTTP-001 and ACCESS-002: one Worker serves honest public doors; every priv
  for(const path of ['/','/signin'])assert.equal((await a.request(path)).status,200,path)
  const setup=await a.request('/setup');assert.ok([200,303].includes(setup.status),'setup answers')
  const script=await a.request('/vane.js');assert.equal(script.status,200);assert.match(script.headers.get('content-type'),/javascript/);assert.match(await script.text(),/\/api\/vane\/collect/)
- const config=await a.request('/api/vane/config/'+id,{headers:{origin:'https://fern.example'}});assert.equal(config.status,200);assert.deepEqual((await config.json()).paths,['/','/thanks'])
+ const config=await a.request('/api/vane/config/'+id,{headers:{origin:'https://fern.example'}});assert.equal(config.status,200);assert.deepEqual(Object.keys(await config.json()).sort(),['autoEvents','consent','eventDefinitions','queryKeys','sampleRate'],'the script\'s config door serves only what the script uses')
  for(const path of ['/no-such-page','/api/no-such-door'])assert.equal((await a.request(path)).status,404,path)
  assert.equal((await a.request('/api/vane/no-such-door',{headers:{cookie:a.owner}})).status,404)
  for(const path of ['/api/vane/sites','/api/vane/summary','/api/vane/export','/api/vane/proposals','/api/vane/import-journal'])assert.equal((await a.request(path)).status,401)
@@ -919,6 +919,7 @@ test('COLLECT-003 a headless browser, crawlers, Cloudflare low bot scores and ve
  for(const row of ['<dt>Bots and automation</dt><dd>5 of 8 page loads that reached Vane (62.5%), not collected.</dd>','<dt>Data-centre networks</dt><dd>2 of 5 page loads that reached Vane (40.0%), not collected.</dd>','<dt>Excluded IP addresses</dt><dd>2 of 5','<dt>Excluded countries</dt><dd>1 of 4','<dt>Referrer spam</dt><dd>1 of 4','<dt>Own browser (opted out)</dt><dd>1 of 4'])assert.ok(report.includes(row),row)
  const stored=JSON.stringify(await a.dump());for(const value of ['198.51.100.7','2001:db8::5','203.0.113.20','Googlebot','HeadlessChrome','curl/','semalt'])assert.ok(!stored.includes(value),value)
  const settings=await (await a.request(`/app/sites/${id}?section=settings`,owner)).text();assert.ok(settings.includes('198.51.100.0/24\n2001:db8::/32')&&settings.includes('value="CA"'))
+ const door=await (await a.request('/api/vane/config/'+id,{headers:{origin:'https://fern.example'}})).text();assert.ok(!/198\.51|2001:db8|"CA"|excludeIps|excludeCountries/.test(door),'the public config door never shows the owner\'s exclusions')
  const input={siteId:id,name:'Fern Studio',origin:'https://fern.example',paths:['/','/thanks'],goals:{signup:'/thanks'},consent:'not-required'}
  for(const extra of [{excludeIps:'198.51.100.0/33'},{excludeIps:'example.com'},{excludeCountries:'ZZ'},{excludeCountries:Array.from({length:31},(_,i)=>String.fromCharCode(65+i%26)+String.fromCharCode(65+Math.floor(i/26))).join(' ')}])assert.equal((await a.post('/api/vane/commands',{command:'site.configure',input:{...input,...extra}},a.owner)).status,400,JSON.stringify(extra))
  const methodology=await (await a.request('/methodology')).text();for(const phrase of ['id="excluded-traffic"','headlesschrome','semalt.com','AS16509 Amazon AWS','never stored'])assert.ok(methodology.includes(phrase),phrase)
@@ -1147,7 +1148,7 @@ test('CONV-009 a click on #book-demo, a contact form, a visible pricing table an
  const input={siteId:id,name:'Fern Studio',origin:'https://fern.example',paths:[],goals:{},consent:'not-required',eventDefinitions:'Book demo = click #book-demo\nLead = submit form.contact\nPricing seen = visible #pricing\nDocs = pageview /docs/**'}
  assert.equal((await a.post('/api/vane/commands',{command:'site.configure',input:{...input,eventDefinitions:'Book demo = hover #book-demo'}},a.owner)).status,400)
  const proposed=await (await a.post('/api/vane/commands',{command:'site.configure',input},a.owner)).json(),config=async()=>(await a.request('/api/vane/config/'+id,{headers:{origin:'https://fern.example'}})).json()
- assert.equal((await config()).eventDefinitions,undefined,'nothing is live before approval')
+ assert.deepEqual((await config()).eventDefinitions,[],'nothing is live before approval')
  assert.equal((await a.form({operation:'proposal.approve',id:proposed.id},a.owner)).status,303);assert.equal((await config()).eventDefinitions.length,4)
  // The live page, unchanged: each interaction arrives as its custom event.
  const {context}=await browse(t,a,{'https://fern.example/':html}),tab=await context.newPage(),names=[]

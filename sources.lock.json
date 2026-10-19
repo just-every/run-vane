@@ -2431,7 +2431,7 @@
       "executable": false
     },
     "src/vane/collect.ts": {
-      "sha256": "9acffd82d5663d872a8778502e2da9768cbfbb76fe1a7f04c9204578d12aaf71",
+      "sha256": "229b627a6166734ffd24ecaf4e47e0b65394543bdad44e0b1890d2dcf5b55965",
       "executable": false
     },
     "src/vane/commands.ts": {
@@ -2731,7 +2731,7 @@
       "executable": false
     },
     "tests/vane.test.mjs": {
-      "sha256": "195b9ea0c6cda93eaff05f4ef06c3a47d4357576916845d6c21baeb7ee625c5a",
+      "sha256": "15e8fed341ce75d14541206664112d1904a48bff17c56649b802f6b49db004ab",
       "executable": false
     },
     "tsconfig.json": {

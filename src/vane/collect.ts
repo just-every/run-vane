@@ -28,7 +28,9 @@ export async function collector(request:Request,env:Env):Promise<Response|null> 
   if(request.method==='OPTIONS')return new Response(null,{status:204,headers:{...cors,'access-control-allow-origin':request.headers.get('origin')??'null','access-control-allow-methods':'POST','access-control-allow-headers':'content-type','access-control-max-age':'600'}});
   const value=await site(env,String(id));
   const origin=siteOrigin(value,request);cors={...cors,'access-control-allow-origin':origin};
-  if(match) { insist(request.method==='GET','method','GET required.',405); return Response.json(value.config,{headers:cors}); }
+  // The script's configuration door serves only what the script uses; the owner's excluded addresses and countries
+  // (COLLECT-003), goals, funnels and other settings stay in the installation.
+  if(match) { insist(request.method==='GET','method','GET required.',405); const c=value.config; return Response.json({consent:c.consent,sampleRate:c.sampleRate,...(c.declinedCounter?{declinedCounter:true}:{}),autoEvents:c.autoEvents??[],queryKeys:c.queryKeys??[],...(c.searchParam?{searchParam:c.searchParam}:{}),eventDefinitions:c.eventDefinitions??[]},{headers:cors}); }
   if(engage) {
    // METRIC-003: a ping names only the site and its own page load, at least 10 seconds and at most
    // 30 minutes after that load; the latest ping marks the page engaged and ends its time.
