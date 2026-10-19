@@ -19,7 +19,7 @@ export async function overview(env:Env,list:Site[],now:number,query:{period?:str
   const interval=intervalOf(null,from,to),[visitors,previous,series,notes]=await Promise.all([uniques(site.id,from,to,current),uniques(site.id,before.from,before.to,then),timeSeries(env,scope,from,to,interval,timeZone,current,current),annotationsFor(env,[site],from,to,false)])
   // DASH-009: the sparkline (visitors) marks the bucket of each annotation in range; definition versions do not affect visitors.
   const marks=[...new Set(notes.filter(n=>n.kind!=='definition').map(n=>series.findIndex(b=>b.key===bucketKey(interval,n.day,from,timeZone))).filter(i=>i>=0))]
-  return {site,from,to,visitors,previous,running:Boolean(cut),sparkline:series.map(b=>b.visitors),marks}
+  return {site,from,to,visitors,previous,running:Boolean(cut),sparkline:series.map(b=>b.visitors),trendLabels:series.map(b=>b.label),marks}
  }))
  const order:Record<string,(a:any,b:any)=>number>={added:()=>0,name:(a,b)=>a.site.name.localeCompare(b.site.name),visitors:(a,b)=>b.visitors-a.visitors,change:(a,b)=>(b.visitors-b.previous)-(a.visitors-a.previous)}
  return {period,sort,q,rows:[...rowsOf].sort(order[sort])}

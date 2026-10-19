@@ -272,7 +272,7 @@ These clauses restate what the released first contract and ACCEPTANCE.md promise
 
 - **DEMO-001 — Try Vane on realistic data.** `rer demo` and the hosted demo open a signed-in Vane with three example sites, two weeks of traffic, goals and a pending change to review. The demo writes no real installation data and never fetches. **Acceptance evidence:** Start `rer demo`, open each example site and approve the pending change. Stop the demo; its data is removed.
 
-- **MOBILE-001 — Phone-ready, accessible dashboard.** Every dashboard, report, settings page and approval works at 390 px wide without horizontal scrolling. Keyboard navigation and screen readers work to WCAG 2.2 AA, and every chart has a data table. The app can be installed as a PWA that receives web-push alerts. **Acceptance evidence:** At 390 and 1440 px, complete the site, report, filter, approval and alert journeys by keyboard with an automated accessibility scan clean. Install the PWA and receive a push alert.
+- **MOBILE-001 — Phone-ready, accessible dashboard.** Every dashboard, report, settings page and approval works at 390 px wide without horizontal scrolling. Keyboard navigation and screen readers work to WCAG 2.2 AA, and every chart has a data table. The app can be installed as a PWA that receives web-push alerts. The exact rules: the alert journey is setting a traffic alert (`ALERT-001`) from the keyboard on a site's settings, and its crossing arrives as a web-push alert carrying only its title, site name and link; conversion, revenue and tracking-health alerts (`ALERT-002`) and follow-up reminders (`FOLLOW-001`) send through the same push path before they ship. Every chart has a data table: the report and real-time charts in a Data table disclosure under the chart, and each site's overview sparkline in a table for screen readers beside it. **Acceptance evidence:** At 390 and 1440 px, complete the site, report, filter, approval and alert journeys by keyboard with an automated accessibility scan clean. Install the PWA and receive a push alert.
 
 - **MOBILE-002 — Native iOS and Android apps.** Native apps show every site's overview, real-time visitors, reports with filters, and alerts with push notifications and follow-up actions (`FOLLOW-001`). They include home-screen widgets for visitors today. Apps sign in with the installation's sign-in, including SSO. **Acceptance evidence:** On iOS and Android test builds, sign in, open real-time, filter a report, receive a drop alert as a push and acknowledge it. The acknowledgment appears in the web app.
 
@@ -372,10 +372,10 @@ The approved homepage (17 Oct 2026, `HOME-001`) states 80 capabilities in its co
 | 38 | Goals: "outbound links, file downloads and 404s tracked on their own" | `CONV-003` | done |
 | 39 | Goals chip: 404 · /pricng · 37 visits · redirect to /pricing added | `CONV-003`, `AGENT-003` | partial |
 | 40 | Reports: "Scheduled email reports" (Weekly report · Mondays 8:00 am) | `REPORT-001` | done |
-| 41 | Reports: "spike and drop alerts" (Traffic spike card) | `ALERT-001` | missing |
+| 41 | Reports: "spike and drop alerts" (Traffic spike card) | `ALERT-001` | partial |
 | 42 | Reports: "shared dashboards for your team" | `SHARE-001`, `TEAM-001`, `DASH-007` | done |
 | 43 | Reports: "a public page when you want one" (Public stats page) | `SHARE-002` | done |
-| 44 | Reports chip: Saturday 2–3 am drop held · scheduled maintenance | `ALERT-001` | missing |
+| 44 | Reports chip: Saturday 2–3 am drop held · scheduled maintenance | `ALERT-001` | partial |
 | 45 | Interlude: All 12 goals tracking · checked 9:00 am | `ALERT-002`, `AGENT-001` | missing |
 | 46 | Why it moved: "The agent checks your tracking" | `AGENT-001` | missing |
 | 47 | Why it moved: "your channel mix and the site itself, finds the cause" | `AGENT-002` | missing |
@@ -420,8 +420,8 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 17 | 0 | 0 | 17 |
-| Target and push further | 52 | 6 | 33 | 91 |
-| All | 69 | 6 | 33 | 108 |
+| Target and push further | 53 | 6 | 32 | 91 |
+| All | 70 | 6 | 32 | 108 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -500,7 +500,7 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | `REPORT-001` | Scheduled email reports | target | done | `src/vane/email-reports.ts`; `src/vane/mail-events.ts`; `src/vane/views/report-settings.ts`; `migrations/core/0042_vane_email_reports.sql`; `migrations/core/0045_vane_report_mail_events.sql`; `tests/vane.test.mjs` |  |
 | `REPORT-002` | Slack, Microsoft Teams and Nook delivery | target | missing |  | No Slack, Teams or Nook delivery. |
 | `REPORT-003` | A readable explanation of what changed | target | done | `src/vane/explain.ts`; `src/vane/reports.ts`; `src/vane/views/report.ts`; `tests/vane.test.mjs` |  |
-| `ALERT-001` | Traffic spike and drop alerts | target | missing |  | No traffic alerts. |
+| `ALERT-001` | Traffic spike and drop alerts | target | partial | `src/vane/traffic-alerts.ts`; `src/vane/views/alert-settings.ts`; `migrations/core/0046_vane_traffic_alerts.sql`; `tests/vane.test.mjs` | Fixed-threshold alerts only: an analyst, admin or the owner sets an alert on current visitors, or visitors or pageviews in the last 60 minutes, above or below a whole number, with a cool-down; the 5-minute cron logs the crossing and sends it at once to the alert's creator by email and web push (`MOBILE-001`), holds a repeat inside the cool-down and resends only after the value returns inside the threshold. Not yet: visits, saved-segment and Hostname-filtered alerts (`DASH-007`, `DASH-013`), the anomaly condition (95% day-of-week and hour prediction interval with US federal holidays and the business calendar, refining `REPORT-003`), quiet hours, a recipients list across email, Slack, Teams, Nook and webhook (`API-003` alert events), maintenance windows (one-off, recurring and Uptime) with held drops on the chart, and the movers explanation in each message. |
 | `ALERT-002` | Conversion, revenue and tracking-health alerts | target | missing |  | No conversion, revenue or tracking-health alerts. |
 | `FOLLOW-001` | Alerts are followed through until a person resolves them | target | missing |  | No alert follow-up items, reminders or escalation. |
 | `SHARE-001` | Shared links and embedded dashboards | target | done | `src/vane/share.ts`; `src/vane/views/share.ts`; `src/vane/views/share-settings.ts`; `src/vane/actions.ts`; `src/server.ts`; `migrations/core/0036_vane_share_links.sql`; `public/vane.css`; `tests/vane.test.mjs` |  |
@@ -524,7 +524,7 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | `HOST-002` | Runs on the owner's own computer | target | partial | `src/site/run.json`; `rer-project.json`; `tests/harness.mjs` | The built Worker runs locally under Miniflare with local D1 in every product test, and `/run` shows the one-line command; no test runs that command from an empty folder to a working report, offline, or moves a local installation to Cloudflare. |
 | `OPEN-001` | Free and open source under the MIT license | target | done | `LICENSE`; `package.json` |  |
 | `DEMO-001` | Try Vane on realistic data | target | done | `src/demo.ts`; `DEMO.md`; `tests/demo.journey.mjs`; `.github/workflows/verify.yml` (its demo job) |  |
-| `MOBILE-001` | Phone-ready, accessible dashboard | target | partial | `src/vane/views/shell.ts`; `src/vane/views/html.ts`; `public/vane.css`; `src/vane/push.ts`; `src/vane/views/push.ts`; `public/manifest.webmanifest`; `public/vane-sw.js`; `tests/vane.test.mjs` | At 390 and 1440 px the site, approval, report and filter journeys complete by keyboard, and the sites, approvals, report, settings, history, real-time, team, API, audit and browser alerts pages pass an automated WCAG 2.2 AA scan (axe-core) with no horizontal scroll. The app installs as a PWA (Chrome reports no installability error) and a browser that turns on alerts receives a VAPID-signed, RFC 8291-encrypted test alert carrying only its title, site name and link, which the service worker shows; turning off, a 404/410 and removal from the team delete the subscription (ct 13:06Z). No alert journey: traffic alerts (`ALERT-001`) do not exist yet and send through this push path when they ship. |
+| `MOBILE-001` | Phone-ready, accessible dashboard | target | done | `src/vane/views/shell.ts`; `src/vane/views/html.ts`; `src/vane/views/settings.ts`; `public/vane.css`; `src/vane/push.ts`; `src/vane/views/push.ts`; `src/vane/traffic-alerts.ts`; `src/vane/views/alert-settings.ts`; `public/manifest.webmanifest`; `public/vane-sw.js`; `tests/vane.test.mjs` |  |
 | `MOBILE-002` | Native iOS and Android apps | target | missing |  | No native apps. |
 | `AGENT-001` | Maintain trustworthy instrumentation | push-further | missing |  | No instrumentation agent; owner-approved settings preparation is not an analytics agent. |
 | `AGENT-002` | Explain why traffic or conversions moved | push-further | missing |  | No explanation agent; the report explanation states totals only. |

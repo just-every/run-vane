@@ -1562,7 +1562,7 @@ test('API-002 a whole-site ZIP in Plausible\'s layout, the Looker Studio connect
  refuse=false;await a.clock(Date.parse('2026-03-12T02:01:00Z'));await a.scheduled();assert.ok(objects[`${prefix}/events/2026-03-11.csv`],'retried after an hour')
  assert.ok(a.egress.slice(before).every(url=>url.startsWith('https://acct.r2.fixture.example/')),'the export talks only to the owner\'s bucket')
 })
-test('MOBILE-001 at 390 and 1440 px the site, approval, report and filter journeys complete by keyboard, every page passing an automated WCAG 2.2 AA scan with no horizontal scroll',async t=>{
+test('MOBILE-001 at 390 and 1440 px the site, approval, report, filter and alert journeys complete by keyboard, every page passing an automated WCAG 2.2 AA scan with no horizontal scroll',async t=>{
  const a=await withApp(t),axe=await readFile(createRequire(import.meta.url).resolve('axe-core'),'utf8'),{context}=await browse(t,a)
  await context.addCookies(a.owner.split('; ').map(pair=>{const [name,...value]=pair.split('=');return {name,value:value.join('='),url:a.origin}}))
  // Playwright does not route the request that follows a fulfilled redirect, so a form's 303 is followed as a navigation.
@@ -1593,12 +1593,21 @@ test('MOBILE-001 at 390 and 1440 px the site, approval, report and filter journe
   await tabTo('select[name="filterDimension"]');await page.keyboard.type('Page');assert.equal(await page.evaluate(()=>document.activeElement.value),'page')
   await tabTo('input[name="filterValue"]');await page.keyboard.type('/thanks');await submit(/filterValue=%2Fthanks|filter=page/)
   assert.match(await page.locator('[data-active-filters]').textContent(),/\/thanks/);await scanned(`${width} filtered report`)
+  // Alert (ALERT-001): a traffic alert set from the keyboard on the site's settings.
+  await page.goto(`${a.origin}/app/sites/${id}?section=settings`)
+  await tabTo('select[name="metric"]');await page.keyboard.type('Current');assert.equal(await page.evaluate(()=>document.activeElement.value),'current')
+  await tabTo('input[name="threshold"]');await page.keyboard.type('50');await submit(/notice=Alert\+added/)
+  assert.match(await page.locator('[data-alerts]').textContent(),/Current visitors above 50/);await scanned(`${width} alerts`)
   for(const section of ['settings','history','realtime']){await page.goto(`${a.origin}/app/sites/${id}?section=${section}`);await scanned(`${width} ${section}`)}
   for(const section of ['team','api','audit']){await page.goto(`${a.origin}/app?section=${section}`);await scanned(`${width} ${section}`)}
+  // Every chart has a data table: the report and real-time charts in their details, each site's sparkline in its row.
+  for(const path of [`/app/sites/${id}?section=report`,`/app/sites/${id}?section=realtime`,'/app']){await page.goto(a.origin+path)
+   const charts=await page.evaluate(()=>[...document.querySelectorAll('svg.vane-chart,svg.vane-sparkline')].map(svg=>{const table=svg.closest('figure,li')?.querySelector('table')??svg.closest('section')?.querySelector('table');return table?table.querySelectorAll('tbody tr').length:0}))
+   assert.ok(charts.length&&charts.every(n=>n>0),`${width} ${path}: every chart has a data table with rows`)}
  }
  await context.close()
 })
-test('MOBILE-001 the app installs as a PWA, a browser that turns on alerts receives an encrypted test alert carrying only its title, site and link that the service worker shows, and turning off, a 410 and removal from the team forget the browser',async t=>{
+test('MOBILE-001 the app installs as a PWA, a browser that turns on alerts receives an encrypted test alert and a real traffic alert carrying only its title, site and link that the service worker shows, and turning off, a 410 and removal from the team forget the browser',async t=>{
  const a=await withApp(t),id=await a.addSite(),axe=await readFile(createRequire(import.meta.url).resolve('axe-core'),'utf8'),{context}=await browse(t,a)
  await context.addCookies(a.owner.split('; ').map(pair=>{const [name,...value]=pair.split('=');return {name,value:value.join('='),url:a.origin}}))
  await context.route(a.origin+'/app/action',async route=>{const request=route.request(),response=await a.request('/app/action',{method:'POST',headers:request.headers(),body:request.postData()??undefined}),location=response.headers.get('location');if(response.status!==303||!location)return route.fulfill({status:response.status,headers:Object.fromEntries(response.headers),body:Buffer.from(await response.arrayBuffer())});return route.fulfill({status:200,contentType:'text/html',body:`<!doctype html><title>Redirecting</title><meta http-equiv="refresh" content="0;url=${location.replaceAll('&','&amp;').replaceAll('"','&quot;')}">`})})
@@ -1641,6 +1650,14 @@ test('MOBILE-001 the app installs as a PWA, a browser that turns on alerts recei
  await cdp.send('ServiceWorker.deliverPushMessage',{origin:a.origin,registrationId:registration.registrationId,data:decrypt(sent.body)})
  let notifications=[];for(let i=0;i<50&&!notifications.length;i++){notifications=await worker.evaluate(()=>self.shown);if(!notifications.length)await page.waitForTimeout(100)}
  assert.deepEqual(notifications,[['Test alert','Fern Studio',`${a.origin}/app/sites/${id}`]])
+ // A real traffic alert (ALERT-001) reaches the same browser: current visitors above 0, seen by the 5-minute cron.
+ assert.equal((await a.form({operation:'alert.create',siteId:id,metric:'current',direction:'above',threshold:'0',cooldown:'6'},a.owner)).status,303)
+ assert.equal((await a.post('/api/vane/collect',a.event(id,{path:'/'}),'',{origin:'https://fern.example','cf-connecting-ip':'203.0.113.9','user-agent':DESKTOP_CHROME})).status,202)
+ await a.scheduled();assert.equal(delivered.length,2,'the alert is pushed once')
+ const fired=decrypt(delivered[1].body),link=`${a.origin}/app/sites/${id}?section=realtime`;assert.deepEqual(JSON.parse(fired),{title:'Current visitors above 0',site:'Fern Studio',link})
+ await cdp.send('ServiceWorker.deliverPushMessage',{origin:a.origin,registrationId:registration.registrationId,data:fired})
+ for(let i=0;i<50&&notifications.length<2;i++){notifications=await worker.evaluate(()=>self.shown);if(notifications.length<2)await page.waitForTimeout(100)}
+ assert.deepEqual(notifications[1],['Current visitors above 0','Fern Studio',link])
  // A push service's 410 forgets the subscription; turning off forgets it too; both are audited.
  answer=410;await page.goto(a.origin+'/app?section=alerts');await page.getByRole('button',{name:'Send a test alert'}).press('Enter');await page.waitForURL(/notice=No\+push/)
  assert.deepEqual((await a.dump()).vane_push_subscriptions,[])
@@ -1868,4 +1885,26 @@ test('REPORT-001 two weekly subscribers get the Monday 8:00 New York report once
  assert.match((await row('owner@example.test'))[0],/<td>failed<\/td><td class="vane-number">0<\/td><td>not sent: the mail provider reported an earlier report email to this address marked as spam on 2026-03-18; reports to it stopped<\/td>/)
  assert.ok(to('down@client.example').length>4,'other addresses keep their reports')
  assert.ok(!JSON.stringify(await a.dump()).includes(link.pathname.split('/').pop()),'only the unsubscribe token\'s hash is kept')
+})
+test('ALERT-001 a current-visitors alert above 50 is sent by email within 15 minutes of the crossing with the crossing and send times logged, sends once while the value stays past it, is held by its cool-down when it crosses again, and only analysts and up set alerts',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({paths:[]}),T=Date.parse('2026-04-01T12:00:00Z')
+ assert.equal((await a.form({operation:'team.invite',email:'analyst@example.test',role:'analyst',scope:'all'},a.owner)).status,303);assert.equal((await a.form({operation:'team.invite',email:'viewer@example.test',role:'viewer',scope:'all'},a.owner)).status,303)
+ const analyst=await a.accept('analyst@example.test'),viewer=await a.accept('viewer@example.test'),add=(cookie,body={})=>a.form({operation:'alert.create',siteId:id,metric:'current',direction:'above',threshold:'50',cooldown:'6',...body},cookie)
+ await a.clock(T);assert.equal((await add(viewer)).status,403,'a viewer cannot set alerts');assert.equal((await add(analyst)).status,303)
+ assert.equal((await add(analyst,{threshold:'1.5'})).status,400,'whole numbers only')
+ const visitors=async(from,n)=>{for(let i=0;i<n;i++)assert.equal((await a.post('/api/vane/collect',a.event(id,{path:'/'}),'',{origin:'https://fern.example','cf-connecting-ip':`198.51.${from}.${i}`,'user-agent':DESKTOP_CHROME})).status,202)}
+ const alerts=()=>a.sentMail.filter(m=>/Current visitors above 50/.test(m.subject)),at=async ms=>{await a.clock(ms);await a.scheduled()}
+ // 50 current visitors is not above 50; the 51st, at 12:01, crosses; the next 5-minute check sends it.
+ await a.clock(T+60000);await visitors(1,50);await at(T+120000);assert.equal(alerts().length,0,'50 is not above 50')
+ await visitors(2,1);await at(T+300000);assert.equal(alerts().length,1);const [mail]=alerts()
+ assert.deepEqual(mail.to,['analyst@example.test']);assert.match(mail.text,/Fern Studio: Current visitors above 50\. Now 51\./)
+ const settings=async()=>unlinked(await (await a.request(`/app/sites/${id}?section=settings`,owner)).text())
+ assert.match(await settings(),/<tr><td>Apr 1, 2026, 12:05\sPM<\/td><td>Current visitors above 50<\/td><td class="vane-number">51<\/td><td>Apr 1, 2026, 12:05\sPM<\/td><td>sent: email accepted by the mail provider; push accepted by 0 browsers<\/td><\/tr>/)
+ const [log]=(await a.dump()).vane_alert_log;assert.ok(log.sent_at-(T+120000)<=15*60000,'sent within 15 minutes of the crossing')
+ // Still above at the next checks: no repeat. The visitors leave (none current after 5 minutes), then 51 return within the cool-down.
+ await at(T+600000);assert.equal(alerts().length,1,'once while it stays past the threshold')
+ await at(T+1200000);await a.clock(T+1260000);await visitors(3,51);await at(T+1500000);assert.equal(alerts().length,1,'held by the 6-hour cool-down')
+ assert.match(await settings(),/<td class="vane-number">51<\/td><td>not sent<\/td><td>held: cool-down of 6 h since the last send<\/td>/)
+ const alert=(await a.dump()).vane_alerts[0];assert.equal((await a.form({operation:'alert.delete',id:alert.id},viewer)).status,403);assert.equal((await a.form({operation:'alert.delete',id:alert.id},analyst)).status,303)
+ assert.ok((await a.dump()).vane_audit.some(e=>e.action==='alert.create')&&(await a.dump()).vane_audit.some(e=>e.action==='alert.delete'),'setting and deleting alerts are audited')
 })
