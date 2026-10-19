@@ -1977,3 +1977,37 @@ test('ALERT-001 against eight weeks of baseline traffic a 4x spike and a 70% dro
  const notes=(await (await a.request(`/api/vane/summary?siteId=${id}&from=2026-10-20&to=2026-11-02`,owner)).json()).explain.annotations
  assert.deepEqual(notes.filter(n=>['alert-held','maintenance'].includes(n.kind)).map(n=>[n.day,n.kind,n.text]),[['2026-10-24','alert-held','Pageviews below the usual range for the weekday and hour held: scheduled maintenance (Saturdays 02:00–03:00).'],['2026-10-31','maintenance','Database upgrade'],['2026-10-31','alert-held','Pageviews below the usual range for the weekday and hour held: scheduled maintenance (2026-10-31 04:00–05:00).']])
 })
+test('FOLLOW-001 a drop alert left unacknowledged reminds once and escalates once, acknowledging and resolving it as a tracking fault stops reminders and records who, when and the outcome, due times count business hours, and the owner can end the policy',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({paths:[]}),at=async iso=>{await a.clock(Date.parse(iso));await a.scheduled()}
+ assert.equal((await a.form({operation:'team.invite',email:'analyst@example.test',role:'analyst',scope:'all'},a.owner)).status,303);const analyst=await a.accept('analyst@example.test')
+ const {oa_operators:operators}=await a.dump(),analystId=operators.find(o=>o.email==='analyst@example.test').id,ownerId=operators.find(o=>o.email==='owner@example.test').id
+ // Items are read from the site's settings page: each with its state, responsible person, next action and due time (UTC).
+ const items=async()=>[...(await (await a.request(`/app/sites/${id}?section=settings`,owner)).text()).matchAll(/<li data-follow-item="([^"]+)" data-state="([a-z]+)"><strong>[^<]*<\/strong>: ([^\n]*)/g)].map(m=>({id:m[1],state:m[2],text:m[3]}))
+ const hooks=[];a.fixtureSites['https://hooks.fixture.example']=async request=>{hooks.push(JSON.parse(await request.text()));return new Response(null,{status:204})}
+ await a.clock(Date.parse('2026-04-06T09:00:00Z'))
+ assert.equal((await a.form({operation:'webhook.create',siteId:id,url:'https://hooks.fixture.example/vane','event_follow.change':'on'},a.owner)).status,200)
+ assert.equal((await a.form({operation:'follow.policy',siteId:id,remind:'1',escalate:'2',second:analystId,start:'9',end:'17'},analyst)).status,403,'the policy is the owner\'s')
+ assert.equal((await a.form({operation:'follow.policy',siteId:id,remind:'1',escalate:'2',second:analystId,start:'9',end:'17'},a.owner)).status,303)
+ // Current visitors drop below 1 (no one on the site) on Monday 6 April at 10:00 UTC: the alert opens an item.
+ assert.equal((await a.form({operation:'alert.create',siteId:id,metric:'current',direction:'below',threshold:'1',cooldown:'1'},a.owner)).status,303)
+ await at('2026-04-06T10:01:00Z');const [item]=await items();assert.equal(item.state,'open');assert.match(item.text,/responsible Site owner; next: Acknowledge and check the change, due Apr 6, 2026, 11:01\sAM UTC/)
+ const mails=subject=>a.sentMail.filter(m=>m.subject===`Fern Studio: ${subject}`).map(m=>m.to[0])
+ await at('2026-04-06T10:59:00Z');assert.deepEqual(mails('Follow-up reminder'),[])
+ await at('2026-04-06T11:02:00Z');await at('2026-04-06T11:30:00Z');assert.deepEqual(mails('Follow-up reminder'),['owner@example.test'],'one reminder to the responsible person')
+ await at('2026-04-06T12:02:00Z');await at('2026-04-06T12:30:00Z');assert.deepEqual(mails('Follow-up escalation'),['analyst@example.test'],'one escalation to the second recipient')
+ assert.equal((await items())[0].state,'open','notifications never close an item')
+ assert.equal((await a.form({operation:'follow.assign',id:item.id,to:analystId},a.owner)).status,303);assert.match((await items())[0].text,/responsible analyst;/)
+ assert.equal((await a.form({operation:'follow.assign',id:item.id,to:ownerId},a.owner)).status,303)
+ // Acknowledge, comment and resolve it as a tracking fault; no reminder follows.
+ for(const body of [{operation:'follow.ack'},{operation:'follow.comment',text:'Script tag was dropped by the CMS update.'},{operation:'follow.resolve',outcome:'tracking-fault'}])assert.equal((await a.form({id:item.id,...body},a.owner)).status,303)
+ assert.equal((await a.form({operation:'follow.resolve',id:item.id,outcome:'expected'},a.owner)).status,409,'resolved once')
+ await at('2026-04-06T15:00:00Z');assert.equal(mails('Follow-up reminder').length+mails('Follow-up escalation').length,2,'reminders stop')
+ const page=await (await a.request(`/app/sites/${id}?section=settings`,owner)).text()
+ assert.match(page,/data-state="resolved"><strong>Current visitors below 1<\/strong>: resolved, Tracking fault fixed by Site owner at Apr 6, 2026, 12:30\sPM UTC/,'who resolved it, when and with what outcome');assert.ok(page.includes('acknowledge, acknowledged')&&page.includes('comment, Script tag was dropped by the CMS update.'))
+ assert.deepEqual(hooks.map(h=>h.action),['open','remind','escalate','assign','assign','acknowledge','comment','resolve']);assert.deepEqual(Object.keys(hooks.at(-1)).sort(),['action','alert','at','event','item_id','outcome','site_id','state']);assert.equal(hooks.at(-1).outcome,'tracking-fault')
+ // An alert at 16:30 on Friday is due an hour of business time later: 9:30 on Monday. The owner ends the policy: no reminder.
+ await a.clock(Date.parse('2026-04-10T16:00:00Z'));assert.equal((await a.collect(a.event(id,{path:'/'}))).status,202);await at('2026-04-10T16:02:00Z');await at('2026-04-10T16:30:00Z')
+ const second=(await items()).find(i=>i.id!==item.id);assert.match(second.text,/due Apr 13, 2026, 9:30\sAM UTC/)
+ assert.equal((await a.form({operation:'follow.policy',siteId:id,remind:'1',escalate:'2',second:analystId,start:'9',end:'17',ended:'on'},a.owner)).status,303)
+ await at('2026-04-13T12:00:00Z');assert.equal(mails('Follow-up reminder').length,1,'an ended policy reminds no one');assert.equal((await items()).find(i=>i.id===second.id).state,'open')
+})

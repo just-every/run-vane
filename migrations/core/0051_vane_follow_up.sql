@@ -1,0 +1,6 @@
+-- FOLLOW-001: each sent alert opens a follow-up item with a responsible person, its next action and due time in the
+-- site's business hours; reminders and escalation follow the owner's policy; every change is kept in the item's history.
+CREATE TABLE vane_follow_policy(site_id TEXT PRIMARY KEY, remind_hours INTEGER NOT NULL, escalate_hours INTEGER NOT NULL, second_id TEXT, start_hour INTEGER NOT NULL, end_hour INTEGER NOT NULL, ended INTEGER NOT NULL DEFAULT 0, updated_by TEXT NOT NULL, updated_at INTEGER NOT NULL);
+CREATE TABLE vane_follow_items(id TEXT PRIMARY KEY, site_id TEXT NOT NULL, alert_id TEXT NOT NULL, title TEXT NOT NULL, responsible TEXT NOT NULL, state TEXT NOT NULL CHECK(state IN ('open','acknowledged','resolved')), next_action TEXT NOT NULL, due_at INTEGER NOT NULL, escalate_at INTEGER NOT NULL, reminded_at INTEGER, escalated_at INTEGER, outcome TEXT CHECK(outcome IS NULL OR outcome IN ('real-change','tracking-fault','expected','ignored')), resolved_by TEXT, resolved_at INTEGER, created_at INTEGER NOT NULL);
+CREATE INDEX vane_follow_open ON vane_follow_items(state,due_at);
+CREATE TABLE vane_follow_events(id TEXT PRIMARY KEY, item_id TEXT NOT NULL, site_id TEXT NOT NULL, actor TEXT NOT NULL, action TEXT NOT NULL, detail TEXT NOT NULL, at INTEGER NOT NULL);

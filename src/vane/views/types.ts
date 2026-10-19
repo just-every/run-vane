@@ -22,6 +22,9 @@ export interface ViewData {
   mailEvents?: boolean
   alerts?: import('../traffic-alerts').Alert[]
   maintenance?: import('../alert-baseline').Window[]
+  followItems?: Awaited<ReturnType<typeof import('../follow-up').followItems>>
+  followHistory?: Awaited<ReturnType<typeof import('../follow-up').followHistory>>
+  followPolicy?: import('../follow-up').Policy
   closedDays?: { day: string; label: string }[]
   alertPeople?: { id: string; email: string; name: string }[]
   alertLog?: Awaited<ReturnType<typeof import('../traffic-alerts').alertLog>>

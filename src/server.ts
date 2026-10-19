@@ -15,6 +15,7 @@ import { runWebhooks } from './vane/webhooks'
 import { runReports, unsubscribeResponse } from './vane/email-reports'
 import { mailEventResponse } from './vane/mail-events'
 import { runAlerts } from './vane/traffic-alerts'
+import { runFollowUps } from './vane/follow-up'
 import { clock, clockResponse } from './vane/clock'
 import { vaneResponse } from './vane/routes'
 import { apiDoor } from './vane/api-door'
@@ -98,5 +99,6 @@ export default withDemo({
     // REPORT-001: due email reports and their retries.
     await runReports(runtimeBindings(env), clock())
     await runAlerts(runtimeBindings(env), clock())
+    await runFollowUps(runtimeBindings(env), clock())
   },
 } satisfies ExportedHandler<Bindings>, { seed: seedDemo })

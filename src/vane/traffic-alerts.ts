@@ -2,6 +2,7 @@ import { allow, inScope, insist, rows, site, statement, uid, type Actor, type En
 import { auditStatement } from './audit'
 import { clock } from './clock'
 import { keptVisits } from './segments'
+import { openItem } from './follow-up'
 import { currentVisitors } from './realtime'
 import { sendPush } from './push'
 import { operatorMail } from '../mail.server.mjs'
@@ -19,7 +20,8 @@ import { count, hourToJudge, judge, localHour, maintenanceFor, windowText, WEEKD
 // per hour. A drop in an hour that overlaps a maintenance window, and any anomaly on a US federal holiday, is held.
 // Recipients are people who can open the site (the creator by default), each by email and web push, and, when an
 // admin or the owner turns it on, the site's signed webhooks (API-003 event traffic.alert). A crossing in the alert's
-// quiet hours (local times, wrapping past midnight) is held and logged, not sent later.
+// quiet hours (local times, wrapping past midnight) is held and logged, not sent later. Every sent alert opens a
+// follow-up item (FOLLOW-001).
 const HOUR=3600000
 export const ALERT_METRICS={current:'Current visitors',visitors:'Visitors in the last 60 minutes',visits:'Visits in the last 60 minutes',pageviews:'Pageviews in the last 60 minutes'} as const
 type Metric=keyof typeof ALERT_METRICS
@@ -88,6 +90,7 @@ async function anomaly(env:Env,alert:Alert,value:Site,now:number,events:string) 
  const text=`${j.value.toLocaleString('en-US')} ${alert.metric} ${alert.direction==='above'?'so far in':'in'} ${hours} (${zone}); the usual range for this weekday and hour is ${j.low} to ${j.high}.`
  const reason=await held(env,alert,value,now,d,h,j.holiday,j.closed),outcome=reason??await notify(env,alert,value,`${text} ${await alertExplanation(env,value,j.start,Math.min(j.start+HOUR,now),events)}`,now,j.value,`${j.low} to ${j.high}`)
  await env.DB.batch([statement(env,'UPDATE vane_alerts SET judged_hour=?,last_sent_at=? WHERE id=?',j.start,reason?alert.last_sent_at:now,alert.id),log(env,alert,j.value,Math.round(alert.direction==='above'?j.high:j.low),now,!reason,`${outcome}; usual range ${j.low} to ${j.high} for ${hours}`)])
+ if(!reason)await openItem(env,value,alert.id,alertName(alert),alert.created_by,now)
 }
 export async function runAlerts(env:Env,now=clock()) {
  for(const alert of await rows<Alert>(env,'SELECT * FROM vane_alerts ORDER BY created_at')){
@@ -104,6 +107,7 @@ export async function runAlerts(env:Env,now=clock()) {
   const reason=await held(env,alert,value,now,localDay(now,zone),localHour(now,zone))
   const outcome=reason??await notify(env,alert,value,`Now ${count.toLocaleString('en-US')}. ${await alertExplanation(env,value,now-(alert.metric==='current'?300000:HOUR),now,events)}`,now,count,String(alert.threshold))
   await env.DB.batch([statement(env,'UPDATE vane_alerts SET crossed=1,last_sent_at=? WHERE id=?',reason?alert.last_sent_at:now,alert.id),log(env,alert,count,alert.threshold,now,!reason,outcome)])
+  if(!reason)await openItem(env,value,alert.id,alertName(alert),alert.created_by,now)
   }finally{await kept?.release()}
  }
 }
