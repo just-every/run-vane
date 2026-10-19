@@ -419,3 +419,24 @@ test('DASH-006 iPhone Safari, Android Chrome, Windows Edge and an iPad fill the 
  assert.ok((await (await a.request('/methodology')).text()).includes('The user agent is then discarded; only these classes are stored.'))
  await context.close()
 })
+test('DASH-012 with a named search parameter, a term two visitors searched is reported with searches per visit, start pages and exits, and an email-like term never appears',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({paths:['/','/search'],goals:{},searchParam:'q'}),plain=await a.addSite({origin:'https://oak.example'}),start=Date.parse('2026-03-11T10:00:00Z')
+ const visit=async(n,steps)=>{for(const [i,[path,search]] of steps.entries()){await a.clock(start+n*3600000+i*20000);assert.equal((await a.post('/api/vane/collect',a.event(id,{path,...(search?{search}:{})}),'',{origin:'https://fern.example','cf-connecting-ip':'192.0.2.'+n,'user-agent':'Synthetic Browser '+n})).status,202)}}
+ await visit(1,[['/'],['/search','returns'],['/search','shipping'],['/']]);await visit(2,[['/search','returns']]);await visit(3,[['/'],['/search','alice@example.com']])
+ assert.equal((await a.collect(a.event(plain,{search:'returns'}),'https://oak.example')).status,400,'no search term without a named parameter')
+ assert.equal((await a.collect(a.event(id,{path:'/search',search:'x'.repeat(101)}))).status,400)
+ const r=(await (await a.request(`/api/vane/summary?siteId=${id}&from=2026-03-11&to=2026-03-12`,owner)).json()).siteSearch
+ assert.deepEqual([r.searches,r.searchVisits,r.searchesPerVisit,r.exitAfterSearch],[4,3,1.33,66.7])
+ assert.deepEqual(r.terms,[{term:'returns',searches:2,visitors:2}],'shipping (one visitor) and the email-like term stay hidden')
+ assert.deepEqual(r.startPages.map(p=>[p.path,p.searches]),[['/',2],['(entry)',1],['/search',1]])
+ const page=await (await a.request(`/app/sites/${id}?section=report&from=2026-03-11&to=2026-03-12`,owner)).text()
+ for(const html of ['<h2>Site search</h2>','<th scope="row">returns</th><td class="vane-number">2</td><td class="vane-number">2</td>','<dt>Visits that exit after searching</dt><dd>66.7%</dd>'])assert.ok(page.includes(html),html)
+ assert.equal(page.includes('shipping'),false)
+ // In a browser the script sends the named parameter's term, lowercased.
+ const {context}=await browse(t,a,{'https://fern.example/search?q=Returns':`<!doctype html><title>Search</title><script src="${a.origin}/vane.js" data-site="${id}"></script>`}),tab=await context.newPage()
+ const sent=tab.waitForResponse(response=>new URL(response.url()).pathname==='/api/vane/collect'&&response.request().method()==='POST');await tab.goto('https://fern.example/search?q=Returns');const response=await sent
+ assert.equal(response.status(),202);assert.equal(JSON.parse(response.request().postData()).search,'returns')
+ const stored=JSON.stringify([await a.dump(),await a.archive()]);assert.equal(stored.includes('alice'),false,'the email-like term is never stored')
+ assert.ok((await (await a.request('/methodology')).text()).includes('two different visitor hashes searched it on the same day'))
+ await context.close()
+})

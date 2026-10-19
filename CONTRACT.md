@@ -420,8 +420,8 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 16 | 1 | 0 | 17 |
-| Target and push further | 13 | 19 | 59 | 91 |
-| All | 29 | 20 | 59 | 108 |
+| Target and push further | 14 | 19 | 58 | 91 |
+| All | 30 | 20 | 58 | 108 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -471,7 +471,7 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | `DASH-009` | Annotations, manual and automatic | target | missing |  | No annotations. |
 | `DASH-010` | Multi-site overview and roll-up | target | partial | `src/vane/views/settings.ts` | A sites list links to each report; no per-site metrics, sparklines, sorting, roll-up views or stated per-metric roll-up rules. |
 | `DASH-011` | Journeys and paths | target | missing |  | No journeys or paths. |
-| `DASH-012` | Site-search analytics | target | missing |  | Query strings are refused; no site-search analytics. |
+| `DASH-012` | Site-search analytics | target | done | `src/vane/search.ts`; `src/vane/collect.ts`; `src/vane/tracker.ts`; `src/vane/privacy.ts`; `src/vane/views/report.ts`; `migrations/core/0022_vane_search.sql`; `tests/vane.test.mjs` |  |
 | `DASH-013` | Hostnames and subdomains within one site | target | missing |  | Each site has one registered origin and events carry only a path; no hostname dimension, Hostnames report or Hostname filter. |
 | `DASH-014` | Named sources for referrer domains and app referrers | target | missing |  | The tracker sends only the referring hostname, and collection reports it only when it is on the site's source allowlist; no maintained source list, app-referrer grouping, named sources or owner grouping rules. |
 | `PERF-001` | Page performance | target | missing |  | No page performance collection. |
