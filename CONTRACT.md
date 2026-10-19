@@ -420,8 +420,8 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 16 | 1 | 0 | 17 |
-| Target and push further | 4 | 23 | 64 | 91 |
-| All | 20 | 24 | 64 | 108 |
+| Target and push further | 5 | 22 | 64 | 91 |
+| All | 21 | 23 | 64 | 108 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -518,7 +518,7 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | `PRIVACY-003` | Consent managers and regional consent modes | target | partial | `src/vane/tracker.ts`; `src/vane/views/settings.ts` | Consent comes only from window.vaneConsent; no Consent Mode, consent-manager adapters or regional modes. |
 | `PRIVACY-004` | Data location choice | target | missing |  | No data location choice. |
 | `PRIVACY-005` | Visitor data stays in the owner's installation | target | done | `src/vane/tracker.ts`; `src/vane/collect.ts`; `seed.json`; `tests/harness.mjs`; `tests/vane.test.mjs` |  |
-| `AUDIT-001` | Durable audit of settings, data and agent actions | target | partial | `migrations/core/0014_vane.sql`; `src/vane/movein/index.ts`; `tests/vane.test.mjs` | Proposals record preparer and approver, and imports and deletions are journalled; exports, restores, shares, keys, sign-ins and agent actions are not audited and there is no audit view. |
+| `AUDIT-001` | Durable audit of settings, data and agent actions | target | done | `migrations/core/0017_vane_audit.sql`; `src/vane/audit.ts`; `src/vane/commands.ts`; `src/vane/views/audit.ts`; `tests/vane.test.mjs` |  |
 | `SITE-001` | Site management | target | partial | `src/vane/commands.ts`; `src/vane/privacy.ts`; `tests/vane.test.mjs` | Sites are created and reconfigured through approval and history can be erased; one origin per site, no time zone, currency or site deletion. |
 | `HOST-001` | Owner-run hosting with measured cost | target | partial | `deploy.json`; `wrangler.jsonc` | Owner-account deployment is declared; no measured cost per 100,000 pageviews or in-app cost panel. |
 | `HOST-002` | Runs on the owner's own computer | target | partial | `src/site/run.json`; `rer-project.json`; `tests/harness.mjs` | The built Worker runs locally under Miniflare with local D1 in every product test, and `/run` shows the one-line command; no test runs that command from an empty folder to a working report, offline, or moves a local installation to Cloudflare. |

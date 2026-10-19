@@ -2,8 +2,8 @@ import { operatorAuth, runtimeBindings, type Bindings } from '../auth.server'
 import { insist, role, rows, site, sites, VaneError, type Actor } from './core'
 import { createInsightsService } from './reports'
 import { prepare } from './commands'
-import { exportHistory, restoreHistory } from './archive'
-import { preview, apply, journal, undo, MoveinError } from './movein/index'
+import { preview, journal, MoveinError } from './movein/index'
+import { apply, auditLog, exportHistory, restoreHistory, undo } from './audit'
 import { renderApp, type ViewData } from './views/index'
 import { input } from './input'
 import { action } from './actions'
@@ -20,8 +20,9 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
  async function view(siteId?:string,extra:Partial<ViewData>={}) {
   const selected=siteId?await site(env,siteId):undefined;
   const proposals=actor!.role==='member'?[]:await rows(env,'SELECT * FROM vane_proposals ORDER BY created_at DESC LIMIT 100');
+  const audit=!selected&&url.searchParams.get('section')==='audit'?await auditLog(env,actor!):undefined;
   const imports=selected&&actor!.role==='owner'?await rows(env,'SELECT j.id,j.state,(SELECT COUNT(*) FROM ik_provenance p WHERE p.job_id=j.id) AS count FROM ik_jobs j JOIN vane_import_approvals a ON a.job_id=j.id WHERE a.site_id=? ORDER BY a.approved_at DESC',selected.id):[];
-  return renderApp({actor:actor as ViewData['actor'],origin:env.AUTH_ORIGIN,sites:await sites(env),site:selected,report:selected?await createInsightsService(env,selected,Date.now(),range).list():undefined,proposals,imports,section:url.searchParams.get('section')??undefined,notice:url.searchParams.get('notice')??undefined,...extra});
+  return renderApp({actor:actor as ViewData['actor'],origin:env.AUTH_ORIGIN,sites:await sites(env),site:selected,report:selected?await createInsightsService(env,selected,Date.now(),range).list():undefined,proposals,imports,audit,section:url.searchParams.get('section')??undefined,notice:url.searchParams.get('notice')??undefined,...extra});
  }
  try {
   const session=await operatorAuth(env).getSession(request);
@@ -31,6 +32,7 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
   if(request.method==='GET') {
    if(path==='/api/vane/sites')return json(await sites(env));
    if(path==='/api/vane/summary')return json(await createInsightsService(env,await site(env,url.searchParams.get('siteId')??''),Date.now(),range).list());
+   if(path==='/api/vane/audit')return json(await auditLog(env,actor));
    if(path==='/api/vane/proposals') {role(actor,['owner','admin']);return json(await rows(env,'SELECT * FROM vane_proposals ORDER BY created_at DESC'));}
    if(path==='/api/vane/import-journal')return json(await journal(env,actor,{siteId:url.searchParams.get('siteId')??'',jobId:url.searchParams.get('jobId')??''}));
    if(path==='/api/vane/export')return new Response(JSON.stringify(await exportHistory(env,actor),null,2),{headers:{...headers,'content-type':'application/json','content-disposition':'attachment; filename="vane-history.json"'}});
@@ -39,7 +41,7 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
   }
   if(request.method==='POST') {
    const p=await input(request);
-   if(path==='/api/vane/commands')return json(await prepare(env,actor,p.command,p.input??{}),201);
+   if(path==='/api/vane/commands')return json(await prepare(env,actor,p.command,p.input??{},'command API'),201);
    if(path==='/api/vane/import-preview')return json(await preview(env,actor,{siteId:p.siteId,document:p.document}));
    if(path==='/api/vane/import-apply')return json(await apply(env,actor,{siteId:p.siteId,document:p.document,fingerprint:p.fingerprint}));
    if(path==='/api/vane/import-undo')return json(await undo(env,actor,{siteId:p.siteId,jobId:p.jobId}));

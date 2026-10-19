@@ -42,3 +42,7 @@ Choose 30, 90 or 365 days in collection settings. **Apply retention** erases old
 For a site's full history, select **Prepare history erasure**, then review and approve the permanent deletion as owner. Deletion retires affected import custody and records a deletion fence.
 
 `rer reset --yes` destroys local state. Export first if you need to retain it.
+
+## Audit history
+
+Owners and administrators can open **Audit history** from the sites page. It lists every proposal and approval, settings change, import and undo, archive download, restore, erasure, retention run, sign-in and change prepared through the agent command API, with who did it, when and to what. Entries hold identifiers and counts only, so erasing a site's history keeps them without the erased data, and they travel in the installation archive.

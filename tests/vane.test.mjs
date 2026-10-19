@@ -67,7 +67,8 @@ test('script ingestion enforces site origin, field allowlists, consent, deduplic
 test('Umami dry run retains no raw identifiers; exact reviewed import is idempotent, journalled and undoable',async t=>{
  const a=await withApp(t),id=await a.addSite(),before=await a.archive(),r=await a.post('/api/vane/import-preview',{siteId:id,document:fixture},a.owner),p=await r.json()
  assert.equal(r.status,200);assert.equal(JSON.stringify(p).includes('synthetic-session'),false);assert.equal(JSON.stringify(p).includes('synthetic-private-path'),false)
- assert.deepEqual((await a.archive()).payload.tables,before.payload.tables)
+ const {vane_audit:auditAfter,...after}=(await a.archive()).payload.tables,{vane_audit:auditBefore,...unchanged}=before.payload.tables
+ assert.deepEqual(after,unchanged);assert.deepEqual(auditAfter.filter(entry=>!auditBefore.some(prior=>prior.id===entry.id)).map(entry=>entry.action),['history.export'],'only the export itself is audited')
  assert.equal((await a.post('/api/vane/import-apply',{siteId:id,document:p.carry,fingerprint:'changed'},a.owner)).status,409)
  const first=await movein(a,id),second=await movein(a,id);assert.equal(first.applied.job.id,second.applied.job.id)
  const archive=await a.archive();assert.equal(archive.payload.tables.vane_import_events.length,3);assert.ok(archive.payload.tables.vane_import_events.every(e=>e.sample_rate===null&&e.consent===null))
@@ -238,4 +239,32 @@ test('COLLECT-001 in a browser a default-mode pageview leaves no cookie or stora
  for(const html of [inventory,methodology])for(const phrase of ['exactly two declared exceptions','single vane_ignore localStorage flag that holds no identifier','Consented identifier'])assert.ok(html.includes(phrase),phrase)
  assert.ok((await (await a.request(`/app/sites/${id}?section=settings`,owner)).text()).includes('https://fern.example/#vane-ignore=on'))
  await context.close()
+})
+test('AUDIT-001 every audited action is recorded with actor, time and subject, shown in the audit view, exported, and kept without erased data',async t=>{
+ const a=await withApp(t),b=await withApp(t),admin=await a.invite('admin@example.test','admin'),member=await a.invite('member@example.test','member'),owner={headers:{cookie:a.owner}}
+ const input={name:'Fern Studio',origin:'https://fern.example',paths:['/','/thanks'],goals:{signup:'/thanks'},campaigns:['launch'],sources:['search.example'],consent:'not-required',sampleRate:100,retentionDays:90}
+ const created=await (await a.post('/api/vane/commands',{command:'site.create',input},admin)).json(),id=created.payload.siteId
+ assert.equal((await a.form({operation:'proposal.approve',id:created.id},a.owner)).status,303)
+ assert.equal((await a.form({operation:'config.prepare',siteId:id,...input,name:'Fern Studio US',paths:'/\n/thanks',goals:'signup=/thanks',campaigns:'launch',sources:'search.example'},admin)).status,303)
+ const configured=(await (await a.request('/api/vane/proposals',owner)).json()).find(p=>p.state==='pending');assert.equal((await a.form({operation:'proposal.approve',id:configured.id},a.owner)).status,303)
+ const imported=await movein(a,id);assert.equal((await a.post('/api/vane/import-undo',{siteId:id,jobId:imported.applied.job.id},a.owner)).status,200)
+ assert.equal((await a.form({operation:'history.retention',siteId:id},a.owner)).status,303)
+ assert.equal((await a.collect(a.event(id,{path:'/thanks'}))).status,202)
+ const erase=await (await a.post('/api/vane/commands',{command:'history.erase',input:{siteId:id}},a.owner)).json();assert.equal((await a.form({operation:'proposal.approve',id:erase.id},a.owner)).status,303)
+ const archive=await a.archive()
+ const log=await (await a.request('/api/vane/audit',owner)).json(),actions=new Set(log.map(entry=>entry.action))
+ for(const action of ['sign-in','agent.prepare','proposal.prepare','proposal.approve','site.create','settings.change','import.apply','import.undo','history.retention','history.erase','history.export'])assert.ok(actions.has(action),action)
+ const people=await (await a.request('/auth/operators',owner)).json(),list=Array.isArray(people)?people:people.operators,adminId=list.find(p=>p.email==='admin@example.test').id
+ assert.deepEqual(log.filter(entry=>entry.action==='agent.prepare').map(entry=>entry.subject).sort(),[created.id,erase.id].sort())
+ assert.equal(log.find(entry=>entry.action==='agent.prepare'&&entry.subject===created.id).actor,adminId)
+ assert.ok(log.filter(entry=>entry.action==='sign-in').map(entry=>entry.actor).includes(adminId))
+ assert.ok(log.every(entry=>entry.at>Date.now()-600000&&entry.actor&&entry.subject))
+ assert.ok(log.find(entry=>entry.action==='settings.change').subject===id&&log.find(entry=>entry.action==='history.erase').subject===id)
+ assert.equal(archive.payload.tables.vane_events.length,0)
+ const exported=archive.payload.tables.vane_audit;assert.ok(['import.apply','history.erase'].every(action=>exported.some(entry=>entry.action===action)),'audit travels in the archive')
+ assert.equal(/\/thanks|search\.example|launch/.test(JSON.stringify(exported)),false,'audit entries hold no erased event data')
+ const view=await (await a.request('/app?section=audit',owner)).text();for(const action of ['agent.prepare','settings.change','history.erase','sign-in'])assert.ok(view.includes(`<th scope="row">${action}</th>`),action)
+ assert.equal((await a.request('/api/vane/audit',{headers:{cookie:member}})).status,403)
+ assert.equal((await b.post('/api/vane/restore',{archive},b.owner)).status,200)
+ const restored=await (await b.request('/api/vane/audit',{headers:{cookie:b.owner}})).json();assert.ok(restored.some(entry=>entry.action==='history.restore'));assert.ok(restored.some(entry=>entry.action==='history.erase'&&entry.subject===id))
 })
