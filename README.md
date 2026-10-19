@@ -280,3 +280,7 @@ Source dates are Pacific dates and end dates are exclusive in Vane. Sync a custo
 
 Search history stays bound to its source property. Disconnect and reconnect to the same property retain history. To choose a different property, erase the old history through the existing reviewed erasure proposal first; connecting never silently deletes it.
 
+### Bing Webmaster Tools
+
+The owner supplies a Bing Webmaster Tools API key and an exact verified property URL in site settings. Vane reads only Microsoft’s fixed official Webmaster JSON endpoints. The key is sealed, excluded from archives and deleted on disconnect; already fetched aggregate history remains exportable. Bing’s source query/page sets are weekly top rows, with separate daily site totals across search verticals. Dates retain the source’s calendar label; absent rows never imply measured zero.
+

@@ -1,3 +1,4 @@
+import { sync as syncBing } from './vane/bing'
 import { withDemo } from './modules/demo/index.mjs'
 import { seedDemo } from './demo'
 import { collector } from './vane/collect'
@@ -93,7 +94,7 @@ export default withDemo({
   // API-002: each scheduled warehouse export sends the dates that have ended since its last run.
   async scheduled(_controller, env) {
     const sourceSync=syncSearchConsole(runtimeBindings(env), clock());
-    const sourceResult=Promise.allSettled([sourceSync]);
+    const sourceResult=Promise.allSettled([sourceSync,syncBing(runtimeBindings(env),clock())]);
     try {
     await expireSalts(runtimeBindings(env), clock())
     await expireKept(runtimeBindings(env), clock())
@@ -105,7 +106,7 @@ export default withDemo({
     await runAlerts(runtimeBindings(env), clock())
     await runFollowUps(runtimeBindings(env), clock())
     } finally {
-      const result=(await sourceResult)[0]!;if(result.status==='rejected')throw result.reason;
+      const results=await sourceResult;const failed=results.find(r=>r.status==='rejected');if(failed?.status==='rejected')throw failed.reason;
     }
   },
 } satisfies ExportedHandler<Bindings>, { seed: seedDemo })

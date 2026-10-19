@@ -1,3 +1,4 @@
+import { queryPaths as bingQueryPaths } from './bing'
 import { queryPaths as googleQueryPaths } from './search-console'
 import { aggregateCsvRow, importedReports } from './movein/aggregate-reports'
 import { day, insist, rows, type Env, type Site } from './core'
@@ -58,9 +59,9 @@ export function createInsightsService(env:Env,value:Site,now=clock(),range?:{fro
   const weekdays=range?.weekdays==='on',{from:previousFrom,to:previousTo}=comparisonRange(compare,from,to,weekdays,{from:range?.compareFrom??null,to:range?.compareTo??null});
   insist(Date.parse(previousTo)-Date.parse(previousFrom)<=3660*86400000,'compare','The comparison must be within ten years.');intervalOf(interval,previousFrom,previousTo);
   const searchQuery=range?.searchQuery??null,searchProvider=range?.searchProvider??null;
-  insist(!searchQuery||searchProvider==='google','search_query','Choose a connected keyword source.');
+  insist(!searchQuery||['google','bing'].includes(searchProvider??''),'search_query','Choose a connected keyword source.');
   insist(!searchQuery||searchQuery.length<=100,'search_query','Choose one of the source query labels.');
-  const entryPaths=searchQuery?await googleQueryPaths(env,value.id,searchQuery,from,to):undefined;
+  const entryPaths=searchQuery?await (searchProvider==='bing'?bingQueryPaths:googleQueryPaths)(env,value.id,searchQuery,from,to):undefined;
   let release=async()=>{};
   if(filters.length||entryPaths!==undefined){const kept=await keptVisits(env,scope,filters,segmentStart(from,previousFrom),to>previousTo?to:previousTo,base,value.config.sourceRules,entryPaths);ev=kept.events;release=kept.release;eventSet=`(SELECT ${columns},visitor FROM ${ev})`}
   try{

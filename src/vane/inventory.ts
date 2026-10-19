@@ -8,7 +8,7 @@ import { retentionPhrase } from './retention'
 // location (DASH-005), Search Console and Bing (SEARCH-001/002), ad platforms (ADS-001), outcome sources
 // (CONV-008, custom events and properties CONV-002 now listed), Slack/Teams delivery (REPORT-002) and webhooks (API-003).
 export interface Field { name:string; table:string; columns:string[]; description:string }
-export function inventory(site:Site,searchConnected=false) {
+export function inventory(site:Site,searchConnected=false,bingConnected=false) {
  const c=site.config,auto=c.autoEvents??[],page='vane_events'
  const fields:Field[]=[
   {name:'Imported source reports',table:'vane_import_reports',columns:['id','site_id','import_job','day','provider','report','dimensions_json','metrics_json','definitions_json'],description:'Sanitized Matomo aggregate reports: local source date, report method, dimension labels, numeric measures and source goal definitions. No visitor logs, IP addresses, user agents or API tokens; coverage remains unknown. Each source report stays separate from native event totals.'},
@@ -58,12 +58,18 @@ export function inventory(site:Site,searchConnected=false) {
   {name:'Google source dates',table:'vane_search_days',columns:['site_id','day','property','snapshot_id','status','checked_at','published_at'],description:'Pacific source dates, pending or finalized, with the published snapshot pointer and check time.'},
   {name:'Google search aggregates',table:'vane_search_rows',columns:['site_id','day','snapshot_id','grain','query','page','path','clicks','impressions','ctr','position'],description:'Redacted query and page labels, independent overall/query/page/query-page grains, clicks, impressions, CTR and average position. No visitor attribution.'}
  );
+ if(bingConnected)fields.push(
+  {name:'Bing connection',table:'vane_bing_connections',columns:['site_id','id','property','sealed_key','connected_by','connected_at','last_attempt_at','last_sync_at','sync_id','next_sync_at','error','query_pages_error','source_counts'],description:'Owner-generated Bing API key sealed with AES-GCM, selected verified property, daily sync timing and safe outcome. Key and connection are excluded from archives and deleted on disconnect.'},
+ );
+ fields.push(
+  {name:'Bing source aggregates',table:'vane_bing_rows',columns:['site_id','day','kind','query','page','clicks','impressions','position_sum','position_weight','fetched_at'],description:'Redacted weekly source query/page/query-page sets and independent daily site totals, with source date, clicks, impressions and impression-weighted position. No visitor attribution.'}
+ );
  const discarded=['IP address and user agent: used once for the visitor hash and device classes, then discarded','viewport width: turned into the screen-size class','query strings other than kept parameters, URL fragments and page titles: never stored','click-ID values (gclid, fbclid, msclkid): only the paid-click flag is kept']
  const identifiers=['Default mode: no cookie and no browser storage; the server’s visitor hash changes every day.','Consented mode: not offered by this release, so no identifier is stored on any device.']
  const salt=`A random salt per site and day, rotated at midnight in ${c.timeZone??'UTC'} and deleted within 24 hours.`
  const retention=retentionPhrase(c)
- const processors=['Cloudflare (Workers and D1), which hosts this installation',...(searchConnected?['Google Search Console, connected by the owner for read-only search aggregates']:[])]
- return {fields,discarded,identifiers,salt,retention,processors,policyText:[...policyText(site,auto),...(searchConnected?['The owner connects Google Search Console to read aggregate search queries, landing pages, clicks and impressions. Personal-looking labels are redacted. This does not identify which person searched or send our collected visits to Google.']:[])]}
+ const processors=['Cloudflare (Workers and D1), which hosts this installation',...(searchConnected?['Google Search Console, connected by the owner for read-only search aggregates']:[]),...(bingConnected?['Bing Webmaster Tools, connected by the owner for read-only search aggregates']:[])]
+ return {fields,discarded,identifiers,salt,retention,processors,policyText:[...policyText(site,auto),...(searchConnected?['The owner connects Google Search Console to read aggregate search queries, landing pages, clicks and impressions. Personal-looking labels are redacted. This does not identify which person searched or send our collected visits to Google.']:[]),...(bingConnected?['The owner connects Bing Webmaster Tools for aggregate search query and page figures, with redacted labels. No collected Vane visitor rows are sent to Bing.']:[])]}
 }
 function policyText(site:Site,auto:string[]):string[] {
  const c=site.config

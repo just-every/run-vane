@@ -1,3 +1,4 @@
+import './bing.test.mjs'
 import './search-console.test.mjs'
 import './matomo.test.mjs'
 import test from 'node:test'

@@ -79,6 +79,16 @@
         "Selected property and source date range; aggregate search query/page figures returned; no Vane visitor rows sent"
       ],
       "adapters": []
+    },
+    {
+      "id": "bing-webmaster-tools",
+      "required": false,
+      "why": "Owner-connected read-only Bing Webmaster Tools query/page aggregates (SEARCH-002)",
+      "data": [
+        "Owner-generated API key and verified property sent only to the fixed official Bing API",
+        "Source aggregate query, page and date figures returned; no collected Vane visits sent"
+      ],
+      "adapters": []
     }
   ],
   "env": [],
