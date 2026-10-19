@@ -1899,12 +1899,24 @@ test('ALERT-001 a current-visitors alert above 50 is sent by email within 15 min
  await visitors(2,1);await at(T+300000);assert.equal(alerts().length,1);const [mail]=alerts()
  assert.deepEqual(mail.to,['analyst@example.test']);assert.match(mail.text,/Fern Studio: Current visitors above 50\. Now 51\./)
  const settings=async()=>unlinked(await (await a.request(`/app/sites/${id}?section=settings`,owner)).text())
- assert.match(await settings(),/<tr><td>Apr 1, 2026, 12:05\sPM<\/td><td>Current visitors above 50<\/td><td class="vane-number">51<\/td><td>Apr 1, 2026, 12:05\sPM<\/td><td>sent: email accepted by the mail provider; push accepted by 0 browsers<\/td><\/tr>/)
+ assert.match(await settings(),/<tr><td>Apr 1, 2026, 12:05\sPM<\/td><td>Current visitors above 50<\/td><td class="vane-number">51<\/td><td>Apr 1, 2026, 12:05\sPM<\/td><td>sent: email accepted by the mail provider for one person; push accepted by 0 browsers<\/td><\/tr>/)
  const [log]=(await a.dump()).vane_alert_log;assert.ok(log.sent_at-(T+120000)<=15*60000,'sent within 15 minutes of the crossing')
  // Still above at the next checks: no repeat. The visitors leave (none current after 5 minutes), then 51 return within the cool-down.
  await at(T+600000);assert.equal(alerts().length,1,'once while it stays past the threshold')
  await at(T+1200000);await a.clock(T+1260000);await visitors(3,51);await at(T+1500000);assert.equal(alerts().length,1,'held by the 6-hour cool-down')
  assert.match(await settings(),/<td class="vane-number">51<\/td><td>not sent<\/td><td>held: cool-down of 6 h since the last send<\/td>/)
+ // Recipients: the owner sends a pageviews alert to the analyst and the site's signed webhooks; another alert sleeps in quiet hours.
+ const hooks=[];a.fixtureSites['https://hooks.fixture.example']=async request=>{hooks.push({headers:Object.fromEntries(request.headers),body:await request.text()});return new Response(null,{status:204})}
+ assert.equal((await a.form({operation:'webhook.create',siteId:id,url:'https://hooks.fixture.example/vane','event_traffic.alert':'on'},a.owner)).status,200)
+ const analystId=(await a.dump()).oa_operators.find(o=>o.email==='analyst@example.test').id
+ assert.equal((await add(analyst,{metric:'pageviews',threshold:'150',webhooks:'on'})).status,403,'only admins and the owner send alerts to webhooks')
+ assert.equal((await add(a.owner,{metric:'pageviews',threshold:'150',[`person_${analystId}`]:'on',webhooks:'on'})).status,303)
+ assert.equal((await add(a.owner,{metric:'pageviews',threshold:'150',quietFrom:'12:00',quietTo:'13:00'})).status,303)
+ await a.clock(T+1560000);await visitors(4,51);await at(T+1620000);await at(T+1920000)
+ const pageviewMails=a.sentMail.filter(m=>/Pageviews in the last 60 minutes above 150/.test(m.subject));assert.deepEqual(pageviewMails.map(m=>m.to[0]),['analyst@example.test'],'the chosen person, not the creator; the quiet alert sends nothing')
+ assert.equal(hooks.length,1);const hook=JSON.parse(hooks[0].body);assert.deepEqual([hooks[0].headers['vane-event'],hook.event,hook.alert,hook.value,hook.bound],['traffic.alert','traffic.alert','Pageviews in the last 60 minutes above 150',153,'150'])
+ assert.match(hooks[0].headers['vane-signature'],/^t=\d+,v1=[0-9a-f]{64}$/);assert.deepEqual(Object.keys(hook).sort(),['alert','bound','condition','direction','event','metric','seen_at','site_id','value'],'no visitor field')
+ assert.match(await settings(),/held: quiet hours \(12:00–13:00\)/)
  const alert=(await a.dump()).vane_alerts[0];assert.equal((await a.form({operation:'alert.delete',id:alert.id},viewer)).status,403);assert.equal((await a.form({operation:'alert.delete',id:alert.id},analyst)).status,303)
  assert.ok((await a.dump()).vane_audit.some(e=>e.action==='alert.create')&&(await a.dump()).vane_audit.some(e=>e.action==='alert.delete'),'setting and deleting alerts are audited')
 })
@@ -1935,6 +1947,6 @@ test('ALERT-001 against eight weeks of baseline traffic a 4x spike and a 70% dro
  await at('2026-11-26T15:05:00Z');assert.equal(sent().length,3,'the Thanksgiving dip does not alert')
  const log=unlinked(await (await a.request(`/app/sites/${id}?section=settings`,owner)).text())
  for(const outcome of ['held: cool-down of 6 h since the last send','held: scheduled maintenance (Saturdays 02:00–03:00)','held: Thanksgiving Day, a US federal holiday, is not judged against ordinary weeks'])assert.ok(log.includes(outcome),outcome)
- assert.match(log,/<td>Pageviews below the usual range for the weekday and hour<\/td><td class="vane-number">1<\/td><td>Oct 24, 2026, 5:05\sAM<\/td><td>sent: email accepted by the mail provider; push accepted by 0 browsers; usual range [\d.]+ to [\d.]+ for Saturday 2026-10-24 04:00–05:00<\/td>/)
+ assert.match(log,/<td>Pageviews below the usual range for the weekday and hour<\/td><td class="vane-number">1<\/td><td>Oct 24, 2026, 5:05\sAM<\/td><td>sent: email accepted by the mail provider for one person; push accepted by 0 browsers; usual range [\d.]+ to [\d.]+ for Saturday 2026-10-24 04:00–05:00<\/td>/)
  assert.ok(log.includes('Saturdays 02:00–03:00'),'the window is listed');assert.equal((await a.dump()).vane_alert_log.length,6)
 })

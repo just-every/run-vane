@@ -3,14 +3,14 @@ import { auditStatement } from './audit'
 import { clock } from './clock'
 import { seal, unseal } from './sealed'
 import { publicHttps } from './warehouse'
-// API-003: signed webhooks. Today's event is goal.conversions: one delivery per site, goal and ended UTC minute with
-// its count, never per person; alert, follow-up and report events join before ALERT-001/002, FOLLOW-001 and
-// REPORT-001/002 ship. Each body is signed as Vane-Signature: t=<unix seconds>,v1=<HMAC-SHA256 of "t.body"> with the
+// API-003: signed webhooks. Events: goal.conversions, one delivery per site, goal and ended UTC minute with its count,
+// never per person; traffic.alert, one delivery per sent ALERT-001 alert that names webhooks among its recipients, with
+// its figures only. Follow-up and report events join before ALERT-002, FOLLOW-001 and REPORT-001/002 ship. Each body is signed as Vane-Signature: t=<unix seconds>,v1=<HMAC-SHA256 of "t.body"> with the
 // endpoint's secret (shown once, sealed); Vane-Delivery stays the same on every retry so a receiver keeps one. The cron
 // queues ended minutes and sends due deliveries every 5 minutes; a failed attempt is retried after 1, 5 and 30
 // minutes, 2 and 6 hours, then the delivery shows as failed. The log keeps each attempt's time, status and outcome.
 const PURPOSE='vane-webhook-secret-v1',MINUTE=60000,BACKOFF=[60000,300000,1800000,7200000,21600000]
-export const WEBHOOK_EVENTS={'goal.conversions':'Goal conversions, counted per minute'} as const
+export const WEBHOOK_EVENTS={'goal.conversions':'Goal conversions, counted per minute','traffic.alert':'Traffic alerts that send to webhooks (ALERT-001)'} as const
 export interface Webhook { id:string; site_id:string; url:string; events_json:string; sealed_secret:string; last_minute:number; created_by:string; created_at:number }
 const hex=(bytes:ArrayBuffer|Uint8Array)=>Array.from(new Uint8Array(bytes),b=>b.toString(16).padStart(2,'0')).join('')
 export async function createWebhook(env:Env,actor:Actor,p:any) {
