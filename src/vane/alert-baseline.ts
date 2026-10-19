@@ -20,23 +20,29 @@ const shift=(d:string,n:number)=>new Date(Date.parse(d)+n*DAY).toISOString().sli
 export const localHour=(at:number,timeZone:string)=>Number(new Intl.DateTimeFormat('en-US',{timeZone,hourCycle:'h23',hour:'2-digit'}).format(at))
 const weekdayOf=(d:string)=>(new Date(Date.parse(d)).getUTCDay()+6)%7+1
 export const holiday=(d:string)=>usHolidays(Number(d.slice(0,4)))[d]
-// Visitors, visits or pageviews in [from, to) from `events` (the site's events, or a segment's kept visits). A visit
-// counts in the window it starts in.
-export async function count(env:Env,value:Site,metric:'visitors'|'visits'|'pageviews',from:number,to:number,events='vane_events') {
- const day=new Date(from-DAY).toISOString().slice(0,10)
- if(metric==='visits')return Number((await env.DB.prepare(`${timedFrom(events)} SELECT COUNT(*) AS n FROM v WHERE started>=?5 AND started<?6`).bind(JSON.stringify([value.id]),day,new Date(to+DAY).toISOString().slice(0,10),null,from,to).first<{n:number}>())?.n??0)
+// Visitors, visits, pageviews, goal conversions or the conversion rate (percent of visits that convert, one decimal) in
+// [from, to) from `events` (the site's events, or a segment's kept visits). A visit counts in the window it starts in;
+// conversions are goal events (one goal, or every goal) in the window.
+export type Counted='visitors'|'visits'|'pageviews'|'conversions'|'conversion-rate'
+export async function count(env:Env,value:Site,metric:Counted,from:number,to:number,events='vane_events',goal:string|null=null) {
+ const day=new Date(from-DAY).toISOString().slice(0,10),next=new Date(to+DAY).toISOString().slice(0,10)
+ if(metric==='visits'||metric==='conversion-rate'){
+  const r=await env.DB.prepare(`${timedFrom(events)} SELECT COUNT(*) AS n,COALESCE(SUM(visit_converted),0) AS c FROM v WHERE started>=?5 AND started<?6`).bind(JSON.stringify([value.id]),day,next,goal,from,to).first<{n:number,c:number}>()
+  const n=Number(r?.n??0);return metric==='visits'?n:n?Math.round(Number(r!.c)/n*1000)/10:0
+ }
+ if(metric==='conversions')return Number((await rows<{n:number}>(env,`SELECT COUNT(*) AS n FROM ${events} e WHERE e.site_id=? AND e.kind<>'pageview' AND (? IS NULL OR e.kind=?) AND e.day>=? AND e.at>=? AND e.at<?`,value.id,goal,goal,day,from,to))[0]?.n??0)
  const base=`FROM ${events} e WHERE e.site_id=? AND e.kind='pageview' AND e.day>=? AND e.at>=? AND e.at<?`
  return Number((await rows<{n:number}>(env,metric==='pageviews'?`SELECT COUNT(*) AS n ${base}`:`SELECT COUNT(*) AS n FROM (SELECT DISTINCT e.day,e.visitor ${base} AND e.visitor IS NOT NULL)`,value.id,day,from,to))[0]?.n??0)
 }
 export interface Judgment { start:number; day:string; hour:number; value:number; low:number; high:number; holiday?:string; closed?:string }
 // The hour starting at `start` (local day `d`, hour `h`) with its baseline interval, or null without 4 baseline hours.
-export async function judge(env:Env,value:Site,metric:'visitors'|'visits'|'pageviews',d:string,h:number,events='vane_events'):Promise<Judgment|null> {
+export async function judge(env:Env,value:Site,metric:Counted,d:string,h:number,events='vane_events',goal:string|null=null):Promise<Judgment|null> {
  const zone=value.config.timeZone??'UTC',start=instant(d,h,zone),first=(await rows<{d:string|null}>(env,"SELECT MIN(day) AS d FROM vane_events WHERE site_id=?",value.id))[0]?.d??null
  const closed=Object.fromEntries((await rows<{day:string,label:string}>(env,'SELECT day,label FROM vane_closed_days WHERE site_id=?',value.id)).map(r=>[r.day,r.label]))
  const base=Array.from({length:BASELINE_WEEKS},(_,i)=>shift(d,-7*(i+1))).filter(b=>!holiday(b)&&!closed[b]&&first!==null&&b>=first)
  if(base.length<MIN_BASELINE_DAYS)return null
- const xs=await Promise.all(base.map(b=>{const s=instant(b,h,zone);return count(env,value,metric,s,s+HOUR,events)})),n=xs.length,mean=xs.reduce((a,x)=>a+x,0)/n,sd=Math.sqrt(xs.reduce((a,x)=>a+(x-mean)**2,0)/(n-1)),half=T95[n-1]!*sd*Math.sqrt(1+1/n)
- const v=await count(env,value,metric,start,Math.min(start+HOUR,clock()+1),events)
+ const xs=await Promise.all(base.map(b=>{const s=instant(b,h,zone);return count(env,value,metric,s,s+HOUR,events,goal)})),n=xs.length,mean=xs.reduce((a,x)=>a+x,0)/n,sd=Math.sqrt(xs.reduce((a,x)=>a+(x-mean)**2,0)/(n-1)),half=T95[n-1]!*sd*Math.sqrt(1+1/n)
+ const v=await count(env,value,metric,start,Math.min(start+HOUR,clock()+1),events,goal)
  return {start,day:d,hour:h,value:v,low:Math.round((mean-half)*10)/10,high:Math.round((mean+half)*10)/10,...(holiday(d)?{holiday:holiday(d)}:{}),...(closed[d]?{closed:closed[d]}:{})}
 }
 // The hour to judge now: the running one for a spike, the one just ended for a drop.

@@ -420,8 +420,8 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 17 | 0 | 0 | 17 |
-| Target and push further | 55 | 5 | 31 | 91 |
-| All | 72 | 5 | 31 | 108 |
+| Target and push further | 55 | 6 | 30 | 91 |
+| All | 72 | 6 | 30 | 108 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -501,7 +501,7 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | `REPORT-002` | Slack, Microsoft Teams and Nook delivery | target | missing |  | No Slack, Teams or Nook delivery. |
 | `REPORT-003` | A readable explanation of what changed | target | done | `src/vane/explain.ts`; `src/vane/reports.ts`; `src/vane/views/report.ts`; `tests/vane.test.mjs` |  |
 | `ALERT-001` | Traffic spike and drop alerts | target | done | `src/vane/traffic-alerts.ts`; `src/vane/alert-baseline.ts`; `src/vane/alert-explain.ts`; `src/vane/annotation-door.ts`; `src/vane/annotations.ts`; `src/vane/explain.ts`; `src/vane/views/alert-settings.ts`; `migrations/core/0046_vane_traffic_alerts.sql`; `migrations/core/0047_vane_alert_anomaly.sql`; `migrations/core/0048_vane_alert_recipients.sql`; `migrations/core/0049_vane_closed_days.sql`; `migrations/core/0050_vane_alert_segments.sql`; `tests/vane.test.mjs` |  |
-| `ALERT-002` | Conversion, revenue and tracking-health alerts | target | missing |  | No conversion, revenue or tracking-health alerts. |
+| `ALERT-002` | Conversion, revenue and tracking-health alerts | target | partial | `src/vane/traffic-alerts.ts`; `src/vane/alert-baseline.ts`; `migrations/core/0052_vane_alert_goals.sql`; `tests/vane.test.mjs` | Goal conversions (every goal or one) and the conversion rate (percent of visits that convert, counted in the window they start) alert on a fixed threshold or the usual range through the `ALERT-001` engine, with its recipients, holds, follow-up items (`FOLLOW-001`), movers and webhooks: a goal that stops firing and a collapsing rate each raise their own named alert. Not yet: revenue drops, the tracking-health checks (a site with prior traffic gone silent, a goal silent after a deploy, a page or template silent while the rest sends, a collection-error surge, a consent-rate collapse) with the overview's goals-tracking line and the daily check at the owner's local time, and the browser-versus-confirmed divergence, which needs `CONV-008`'s Stripe connection (account-blocked). |
 | `FOLLOW-001` | Alerts are followed through until a person resolves them | target | done | `src/vane/follow-up.ts`; `src/vane/views/follow-settings.ts`; `src/vane/traffic-alerts.ts`; `migrations/core/0051_vane_follow_up.sql`; `tests/vane.test.mjs` |  |
 | `SHARE-001` | Shared links and embedded dashboards | target | done | `src/vane/share.ts`; `src/vane/views/share.ts`; `src/vane/views/share-settings.ts`; `src/vane/actions.ts`; `src/server.ts`; `migrations/core/0036_vane_share_links.sql`; `public/vane.css`; `tests/vane.test.mjs` |  |
 | `SHARE-002` | Public dashboards | target | done | `src/vane/public.ts`; `src/vane/public-reports.ts`; `src/vane/views/public.ts`; `src/vane/privacy.ts`; `src/vane/views/settings.ts`; `src/server.ts`; `tests/vane.test.mjs` |  |

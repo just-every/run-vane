@@ -55,7 +55,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "33a40dbfaeb9564e501e06133f8d425cff7b1cb663cf5529ccdaa5a2a4849c93",
+      "sha256": "24eb9e227e523b57cf9e8a04f83e23f0567ed281abcaf70a74c60524452f2628",
       "executable": false
     },
     "AGENTS.md": {
@@ -87,7 +87,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "87be674958b4d9abe0e986e4999dce9c551ecee791eb252732ebd522b57943c4",
+      "sha256": "63c1de19774c8f48df0dd678ef03e38a8dd727e2d5c9172b3a13597f8ec36dff",
       "executable": false
     },
     "DEMO.md": {
@@ -344,6 +344,10 @@
     },
     "migrations/core/0051_vane_follow_up.sql": {
       "sha256": "b5032ad0961ef0dfa7967d65ac52cd3cb1bbd057a4df121144a1c63d1f550dee",
+      "executable": false
+    },
+    "migrations/core/0052_vane_alert_goals.sql": {
+      "sha256": "b2f190ff6b69ba78e48e9218b9eaf9d228bce44d91a628db3554b52ee846c102",
       "executable": false
     },
     "ONBOARDING.md": {
@@ -2511,7 +2515,7 @@
       "executable": false
     },
     "src/vane/alert-baseline.ts": {
-      "sha256": "8b3bdf1346b4f40b5ea649bd37ed934e53470bef3100eee134ee41dbc2d2168c",
+      "sha256": "6201a714168fc195a166f50efbd45261e9da885d6548173faa3561034ef12eda",
       "executable": false
     },
     "src/vane/alert-explain.ts": {
@@ -2659,7 +2663,7 @@
       "executable": false
     },
     "src/vane/inventory.ts": {
-      "sha256": "df52caee8a5055887f60ab94e356c9d202b358f250772bbb753b38285075b8a4",
+      "sha256": "c4f3921b730a62f0e0bd605326b84fbad52db3ec17ae6c58aea37cdcb97f77fc",
       "executable": false
     },
     "src/vane/journeys.ts": {
@@ -2831,7 +2835,7 @@
       "executable": false
     },
     "src/vane/traffic-alerts.ts": {
-      "sha256": "f71ab5a924c5429fbbab305824ba54a1e1911ccc47d7122f7bcaa685528e29fc",
+      "sha256": "d217752b66e9422c4f0a2d89951753c23970a6f42eb99166d1cd313738911bc0",
       "executable": false
     },
     "src/vane/traffic.ts": {
@@ -2843,7 +2847,7 @@
       "executable": false
     },
     "src/vane/views/alert-settings.ts": {
-      "sha256": "801e3926e40fb267afded7c6962ac148b3dfc0fd5ed08a3781d912efab26f0c8",
+      "sha256": "1d77c9d47a2479c9405eca23314652ae5fbff8cf42c338655b2c2aef42c197ad",
       "executable": false
     },
     "src/vane/views/api-keys.ts": {
@@ -3027,7 +3031,7 @@
       "executable": false
     },
     "tests/vane.test.mjs": {
-      "sha256": "c996aafc51010488a6ee59dbdacf9ceaa2185f9d332b9f19124d3626089329d1",
+      "sha256": "fe70a4bc8737f7efd4411ef2c577e228f89387275fe330131f7a72f95e7a2ec3",
       "executable": false
     },
     "tsconfig.json": {

@@ -1977,6 +1977,22 @@ test('ALERT-001 against eight weeks of baseline traffic a 4x spike and a 70% dro
  const notes=(await (await a.request(`/api/vane/summary?siteId=${id}&from=2026-10-20&to=2026-11-02`,owner)).json()).explain.annotations
  assert.deepEqual(notes.filter(n=>['alert-held','maintenance'].includes(n.kind)).map(n=>[n.day,n.kind,n.text]),[['2026-10-24','alert-held','Pageviews below the usual range for the weekday and hour held: scheduled maintenance (Saturdays 02:00–03:00).'],['2026-10-31','maintenance','Database upgrade'],['2026-10-31','alert-held','Pageviews below the usual range for the weekday and hour held: scheduled maintenance (2026-10-31 04:00–05:00).']])
 })
+test('ALERT-002 a goal that stops firing and a conversion rate that collapses each raise their own named alert, and a rate above its threshold stays quiet',async t=>{
+ const a=await withApp(t),id=await a.addSite({paths:[],goals:{signup:'/thanks'}}),T=Date.parse('2026-04-07T10:00:00Z'),at=async ms=>{await a.clock(ms);await a.scheduled()}
+ let n=0;const visit=async(path,convert)=>{const headers={origin:'https://fern.example','cf-connecting-ip':`198.51.77.${n++}`,'user-agent':DESKTOP_CHROME};assert.equal((await a.post('/api/vane/collect',a.event(id,{path}),'',headers)).status,202);if(convert)assert.equal((await a.post('/api/vane/collect',a.event(id,{path:'/thanks'}),'',headers)).status,202)}
+ const add=body=>a.form({operation:'alert.create',siteId:id,direction:'below',cooldown:'6',...body},a.owner)
+ await a.clock(T);assert.equal((await add({metric:'conversions',goal:'signup',threshold:'1'})).status,303);assert.equal((await add({metric:'conversion-rate',threshold:'20'})).status,303)
+ assert.equal((await add({metric:'pageviews',goal:'signup',threshold:'1'})).status,400,'a goal applies to conversions and the rate');assert.equal((await add({metric:'conversions',goal:'nope',threshold:'1'})).status,400)
+ // 10:00-10:30: ten visits, three sign up (30%): no alert.
+ for(let i=0;i<10;i++){await a.clock(T+i*120000);await visit('/',i<3)}
+ await at(T+1800000);const named=()=>a.sentMail.filter(m=>/Goal conversions|Conversion rate/.test(m.subject)).map(m=>m.subject.replace('Fern Studio: ',''))
+ assert.deepEqual(named(),[],'30% with 3 sign-ups stays quiet')
+ // Two hours later the goal has stopped firing: ten visits, none sign up.
+ for(let i=0;i<10;i++){await a.clock(T+2*3600000+i*120000);await visit('/pricing',false)}
+ await at(T+2*3600000+1800000)
+ assert.deepEqual(named().sort(),['Conversion rate (%) in the last 60 minutes below 20','Goal conversions in the last 60 minutes for goal signup below 1'])
+ assert.match(a.sentMail.find(m=>/Conversion rate/.test(m.subject)).text,/Now 0\. What moved against the same window a week before:/)
+})
 test('FOLLOW-001 a drop alert left unacknowledged reminds once and escalates once, acknowledging and resolving it as a tracking fault stops reminders and records who, when and the outcome, due times count business hours, and the owner can end the policy',async t=>{
  const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({paths:[]}),at=async iso=>{await a.clock(Date.parse(iso));await a.scheduled()}
  assert.equal((await a.form({operation:'team.invite',email:'analyst@example.test',role:'analyst',scope:'all'},a.owner)).status,303);const analyst=await a.accept('analyst@example.test')

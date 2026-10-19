@@ -1,0 +1,6 @@
+-- ALERT-002: alerts also watch goal conversions and the conversion rate, for every goal or one goal. The metric list
+-- now lives in code (traffic-alerts.ts ALERT_METRICS), so the table is rebuilt without its metric CHECK, keeping rows.
+CREATE TABLE vane_alerts_next(id TEXT PRIMARY KEY, site_id TEXT NOT NULL, metric TEXT NOT NULL, direction TEXT NOT NULL CHECK(direction IN ('above','below')), threshold INTEGER NOT NULL, cooldown_hours INTEGER NOT NULL, crossed INTEGER NOT NULL DEFAULT 0, last_sent_at INTEGER, created_by TEXT NOT NULL, created_at INTEGER NOT NULL, condition TEXT NOT NULL DEFAULT 'threshold' CHECK(condition IN ('threshold','anomaly')), judged_hour INTEGER, recipients_json TEXT NOT NULL DEFAULT '{"people":[],"webhooks":false}', quiet_from INTEGER, quiet_to INTEGER, segment_id TEXT, goal TEXT);
+INSERT INTO vane_alerts_next(id,site_id,metric,direction,threshold,cooldown_hours,crossed,last_sent_at,created_by,created_at,condition,judged_hour,recipients_json,quiet_from,quiet_to,segment_id) SELECT id,site_id,metric,direction,threshold,cooldown_hours,crossed,last_sent_at,created_by,created_at,condition,judged_hour,recipients_json,quiet_from,quiet_to,segment_id FROM vane_alerts;
+DROP TABLE vane_alerts;
+ALTER TABLE vane_alerts_next RENAME TO vane_alerts;
