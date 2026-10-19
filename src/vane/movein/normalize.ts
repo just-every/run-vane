@@ -2,6 +2,7 @@ import { canonicalJson, sha256 } from '../../modules/import-kit/src/provenance/i
 import type { SourceBundle, ImportMapping, Json } from '../../modules/import-kit/src/types.ts';
 import type { DiscardedCounts, ImportSite, SafeEvent, SitePolicy } from './types.ts';
 import { MoveinError } from './types.ts';
+import { goalMatches } from '../goals';
 import { mappingVersion, namespace } from './policy.ts';
 import { validateCarry } from './carry.ts';
 
@@ -32,7 +33,7 @@ export function normalize(document: unknown, site: ImportSite, policy: SitePolic
     let kind = 'pageview';
     if (raw.eventType === 2) {
       if (typeof raw.eventName !== 'string' || !Object.hasOwn(policy.goals, raw.eventName) || raw.eventName === 'pageview') return invalid('GOAL_NOT_APPROVED');
-      if (policy.goals[raw.eventName] !== path) return invalid('GOAL_PATH_MISMATCH');
+      if (!goalMatches(policy.goals[raw.eventName]!, path)) return invalid('GOAL_PATH_MISMATCH');
       kind = raw.eventName;
     }
     const created = text(raw.createdAt);

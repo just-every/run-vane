@@ -384,3 +384,18 @@ test('DASH-003 seeded visits give top, entry and exit pages with visitors, pagev
  const page=await (await a.request(`/app/sites/${id}?section=report&from=2026-03-09&to=2026-03-10&group=%2Fblog%2F*`,owner)).text()
  for(const html of ['<h2>Top pages</h2>','<h2>Entry pages</h2>','<h2>Exit pages</h2>','<th scope="row">/blog/*</th><td class="vane-number">3</td><td class="vane-number">4</td><td class="vane-number">3</td><td class="vane-number">33.3%</td>','name="group" value="/blog/*"'])assert.ok(page.includes(html),html)
 })
+test('CONV-001 /thanks* converts on /thanks and /thanks/pro, a 75% scroll goal on /blog/** converts at 80% and not at 50%, with unique converters and the conversion rate against visitors',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}},paths=['/','/thanks','/thanks/pro','/blog/post','/blog/2026/notes'],start=Date.parse('2026-03-10T10:00:00Z')
+ const refused=await a.post('/api/vane/commands',{command:'site.create',input:{name:'Fern Studio',origin:'https://fern.example',paths,goals:{signup:'/checkout*'},consent:'not-required'}},a.owner);assert.equal(refused.status,400,'a goal pattern must match an allowed path')
+ const id=await a.addSite({paths,goals:{signup:'/thanks*'},scrollGoals:{'deep-read':{path:'/blog/**',depth:75}}})
+ const load=async(n,path,seconds=0)=>{await a.clock(start+n*3600000+seconds*1000);const event=a.event(id,{path});assert.equal((await a.post('/api/vane/collect',event,'',{origin:'https://fern.example','cf-connecting-ip':'192.0.2.'+n,'user-agent':'Synthetic Browser '+n})).status,202);return event.id}
+ const read=async(n,path,scroll)=>{const pageLoad=await load(n,path);await a.clock(start+n*3600000+11000);assert.equal((await a.post('/api/vane/engage',{siteId:id,id:pageLoad,scroll},'',{origin:'https://fern.example'})).status,202)}
+ await load(1,'/thanks');await load(1,'/thanks',30);await load(2,'/thanks/pro');await load(3,'/');await read(4,'/blog/2026/notes',80);await read(5,'/blog/post',50)
+ const r=await (await a.request(`/api/vane/summary?siteId=${id}&from=2026-03-10&to=2026-03-11`,owner)).json()
+ assert.deepEqual([r.visitors,r.goals,r.converters,r.conversionRate],[5,4,3,60])
+ assert.deepEqual(r.goalBreakdown.map(g=>[g.label,g.count,g.converters,g.conversionRate]),[['signup',3,2,40],['deep-read',1,1,20]])
+ const page=await (await a.request(`/app/sites/${id}?section=report&from=2026-03-10&to=2026-03-11`,owner)).text()
+ for(const html of ['<th scope="row">signup</th><td class="vane-number">3</td><td class="vane-number">2</td><td class="vane-number">40.0%</td>','Converting visitors: 3 (60.0% of unique visitors).'])assert.ok(page.includes(html),html)
+ assert.ok((await (await a.request(`/app/sites/${id}?section=settings`,owner)).text()).includes('signup=/thanks*\ndeep-read=/blog/**@75'))
+ assert.ok((await (await a.request('/methodology')).text()).includes('/thanks* covers /thanks and /thanks/pro'))
+})

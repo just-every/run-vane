@@ -1,5 +1,6 @@
 import type { SafeEvent, DiscardedCounts, SitePolicy } from './types.ts';
 import { MoveinError } from './types.ts';
+import { goalMatches } from '../goals';
 
 const eventKeys = ['id','day','kind','path','source','campaign','consent','sample_rate'];
 const discardKeys = ['sessionIds','pageTitles','websiteIds','sourceEventIds','rawQueries','referrerPaths','referrerQueries','unapprovedSources','unapprovedCampaigns','extraFields'];
@@ -17,7 +18,7 @@ export function validateCarry(input: any, policy: SitePolicy): { events: SafeEve
     if (typeof event.day !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(event.day) || !Number.isFinite(Date.parse(event.day)) || new Date(event.day).toISOString().slice(0,10) !== event.day) return fail('INVALID_DAY');
     if (typeof event.path !== 'string' || !policy.paths.includes(event.path)) return fail('PATH_NOT_APPROVED');
     if (typeof event.kind !== 'string' || (event.kind !== 'pageview' && !Object.hasOwn(policy.goals,event.kind))) return fail('GOAL_NOT_APPROVED');
-    if (event.kind !== 'pageview' && policy.goals[event.kind] !== event.path) return fail('GOAL_PATH_MISMATCH');
+    if (event.kind !== 'pageview' && !goalMatches(policy.goals[event.kind]!,event.path)) return fail('GOAL_PATH_MISMATCH');
     if (typeof event.source !== 'string' || !['direct','other',...policy.sources].includes(event.source)) return fail('SOURCE_NOT_APPROVED');
     if (typeof event.campaign !== 'string' || !['none','other',...policy.campaigns].includes(event.campaign)) return fail('CAMPAIGN_NOT_APPROVED');
     if (event.consent !== null || event.sample_rate !== null) return fail('IMPORTED_MEASUREMENT_MUST_BE_UNKNOWN');

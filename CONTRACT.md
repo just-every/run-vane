@@ -365,7 +365,7 @@ The approved homepage (17 Oct 2026, `HOME-001`) states 80 capabilities in its co
 | 31 | Sources: "and comparisons" | `DASH-008` | partial |
 | 32 | Sources card: Country: United States filter | `DASH-005`, `DASH-007` | missing |
 | 33 | Sources chip: android-app://com.slack.android grouped as Slack | `DASH-014` | missing |
-| 34 | Goals: "Goals" | `CONV-001` | partial |
+| 34 | Goals: "Goals" | `CONV-001` | done |
 | 35 | Goals: "funnels" (Checkout funnel card) | `CONV-005` | missing |
 | 36 | Goals: "revenue with real order values" (Revenue · $38,108.40) | `CONV-006`, `CONV-008` | missing |
 | 37 | Goals: "custom event properties" | `CONV-002` | missing |
@@ -420,8 +420,8 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 16 | 1 | 0 | 17 |
-| Target and push further | 11 | 20 | 60 | 91 |
-| All | 27 | 21 | 60 | 108 |
+| Target and push further | 12 | 19 | 60 | 91 |
+| All | 28 | 20 | 60 | 108 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -476,7 +476,7 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | `DASH-014` | Named sources for referrer domains and app referrers | target | missing |  | The tracker sends only the referring hostname, and collection reports it only when it is on the site's source allowlist; no maintained source list, app-referrer grouping, named sources or owner grouping rules. |
 | `PERF-001` | Page performance | target | missing |  | No page performance collection. |
 | `HEAT-001` | Aggregate click and scroll maps | target | missing |  | No click or scroll maps. |
-| `CONV-001` | Pageview goals with patterns and conversion rates | target | partial | `src/vane/privacy.ts`; `src/vane/collect.ts`; `tests/vane.test.mjs` | Exact-path pageview goals and exact-path scroll-depth goals (from `METRIC-006`) are counted and tested; no wildcard patterns, unique converters or conversion rate. |
+| `CONV-001` | Pageview goals with patterns and conversion rates | target | done | `src/vane/goals.ts`; `src/vane/privacy.ts`; `src/vane/collect.ts`; `src/vane/reports.ts`; `src/vane/views/report.ts`; `tests/vane.test.mjs` |  |
 | `CONV-002` | Custom events with properties | target | missing |  | No custom events or properties. |
 | `CONV-003` | Automatic outbound-link, file-download, 404 and form-submission events | target | missing |  | No automatic outbound, download, 404 or form events. |
 | `CONV-004` | Conversion rates by source, campaign, landing page and audience | target | missing |  | Goals are broken down by goal only, not by source, campaign, landing page or audience. |

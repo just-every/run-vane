@@ -67,7 +67,7 @@ Each clause in CONTRACT.md is accepted by the evidence below, run through a publ
 
 ## Conversions and revenue
 
-- `CONV-001` Pageview goals with patterns and conversion rates (partial): Define `/thanks*` and visit `/thanks` and `/thanks/pro`. Both convert, and the conversion rate equals converting visitors divided by visitors. Define a 75% scroll goal on `/blog/**`. A visitor scrolling a post to 80% converts and one scrolling to 50% does not.
+- `CONV-001` Pageview goals with patterns and conversion rates (done): Define `/thanks*` and visit `/thanks` and `/thanks/pro`. Both convert, and the conversion rate equals converting visitors divided by visitors. Define a 75% scroll goal on `/blog/**`. A visitor scrolling a post to 80% converts and one scrolling to 50% does not (`tests/vane.test.mjs`; Plausible's scroll-goal import is `IMPORT-008`'s).
 - `CONV-002` Custom events with properties (missing): Fire Signup with plan=pro and plan=free through JavaScript and CSS classes. The breakdown by plan matches, and a property holding an email address is refused. A pageview with author=jo breaks down by author.
 - `CONV-003` Automatic outbound-link, file-download, 404 and form-submission events (missing): Click an outbound link and a PDF link, open a 404 page and submit a form on a fixture site. Four events arrive with the right properties and no form contents.
 - `CONV-004` Conversion rates by source, campaign, landing page and audience (missing): Seed conversions from Google and from email. The channel table shows each channel's conversion rate and revenue for the selected goal.
