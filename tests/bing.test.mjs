@@ -73,6 +73,7 @@ test('SEARCH-002 verified Bing connection, source keyword/page figures beside Go
  assert.equal(archive.payload.tables.vane_bing_connections,undefined)
  for(const text of [JSON.stringify(report),JSON.stringify(archive),await(await a.request(`/app/sites/${id}?section=settings`,owner)).text()])assert.ok(!text.includes(apiKey),'reports, settings and archives must not expose the API key')
 
+ assert.ok(Buffer.from(await(await a.request('/api/vane/site-zip?siteId='+id,owner)).arrayBuffer()).includes(Buffer.from('bing_search.csv')));const currentInventory=await(await a.request('/api/vane/inventory?siteId='+id,owner)).json();assert.ok(currentInventory.fields.some(f=>f.table==='vane_bing_rows'));assert.match(currentInventory.policyText.join(' '),/Bing Webmaster Tools/);
  const browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']});t.after(()=>browser.close())
  const context=await browser.newContext()
  await context.addCookies(a.owner.split('; ').map(pair=>{const [name,...value]=pair.split('=');return {name,value:value.join('='),url:a.origin}}))
@@ -96,7 +97,7 @@ test('SEARCH-002 verified Bing connection, source keyword/page figures beside Go
   await page.goto(`${a.origin}/app/sites/${id}?section=settings&from=2026-10-16&to=2026-10-19`)
   await page.getByRole('heading',{name:'Bing Webmaster Tools',exact:true}).scrollIntoViewIfNeeded()
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true)
-  if(screens)await page.screenshot({path:`${screens}/bing-settings-${width}.png`})
+  if(screens)await page.screenshot({path:`${screens}/bing-settings-${width}.png`});await page.getByRole('heading',{name:'Data inventory',exact:true}).scrollIntoViewIfNeeded();if(screens)await page.screenshot({path:`${screens}/bing-inventory-${width}.png`})
  }
  refuse=true;assert.equal((await op('search.bing.sync')).status,502)
  report=await source();assert.match(report.connection.error,/503/);assert.equal(report.queries.find(value=>value.query==='coffee guide').clicks,8,'a provider failure retains successful data, never fabricated zero')

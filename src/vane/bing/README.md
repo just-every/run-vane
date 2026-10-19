@@ -2,9 +2,7 @@
 
 `index.ts` exports `connect`, `disconnect`, `runNow`, daily `sync`, `report` and
 `queryPaths(env, siteId, query, from, to, actor)`. Connections and manual runs
-require the owner. Reports/path lookups require site read access and scope.
-The last argument of `queryPaths` is the authenticated actor, so an internal
-caller cannot bypass TEAM-001 by supplying another site ID.
+require the owner. Reports require site read access and scope. `queryPaths` is an internal report helper; its caller establishes site scope at the native report or Stats API door. An optional actor makes that check explicit for other callers.
 
 Connect validates the exact property against `GetUserSites` with `IsVerified`
 true and immediately syncs. A failed sync throws a safe provider error and

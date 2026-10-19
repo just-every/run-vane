@@ -2575,7 +2575,7 @@
       "executable": false
     },
     "src/vane/bing/README.md": {
-      "sha256": "f36145e45b507ce052516d5f677bba76808b78b3f48919ee47af865555134b31",
+      "sha256": "a4e63ee6b0810e6d40a6f4e199f8dfd44e215f4eea9ae29f3272766f44a3726e",
       "executable": false
     },
     "src/vane/bing/report.ts": {
@@ -3119,7 +3119,7 @@
       "executable": false
     },
     "tests/bing.test.mjs": {
-      "sha256": "269c2c9886a08ab5eb5489124d9d79df177d141c21078853df60759d115f556a",
+      "sha256": "6d619928a1c2ea2d887ed69dc0b4ba5290d134857f1f1effc7b04479fa8a9d83",
       "executable": false
     },
     "tests/demo.journey.mjs": {
