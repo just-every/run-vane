@@ -165,3 +165,31 @@ test('LOBBY-001 a fresh installation keeps its themed Lobby, first-run setup, em
  }
  await context.close()
 })
+test('INSTALL-001 Verify installation names the exact cause of each failure and turns verified when the first event arrives',async t=>{
+ const a=await withApp(t),id=await a.addSite(),owner={headers:{cookie:a.owner}}
+ const home=(body,headers={})=>()=>new Response(`<!doctype html><title>Fern Studio</title>${body}`,{headers:{'content-type':'text/html',...headers}})
+ const script=(site=id)=>`<script defer src="${a.origin}/vane.js" data-site="${site}"></script>`
+ const verify=async(siteId=id)=>{const r=await a.form({operation:'install.verify',siteId},a.owner);assert.equal(r.status,303,await r.clone().text());return new URL(r.headers.get('location'),a.origin).searchParams.get('notice')}
+ assert.equal((await (await a.request('/api/vane/sites',owner)).json())[0].awaitingFirstEvent,true)
+ assert.ok((await (await a.request('/app',owner)).text()).includes('Awaiting first event'))
+ assert.match(await (await a.request(`/app/sites/${id}?section=settings`,owner)).text(),/<input type="hidden" name="operation" value="install.verify">.*Verify installation<\/button>/s)
+ a.fixtureSites['https://fern.example']=home('<h1>Fern</h1>')
+ assert.match(await verify(),/^No script from http:\/\/127\.0\.0\.1:8787\/vane\.js was found on https:\/\/fern\.example\//)
+ a.fixtureSites['https://fern.example']=home(script('not-this-site'))
+ assert.match(await verify(),/names site ID "not-this-site", not /)
+ a.fixtureSites['https://fern.example']=home(script(),{'content-security-policy':"default-src 'self'"})
+ assert.match(await verify(),/Content Security Policy does not allow scripts from http:\/\/127\.0\.0\.1:8787/)
+ a.fixtureSites['https://fern.example']=home(script(),{'content-security-policy':`default-src 'self'; script-src 'self' ${a.origin}`})
+ assert.match(await verify(),/Content Security Policy does not allow connections to http:\/\/127\.0\.0\.1:8787/)
+ a.fixtureSites['https://fern.example']=()=>new Response(null,{status:301,headers:{location:'https://www.fern.example/'}});a.fixtureSites['https://www.fern.example']=home(script())
+ assert.match(await verify(),/moved to https:\/\/www\.fern\.example, but this site is registered for https:\/\/fern\.example/)
+ const consentSite=await a.addSite({origin:'https://consent.example',consent:'required'}),pathSite=await a.addSite({origin:'https://paths.example',paths:['/thanks'],goals:{}})
+ a.fixtureSites['https://consent.example']=home(script(consentSite));a.fixtureSites['https://paths.example']=home(script(pathSite))
+ assert.match(await verify(consentSite),/requires consent, but https:\/\/consent\.example\/ never sets window\.vaneConsent/)
+ assert.match(await verify(pathSite),/homepage path \/ is not an allowed path/)
+ a.fixtureSites['https://fern.example']=home(script(),{'content-security-policy':`script-src 'self' ${a.origin}; connect-src ${a.origin}`})
+ const pending=verify();await new Promise(done=>setTimeout(done,1500))
+ assert.equal((await a.collect(a.event(id))).status,202)
+ assert.match(await pending,/^Installation verified: the script is on https:\/\/fern\.example\/ and its first event has arrived\.$/)
+ assert.equal((await (await a.request('/api/vane/sites',owner)).json()).find(site=>site.id===id).awaitingFirstEvent,false)
+})

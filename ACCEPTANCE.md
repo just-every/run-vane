@@ -24,7 +24,7 @@ Each clause in CONTRACT.md is accepted by the evidence below, run through a publ
 
 ## Install and collection
 
-- `INSTALL-001` One script tag with live install verification (partial): Point a fixture site at Vane without the script, then with the wrong site ID, then with a CSP that blocks it, then correctly. Each check names its cause; the correct one turns verified when the first event arrives.
+- `INSTALL-001` One script tag with live install verification (done): Point a fixture site at Vane without the script, then with the wrong site ID, then with a CSP that blocks it, then correctly. Each check names its cause; the correct one turns verified when the first event arrives (`tests/vane.test.mjs`).
 - `INSTALL-002` WordPress and WooCommerce plugin (missing): Install the plugin on a WordPress + WooCommerce test site, connect it and place a test order. Pageviews, automatic events and a purchase with the correct USD revenue appear in Vane, and admin visits are excluded when that option is set.
 - `INSTALL-003` Shopify app with checkout tracking (missing): Install the app on a Shopify development store and complete a test checkout. Storefront pageviews, the checkout funnel steps and a reconciled purchase with its revenue appear.
 - `INSTALL-004` Webflow, Squarespace, Wix, Pane and static-site paths (missing): Follow each guide against its platform's test site and pass verification. Turn on Vane in a Pane site and see the page's visitors in the Pane editor.

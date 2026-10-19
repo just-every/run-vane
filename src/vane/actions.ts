@@ -4,6 +4,7 @@ import { restoreHistory } from './archive'
 import { apply, undo, expireBefore } from './movein/index'
 import { jsonValue } from './input'
 import { deletionFence } from './deletion-fence'
+import { verifyInstallation } from './install-check'
 export async function action(env:Env,actor:Actor,p:any):Promise<{siteId?:string;notice:string;section?:string}> {
  let siteId=p.siteId;
  switch(p.operation) {
@@ -14,6 +15,7 @@ export async function action(env:Env,actor:Actor,p:any):Promise<{siteId?:string;
   case 'history.restore':await restoreHistory(env,actor,jsonValue(p.archive),p.journal?jsonValue(p.journal):undefined);return {notice:'History restored. Your sign-in account is unchanged.'};
   case 'import.apply': {const result=await apply(env,actor,{siteId,document:jsonValue(p.document),fingerprint:p.fingerprint});return {siteId,notice:result.complete?'Import applied. Approval and journal recorded.':'Import saved. Apply the same reviewed document again to continue.',section:'history'};}
   case 'import.undo': {const result=await undo(env,actor,{siteId,jobId:p.jobId});return {siteId,notice:result.complete?'Import undone. The journal remains.':'Undo is in progress. Repeat to finish.',section:'history'};}
+  case 'install.verify': {const result=await verifyInstallation(env,actor,siteId);return {siteId,notice:result.message,section:'settings'};}
   case 'history.retention': {
    role(actor);const value=await site(env,siteId),cutoff=day(Date.now()-value.config.retentionDays*86400000),at=Date.now();
    const result=await expireBefore(env,actor,siteId,cutoff,[...await deletionFence(env),{sql:'DELETE FROM vane_events WHERE site_id=? AND day<?',params:[siteId,cutoff]},{sql:'INSERT OR IGNORE INTO vane_deletions(id,site_id,before_day,at,actor,reason) VALUES(?,?,?,?,?,?)',params:['retention:'+siteId+':'+cutoff,siteId,cutoff,at,actor.id,'retention']}]);

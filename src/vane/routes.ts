@@ -7,6 +7,7 @@ import { preview, apply, journal, undo, MoveinError } from './movein/index'
 import { renderApp, type ViewData } from './views/index'
 import { input } from './input'
 import { action } from './actions'
+import { verifyInstallation } from './install-check'
 const headers={'cache-control':'no-store','x-content-type-options':'nosniff','referrer-policy':'same-origin'};
 const json=(value:unknown,status=200)=>Response.json(value,{status,headers});
 const redirect=(path:string)=>new Response(null,{status:303,headers:{...headers,location:path}});
@@ -42,6 +43,7 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
    if(path==='/api/vane/import-preview')return json(await preview(env,actor,{siteId:p.siteId,document:p.document}));
    if(path==='/api/vane/import-apply')return json(await apply(env,actor,{siteId:p.siteId,document:p.document,fingerprint:p.fingerprint}));
    if(path==='/api/vane/import-undo')return json(await undo(env,actor,{siteId:p.siteId,jobId:p.jobId}));
+   if(path==='/api/vane/install-check')return json(await verifyInstallation(env,actor,p.siteId));
    if(path==='/api/vane/restore')return json(await restoreHistory(env,actor,p.archive,p.journal));
    if(path==='/app/action') {
     // Approval has a deliberately separate human form surface. The command API

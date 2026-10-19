@@ -10,7 +10,7 @@ export const uid = () => crypto.randomUUID()
 export const day = (time=Date.now()) => new Date(time).toISOString().slice(0,10)
 export async function rows<T=Record<string,any>>(env:Env,sql:string,...values:any[]):Promise<T[]> { return (await env.DB.prepare(sql).bind(...values).all<T>()).results }
 export async function site(env:Env,id:string):Promise<Site> { const value=await env.DB.prepare('SELECT * FROM vane_sites WHERE id=?').bind(id).first<any>(); insist(value,'site_missing','Site not found.',404); return {...value,config:JSON.parse(value.config_json)} }
-export async function sites(env:Env) { return (await rows(env,'SELECT * FROM vane_sites ORDER BY created_at')).map(value=>({...value,config:JSON.parse(value.config_json)})) }
+export async function sites(env:Env) { return (await rows(env,'SELECT s.*,NOT EXISTS(SELECT 1 FROM vane_events e WHERE e.site_id=s.id) AS awaiting FROM vane_sites s ORDER BY s.created_at')).map(({awaiting,...value})=>({...value,config:JSON.parse(value.config_json),awaitingFirstEvent:Boolean(awaiting)})) }
 export const statement=(env:Env,sql:string,...values:any[])=>env.DB.prepare(sql).bind(...values)
 export function actorGuard(env:Env,actor:Actor,roles=['owner']) { return statement(env,`INSERT INTO vane_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND status='active' AND role IN (${roles.map(()=>'?').join(',')})) THEN 1 ELSE 0 END`,actor.id,...roles) }
 export async function atomic(env:Env,actor:Actor,statements:D1PreparedStatement[],roles=['owner']) { role(actor,roles); return env.DB.batch([statement(env,'DELETE FROM vane_guard'),actorGuard(env,actor,roles),...statements,statement(env,'DELETE FROM vane_guard')]) }
