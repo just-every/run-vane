@@ -1,11 +1,12 @@
 import { themeFrame } from '../base/theme-frame'
 import { fontHead } from '../base/font-head'
-import { stance } from './privacy-signals'
+import { stance, storage } from './privacy-signals'
 import { escape } from './views/html'
 // METRIC-004's public methodology page: what the counts mean, what the script sends and the privacy stance.
 const sections:[string,string[]][]=[
  ['What Vane counts',['Visits are accepted page loads, not unique people or sessions; a repeat load counts again. Goals are page loads of a configured goal path. Referring hostnames and campaigns are reported only when they are on the site’s approved lists; others are grouped as other.','Every report compares a range with the preceding period of the same length and states its coverage limits: sampling, consent, allowed paths, imports and unknown coverage.']],
- ['What the script sends',['vane.js sends a fresh random page-load ID, the site ID, the path, the referring hostname, the campaign label and the consent state. It sets no cookie and writes no browser storage, and it sends no visitor or session identifier, user agent, raw URL or query values.']],
+ ['What the script sends',['vane.js sends a fresh random page-load ID, the site ID, the path, the referring hostname, the campaign label and the consent state. It sets no cookie, writes no browser storage in the default mode, and sends no visitor or session identifier, user agent, raw URL or query values.']],
+ ['Browser storage',storage],
  ['Privacy signals and US state privacy laws',stance],
 ]
 export async function methodologyResponse(request:Request):Promise<Response|null> {

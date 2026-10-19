@@ -343,12 +343,12 @@ The approved homepage (17 Oct 2026, `HOME-001`) states 80 capabilities in its co
 | 9 | Hero card: Goal · Signups · 212 · ↑ 4.4% | `CONV-001`, `DASH-008` | partial |
 | 10 | Hero card: Why it moved · Brew guide on Hacker News | `AGENT-002` | missing |
 | 11 | Hero card: Wednesday dip: tracking script missing on /pricing · fixed | `AGENT-001`, `ALERT-002` | missing |
-| 12 | Hero card: No cookies · no banner | `COLLECT-001`, `CONSENT-001` | partial |
+| 12 | Hero card: No cookies · no banner | `COLLECT-001`, `CONSENT-001` | done |
 | 13 | Visitors: "counts unique visitors" | `METRIC-001` | missing |
 | 14 | Visitors: "visits" | `METRIC-002` | missing |
 | 15 | Visitors: "bounce rate and visit duration" | `METRIC-003` | missing |
 | 16 | Visitors: "with a salted hash that resets every day" | `METRIC-001` | missing |
-| 17 | Visitors: "No cookies, no banner" | `COLLECT-001`, `CONSENT-001` | partial |
+| 17 | Visitors: "No cookies, no banner" | `COLLECT-001`, `CONSENT-001` | done |
 | 18 | Visitors: "the method is published" | `METRIC-004` | partial |
 | 19 | Visitors card: "38 online now" | `DASH-001` | missing |
 | 20 | Visitors card: Unique visitors 28,416 ↑ 12%, Visits, Bounce rate, Visit duration tiles | `METRIC-001`, `METRIC-002`, `METRIC-003`, `DASH-008` | partial |
@@ -419,9 +419,9 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Published | 15 | 2 | 0 | 17 |
+| Published | 16 | 1 | 0 | 17 |
 | Target and push further | 4 | 23 | 64 | 91 |
-| All | 19 | 25 | 64 | 108 |
+| All | 20 | 24 | 64 | 108 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -429,7 +429,7 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | `ACCESS-001` | Owners approve, administrators prepare, members read | published | done | `src/vane/core.ts`; `src/vane/commands.ts`; `tests/vane.test.mjs` |  |
 | `ACCESS-002` | Private doors refuse signed-out and cross-origin requests | published | done | `src/vane/routes.ts`; `tests/vane.test.mjs` |  |
 | `APPROVE-001` | Prepared changes apply only on the owner's recorded approval | published | done | `src/vane/commands.ts`; `src/vane/routes.ts`; `tests/vane.test.mjs` |  |
-| `COLLECT-001` | A cookie-free script that sends only declared anonymous fields | published | partial | `src/vane/tracker.ts`; `src/vane/collect.ts`; `tests/vane.test.mjs` | Server-side origin, field and path refusals are tested; the browser script's no-storage behaviour and its Do Not Track and Global Privacy Control skip are not exercised by any test, and the declared storage exceptions and hostname field do not exist yet. |
+| `COLLECT-001` | A cookie-free script that sends only declared anonymous fields | published | done | `src/vane/tracker.ts`; `src/vane/collect.ts`; `src/vane/privacy-signals.ts`; `src/vane/methodology.ts`; `src/vane/views/report.ts`; `tests/vane.test.mjs` |  |
 | `CONSENT-001` | The site's consent mode is enforced at collection | published | done | `src/vane/collect.ts`; `tests/vane.test.mjs` |  |
 | `DEDUP-001` | Each page load is admitted once | published | done | `src/vane/collect.ts`; `tests/vane.test.mjs` |  |
 | `TRAFFIC-001` | Page loads, sources, campaigns and goals with a comparison and stated limits | published | done | `src/vane/reports.ts`; `src/vane/views/report.ts`; `src/vane/views/html.ts`; `tests/vane.test.mjs` |  |

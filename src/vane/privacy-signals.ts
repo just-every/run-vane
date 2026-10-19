@@ -7,6 +7,13 @@ export const stance = [
  'With the privacy-signal counter on, a signalling page load sends one count that carries no path, source, campaign or identifier, only which site it is for, so the owner can see how much traffic sends a signal.',
 ]
 
+// COLLECT-001's two declared exceptions to "no browser storage", named on the methodology page and in each site's data inventory.
+export const storage = [
+ 'In the default mode a visitor gets no cookie and no storage entry. Vane allows exactly two declared exceptions.',
+ 'Own-browser exclusion: opening any page of the site with #vane-ignore=on writes a single vane_ignore localStorage flag that holds no identifier, and that browser is no longer counted; #vane-ignore=off removes it.',
+ 'Consented identifier: only a consented visitor mode would store a first-party identifier, and only after consent is granted. This release has no consented mode, so it writes none.',
+]
+
 export async function signalResponse(request:Request,env:Env):Promise<Response|null> {
  const match=new URL(request.url).pathname.match(/^\/api\/vane\/signal\/([\w-]+)$/);
  if(!match)return null;
