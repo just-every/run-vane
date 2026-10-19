@@ -2,7 +2,7 @@ import type { Bindings } from '../auth.server'
 import { clock } from './clock'
 export type Env = Bindings
 export interface Actor { id: string; role: string; displayName?: string }
-export interface Config { paths:string[]; goals:Record<string,string>; scrollGoals?:Record<string,{path:string,depth:number}>; campaigns:string[]; sources:string[]; consent:'not-required'|'required'; sampleRate:number; retentionDays:number; signalCounter:boolean; timeZone:string; searchParam?:string; publicReports?:string[]; publicIndexing?:boolean }
+export interface Config { paths:string[]; goals:Record<string,string>; scrollGoals?:Record<string,{path:string,depth:number}>; campaigns:string[]; sources:string[]; consent:'not-required'|'required'; sampleRate:number; retentionDays:number; signalCounter:boolean; timeZone:string; searchParam?:string; publicReports?:string[]; publicIndexing?:boolean; autoEvents?:string[] }
 export interface Site { id:string; name:string; origin:string; config_json:string; config:Config; version:number; created_at:number }
 export class VaneError extends Error { constructor(public code:string, message:string, public status=400) { super(message) } }
 export function insist(condition:unknown, code:string, message:string, status=400):asserts condition { if (!condition) throw new VaneError(code,message,status) }

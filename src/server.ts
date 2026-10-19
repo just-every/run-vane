@@ -3,6 +3,7 @@ import { seedDemo } from './demo'
 import { collector } from './vane/collect'
 import { methodologyResponse } from './vane/methodology'
 import { publicStatsResponse } from './vane/public'
+import { autoEventResponse } from './vane/auto-events'
 import { expireSalts } from './vane/visitors'
 import { clock, clockResponse } from './vane/clock'
 import { vaneResponse } from './vane/routes'
@@ -35,6 +36,8 @@ export default withDemo({
     if (clocked) return clocked
     const asset = await staticAssetResponse(request, env)
     if (asset) return asset
+    const automatic = await autoEventResponse(request, env)
+    if (automatic) return automatic
     const collected = await collector(request, env)
     if (collected) return collected
     const methodology = await methodologyResponse(request)

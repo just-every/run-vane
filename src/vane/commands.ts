@@ -34,6 +34,7 @@ export async function decide(env:Env,actor:Actor,id:string,approve:boolean) {
     {sql:'INSERT INTO vane_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM vane_sites WHERE id=? AND version=?) THEN 1 ELSE 0 END',params:[current.id,payload.version]},
     {sql:'DELETE FROM vane_events WHERE site_id=?',params:[current.id]},
     {sql:'DELETE FROM vane_signals WHERE site_id=?',params:[current.id]},
+    {sql:'DELETE FROM vane_auto_events WHERE site_id=?',params:[current.id]},
     auditSql(actor.id,'proposal.approve',id,`history.erase for site ${current.id}`),
     auditSql(actor.id,'history.erase',current.id,`version ${payload.version}`),
     {sql:'INSERT INTO vane_deletions(id,site_id,before_day,at,actor,reason) VALUES(?,?,?,?,?,?)',params:[uid(),current.id,day(at+86400000),at,actor.id,'owner-erasure']},

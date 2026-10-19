@@ -459,3 +459,24 @@ test('SHARE-002 a site made public with two reports shows only those to a signed
  assert.equal((await stats()).status,404,'turning it off returns 404');assert.equal((await a.request('/stats/no-such-site')).status,404)
  assert.equal((await a.post('/api/vane/commands',{command:'site.configure',input:{siteId:id,name:'Fern Studio',origin:'https://fern.example',paths:['/'],goals:{},consent:'not-required',publicReports:['search-terms']}},a.owner)).status,400,'only listed reports can be public')
 })
+test('CONV-003 in a browser an outbound link, a PDF link, a marked 404 page and a form submission send four automatic events with the right details and no form contents',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({autoEvents:['outbound','download','404','form']}),quiet=await a.addSite({origin:'https://oak.example'})
+ const home=`<!doctype html><title>Fern</title><a id="out" href="https://elsewhere.example/guide?ref=fern#top">Guide</a> <a id="pdf" href="/files/menu.pdf?v=2">Menu</a><form id="signup" action="/thanks" method="post"><input name="email" value="secret@example.com"><button>Join</button></form><script src="${a.origin}/vane.js" data-site="${id}"></script>`
+ const missing=`<!doctype html><title>Not found</title><meta name="vane-404"><script src="${a.origin}/vane.js" data-site="${id}"></script>`
+ const {context}=await browse(t,a,{'https://fern.example/':home,'https://fern.example/missing-page':missing}),tab=await context.newPage()
+ // Keepalive events outlive their page's navigation and are not page responses, so the installation's own report is watched.
+ const recorded=async n=>{for(let i=0;i<100;i++){const r=await (await a.request('/api/vane/summary?siteId='+id,owner)).json();if(r.automaticEvents.length>=n)return r;await new Promise(done=>setTimeout(done,100))}assert.fail(`event ${n} did not arrive`)}
+ const open=async()=>{const loaded=tab.waitForResponse(response=>new URL(response.url()).pathname==='/api/vane/collect');await tab.goto('https://fern.example/');await loaded}
+ for(const [n,act] of [()=>tab.click('#out',{noWaitAfter:true}),()=>tab.click('#pdf',{noWaitAfter:true}),()=>tab.click('button',{noWaitAfter:true})].entries()){await open();await act();await recorded(n+1)}
+ await tab.goto('https://fern.example/missing-page');const r=await recorded(4)
+ assert.deepEqual(r.automaticEvents.map(e=>[e.kind,e.label,e.count]),[['404','/missing-page',1],['download','https://fern.example/files/menu.pdf',1],['form','signup',1],['outbound','https://elsewhere.example/guide',1]])
+ assert.ok((await (await a.request(`/app/sites/${id}?section=report`,owner)).text()).includes('<th scope="row">Form submission</th><td>signup</td>'))
+ const post=(siteId,body,origin='https://fern.example')=>a.post('/api/vane/event',{id:crypto.randomUUID(),siteId,consent:'not-required',...body},'',{origin})
+ assert.equal((await post(quiet,{kind:'outbound',prop:'https://elsewhere.example/'},'https://oak.example')).status,403,'only turned-on events are accepted')
+ assert.equal((await post(id,{kind:'outbound',prop:'https://elsewhere.example/?q=1'})).status,400,'no query is stored')
+ assert.equal((await post(id,{kind:'form',prop:'/signup',email:'x@example.com'})).status,400,'no field values')
+ assert.equal((await post(id,{kind:'404',prop:'/users/alice@example.com'})).status,202)
+ const stored=JSON.stringify([await a.dump(),await a.archive()]);for(const secret of ['secret@example.com','ref=fern','v=2','alice@example.com'])assert.equal(stored.includes(secret),false,secret)
+ assert.ok(stored.includes('(redacted)'))
+ await context.close()
+})

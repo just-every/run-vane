@@ -1,6 +1,7 @@
 import { insist, type Config } from './core'
 import { goalMatches } from './goals'
 import { PUBLIC_REPORTS } from './public-reports'
+import { AUTO_EVENTS } from './auto-events'
 // Adapted from Spool origins.ts at 9f75f060a66446f4c9dcf9cafddd0906d7698748.
 // An origin limits browser ingestion; it does not authenticate a visitor.
 export function browserOrigin(value:unknown):string {
@@ -32,7 +33,10 @@ export function cleanConfig(input:any):Config {
  const publicReports:string[]=Array.isArray(input.publicReports)?[...new Set<string>(input.publicReports.map(String))]:Object.keys(PUBLIC_REPORTS).filter(key=>input['public_'+key]==='on');
  insist(publicReports.every(key=>Object.hasOwn(PUBLIC_REPORTS,key)),'public_reports','Choose public reports from the listed ones.');
  const publicIndexing=publicReports.length>0&&(input.publicIndexing===true||input.publicIndexing==='on');
+ // CONV-003: automatic events the site turns on.
+ const autoEvents:string[]=Array.isArray(input.autoEvents)?[...new Set<string>(input.autoEvents.map(String))]:AUTO_EVENTS.filter(kind=>input['auto_'+kind]==='on');
+ insist(autoEvents.every(kind=>(AUTO_EVENTS as readonly string[]).includes(kind)),'auto_events','Choose automatic events from outbound, download, 404 and form.');
  insist(/^[A-Za-z_]+(?:\/[A-Za-z0-9_+-]+)*$/.test(timeZone)&&(()=>{try{new Intl.DateTimeFormat('en-US',{timeZone}).format(0);return true}catch{return false}})(),'time_zone','Choose an IANA time zone, such as America/New_York.');
- return {paths,goals,scrollGoals,campaigns,sources,consent,sampleRate,retentionDays,signalCounter,timeZone,...(searchParam?{searchParam}:{}),...(publicReports.length?{publicReports,publicIndexing}:{})};
+ return {paths,goals,scrollGoals,campaigns,sources,consent,sampleRate,retentionDays,signalCounter,timeZone,...(searchParam?{searchParam}:{}),...(publicReports.length?{publicReports,publicIndexing}:{}),...(autoEvents.length?{autoEvents}:{})};
 }
 export function cleanSite(input:any) { const name=String(input.name??'').trim(); insist(name.length>0&&name.length<=80&&!/[<>@]/.test(name),'name','Enter a short site name, without personal details.'); return {name,origin:browserOrigin(input.origin),config:cleanConfig(input.config??input)} }
