@@ -601,3 +601,29 @@ test('DASH-014 Hacker News, two Slack referrers, Facebook and an unlisted blog r
  const methodology=await (await a.request('/methodology')).text()
  for(const line of ['Hacker News: news.ycombinator.com.','Slack: slack.com, android-app://com.slack.android.','Facebook: facebook.com, fb.com, android-app://com.facebook.katana.','X: x.com, twitter.com, t.co'])assert.ok(methodology.includes(line),line)
 })
+test('PRIVACY-001 the data inventory and generated policy text change with the site settings, and every stored column of the site is in its inventory',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite(),inv=async()=>(await a.request('/api/vane/inventory?siteId='+id,owner)).json()
+ let i=await inv(),text=i.policyText.join(' ')
+ assert.deepEqual(i.fields.map(f=>f.name).filter(name=>['Automatic events','Site search','Privacy-signal count','Kept query parameters'].includes(name)),[])
+ assert.deepEqual([i.retention,i.processors.length,/Cloudflare/.test(i.processors[0]),/midnight in UTC/.test(i.salt)],['90 days',1,true,true])
+ for(const phrase of ['sets no cookies','without asking for consent','kept for 90 days'])assert.ok(text.includes(phrase),phrase);assert.equal(text.includes('files you download'),false)
+ const input={siteId:id,name:'Fern Studio',origin:'https://fern.example',paths:['/','/thanks'],goals:{signup:'/thanks'},consent:'required',retentionDays:30,timeZone:'America/Chicago',searchParam:'q',signalCounter:true,autoEvents:['download','outbound'],queryKeys:['plan']}
+ const p=await (await a.post('/api/vane/commands',{command:'site.configure',input},a.owner)).json();assert.equal((await a.form({operation:'proposal.approve',id:p.id},a.owner)).status,303)
+ i=await inv();text=i.policyText.join(' ')
+ assert.deepEqual(i.fields.map(f=>f.name).filter(name=>['Automatic events','Site search','Privacy-signal count','Kept query parameters'].includes(name)),['Kept query parameters','Site search','Automatic events','Privacy-signal count'])
+ assert.deepEqual([i.retention,/midnight in America\/Chicago/.test(i.salt)],['30 days',true])
+ for(const phrase of ['files you download','links you follow to other sites','Search terms you enter','only records your visit after you give consent','we only count how many such page loads arrive','kept for 30 days'])assert.ok(text.includes(phrase),phrase)
+ assert.ok((await (await a.request(`/app/sites/${id}?section=settings`,owner)).text()).includes('Data inventory'))
+ // Everything the site stores is named by the inventory.
+ const visitor={origin:'https://fern.example','cf-connecting-ip':'203.0.113.40','user-agent':'Synthetic Browser'},event=a.event(id,{consent:'granted',search:'Pour Over',query:{plan:'pro'},utm:{medium:'email',source:'news',term:'t',content:'c'},referrer:'https://news.ycombinator.com/item',click:true,width:390})
+ await a.clock(Date.now());assert.equal((await a.post('/api/vane/collect',event,'',visitor)).status,202)
+ await a.clock(Date.now()+15000);assert.equal((await a.post('/api/vane/engage',{siteId:id,id:event.id,scroll:60},'',visitor)).status,202)
+ assert.equal((await a.post('/api/vane/event',{id:crypto.randomUUID(),siteId:id,kind:'download',prop:'https://fern.example/menu.pdf',consent:'granted'},'',visitor)).status,202)
+ assert.equal((await a.request('/api/vane/signal/'+id,{method:'POST',headers:visitor,body:''})).status<300,true)
+ const dump=await a.dump()
+ for(const table of ['vane_events','vane_auto_events','vane_signals']) {
+  const named=new Set(i.fields.filter(f=>f.table===table).flatMap(f=>f.columns)),rows=dump[table].filter(row=>row.site_id===id)
+  assert.ok(rows.length,table)
+  for(const row of rows)for(const [column,value] of Object.entries(row))if(value!==null)assert.ok(named.has(column),`${table}.${column} is in the inventory`)
+ }
+})

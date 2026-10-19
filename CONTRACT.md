@@ -248,7 +248,7 @@ These clauses restate what the released first contract and ACCEPTANCE.md promise
 
 ### Privacy, compliance and administration
 
-- **PRIVACY-001 — Data inventory and privacy-policy text.** For each site, Vane shows exactly which fields are collected, which are derived and then discarded, the identifier lifetime in each mode, the salt rotation, the retention (30, 90 or 365 days, 13 or 25 months, or unlimited) and the processors (Cloudflare, plus each connected integration). It also generates plain-language privacy-policy text the owner can paste. The text changes when the settings change. **Acceptance evidence:** Toggle consented mode, automatic events and a Search Console connection. The inventory and the generated text change to match, and the stored data matches the inventory.
+- **PRIVACY-001 — Data inventory and privacy-policy text.** For each site, Vane shows exactly which fields are collected, which are derived and then discarded, the identifier lifetime in each mode, the salt rotation, the retention (30, 90 or 365 days, 13 or 25 months, or unlimited) and the processors (Cloudflare, plus each connected integration). It also generates plain-language privacy-policy text the owner can paste. The text changes when the settings change. This is done when every capability that exists conforms: the inventory names every column each site stores, by table, and the text follows consent, automatic events, site search, kept query parameters, the privacy-signal counter, retention and time zone. Each later capability inherits the obligation and adds its inventory entry and policy sentence before it ships: the consented identifier and its lifetime (`METRIC-005`), longer retention windows (`RETENTION-002`), custom events (`CONV-002`), location (`DASH-005`), and each processor it connects (`SEARCH-001`, `SEARCH-002`, `ADS-001`, `CONV-008`, `REPORT-002`, `API-003`). Until then the inventory states that no consented identifier exists and that Cloudflare is the only processor. **Acceptance evidence:** Toggle consented mode, automatic events and a Search Console connection. The inventory and the generated text change to match, and the stored data matches the inventory.
 
 - **RETENTION-002 — Raw events kept as long as the owner chooses.** Each site chooses how long its raw pageviews and events are kept: 30, 90 or 365 days, 13 or 25 months, or for as long as the installation exists. Inside the window every accepted pageview and event is kept at full detail, never only as a rollup, and applying retention (`RETENTION-001`) erases only events older than the window. No visit is turned away or thinned for volume once `COLLECT-004` lifts the daily admission ceiling. Before the installation's store reaches 80% of its published capacity (`COLLECT-004`), the app warns and names the two choices: a scheduled warehouse export (`API-002`) or a shorter window. Vane never drops or rolls up raw events silently to make room. **Acceptance evidence:** On a site set to keep events for as long as the installation exists, import 30 months of history, collect today's events and apply retention. Every imported and live event remains, and a raw-event query for the oldest imported day returns its events. Switch the site to 25 months and apply retention: only the events older than 25 months are erased, and one deletion is journalled. Fill a fixture store to 80% of its published capacity: the warning names both choices, and no event is dropped.
 
@@ -420,8 +420,8 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 17 | 0 | 0 | 17 |
-| Target and push further | 20 | 17 | 54 | 91 |
-| All | 37 | 17 | 54 | 108 |
+| Target and push further | 21 | 16 | 54 | 91 |
+| All | 38 | 16 | 54 | 108 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -512,7 +512,7 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | `API-002` | CSV, Looker Studio and warehouse export | target | missing |  | Only the whole-history JSON archive (ARCHIVE-001) exists; no CSV, Looker Studio connector or warehouse export. |
 | `API-003` | Webhooks for goals, alerts and reports | target | missing |  | No webhooks. |
 | `API-004` | MCP endpoint for assistants | target | missing |  | No MCP endpoint. |
-| `PRIVACY-001` | Data inventory and privacy-policy text | target | partial | `src/vane/views/report.ts` | The coverage panel lists sample rate, consent, allowed paths and retention; no full field inventory, processors list, longer retention choices or generated policy text. |
+| `PRIVACY-001` | Data inventory and privacy-policy text | target | done | `src/vane/inventory.ts`; `src/vane/views/settings.ts`; `tests/vane.test.mjs` |  |
 | `RETENTION-002` | Raw events kept as long as the owner chooses | target | partial | `src/vane/privacy.ts`; `src/vane/actions.ts`; `tests/vane.test.mjs` | Sites choose 30, 90 or 365 days and retention applies them; no 13- or 25-month or keep-forever window, no capacity warning, and admission is still capped per site per day. |
 | `PRIVACY-002` | US state privacy signals honoured | target | done | `src/vane/tracker.ts`; `src/vane/privacy-signals.ts`; `src/vane/methodology.ts`; `src/vane/views/settings.ts`; `src/vane/views/report.ts`; `migrations/core/0016_vane_signals.sql`; `tests/vane.test.mjs` |  |
 | `PRIVACY-003` | Consent managers and regional consent modes | target | partial | `src/vane/tracker.ts`; `src/vane/views/settings.ts` | Consent comes only from window.vaneConsent; no Consent Mode, consent-manager adapters or regional modes. |

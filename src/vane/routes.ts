@@ -10,6 +10,7 @@ import { action } from './actions'
 import { verifyInstallation } from './install-check'
 import { clock } from './clock'
 import { exportSite, importSite } from './transfer'
+import { inventory } from './inventory'
 const headers={'cache-control':'no-store','x-content-type-options':'nosniff','referrer-policy':'same-origin'};
 const json=(value:unknown,status=200)=>Response.json(value,{status,headers});
 const redirect=(path:string)=>new Response(null,{status:303,headers:{...headers,location:path}});
@@ -34,6 +35,7 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
   if(request.method==='GET') {
    if(path==='/api/vane/sites')return json(await sites(env));
    if(path==='/api/vane/summary')return json(await createInsightsService(env,await site(env,url.searchParams.get('siteId')??''),clock(),range).list());
+   if(path==='/api/vane/inventory')return json(inventory(await site(env,url.searchParams.get('siteId')??'')));
    if(path==='/api/vane/audit')return json(await auditLog(env,actor));
    if(path==='/api/vane/proposals') {role(actor,['owner','admin']);return json(await rows(env,'SELECT * FROM vane_proposals ORDER BY created_at DESC'));}
    if(path==='/api/vane/import-journal')return json(await journal(env,actor,{siteId:url.searchParams.get('siteId')??'',jobId:url.searchParams.get('jobId')??''}));
