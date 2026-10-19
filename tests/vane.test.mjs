@@ -1662,7 +1662,7 @@ test('API-004 an MCP client with a site-scoped Stats API key lists its sites and
  assert.equal((await a.request('/api/v1/mcp',{headers:{authorization:'Bearer '+key,accept:'text/event-stream'}})).status,405)
  assert.equal((await a.form({operation:'apikey.revoke',id:(await a.dump()).vane_api_keys[0].id},a.owner)).status,303);assert.equal((await send({jsonrpc:'2.0',id:100,method:'tools/list'})).status,401)
 })
-test('IMPORT-006 a page of PostHog $pageview events and a Simple Analytics CSV export page import only the day, path, source and campaign, resume without double counting, and keep no person, session, device or IP identifier',async t=>{
+test('IMPORT-006 a page of PostHog $pageview events, a Simple Analytics CSV export page and a Umami website_event database export page import only the day, path, source and campaign, resume without double counting, and keep no person, session, device or IP identifier',async t=>{
  const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({paths:[]})
  const person='0191f2d0-person-7a1b',ip='198.51.100.23',pageview=(uuid,timestamp,url,extra={})=>({uuid,event:'$pageview',timestamp,distinct_id:person,properties:{$current_url:url,$pathname:new URL(url).pathname,$host:'fern.example',$ip:ip,$session_id:'0191f2d0-session',$device_id:'0191f2d0-device',$title:'Title of a PostHog page',token:'phc_projectkey',$browser:'Chrome',$referrer:'$direct',$referring_domain:'$direct',...extra}})
  const page={next:null,results:[
@@ -1690,7 +1690,20 @@ test('IMPORT-006 a page of PostHog $pageview events and a Simple Analytics CSV e
  assert.deepEqual([simple.discarded.sessionIds,simple.discarded.rawQueries,simple.discarded.referrerPaths],[2,1,1])
  assert.equal((await (await a.request(`/api/vane/summary?siteId=${id}&from=2024-03-12&to=2024-03-13`,owner)).json()).pageviews,2)
  await movein(a,id,csv);assert.equal((await (await a.request(`/api/vane/summary?siteId=${id}&from=2024-03-12&to=2024-03-13`,owner)).json()).pageviews,2,'resumes without double counting')
- const after=JSON.stringify(await a.dump());for(const value of ['sa-session-77','sa-0001','ref=x'])assert.ok(!after.includes(value),value)
+ // A page of Umami's website_event database export (CSV, PostgreSQL timestamps in UTC): the same fields are kept, and an
+ // event keeps its identity through Umami's events API, so a row imported both ways counts once.
+ const umami='event_id,website_id,session_id,visit_id,created_at,url_path,url_query,referrer_path,referrer_query,referrer_domain,page_title,event_type,event_name,hostname,tag\n'+
+  'b1a6c0de-0001-4000-8000-000000000001,4fb7a9b2-site,77aa-session,88bb-visit,2024-03-13 09:00:00.123+00,/,utm_source=newsletter&utm_campaign=spring,,,,Fern home,1,,fern.example,\n'+
+  'b1a6c0de-0002-4000-8000-000000000002,4fb7a9b2-site,77aa-session,88bb-visit,2024-03-13 09:02:00,/pricing,,/search,q=fern,www.google.com,Fern pricing,1,,fern.example,\n'+
+  'b1a6c0de-0003-4000-8000-000000000003,4fb7a9b2-site,77aa-session,88bb-visit,2024-03-13T09:05:00Z,/thanks,,,,,Thanks,2,signup,fern.example,\n'
+ const export_=(await movein(a,id,umami)).preview
+ assert.deepEqual(export_.normalized.map(e=>[e.day,e.kind,e.path,e.source,e.campaign]).sort(),[['2024-03-13','pageview','/','newsletter','spring'],['2024-03-13','pageview','/pricing','www.google.com','none'],['2024-03-13','signup','/thanks','direct','none']])
+ assert.deepEqual([export_.discarded.sessionIds,export_.discarded.websiteIds,export_.discarded.pageTitles,export_.discarded.rawQueries,export_.discarded.referrerPaths,export_.discarded.referrerQueries],[6,3,3,1,1,1])
+ const day13=async()=>{const r=await (await a.request(`/api/vane/summary?siteId=${id}&from=2024-03-13&to=2024-03-14`,owner)).json();return [r.pageviews,r.goals]}
+ assert.deepEqual(await day13(),[2,1])
+ await movein(a,id,{data:[{id:'b1a6c0de-0001-4000-8000-000000000001',websiteId:'4fb7a9b2-site',sessionId:'77aa-session',createdAt:'2024-03-13T09:00:00.123Z',urlPath:'/',urlQuery:'utm_source=newsletter&utm_campaign=spring',eventType:1}],count:1,page:1,pageSize:1})
+ assert.deepEqual(await day13(),[2,1],'the same Umami event through the events API counts once')
+ const after=JSON.stringify(await a.dump());for(const value of ['sa-session-77','sa-0001','ref=x','77aa-session','88bb-visit','4fb7a9b2-site','Fern pricing','b1a6c0de-0002','q=fern'])assert.ok(!after.includes(value),value)
 })
 test('INSTALL-008 a server sends pageviews and a custom event with its site token, a repeated Idempotency-Key counts once, a token for another site is refused, and no raw IP or user agent is stored',async t=>{
  const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({paths:[]}),other=await a.addSite({name:'Oak Store',origin:'https://oak.example'})
