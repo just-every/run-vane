@@ -244,7 +244,7 @@ These clauses restate what the released first contract and ACCEPTANCE.md promise
 
 - **API-003 — Webhooks for goals, alerts and reports.** Signed webhooks fire on goal conversions (aggregated per minute, never per person), alerts, follow-up changes and report generation. They are retried with backoff, and their deliveries are visible. They feed [Crank](https://github.com/just-every/run-crank), Zapier and Make. **Acceptance evidence:** Subscribe a webhook endpoint, fire an alert and a goal burst, and fail the first delivery. Signed payloads arrive once each after the retry, and the delivery log shows the failure and the success.
 
-- **API-004 — MCP endpoint for assistants.** An authenticated Model Context Protocol endpoint lets Claude, ChatGPT and other assistants query a site's analytics with the same scopes as API keys. Assistants are read-only unless a grant from `AGENT-003` applies. **Acceptance evidence:** Connect an MCP client with a scoped key and ask for last week's top sources; the result equals the Stats API answer, and a write tool is refused without a grant.
+- **API-004 — MCP endpoint for assistants.** An authenticated Model Context Protocol endpoint lets Claude, ChatGPT and other assistants query a site's analytics with the same scopes as API keys. Assistants are read-only unless a grant from `AGENT-003` applies. The exact rules: the endpoint is `POST /api/v1/mcp`, MCP's Streamable HTTP transport (protocol versions 2025-06-18, 2025-03-26 and 2024-11-05) with one JSON-RPC message per request, JSON answers and no event stream, so any client that sends a bearer header connects. It takes a Stats API key (`API-001`) as `Authorization: Bearer`, with that key's site scope, revocation and published rate limits. `list_sites` names the key's sites, and `query_stats` takes the Stats API's parameters and returns its answer unchanged. Write tools (today `add_annotation`) need an agent grant from `AGENT-003`: until `AGENT-003` issues grants every write tool is refused and changes nothing, and `AGENT-003` inherits this endpoint's key scope before it grants one. **Acceptance evidence:** Connect an MCP client with a scoped key and ask for last week's top sources; the result equals the Stats API answer, and a write tool is refused without a grant.
 
 ### Privacy, compliance and administration
 
@@ -420,8 +420,8 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 17 | 0 | 0 | 17 |
-| Target and push further | 47 | 7 | 37 | 91 |
-| All | 64 | 7 | 37 | 108 |
+| Target and push further | 48 | 7 | 36 | 91 |
+| All | 65 | 7 | 36 | 108 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -511,7 +511,7 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | `API-001` | Stats API | target | done | `src/vane/api-door.ts`; `src/vane/api-keys.ts`; `src/vane/stats-api.ts`; `src/vane/provisioning.ts`; `src/vane/views/api-keys.ts`; `migrations/core/0038_vane_api_keys.sql`; `tests/vane.test.mjs` |  |
 | `API-002` | CSV, Looker Studio and warehouse export | target | done | `src/vane/csv.ts`; `src/vane/site-zip.ts`; `src/vane/zip.ts`; `src/vane/warehouse.ts`; `src/vane/sealed.ts`; `src/vane/views/export-settings.ts`; `connectors/looker-studio/Code.gs`; `migrations/core/0039_vane_exports.sql`; `tests/apps-script.mjs`; `tests/vane.test.mjs` |  |
 | `API-003` | Webhooks for goals, alerts and reports | target | missing |  | No webhooks. |
-| `API-004` | MCP endpoint for assistants | target | missing |  | No MCP endpoint. |
+| `API-004` | MCP endpoint for assistants | target | done | `src/vane/mcp.ts`; `src/vane/api-door.ts`; `tests/vane.test.mjs` |  |
 | `PRIVACY-001` | Data inventory and privacy-policy text | target | done | `src/vane/inventory.ts`; `src/vane/views/settings.ts`; `tests/vane.test.mjs` |  |
 | `RETENTION-002` | Raw events kept as long as the owner chooses | target | done | `src/vane/retention.ts`; `src/vane/capacity.ts`; `src/vane/privacy.ts`; `src/vane/actions.ts`; `src/vane/views/store.ts`; `src/vane/views/settings.ts`; `tests/vane.test.mjs` |  |
 | `PRIVACY-002` | US state privacy signals honored | target | done | `src/vane/tracker.ts`; `src/vane/privacy-signals.ts`; `src/vane/methodology.ts`; `src/vane/views/settings.ts`; `src/vane/views/report.ts`; `migrations/core/0016_vane_signals.sql`; `tests/vane.test.mjs` |  |

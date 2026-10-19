@@ -1577,3 +1577,31 @@ test('MOBILE-001 at 390 and 1440 px the site, approval, report and filter journe
  }
  await context.close()
 })
+test('API-004 an MCP client with a site-scoped Stats API key lists its sites and gets last week\'s top sources equal to the Stats API answer; another site, a missing or revoked key and a write tool without a grant are refused',async t=>{
+ const a=await withApp(t),id=await a.addSite({paths:[]}),other=await a.addSite({name:'Oak Store',origin:'https://oak.example'})
+ const now=Date.parse('2026-03-12T12:00:00Z')
+ for(const [n,first,day] of [[1,{referrer:'https://www.google.com/'},1],[2,{referrer:'https://www.google.com/'},2],[3,{campaign:'spring',utm:{source:'newsletter',medium:'email'}},3],[4,{referrer:'https://news.ycombinator.com/'},4],[5,{},5]]){await a.clock(now-day*86400000);assert.equal((await a.post('/api/vane/collect',a.event(id,{source:undefined,campaign:undefined,...first,path:'/'}),'',{origin:'https://fern.example','cf-connecting-ip':'203.0.113.'+n,'user-agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36'})).status,202)}
+ await a.clock(now)
+ const key=(await (await a.form({operation:'apikey.create',kind:'stats',label:'Assistant',[`site_${id}`]:'on'},a.owner)).text()).match(/data-api-key>(vane_k_[0-9a-f]{64})</)[1]
+ // A minimal MCP client over Streamable HTTP: initialize, the initialized notification, then requests with the negotiated version.
+ let version='',next=0
+ const send=(message,token=key)=>a.request('/api/v1/mcp',{method:'POST',headers:{'content-type':'application/json',accept:'application/json, text/event-stream',...(token?{authorization:'Bearer '+token}:{}),...(version?{'mcp-protocol-version':version}:{})},body:JSON.stringify(message)})
+ const rpc=async(method,params,token)=>{const id=++next,r=await send({jsonrpc:'2.0',id,method,params},token);assert.equal(r.status,200,await r.clone().text());const body=await r.json();assert.equal(body.id,id);return body}
+ const init=await rpc('initialize',{protocolVersion:'2025-06-18',capabilities:{},clientInfo:{name:'test-client',version:'1'}});assert.equal(init.result.protocolVersion,'2025-06-18');assert.ok(init.result.capabilities.tools);version=init.result.protocolVersion
+ assert.equal((await send({jsonrpc:'2.0',method:'notifications/initialized'})).status,202)
+ const tools=(await rpc('tools/list',{})).result.tools;assert.ok(['list_sites','query_stats','add_annotation'].every(name=>tools.some(tool=>tool.name===name)));assert.equal(tools.find(tool=>tool.name==='query_stats').annotations.readOnlyHint,true)
+ const listed=(await rpc('tools/call',{name:'list_sites',arguments:{}})).result;assert.deepEqual(listed.structuredContent.sites.map(s=>s.id),[id],'only the key\'s sites')
+ // Last week's top sources: the tool's answer is the Stats API's answer.
+ const asked=(await rpc('tools/call',{name:'query_stats',arguments:{site_id:id,period:'7d',dimension:'source',metrics:['visitors','visits']}})).result
+ const stats=await (await a.request(`/api/v1/stats?site_id=${id}&period=7d&dimension=source&metrics=visitors,visits`,{headers:{authorization:'Bearer '+key}})).json()
+ assert.equal(asked.isError,false);assert.deepEqual(asked.structuredContent,stats);assert.deepEqual(JSON.parse(asked.content[0].text),stats)
+ assert.deepEqual(Object.fromEntries(stats.breakdown.filter(r=>r.visits).map(r=>[r.value,r.visits])),{Google:2,newsletter:1,'Hacker News':1,direct:1})
+ // Another site and a write tool are refused, and the write changes nothing.
+ const foreign=(await rpc('tools/call',{name:'query_stats',arguments:{site_id:other,period:'7d'}})).result;assert.equal(foreign.isError,true);assert.equal(foreign.structuredContent.error,'forbidden')
+ const write=(await rpc('tools/call',{name:'add_annotation',arguments:{site_id:id,day:'2026-03-11',text:'Launch'}})).result;assert.equal(write.isError,true);assert.equal(write.structuredContent.error,'grant_required');assert.deepEqual((await a.dump()).vane_annotations,[])
+ assert.equal((await rpc('tools/call',{name:'drop_tables',arguments:{}})).error.code,-32602);assert.equal((await rpc('resources/list',{})).error.code,-32601)
+ // No key, a revoked key and an event-stream GET are refused.
+ const anonymous=await send({jsonrpc:'2.0',id:99,method:'tools/list'},null);assert.equal(anonymous.status,401);assert.equal(anonymous.headers.get('www-authenticate'),'Bearer')
+ assert.equal((await a.request('/api/v1/mcp',{headers:{authorization:'Bearer '+key,accept:'text/event-stream'}})).status,405)
+ assert.equal((await a.form({operation:'apikey.revoke',id:(await a.dump()).vane_api_keys[0].id},a.owner)).status,303);assert.equal((await send({jsonrpc:'2.0',id:100,method:'tools/list'})).status,401)
+})
