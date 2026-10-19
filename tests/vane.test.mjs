@@ -123,7 +123,7 @@ test('TRAFFIC-001 the default seven-day report compares totals and every breakdo
  assert.deepEqual([earlier.pageviews,earlier.goals,earlier.imported,earlier.unknownCoverage],[3,1,4,4])
  const page=await (await a.request('/app/sites/'+id+'?section=report',{headers:{cookie:a.owner}})).text()
  assert.match(page,/-33\.3%<\/span> compared with the previous period \(3\)/)
- assert.match(page,/<th scope="row">direct<\/th><td class="vane-number">0<\/td><td class="vane-number">2<\/td><td class="vane-number">-2<\/td>/)
+ assert.match(page,/<th scope="row">direct<\/th><td class="vane-number">0<\/td><td class="vane-number">2<\/td><td class="vane-number" data-change="-2">-2 \(-100\.0%\)<\/td>/)
  for(const limit of ['Sample rate</dt><dd>100% of eligible page loads','Consent</dt><dd>Not required','Allowed paths</dt><dd>/, /thanks','Imported activity</dt><dd>1','Unknown coverage</dt><dd>1','Blocked scripts, missing consent, sampling and excluded paths'])assert.ok(page.includes(limit),limit)
 })
 test('PRIVACY-005 visitor data stays in the installation: the script talks only to its own origin, and collection, reports, import and export make no outbound request',async t=>{
@@ -320,7 +320,7 @@ test('METRIC-003 a quick bounce, a 45-second single-page visit and a three-page 
  await engage(single,50,400,{siteId:id,id:single,seconds:50});await engage(crypto.randomUUID(),50,404);await engage(single,1900,409)
  const r=await (await a.request(`/api/vane/summary?siteId=${id}&from=2026-03-04&to=2026-03-05`,owner)).json()
  assert.deepEqual([r.visits,r.pageviews,r.bounces,r.bounceRate,r.medianDuration,r.averageDuration],[3,5,1,33.3,45,55])
- assert.deepEqual(r.topPages,[{path:'/',visitors:3,pageviews:4,visits:3,bounceRate:33.3,conversionRate:33.3,medianDuration:45,averageDuration:55,medianTimeOnPage:30,averageTimeOnPage:26,averageScrollDepth:60,reached75Share:50},{path:'/thanks',visitors:1,pageviews:1,visits:1,bounceRate:0,conversionRate:100,medianDuration:120,averageDuration:120,medianTimeOnPage:60,averageTimeOnPage:60,averageScrollDepth:null,reached75Share:null}])
+ assert.deepEqual(r.topPages,[{path:'/',visitors:3,pageviews:4,visits:3,bounceRate:33.3,conversionRate:33.3,medianDuration:45,averageDuration:55,medianTimeOnPage:30,averageTimeOnPage:26,averageScrollDepth:60,reached75Share:50,previous:0},{path:'/thanks',visitors:1,pageviews:1,visits:1,bounceRate:0,conversionRate:100,medianDuration:120,averageDuration:120,medianTimeOnPage:60,averageTimeOnPage:60,averageScrollDepth:null,reached75Share:null,previous:0}])
  const page=await (await a.request(`/app/sites/${id}?section=report&from=2026-03-04&to=2026-03-05`,owner)).text()
  for(const html of ['<h2>Bounce rate</h2><p class="vane-metric">33.3%</p>','<h2>Visit duration</h2><p class="vane-metric">0m 45s</p><p class="vane-help">Median; average 0m 55s.','<th scope="row">/</th><td class="vane-number">3</td><td class="vane-number">4</td><td class="vane-number">3</td><td class="vane-number">33.3%</td><td class="vane-number">0m 45s / 0m 55s</td><td class="vane-number">0m 30s / 0m 26s</td>'])assert.ok(page.includes(html),html)
  // In a browser: a page hidden after 3 seconds sends nothing (a bounce); the next visit pings at 10 visible seconds and again when hidden.
@@ -428,7 +428,7 @@ test('DASH-012 with a named search parameter, a term two visitors searched is re
  assert.equal((await a.collect(a.event(id,{path:'/search',search:'x'.repeat(101)}))).status,400)
  const r=(await (await a.request(`/api/vane/summary?siteId=${id}&from=2026-03-11&to=2026-03-12`,owner)).json()).siteSearch
  assert.deepEqual([r.searches,r.searchVisits,r.searchesPerVisit,r.exitAfterSearch],[4,3,1.33,66.7])
- assert.deepEqual(r.terms,[{term:'returns',searches:2,visitors:2}],'shipping (one visitor) and the email-like term stay hidden')
+ assert.deepEqual(r.terms,[{term:'returns',searches:2,visitors:2,previous:0}],'shipping (one visitor) and the email-like term stay hidden')
  assert.deepEqual(r.startPages.map(p=>[p.path,p.searches]),[['/',2],['(entry)',1],['/search',1]])
  const page=await (await a.request(`/app/sites/${id}?section=report&from=2026-03-11&to=2026-03-12`,owner)).text()
  for(const html of ['<h2>Site search</h2>','<th scope="row">returns</th><td class="vane-number">2</td><td class="vane-number">2</td>','<dt>Visits that exit after searching</dt><dd>66.7%</dd>'])assert.ok(page.includes(html),html)
@@ -706,4 +706,39 @@ test('DASH-002 events either side of the November daylight-saving change and mid
  const {context}=await browse(t,a,{},{timezoneId:'America/Chicago'});await context.addCookies(a.owner.split('; ').map(pair=>{const [name,...value]=pair.split('=');return {name,value:value.join('='),url:a.origin}}))
  const page=await context.newPage();await page.goto(a.origin+'/app',{waitUntil:'networkidle'})
  assert.equal(await page.getByRole('textbox',{name:'Time zone'}).inputValue(),'America/Chicago')
+})
+test('DASH-008 the last 30 days compared with the previous period, the same period last year and a custom period, with and without matched weekdays, overlay the chart and give every table row its absolute and percentage change',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}}
+ await a.clock(Date.parse('2025-05-01T10:00:00Z'));const id=await a.addSite({paths:['/','/pricing','/thanks']})
+ const visit=async(at,people,path,source)=>{await a.clock(Date.parse(at));for(const n of people)assert.equal((await a.post('/api/vane/collect',a.event(id,{path,source}),'',{origin:'https://fern.example','cf-connecting-ip':`203.0.113.${n}`,'user-agent':'Synthetic Browser'})).status,202,at)}
+ await visit('2025-06-10T10:00:00Z',[1],'/pricing','alpha.example');await visit('2025-06-20T10:00:00Z',[1,2,3,4],'/','beta.example')
+ await visit('2026-04-28T10:00:00Z',[1],'/pricing','alpha.example');await visit('2026-05-15T10:00:00Z',[1,2],'/pricing','alpha.example');await visit('2026-05-29T10:00:00Z',[1],'/','gamma.example')
+ await visit('2026-06-10T10:00:00Z',[1,2,3],'/pricing','alpha.example');await visit('2026-06-20T10:00:00Z',[4],'/','beta.example')
+ await a.clock(Date.parse('2026-06-30T12:00:00Z'))
+ const summary=async query=>{const r=await a.request(`/api/vane/summary?siteId=${id}&period=30d${query}`,owner);assert.equal(r.status,200,query);return r.json()}
+ const sources=r=>Object.fromEntries(r.sources.map(row=>[row.label,[row.count,row.previous]])),at=(r,i)=>[r.series[i].pageviews,r.previousSeries[i].pageviews]
+ const previous=await summary('');assert.deepEqual([previous.from,previous.to,previous.previousFrom,previous.previousTo,previous.pageviews,previous.previousPageviews],['2026-06-01','2026-07-01','2026-05-02','2026-06-01',4,3])
+ assert.deepEqual(sources(previous),{'alpha.example':[3,2],'beta.example':[1,0],'gamma.example':[0,1]})
+ assert.deepEqual([at(previous,9),at(previous,13),at(previous,19),at(previous,27)],[[3,0],[0,2],[1,0],[0,1]],'the overlay pairs each day with its compared day')
+ const year=await summary('&compare=year');assert.deepEqual([year.previousFrom,year.previousTo,year.previousPageviews],['2025-06-01','2025-07-01',5])
+ assert.deepEqual(sources(year),{'alpha.example':[3,1],'beta.example':[1,4]});assert.deepEqual([at(year,9),at(year,19)],[[3,1],[1,4]])
+ assert.deepEqual(year.channels.map(row=>[row.label,row.visitors,row.previous]),[['Referral',4,5]])
+ assert.deepEqual(year.topPages.map(row=>[row.path,row.visitors,row.previous]),[['/pricing',3,1],['/',1,4]])
+ // Matching weekdays: 1 June 2026 is a Monday, and so is each compared start.
+ const weekly=await summary('&weekdays=on');assert.deepEqual([weekly.previousFrom,weekly.previousTo],['2026-04-27','2026-05-27']);assert.deepEqual(sources(weekly),{'alpha.example':[3,3],'beta.example':[1,0]})
+ assert.deepEqual((await summary('&compare=year&weekdays=on')).previousFrom,'2025-06-02')
+ const custom=await summary('&compare=custom&compareFrom=2025-06-15&compareTo=2025-06-25');assert.deepEqual([custom.previousFrom,custom.previousTo,custom.previousPageviews],['2025-06-15','2025-06-25',4])
+ const shifted=await summary('&compare=custom&compareFrom=2025-06-15&compareTo=2025-06-25&weekdays=on');assert.deepEqual([shifted.previousFrom,shifted.previousTo,shifted.previousPageviews],['2025-06-09','2025-06-19',1])
+ assert.equal((await a.request(`/api/vane/summary?siteId=${id}&compare=custom&compareFrom=2025-06-25&compareTo=2025-06-15`,owner)).status,400)
+ // On the page: both series on the chart, and every table row carries its change, absolute and in percent.
+ for(const [query,r,rows] of [['',previous,[['alpha.example','+1 (+50.0%)'],['beta.example','+1 (new)'],['gamma.example','-1 (-100.0%)']]],['&compare=year',year,[['alpha.example','+2 (+200.0%)'],['beta.example','-3 (-75.0%)'],['/pricing','+2 (+200.0%)'],['Referral','-1 (-20.0%)']]]]){
+  const html=await (await a.request(`/app/sites/${id}?section=report&period=30d&metric=pageviews${query}`,owner)).text()
+  const values=kind=>[...html.matchAll(new RegExp(`<circle class="${kind}"[^>]*data-value="([^"]*)"`,'g'))].map(m=>Number(m[1]))
+  assert.deepEqual([values('vane-chart-point'),values('vane-chart-compare-point')],[r.series.map(b=>b.pageviews),r.previousSeries.map(b=>b.pageviews)],query)
+  assert.equal((html.match(/<polyline class="vane-chart-compare"/g)??[]).length,1,query)
+  for(const [label,text] of rows)assert.match(html,new RegExp(`<th scope="row">${label.replace('.','\\.')}</th>(<td[^>]*>[^<]*</td>)*<td class="vane-number" data-change="[^"]*">${text.replace(/[+().]/g,'\\$&')}</td>`),`${query} ${label}`)
+  const tables=html.split('<table>').slice(1).map(part=>part.split('</table>')[0]).filter(table=>!table.includes('Compared with</th>'))
+  assert.ok(tables.length>=10,query)
+  for(const table of tables){assert.ok(table.includes('<th scope="col" class="vane-number">Change</th>'),table.slice(0,120));assert.equal((table.match(/<tr><th scope="row">/g)??[]).length,(table.match(/data-change="/g)??[]).length,table.slice(0,120))}
+ }
 })

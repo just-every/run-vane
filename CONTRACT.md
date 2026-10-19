@@ -134,7 +134,7 @@ These clauses restate what the released first contract and ACCEPTANCE.md promise
 
 - **DASH-007 — Filters, segments and saved views.** Clicking any dimension value filters the whole dashboard. Filters combine with is, is not, contains, does not contain and matches (regex), on any dimension (including Hostname, `DASH-013`) or event property. Filter combinations can be saved as named segments, shared with the team, and used in reports, alerts and the API. **Acceptance evidence:** Filter by Organic Search and mobile and not `/blog/*`, save the segment and reopen it in a report and an alert. Each total equals a hand-computed count of the seeded events.
 
-- **DASH-008 — Period comparisons.** Any range can be compared with the previous period, the same period last year or a custom period. Both series appear on the chart, and every table shows the change with its absolute and percentage values. Comparisons match weekdays when the owner chooses. **Acceptance evidence:** Compare the last 30 days with the previous period and with last year. The chart overlays and the per-row changes match the seeded data.
+- **DASH-008 — Period comparisons.** Any range can be compared with the previous period, the same period last year or a custom period. Both series appear on the chart, and every table shows the change with its absolute and percentage values. Comparisons match weekdays when the owner chooses. The exact rules: the previous period is the same number of days just before the range; last year is the same calendar dates a year earlier (29 February becomes 1 March); a custom period is any start and end dates. Matching weekdays moves the previous period back by the range's length rounded up to whole weeks, last year back by 364 days, and a custom period back by 0 to 6 days, so each compared start falls on the range's starting weekday. The chart overlays the compared period as a dashed line, its first bucket beside the range's first, and the data table lists each compared bucket beside it. Every total compares the two periods; every table row shows its first count column's change (visitors, or pageviews, conversions, searches, visits or events where that column comes first) as the absolute difference and the percentage of the compared value, with `new` when the row had nothing then; the source, campaign, page and goal breakdowns also list rows seen only in the compared period. This is done when every chart and table that exists today shows the comparison; each later clause that adds a report table or chart (`DASH-001`, `DASH-005`, `DASH-011`, `CONV-002`, `CONV-004`, `CONV-005`, `CONV-006`, `PERF-001`) shows the same change before it ships. **Acceptance evidence:** Compare the last 30 days with the previous period and with last year. The chart overlays and the per-row changes match the seeded data.
 
 - **DASH-009 — Annotations, manual and automatic.** Team members add dated notes to charts. Vane adds annotations for settings and definition changes, imports, agent-shipped changes (`AGENT-003`), Mango campaign sends, Uptime incidents, Spool error spikes, deploy webhooks and GitHub releases. Annotations show on every affected chart, in reports and in agent explanations. **Acceptance evidence:** Add a manual note, approve a settings change, post a deploy webhook and receive an Uptime incident. All four annotations appear on the chart at the right time.
 
@@ -338,9 +338,9 @@ The approved homepage (17 Oct 2026, `HOME-001`) states 80 capabilities in its co
 | 4 | Hero: "tells you why the numbers moved" | `AGENT-002`, `REPORT-003` | partial |
 | 5 | Hero: "100% free, open source" | `OPEN-001` | done |
 | 6 | Hero: "alternative to Plausible, Fathom and Matomo" | `IMPORT-003`, `IMPORT-004`, `IMPORT-005`, `IMPORT-008` | missing |
-| 7 | Hero card: Visitors today · 4,812 · ↑ 23% with a sparkline | `METRIC-001`, `DASH-002`, `DASH-008` | partial |
+| 7 | Hero card: Visitors today · 4,812 · ↑ 23% with a sparkline | `METRIC-001`, `DASH-002`, `DASH-008` | done |
 | 8 | Hero card: Top source · Hacker News · 1,904 visitors | `DASH-004`, `DASH-014` | done |
-| 9 | Hero card: Goal · Signups · 212 · ↑ 4.4% | `CONV-001`, `DASH-008` | partial |
+| 9 | Hero card: Goal · Signups · 212 · ↑ 4.4% | `CONV-001`, `DASH-008` | done |
 | 10 | Hero card: Why it moved · Brew guide on Hacker News | `AGENT-002` | missing |
 | 11 | Hero card: Wednesday dip: tracking script missing on /pricing · fixed | `AGENT-001`, `ALERT-002` | missing |
 | 12 | Hero card: No cookies · no banner | `COLLECT-001`, `CONSENT-001` | done |
@@ -351,7 +351,7 @@ The approved homepage (17 Oct 2026, `HOME-001`) states 80 capabilities in its co
 | 17 | Visitors: "No cookies, no banner" | `COLLECT-001`, `CONSENT-001` | done |
 | 18 | Visitors: "the method is published" | `METRIC-004` | partial |
 | 19 | Visitors card: "38 online now" | `DASH-001` | missing |
-| 20 | Visitors card: Unique visitors 28,416 ↑ 12%, Visits, Bounce rate, Visit duration tiles | `METRIC-001`, `METRIC-002`, `METRIC-003`, `DASH-008` | partial |
+| 20 | Visitors card: Unique visitors 28,416 ↑ 12%, Visits, Bounce rate, Visit duration tiles | `METRIC-001`, `METRIC-002`, `METRIC-003`, `DASH-008` | done |
 | 21 | Visitors card: Seven-day line chart | `DASH-002` | done |
 | 22 | Visitors chip: Salt rotated at midnight · yesterday's visitors can't be linked | `METRIC-001` | done |
 | 23 | Sources: "Sources" | `DASH-004`, `DASH-014` | done |
@@ -362,7 +362,7 @@ The approved homepage (17 Oct 2026, `HOME-001`) states 80 capabilities in its co
 | 28 | Sources: "live" | `DASH-001` | missing |
 | 29 | Sources: "over any period" | `TRAFFIC-001`, `DASH-002` | done |
 | 30 | Sources: "with filters" | `DASH-007` | missing |
-| 31 | Sources: "and comparisons" | `DASH-008` | partial |
+| 31 | Sources: "and comparisons" | `DASH-008` | done |
 | 32 | Sources card: Country: United States filter | `DASH-005`, `DASH-007` | missing |
 | 33 | Sources chip: android-app://com.slack.android grouped as Slack | `DASH-014` | done |
 | 34 | Goals: "Goals" | `CONV-001` | done |
@@ -420,8 +420,8 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 17 | 0 | 0 | 17 |
-| Target and push further | 24 | 14 | 53 | 91 |
-| All | 41 | 14 | 53 | 108 |
+| Target and push further | 25 | 13 | 53 | 91 |
+| All | 42 | 13 | 53 | 108 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -467,7 +467,7 @@ Judged from the code and tests at commit `d73ba5c066f5b2d3c016cf8b1b9b028be30eaf
 | `DASH-005` | Country, region and city | target | missing |  | No location dimensions. |
 | `DASH-006` | Devices, browsers and operating systems | target | done | `src/vane/devices.ts`; `src/vane/collect.ts`; `src/vane/tracker.ts`; `src/vane/reports.ts`; `src/vane/views/report.ts`; `migrations/core/0021_vane_devices.sql`; `tests/vane.test.mjs` |  |
 | `DASH-007` | Filters, segments and saved views | target | missing |  | Only a date range filter; no dimension filters, segments or saved views. |
-| `DASH-008` | Period comparisons | target | partial | `src/vane/reports.ts`; `src/vane/views/report.ts` | Totals are compared with the preceding period; no year-over-year or custom comparison, chart overlay or per-row change, and no assertion. |
+| `DASH-008` | Period comparisons | target | done | `src/vane/periods.ts`; `src/vane/reports.ts`; `src/vane/views/chart.ts`; `src/vane/views/report.ts`; `src/vane/views/tables.ts`; `src/vane/views/html.ts`; `tests/vane.test.mjs` |  |
 | `DASH-009` | Annotations, manual and automatic | target | missing |  | No annotations. |
 | `DASH-010` | Multi-site overview and roll-up | target | partial | `src/vane/views/settings.ts` | A sites list links to each report; no per-site metrics, sparklines, sorting, roll-up views or stated per-metric roll-up rules. |
 | `DASH-011` | Journeys and paths | target | missing |  | No journeys or paths. |

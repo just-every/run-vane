@@ -168,3 +168,7 @@
 .vane-chart-line { fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; }
 .vane-chart-point { fill: currentColor; }
 .vane-chart-data summary { cursor: pointer; margin-bottom: 8px; }
+.vane-chart-compare { fill: none; stroke: var(--rer-muted); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.vane-chart-compare-point { fill: var(--rer-muted); }
+.vane-chart-key { display: inline-block; width: 16px; height: 0; border-top: 2px solid var(--rer-accent); vertical-align: middle; }
+.vane-chart-key-compare { border-top: 2px dashed var(--rer-muted); }

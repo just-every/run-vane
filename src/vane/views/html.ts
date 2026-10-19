@@ -24,7 +24,15 @@ export function textarea(label: string, name: string, value: unknown, help: stri
   return `<label>${escape(label)}<textarea name="${escape(name)}" aria-label="${escape(label)}" rows="4" aria-describedby="${escape(name)}-help">${escape(value)}</textarea><span class="vane-help" id="${escape(name)}-help">${escape(help)}</span></label>`
 }
 
+// DASH-008: a row's change against the compared period, absolute and in percent (none when it had nothing then).
+export function change(current: unknown, previous: unknown): string {
+  const now = Number(current) || 0, then = Number(previous) || 0, difference = now - then
+  const percent = then ? `${difference > 0 ? '+' : ''}${((difference / then) * 100).toFixed(1)}%` : now ? 'new' : 'no change'
+  return `<td class="vane-number" data-change="${difference}">${difference > 0 ? '+' : ''}${count(difference)} (${percent})</td>`
+}
+export const changeHead = '<th scope="col" class="vane-number">Change</th>'
+
 export function breakdown(title: string, rows: {label: string; count: number; previous: number}[] = []): string {
-  if (!rows.length) return panel(title, '<p class="vane-empty">No recorded activity in this period or the previous one.</p>')
-  return panel(title, `<div class="vane-table-scroll" role="region" aria-label="${escape(title)}" tabindex="0"><table><caption class="vane-sr-only">${escape(title)}</caption><thead><tr><th scope="col">${escape(title === 'Goals' ? 'Goal' : title === 'Pages' ? 'Path' : title === 'Sources' ? 'Source' : 'Campaign')}</th><th scope="col" class="vane-number">${title === 'Goals' ? 'Conversions' : 'Pageviews'}</th><th scope="col" class="vane-number">Previous period</th><th scope="col" class="vane-number">Change</th></tr></thead><tbody>${rows.map(row => { const change = Number(row.count) - Number(row.previous); return `<tr><th scope="row">${escape(row.label)}</th><td class="vane-number">${count(row.count)}</td><td class="vane-number">${count(row.previous)}</td><td class="vane-number">${change > 0 ? '+' : ''}${count(change)}</td></tr>` }).join('')}</tbody></table></div>`)
+  if (!rows.length) return panel(title, '<p class="vane-empty">No recorded activity in this period or the compared one.</p>')
+  return panel(title, `<div class="vane-table-scroll" role="region" aria-label="${escape(title)}" tabindex="0"><table><caption class="vane-sr-only">${escape(title)}</caption><thead><tr><th scope="col">${escape(title === 'Goals' ? 'Goal' : title === 'Pages' ? 'Path' : title === 'Sources' ? 'Source' : 'Campaign')}</th><th scope="col" class="vane-number">${title === 'Goals' ? 'Conversions' : 'Pageviews'}</th><th scope="col" class="vane-number">Compared period</th>${changeHead}</tr></thead><tbody>${rows.map(row => `<tr><th scope="row">${escape(row.label)}</th><td class="vane-number">${count(row.count)}</td><td class="vane-number">${count(row.previous)}</td>${change(row.count, row.previous)}</tr>`).join('')}</tbody></table></div>`)
 }

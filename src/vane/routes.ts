@@ -18,7 +18,7 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
  const url=new URL(request.url),path=url.pathname;
  if(path!=='/app'&&!path.startsWith('/app/')&&!path.startsWith('/api/vane/'))return null;
  const env=runtimeBindings(original);
- const range={from:url.searchParams.get('from'),to:url.searchParams.get('to'),period:url.searchParams.get('period'),interval:url.searchParams.get('interval'),metric:url.searchParams.get('metric'),group:url.searchParams.get('group'),goal:url.searchParams.get('goal'),host:url.searchParams.get('host'),hostOp:url.searchParams.get('hostOp')};
+ const range={from:url.searchParams.get('from'),to:url.searchParams.get('to'),period:url.searchParams.get('period'),compare:url.searchParams.get('compare'),compareFrom:url.searchParams.get('compareFrom'),compareTo:url.searchParams.get('compareTo'),weekdays:url.searchParams.get('weekdays'),interval:url.searchParams.get('interval'),metric:url.searchParams.get('metric'),group:url.searchParams.get('group'),goal:url.searchParams.get('goal'),host:url.searchParams.get('host'),hostOp:url.searchParams.get('hostOp')};
  let actor:Actor|undefined;
  async function view(siteId?:string,extra:Partial<ViewData>={}) {
   const selected=siteId?await site(env,siteId):undefined;

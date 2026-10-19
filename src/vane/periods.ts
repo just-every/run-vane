@@ -41,3 +41,16 @@ export function bucketsOf(interval:Interval,from:string,to:string,timeZone:strin
 }
 // The SQL that maps a row to its bucket key; `start` is the parameter holding the range's first local midnight.
 export const bucketSql=(interval:Interval,start:string,atColumn='at')=>({hour:`CAST(CAST((${atColumn}-${start})/3600000 AS INTEGER) AS TEXT)`,day:'day',week:`date(day,'-6 days','weekday 1')`,month:`substr(day,1,7)||'-01'`})[interval]
+// DASH-008: the period a range is compared with. The previous period is the same length just before it; last
+// year is the same calendar dates a year earlier (29 February becomes 1 March); a custom period is any dates.
+// Matching weekdays moves the previous period back by whole weeks (the length rounded up to 7-day multiples),
+// last year back by 364 days, and a custom period back by 0 to 6 days, so each compared day is the same weekday.
+export const COMPARISONS={previous:'The previous period',year:'The same period last year',custom:'A custom period'} as const
+export type Comparison=keyof typeof COMPARISONS
+export function comparisonRange(mode:Comparison,from:string,to:string,weekdays:boolean,custom:{from:string|null,to:string|null}):{from:string,to:string} {
+ const length=(Date.parse(to)-Date.parse(from))/DAY,weekday=(d:string)=>new Date(d).getUTCDay()
+ if(mode==='previous'){const back=weekdays?Math.ceil(length/7)*7:length;return {from:shift(from,-back),to:shift(from,length-back)}}
+ if(mode==='year'){if(weekdays)return {from:shift(from,-364),to:shift(to,-364)};const year=(d:string)=>{const [y,m,n]=d.split('-').map(Number);return day(Date.UTC(y!-1,m!-1,n!))};return {from:year(from),to:year(to)}}
+ const back=weekdays?(weekday(custom.from!)-weekday(from)+7)%7:0
+ return {from:shift(custom.from!,-back),to:shift(custom.to!,-back)}
+}
