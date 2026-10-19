@@ -3,7 +3,7 @@ import { inScope, insist, role, rows, site, statement, uid, VaneError, type Acto
 import { DAY, dates, oldestDate, rangeOf, shift, sourceToday } from './dates'
 import { accessToken, queryAll } from './google'
 import { normalizedRows } from './labels'
-import { pendingDays, publishDay } from './snapshots'
+import { pendingDays, publishDays } from './snapshots'
 import { connection, current, guardValues, liveGuard } from './storage'
 import type { Connection, GoogleRow, Range, SourceDay } from './types'
 
@@ -47,16 +47,10 @@ async function syncConnection(env:Env,c:Connection,now:number,requested?:Range):
    }
   }
   await pendingDays(env,c,lockId,allDates.filter(date=>!byDate.has(date)),now);
-  for(const date of allDates.filter(date=>byDate.has(date))) {
-   await current(env,c,lockId);
-   const total=byDate.get(date);
-   // Final daily snapshots are immutable. This makes delayed data visible once, without additive re-imports.
-   if(existing.get(date)?.status==='final'&&existing.get(date)?.property===c.property)continue;
-   await publishDay(env,c,lockId,date,[...normalizedRows(value,'overall',[total!]),...normalizedRows(value,'query',detailMaps[0]!.get(date)??[]),...normalizedRows(value,'page',detailMaps[1]!.get(date)??[]),...normalizedRows(value,'query_page',detailMaps[2]!.get(date)??[])],now);
-  }
+  await publishDays(env,c,lockId,newlyPublished.map(date=>({date,rows:[...normalizedRows(value,'overall',[byDate.get(date)!]),...normalizedRows(value,'query',detailMaps[0]!.get(date)??[]),...normalizedRows(value,'page',detailMaps[1]!.get(date)??[]),...normalizedRows(value,'query_page',detailMaps[2]!.get(date)??[])]})),now);
   await current(env,c,lockId);
   // Purge only rows with no published pointer under this site's exclusive sync lease.
-  await statement(env,`DELETE FROM vane_search_rows WHERE site_id=? AND NOT EXISTS(SELECT 1 FROM vane_search_days d WHERE d.snapshot_id=vane_search_rows.snapshot_id) AND ${liveGuard}`,c.site_id,...guardValues(c,lockId)).run();
+  await statement(env,`DELETE FROM vane_search_rows WHERE site_id=? AND NOT EXISTS(SELECT 1 FROM vane_search_days d WHERE d.site_id=vane_search_rows.site_id AND d.day=vane_search_rows.day AND d.snapshot_id=vane_search_rows.snapshot_id) AND ${liveGuard}`,c.site_id,...guardValues(c,lockId)).run();
   await statement(env,'UPDATE vane_search_connections SET last_sync=?,next_sync=?,last_error=NULL,lock_id=NULL,lock_until=NULL WHERE site_id=? AND generation=? AND lock_id=?',now,now+DAY,c.site_id,c.generation,lockId).run();
  } catch(error) {
   const message=error instanceof VaneError?error.message:'Google Search Console sync could not complete.';

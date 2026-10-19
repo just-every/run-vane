@@ -10,20 +10,20 @@ import { EVENT_LIMITS, RATE_LIMITS } from './api-keys'
 export const BREAKDOWNS:Record<string,string>={channel:'channels',source:'sourceVisits',referrer:'referrers',utm_source:'utmSources',utm_medium:'utmMediums',utm_campaign:'utmCampaigns',utm_term:'utmTerms',utm_content:'utmContents',device:'devices',browser:'browsers',os:'systems',screen:'screens',page:'topPages',entry_page:'entryPages',exit_page:'exitPages',hostname:'hostnames'}
 export const METRICS:Record<string,string>={visitors:'visitors',visits:'visits',pageviews:'pageviews',bounce_rate:'bounceRate',visit_duration:'averageDuration',views_per_visit:'pagesPerVisit',conversion_rate:'conversionRate'}
 const PREVIOUS:Record<string,string>={visitors:'previousVisitors',visits:'previousVisits',pageviews:'previousPageviews',bounce_rate:'previousBounceRate'}
-export interface StatsQuery { from?:string|null; to?:string|null; period?:string|null; compare?:string|null; compareFrom?:string|null; compareTo?:string|null; filters:string[]; segment?:string|null }
+export interface StatsQuery { from?:string|null; to?:string|null; period?:string|null; compare?:string|null; compareFrom?:string|null; compareTo?:string|null; filters:string[]; segment?:string|null; searchQuery?:string|null; searchProvider?:string|null }
 export async function report(env:Env,value:Site,query:StatsQuery) {
- return createInsightsService(env,value,clock(),{from:query.from??null,to:query.to??null,period:query.period??null,compare:query.compare??null,compareFrom:query.compareFrom??null,compareTo:query.compareTo??null,filters:query.filters,segment:query.segment??null}).list() as Promise<any>
+ return createInsightsService(env,value,clock(),{from:query.from??null,to:query.to??null,period:query.period??null,compare:query.compare??null,compareFrom:query.compareFrom??null,compareTo:query.compareTo??null,filters:query.filters,segment:query.segment??null,searchQuery:query.searchQuery??null,searchProvider:query.searchProvider??null}).list() as Promise<any>
 }
 // A breakdown row's label and its figures, in the shape the dashboard table shows them.
 const rowOf=(row:any)=>{const {label,path,key,...rest}=row;return {value:label??path??key,...rest}}
 export async function statsV1(env:Env,url:URL) {
  const value=await site(env,url.searchParams.get('site_id')??'');
- const query:StatsQuery={from:url.searchParams.get('from'),to:url.searchParams.get('to'),period:url.searchParams.get('period'),compare:url.searchParams.get('compare'),compareFrom:url.searchParams.get('compare_from'),compareTo:url.searchParams.get('compare_to'),filters:url.searchParams.getAll('filter'),segment:url.searchParams.get('segment')};
+ const query:StatsQuery={from:url.searchParams.get('from'),to:url.searchParams.get('to'),period:url.searchParams.get('period'),compare:url.searchParams.get('compare'),compareFrom:url.searchParams.get('compare_from'),compareTo:url.searchParams.get('compare_to'),filters:url.searchParams.getAll('filter'),segment:url.searchParams.get('segment'),searchQuery:url.searchParams.get('search_query'),searchProvider:url.searchParams.get('search_provider')};
  const metrics=(url.searchParams.get('metrics')||'visitors,visits,pageviews,bounce_rate').split(',');
  insist(metrics.every(m=>Object.hasOwn(METRICS,m)),'metrics',`Ask for metrics among ${Object.keys(METRICS).join(', ')}.`);
  const dimension=url.searchParams.get('dimension');insist(!dimension||Object.hasOwn(BREAKDOWNS,dimension),'dimension',`Break down by one of ${Object.keys(BREAKDOWNS).join(', ')}.`);
  const r=await report(env,value,query);
- return {site_id:value.id,from:r.from,to:r.to,time_zone:r.timeZone,compare:{mode:r.compare,from:r.previousFrom,to:r.previousTo},filters:r.filterParams,segment:r.segment,
+ return {site_id:value.id,from:r.from,to:r.to,time_zone:r.timeZone,compare:{mode:r.compare,from:r.previousFrom,to:r.previousTo},filters:r.filterParams,segment:r.segment,search_query:r.searchQuery,search_provider:r.searchProvider,
   results:Object.fromEntries(metrics.map(m=>[m,r[METRICS[m]!]??null])),previous:Object.fromEntries(metrics.filter(m=>PREVIOUS[m]).map(m=>[m,r[PREVIOUS[m]!]])),
   ...(dimension?{dimension,breakdown:(r[BREAKDOWNS[dimension]!] as any[]).map(rowOf)}:{})};
 }
@@ -61,6 +61,7 @@ export function openApi(origin:string) {
   paths:{
    '/api/v1/stats':{get:{summary:'Totals, an optional breakdown and the compared period, as the dashboard shows them',parameters:[
     {name:'site_id',in:'query',required:true,schema:{type:'string'}},{name:'metrics',in:'query',schema:{type:'string',description:`Comma-separated: ${Object.keys(METRICS).join(', ')}`}},
+    {name:'search_query',in:'query',schema:{type:'string',description:'A fetched source query label; selects native organic landing visits, not individual searchers'}},{name:'search_provider',in:'query',schema:{type:'string',enum:['google','bing']}},
     {name:'dimension',in:'query',schema:{type:'string',enum:Object.keys(BREAKDOWNS)}},{name:'period',in:'query',schema:{type:'string',enum:Object.keys(PERIODS)}},
     {name:'from',in:'query',schema:{type:'string',format:'date'}},{name:'to',in:'query',schema:{type:'string',format:'date',description:'Exclusive, in the site time zone'}},
     {name:'compare',in:'query',schema:{type:'string',enum:['previous','year','custom']}},{name:'compare_from',in:'query',schema:{type:'string',format:'date'}},{name:'compare_to',in:'query',schema:{type:'string',format:'date'}},

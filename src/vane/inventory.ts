@@ -53,6 +53,8 @@ export function inventory(site:Site,searchConnected=false) {
  if(searchConnected)fields.push(
   {name:'Google Search Console connection',table:'vane_search_connections',columns:['site_id','generation','sealed_tokens','property','properties_json','connected_by','connected_at','last_sync','next_sync','last_error','lock_id','lock_until'],description:'Owner-approved read-only Google OAuth tokens encrypted with AES-GCM, the selected property, connection identity and sync timing. Tokens are deleted on disconnect and excluded from archives.'},
   {name:'Google OAuth approval',table:'vane_search_oauth_states',columns:['state_hash','site_id','actor_id','session_hash','redirect_uri','expires_at','consumed_at'],description:'A one-use ten-minute approval bound to the owner’s native session and site. Only hashes of the random state and native session are stored. Never archived.'},
+ );
+ fields.push(
   {name:'Google source dates',table:'vane_search_days',columns:['site_id','day','property','snapshot_id','status','checked_at','published_at'],description:'Pacific source dates, pending or finalized, with the published snapshot pointer and check time.'},
   {name:'Google search aggregates',table:'vane_search_rows',columns:['site_id','day','snapshot_id','grain','query','page','path','clicks','impressions','ctr','position'],description:'Redacted query and page labels, independent overall/query/page/query-page grains, clicks, impressions, CTR and average position. No visitor attribution.'}
  );

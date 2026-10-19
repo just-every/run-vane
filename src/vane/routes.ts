@@ -75,7 +75,7 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
    if(path===searchConsole.CALLBACK_PATH)return searchConsole.callback(request,env,actor);
    if(path==='/api/vane/search-console/report'){
     const source=await searchConsole.report(env,actor,url.searchParams.get('siteId')??'',url.searchParams.get('from')??'',url.searchParams.get('to')??'');
-    if(url.searchParams.get('format')==='csv'){const table=url.searchParams.get('table')??'queries';insist(['queries','pages','queryPages','days'].includes(table),'table','Choose a search report table.');return new Response(toCsv(source[table as 'queries']),{headers:{...headers,'content-type':'text/csv; charset=utf-8','content-disposition':`attachment; filename="google-${table}-${source.from}-${source.to}.csv"`}})}
+    if(url.searchParams.get('format')==='csv'){const table=url.searchParams.get('table')??'queries';insist(['queries','pages','queryPages','days','landingPages'].includes(table),'table','Choose a search report table.');const native=table==='landingPages'?await createInsightsService(env,await site(env,url.searchParams.get('siteId')??''),clock(),range).list():null;const data=table==='landingPages'?source.queryPages.filter(r=>r.query===range.searchQuery).map(r=>({...r,vaneVisitors:r.path?native!.entryPages!.find(p=>p.path===r.path)?.visitors??0:null})):source[table as 'queries'];return new Response(toCsv(data),{headers:{...headers,'content-type':'text/csv; charset=utf-8','content-disposition':`attachment; filename="google-${table}-${source.from}-${source.to}.csv"`}})}
     return json(source);
    }
    if(path==='/api/vane/sites')return json((await sites(env)).filter(s=>open(s.id)));

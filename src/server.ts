@@ -92,6 +92,9 @@ export default withDemo({
   // METRIC-001: visitor salts are deleted 24 hours after creation, even when no page load arrives.
   // API-002: each scheduled warehouse export sends the dates that have ended since its last run.
   async scheduled(_controller, env) {
+    const sourceSync=syncSearchConsole(runtimeBindings(env), clock());
+    const sourceResult=Promise.allSettled([sourceSync]);
+    try {
     await expireSalts(runtimeBindings(env), clock())
     await expireKept(runtimeBindings(env), clock())
     await runExports(runtimeBindings(env), clock())
@@ -101,6 +104,8 @@ export default withDemo({
     await runReports(runtimeBindings(env), clock())
     await runAlerts(runtimeBindings(env), clock())
     await runFollowUps(runtimeBindings(env), clock())
-    await syncSearchConsole(runtimeBindings(env), clock())
+    } finally {
+      const result=(await sourceResult)[0]!;if(result.status==='rejected')throw result.reason;
+    }
   },
 } satisfies ExportedHandler<Bindings>, { seed: seedDemo })
