@@ -48,7 +48,7 @@ export async function installation({setup=true,vars:extra={}}={}) {
  const event=(siteId,extra={})=>({siteId,id:crypto.randomUUID(),path:'/',source:'search.example',campaign:'launch',consent:'not-required',...extra})
  const collect=(value,siteOrigin='https://fern.example')=>post('/api/vane/collect',value,'',{origin:siteOrigin})
  // Inspection for absence proofs: every row of every table, and the Worker's scheduled handler.
- const dump=async()=>{const tables=(await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%'").all()).results.map(r=>r.name);return Object.fromEntries(await Promise.all(tables.map(async name=>[name,(await db.prepare(`SELECT * FROM "${name}"`).all()).results])))}
+ const dump=async()=>{const tables=(await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%'").all()).results.map(r=>r.name);const result={};for(let i=0;i<tables.length;i+=2)Object.assign(result,Object.fromEntries(await Promise.all(tables.slice(i,i+2).map(async name=>[name,(await db.prepare(`SELECT * FROM "${name}"`).all()).results]))));return result}
  const scheduled=async()=>(await mf.getWorker('app')).scheduled({cron:'*/5 * * * *'})
  // The product clock, moved through the local dev-key door so tests can prove gaps of minutes without waiting.
  const clock=async at=>{const r=await request('/__dev/clock',{method:'POST',headers:{'x-rer-dev-key':vars.RER_DEV_KEY,'content-type':'application/json'},body:JSON.stringify({at})});assert.equal(r.status,200,await r.clone().text())}

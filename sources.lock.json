@@ -3143,7 +3143,7 @@
       "executable": false
     },
     "tests/harness.mjs": {
-      "sha256": "93e42b3e38c584105d8f21b2e4799aba5f03ccc04af8c9b2d449b3cfcd37b9b8",
+      "sha256": "e19ff9c615764ebbb53d476a99ef18d814f9934ee80a6a1022dc2658e56b9032",
       "executable": false
     },
     "tests/matomo.test.mjs": {
