@@ -124,6 +124,10 @@ Every report table downloads as CSV, and **Whole site as a ZIP of CSVs** on a re
 
 `connectors/looker-studio` holds a community connector. Push it to a new Apps Script project with `clasp push`, deploy it from its manifest, then add it in Looker Studio with a site's Stats API key (Settings, API keys), the installation's address and the site ID.
 
+### Server-side and mobile events
+
+Create an **events token** for one site on the API keys page, then `POST /api/v1/events` with `Authorization: Bearer <token>` and one event (or `{"events": [...]}` with up to 100): the script's fields, `type` `pageview` or `event`, and the visitor's `client_ip` and `user_agent`, which are used only to count visitors and classify devices and are never stored. Send an `Idempotency-Key` header to make a retry safe for 24 hours.
+
 ### Assistants (MCP)
 
 Point an MCP client at `POST <installation>/api/v1/mcp` with the header `Authorization: Bearer <Stats API key>`. Its `list_sites` and `query_stats` tools read the key's sites and answer exactly as `/api/v1/stats`; write tools are refused until agent grants exist.

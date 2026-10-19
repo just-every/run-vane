@@ -1625,3 +1625,33 @@ test('IMPORT-006 a page of PostHog $pageview events imports only the day, path, 
  const refused=await a.post('/api/vane/import-preview',{siteId:id,document:{results:[{...page.results[0],event:'$autocapture'}]}},a.owner);assert.equal(refused.status,400);assert.match(await refused.text(),/ROW_1_UNSUPPORTED_EVENT_TYPE/)
  assert.equal((await a.post('/api/vane/import-preview',{siteId:id,document:{results:[]}},a.owner)).status,400)
 })
+test('INSTALL-008 a server sends pageviews and a custom event with its site token, a repeated Idempotency-Key counts once, a token for another site is refused, and no raw IP or user agent is stored',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({paths:[]}),other=await a.addSite({name:'Oak Store',origin:'https://oak.example'})
+ await a.clock(Date.parse('2026-03-10T15:00:00Z'))
+ const token=async site=>(await (await a.form({operation:'apikey.create',kind:'events',label:'Backend '+site.slice(0,4),[`site_${site}`]:'on'},a.owner)).text()).match(/data-api-key>(vane_e_[0-9a-f]{64})</)[1]
+ assert.equal((await a.form({operation:'apikey.create',kind:'events',label:'Both',[`site_${id}`]:'on',[`site_${other}`]:'on'},a.owner)).status,400,'an events token covers one site')
+ const mine=await token(id),theirs=await token(other)
+ const send=(body,key=mine,extra={})=>a.request('/api/v1/events',{method:'POST',headers:{'content-type':'application/json',...(key?{authorization:'Bearer '+key}:{}),...extra},body:JSON.stringify(body)})
+ const chrome='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',iphone='Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1'
+ const page=(path,ip,agent,extra={})=>({type:'pageview',id:crypto.randomUUID(),path,consent:'not-required',client_ip:ip,user_agent:agent,...extra})
+ const first=page('/','203.0.113.9',chrome,{referrer:'https://www.google.com/',props:{plan:'pro'}})
+ const one=await send(first);assert.equal(one.status,200,await one.clone().text());assert.deepEqual((await one.json()).results.map(r=>r.status),[202])
+ const signup=await send({type:'event',id:crypto.randomUUID(),page:first.id,name:'Signup',consent:'not-required',client_ip:'203.0.113.9',user_agent:chrome});assert.deepEqual((await signup.json()).results.map(r=>r.status),[202])
+ // A batch with an Idempotency-Key, sent twice: the second answer repeats the first, and nothing counts twice.
+ const batch={events:[page('/pricing','203.0.113.9',chrome),page('/','198.51.100.4',iphone)]}
+ const sent=await (await send(batch,mine,{'idempotency-key':'order-1001'})).json(),again=await (await send(batch,mine,{'idempotency-key':'order-1001'})).json()
+ assert.equal(sent.accepted,2);assert.equal(again.duplicate,true);assert.deepEqual(again.results,sent.results)
+ assert.equal((await (await send(first)).json()).results[0].duplicate,true,'a repeated event ID is admitted once')
+ const summary=await (await a.request(`/api/vane/summary?siteId=${id}&period=today`,owner)).json()
+ assert.deepEqual([summary.pageviews,summary.visitors],[3,2],'two visitors from their client IP and user agent');assert.deepEqual(summary.sourceVisits.find(r=>r.label==='Google')?.visits,1)
+ const dump=await a.dump(),events=dump.vane_events.filter(e=>e.site_id===id)
+ assert.deepEqual(events.map(e=>e.browser).sort(),['Chrome','Chrome','Safari']);assert.equal(dump.vane_custom_events.filter(e=>e.site_id===id).length,1)
+ const stored=JSON.stringify(dump);for(const value of ['203.0.113.9','198.51.100.4',chrome,iphone,'order-1001',mine])assert.ok(!stored.includes(value),value)
+ // A token for another site, a Stats API key, no token and a missing client address are refused.
+ assert.equal((await send({...page('/','203.0.113.9',chrome),siteId:id},theirs)).status,403)
+ const stats=(await (await a.form({operation:'apikey.create',kind:'stats',label:'Read',[`site_${id}`]:'on'},a.owner)).text()).match(/data-api-key>(vane_k_[0-9a-f]{64})</)[1]
+ assert.equal((await send(page('/','203.0.113.9',chrome),stats)).status,403);assert.equal((await send(page('/','203.0.113.9',chrome),null)).status,401)
+ assert.equal((await send({...page('/','203.0.113.9',chrome),client_ip:undefined})).status,400)
+ assert.equal((await (await a.request(`/api/vane/summary?siteId=${other}&period=today`,owner)).json()).pageviews,0)
+ const openapi=await (await a.request('/api/v1/openapi.json')).json();assert.ok(openapi.paths['/api/v1/events']&&openapi['x-event-limits'].events.events>0)
+})

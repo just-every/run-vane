@@ -3,7 +3,7 @@ import { createInsightsService } from './reports'
 import { clock } from './clock'
 import { PERIODS } from './periods'
 import { FILTER_OPS } from './segments'
-import { RATE_LIMITS } from './api-keys'
+import { EVENT_LIMITS, RATE_LIMITS } from './api-keys'
 // API-001: the Stats API answers from the same report service as the dashboard, so its figures are the dashboard's.
 // A range is the site's local dates; `to` is exclusive in /api/v1/stats as on the dashboard, and inclusive in the
 // Plausible-compatible date_range, as Plausible's is.
@@ -57,7 +57,7 @@ export function openApi(origin:string) {
  const limits=`Per key: ${RATE_LIMITS.burst.requests} requests per ${RATE_LIMITS.burst.seconds}-second window and ${RATE_LIMITS.hourly.requests} per clock hour (UTC); over either, 429 with Retry-After.`;
  const err={description:'Refused, with {error, message}.'};
  return {openapi:'3.1.0',info:{title:'Vane Stats and Sites API',version:'1',description:`Read-only statistics with a site-scoped Stats API key, and site provisioning with an owner's provisioning key, both sent as Authorization: Bearer. ${limits}`},servers:[{url:origin}],
-  'x-rate-limits':RATE_LIMITS,components:{securitySchemes:{key:{type:'http',scheme:'bearer'}}},security:[{key:[]}],
+  'x-rate-limits':RATE_LIMITS,'x-event-limits':EVENT_LIMITS,components:{securitySchemes:{key:{type:'http',scheme:'bearer'}}},security:[{key:[]}],
   paths:{
    '/api/v1/stats':{get:{summary:'Totals, an optional breakdown and the compared period, as the dashboard shows them',parameters:[
     {name:'site_id',in:'query',required:true,schema:{type:'string'}},{name:'metrics',in:'query',schema:{type:'string',description:`Comma-separated: ${Object.keys(METRICS).join(', ')}`}},
@@ -67,6 +67,7 @@ export function openApi(origin:string) {
     {name:'filter',in:'query',schema:{type:'array',items:{type:'string',description:`dimension:op:value, op among ${Object.keys(FILTER_OPS).join(', ')}`}},style:'form',explode:true},{name:'segment',in:'query',schema:{type:'string',description:'A saved segment ID'}}],
     responses:{'200':{description:'Statistics'},'400':err,'401':err,'403':err,'429':err}}},
    '/api/v2/query':{post:{summary:'Plausible Stats API v2-compatible query',requestBody:{content:{'application/json':{schema:{type:'object',required:['site_id','metrics','date_range'],properties:{site_id:{type:'string'},metrics:{type:'array',items:{type:'string',enum:Object.keys(METRICS)}},date_range:{oneOf:[{type:'string',enum:Object.keys(PLAUSIBLE_RANGES)},{type:'array',items:{type:'string',format:'date'},description:'First and last day, both included'}]},dimensions:{type:'array',maxItems:1,items:{type:'string',enum:Object.keys(PLAUSIBLE_DIMENSIONS)}},filters:{type:'array'},include:{type:'object'}}}}}},responses:{'200':{description:'Results'},'400':err,'401':err,'403':err,'429':err}}},
+   '/api/v1/events':{post:{summary:`Server-side and mobile pageviews and custom events with a site's events token: one event, or {events:[...]} with up to 100, each with the script's fields, type pageview or event, and the visitor's client_ip and user_agent (used in memory only, never stored). An Idempotency-Key header makes a repeat within 24 hours answer the first results again. Per token: ${EVENT_LIMITS.burst.requests} requests per ${EVENT_LIMITS.burst.seconds} seconds and ${EVENT_LIMITS.events.events} events per clock hour (UTC); over either, 429 with Retry-After.`,parameters:[{name:'Idempotency-Key',in:'header',schema:{type:'string',maxLength:200}}],responses:{'200':{description:'Per-event results'},'400':err,'401':err,'403':err,'409':err,'413':err,'429':err}}},
    '/api/v1/mcp':{post:{summary:'Model Context Protocol (Streamable HTTP, one JSON-RPC message per request, JSON answers) with a Stats API key: list_sites and query_stats read; write tools need an agent grant',responses:{'200':{description:'JSON-RPC response'},'202':{description:'Notification accepted'},'401':err,'429':err}}},
    '/api/v1/export-schema.json':{get:{summary:'The scheduled warehouse export’s published schema (no key needed)',security:[],responses:{'200':{description:'Schema'}}}},
    '/api/v1/sites':{post:{summary:'Create a site (provisioning key)',responses:{'201':{description:'Created'},'400':err,'401':err,'403':err,'429':err}}},
