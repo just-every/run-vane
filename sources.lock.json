@@ -55,7 +55,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "10636d4577114fd9d3a10090c589b8c994d34066205cc6004ca63b5bec2cf37a",
+      "sha256": "6da8e43c6ad0a32d63ad60c06baed6985d264c75b45ebe72c965d24ad78a4f19",
       "executable": false
     },
     "AGENTS.md": {
@@ -79,7 +79,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "f61b0a2440be1e5e35cac06164fbdaa1d3512741d04f9db8349359db59968b20",
+      "sha256": "21285170eec2ab09fa4f95dacc536ba9b24c1696d5ada6ca421dc6162d7e46c1",
       "executable": false
     },
     "DEMO.md": {
@@ -2527,7 +2527,7 @@
       "executable": false
     },
     "src/vane/reports.ts": {
-      "sha256": "70d204cd990a1a92adf83f12f0223632080ae34a8d31834b9e3a9aaac85260cc",
+      "sha256": "1276f4e0ee4f9e6448d653b7cd5138ccbb02b4ee8af52bdbb16633965c215a50",
       "executable": false
     },
     "src/vane/retention.ts": {
@@ -2619,7 +2619,7 @@
       "executable": false
     },
     "src/vane/views/tables.ts": {
-      "sha256": "93157f16858cbc273f2faea8927f549b3dc464d6bf5e639cca0748a893e80112",
+      "sha256": "5b515d910751f54fe33c6632cacb7908fc4e5746bd72e3be6e9c1893af232266",
       "executable": false
     },
     "src/vane/views/types.ts": {
@@ -2631,7 +2631,7 @@
       "executable": false
     },
     "src/vane/visits.ts": {
-      "sha256": "295cc34c23b9a7e658666b540433ef2c37c59cb1eddde46d4e92579f1a93a8d8",
+      "sha256": "6b28b7329fbd2ef2b056e70e96de14f6b20c5e37573e493838c0d38c93e88924",
       "executable": false
     },
     "test-budget.json": {
@@ -2659,7 +2659,7 @@
       "executable": false
     },
     "tests/vane.test.mjs": {
-      "sha256": "9ba815836c4132a8af5f62286d7a52403f700994a582f6c82950128460305b25",
+      "sha256": "3a0d714cba875f80e2c78a7997dee48c529cf25800510a498c5fc68ae26a2eb7",
       "executable": false
     },
     "tsconfig.json": {

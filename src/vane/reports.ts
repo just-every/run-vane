@@ -75,6 +75,8 @@ export function createInsightsService(env:Env,value:Site,now=clock(),range?:{fro
   ],annotations,coverage:coverageChanges,variation:daily?variation(daily,from,to,firstDay[0]?.d??null):null};
   const {engagement,devices,browsers,browserVersions,systems,systemVersions,screens,siteSearch,entries,automaticEvents}=current,previousEngagement=before.engagement;
   const dimensions=Object.fromEntries((['devices','browsers','browserVersions','systems','systemVersions','screens'] as const).map(name=>[name,withPrevious(current[name],before[name],['label'],'visitors')]));
+  // CONV-004: each device row also carries its visits, conversions and conversion rate (by each visit's first page load).
+  dimensions.devices=dimensions.devices!.map(r=>{const v=entries.deviceVisits.find(x=>x.label===r.label);return {...r,visits:v?.visits??0,conversions:v?.conversions??0,conversionRate:v?.conversionRate??null}});
   const entryTables=Object.fromEntries((Object.keys(ENTRY_DIMENSIONS) as (keyof typeof ENTRY_DIMENSIONS)[]).map(name=>[name,withPrevious(entries[name],before.entries[name],['label'],'visitors')]));
   const conversionRate=(n:number)=>visitors?Math.round(n/visitors*1000)/10:null,convertersOf=(label:string|null)=>Number(converting.find(r=>r.label===label)?.converters??0);
   const goalBreakdown=goalCounts.map(row=>({...row,converters:convertersOf(row.label),conversionRate:conversionRate(convertersOf(row.label))}));
