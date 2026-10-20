@@ -87,7 +87,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "1c1244ffbb348dc70ce508997cc314b8ab141d2189435344a1b4fe0d3168d39a",
+      "sha256": "306f698a48c54bdae573c5aef3065747ba1f569e6eec262a0cbf0ea4bf354267",
       "executable": false
     },
     "DEMO.md": {
@@ -3079,7 +3079,7 @@
       "executable": false
     },
     "src/vane/views/report.ts": {
-      "sha256": "ca89efcc7270ecf482b8a39b4f5f6cf5a1c30956bd338499a36d9f5602711178",
+      "sha256": "a40638783bf0712a35804eae79da98c9cbc1de0ed3e019004d8a923d42f013c7",
       "executable": false
     },
     "src/vane/views/revenue.ts": {
