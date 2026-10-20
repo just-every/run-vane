@@ -35,6 +35,7 @@ export interface ViewData {
   closedDays?: { day: string; label: string }[]
   alertPeople?: { id: string; email: string; name: string }[]
   alertLog?: Awaited<ReturnType<typeof import('../traffic-alerts').alertLog>>
+  health?: import('../tracking-health').Health
   mailStops?: { email: string; status: string; occurred_at: number }[]
   warehouse?: { endpoint: string; bucket: string; region: string; prefix: string; accessKeyId: string; lastDay: string; lastResult: string | null; createdAt: number } | null
   secret?: string

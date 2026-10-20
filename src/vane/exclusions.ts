@@ -7,7 +7,8 @@ import type { TrafficReason } from './traffic'
 // the script then sends one empty request for a page load whose visitor has not granted consent.
 // excluded-path: collection counts each page load it refuses because the site excludes that path.
 // COLLECT-003 adds the traffic reasons: excluded IP, excluded country, bot, data-centre and referrer spam.
-export const countExclusion=(env:Env,siteId:string,day:string,reason:'consent-declined'|'excluded-path'|'own-browser'|TrafficReason)=>statement(env,'INSERT INTO vane_exclusions(site_id,day,reason,count) VALUES(?,?,?,1) ON CONFLICT(site_id,day,reason) DO UPDATE SET count=count+1 WHERE count<100000',siteId,day,reason)
+// collection-error (ALERT-002): page loads refused as malformed, from an unregistered origin or conflicting.
+export const countExclusion=(env:Env,siteId:string,day:string,reason:'consent-declined'|'excluded-path'|'own-browser'|'collection-error'|TrafficReason)=>statement(env,'INSERT INTO vane_exclusions(site_id,day,reason,count) VALUES(?,?,?,1) ON CONFLICT(site_id,day,reason) DO UPDATE SET count=count+1 WHERE count<100000',siteId,day,reason)
 // COLLECT-003: own-browser, one empty count for each page load of a browser the owner opted out with vane_ignore.
 export async function declinedResponse(request:Request,env:Env):Promise<Response|null> {
  const match=new URL(request.url).pathname.match(/^\/api\/vane\/(declined|ignored)\/([\w-]+)$/),own=match?.[1]==='ignored';
