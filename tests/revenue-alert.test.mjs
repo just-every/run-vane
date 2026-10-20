@@ -76,7 +76,7 @@ test('ALERT-002 revenue drops use site-currency amounts, dated conversion and ho
   await page.setViewportSize({width,height:1000});await page.goto(`${a.origin}/app/sites/${id}?section=settings`)
   assert.match(await page.locator('[data-alert-log]').textContent(),/AUD 15.00/)
   assert.doesNotMatch(await page.locator('[data-alert-log]').textContent(),/USD 15.00/)
-  if(process.env.VANE_SCREEN_DIR){await page.locator('[data-alert-log]').scrollIntoViewIfNeeded();await page.screenshot({path:join(process.env.VANE_SCREEN_DIR,`revenue-alert-currency-change-${width}.png`)});await page.getByRole('row').filter({has:page.getByRole('cell',{name:'Alert log',exact:true})}).scrollIntoViewIfNeeded();await page.screenshot({path:join(process.env.VANE_SCREEN_DIR,`revenue-alert-inventory-${width}.png`)})}
+  if(process.env.VANE_SCREEN_DIR){await page.locator('[data-alert-log]').scrollIntoViewIfNeeded();await page.screenshot({path:join(process.env.VANE_SCREEN_DIR,`revenue-alert-currency-change-${width}.png`)});await page.getByRole('row').filter({has:page.getByRole('rowheader',{name:'Alert log',exact:true})}).scrollIntoViewIfNeeded();await page.screenshot({path:join(process.env.VANE_SCREEN_DIR,`revenue-alert-inventory-${width}.png`)})}
  }
  await browser.close()
 })

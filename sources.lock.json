@@ -3327,7 +3327,7 @@
       "executable": false
     },
     "tests/revenue-alert.test.mjs": {
-      "sha256": "2f9ada622d8ea6b7aea4c58ea6856e5064664fa5011fdb6e6a0be03b0f7922d0",
+      "sha256": "abf997ca858729fab9ea2b5960f8f4d9085b463459526386056d49b38c70da7f",
       "executable": false
     },
     "tests/search-console.test.mjs": {
