@@ -9,7 +9,7 @@ export async function funnelLoads(env:Env,scope:string,from:string,to:string,eve
  (SELECT json_group_array(json_object('name',ce.name,'at',ce.at,'props',json(ce.props),'goals',ce.goals)) FROM (
   SELECT ce.name,ce.at,
    (SELECT json_group_object(pr.key,pr.value) FROM vane_event_props pr WHERE pr.event_id=ce.id) AS props,
-   (SELECT group_concat(c.kind,char(31)) FROM ${events} c WHERE c.id>q.id||':'||substr(ce.id,length(q.site_id)+2)||':goal:' AND c.id<q.id||':'||substr(ce.id,length(q.site_id)+2)||':goal;') AS goals
+   (SELECT group_concat(c.kind,char(31)) FROM ${events} c WHERE c.id>q.id||':'||substr(ce.id,length(ce.site_id)+2)||':goal:' AND c.id<q.id||':'||substr(ce.id,length(ce.site_id)+2)||':goal;') AS goals
   FROM vane_custom_events ce WHERE ce.page_id=q.id ORDER BY ce.at,ce.rowid
  )) AS custom FROM q ORDER BY q.day,q.visitor,q.visit,q.at,q.id`).bind(scope,from,to,null).all<any>()
  const names=(s:string|null)=>s?s.split('\u001f'):[],by=new Map<string,(FunnelLoad&{pageOrder:number;eventOrder:number})[]>();let pageOrder=0

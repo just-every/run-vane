@@ -54,7 +54,7 @@ test('IMPORT-005 / IMPORT-009 Matomo Reporting API aggregates match every source
   await page.goto(`${a.origin}/app/sites/${siteId}?section=history&from=${day}&to=2026-10-02`);
   await page.getByLabel('Matomo Reporting API address').fill(matomo.endpoint);await page.getByLabel('Matomo site ID').fill('1');await page.getByLabel('Source date',{exact:true}).fill(day);await page.getByLabel('Reporting API token').fill(matomo.token)
   await page.getByRole('button',{name:'Preview Matomo reports'}).click();await page.getByRole('heading',{name:'Review import'}).waitFor()
-  assert.equal(await page.locator('input[name=token]').inputValue(),'','credentials are not echoed into preview')
+  assert.equal(await page.getByLabel('Reporting API token',{exact:true}).inputValue(),'','credentials are not echoed into preview')
   if(screens)await page.getByRole('heading',{name:'Review import',exact:true}).scrollIntoViewIfNeeded();if(screens)await page.screenshot({path:`${screens}/matomo-preview-${width}.png`})
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'preview has no sideways page scroll')
   await page.goto(`${a.origin}/app/sites/${siteId}?section=history&from=${day}&to=2026-10-02`)

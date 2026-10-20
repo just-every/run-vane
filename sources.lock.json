@@ -2691,7 +2691,7 @@
       "executable": false
     },
     "src/vane/funnel-loads.ts": {
-      "sha256": "2b309ca7399d04f8dcfc56c51d2179e5b1fc21aab55843bab971b549aafb497a",
+      "sha256": "b14d864391cf88a3dc31ab50a0c50324f551304896f87ed14b934b08b984a7fa",
       "executable": false
     },
     "src/vane/funnels.ts": {
@@ -3231,11 +3231,11 @@
       "executable": false
     },
     "tests/matomo.test.mjs": {
-      "sha256": "0da1bb73105bbe6f155c9246f24e5e0f5772e394dae63f090ea25a121a4d39ca",
+      "sha256": "1e397d925739b6039b0d80a6d22509db0a9dad3f613c225e3a742978e9f38105",
       "executable": false
     },
     "tests/plausible-definitions.test.mjs": {
-      "sha256": "b4ba272685585793772b74f63bf0ad854f5e65cda0d6964d83c284d8a4445cb6",
+      "sha256": "52cc93b7a4e5743365b6849a34899f5fc67c944b7fa5bff9b8cf9cbe1a32a409",
       "executable": false
     },
     "tests/search-console.test.mjs": {
