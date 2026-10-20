@@ -12,6 +12,9 @@ export const trailDot = (order: number, tone: 'gold' | 'hollow', className = '')
 // An invisible bend in the trail, placed by CSS in its section.
 export const bend = (order: number, name: string) => `<i class="trail-bend bend-${name}" data-trail="${order}" aria-hidden="true"></i>`
 
+// Text for wider screens and the phone plan's shorter wording; only one of the two is shown.
+export const byWidth = (wide: string, phone: string) => `<span class="not-phone">${wide}</span><span class="phone-only">${phone}</span>`
+
 export const check = (text: string) => `<span class="state-check">${icons.check}</span><span>${text}</span>`
 
 const widths: Record<string, number[]> = { hero: [768, 1152, 1536, 2304, 3072], interlude: [768, 1152, 1536, 2304, 3072], closing: [768, 1152, 1536, 2304, 3072], 'hero-phone': [480, 836], 'interlude-phone': [480, 900], 'closing-phone': [480, 900] }

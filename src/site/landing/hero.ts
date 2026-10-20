@@ -21,7 +21,7 @@ const cards = [
   skyCard('source', { x: 884, y: 344, w: 176, r: -5.5 }, `<p class="sky-label">Top source</p><div class="sky-row"><span class="tile tile-orange" aria-hidden="true">HN</span><p class="sky-stack"><strong>Hacker News</strong><span>${n(hackerNews.today)} visitors</span></p></div>`),
   skyCard('goal', { x: 1090, y: 301, w: 173, r: -5 }, `<p class="sky-label">Goal · Signups</p><div class="sky-row"><span class="tile tile-green" aria-hidden="true">${icons.usersSolid}</span><strong class="sky-num">${signupsToday}</strong><span class="delta">${icons.up}4.4%</span></div>`),
   skyCard('today', { x: 1310, y: 208, w: 228, r: -4.5 }, `<p class="sky-label">Visitors today</p><div class="sky-row"><strong class="sky-big">${n(today)}</strong><span class="delta delta-big">${icons.up}${Math.round((today / lastTuesday - 1) * 100)}%</span></div>${spark}`),
-  skyCard('why', { x: 1393, y: 347, w: 184, r: -3.8 }, `<div class="sky-row sky-row-top">${icons.bulb}<p class="sky-stack"><span class="sky-label">Why it moved</span><strong>Launch post on Hacker News</strong></p></div>`),
+  skyCard('why', { x: 1393, y: 347, w: 203, r: -3.8 }, `<div class="sky-row sky-row-top">${icons.bulb}<p class="sky-stack"><span class="sky-label">Why it moved</span><strong>Launch post on Hacker News</strong></p></div>`),
   skyCard('cookies', { x: 1381, y: 453, w: 216, r: 0 }, `<div class="sky-row">${icons.shield}<span>No cookies · no banner</span></div>`),
 ].join('')
 

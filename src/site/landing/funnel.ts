@@ -2,7 +2,7 @@
 // drawn to scale; each step's rate is of the step before it.
 import { n, order } from './data'
 import { icons } from './icons'
-import { bend, card, head, trailDot } from './parts'
+import { bend, byWidth, card, head, trailDot } from './parts'
 
 const steps = [['Read the launch post', 6930], ['Viewed /pricing', 2148], ['Started checkout', 704], ['Subscribed', order.subscribed]] as const
 const share = (value: number) => value / steps[0][1] * 100
@@ -19,7 +19,7 @@ const plans = [['plan: monthly', 71], ['plan: quarterly', 29]] as const
 const sources = [['green', 'Newsletter', 607, '11.2'], ['blue', 'Hacker News', 3120, '0.9']] as const
 const orders = card('Cold brew subscription funnel, Oct 13 to 18', `<h3 class="funnel-title">Cold brew subscription <span class="sep">·</span> Oct 13–18</h3>${chart}`
   + `<div class="order-split"><div class="revenue"><p class="small-label">Revenue</p><p class="revenue-total">${order.revenue}</p><ul class="plans">${plans.map(([plan, value]) => `<li><p><span>${plan}</span><span>${value}%</span></p><span class="bar-track"><span style="width:${value}%"></span></span></li>`).join('')}</ul></div>`
-  + `<div class="by-source"><p class="small-label">By source</p><ul>${sources.map(([tone, name, visitors, rate]) => `<li class="source-${tone}"><span class="source-dot" aria-hidden="true"></span><p>${name}<span class="sep">·</span>${n(visitors)} visitors<span class="sep">·</span>${rate}% subscribed</p></li>`).join('')}</ul></div></div>`, 'card-funnel')
+  + `<div class="by-source"><p class="small-label">By source</p><ul>${sources.map(([tone, name, visitors, rate]) => `<li class="source-${tone}"><span class="source-dot" aria-hidden="true"></span><p>${byWidth(`<span class="src-name">${name}</span><span class="sep">·</span>${n(visitors)} visitors<span class="sep">·</span>${rate}% subscribed`, `<span>${name}</span><span>${rate}% subscribed</span>`)}</p></li>`).join('')}</ul></div></div>`, 'card-funnel')
 
 const redirect = `<p class="note-chip"><span class="dot-red" aria-hidden="true"></span><span><b>404 on /cold-bew</b><span class="sep">·</span><span class="muted">38 hits from a Reddit link → redirect added</span> <span class="tick-green">${icons.tick}</span></span></p>`
 

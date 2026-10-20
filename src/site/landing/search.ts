@@ -1,10 +1,10 @@
 // 07 · Sun, Oct 18: what they searched. Google's keywords for Oct 13–16 (the
 // days Google has sent so far), linked to what those visitors did on the page they landed on.
 import { icons } from './icons'
-import { bend, card, head, trailDot } from './parts'
+import { bend, byWidth, card, head, trailDot } from './parts'
 
 const queries = [['cold brew subscription', '1,204', '3.1'], ['best cold brew concentrate', '640', '4.8'], ['juniper coffee cold brew', '412', '1.0'], ['cold brew ratio', '288', '6.2']] as const
-const google = card('Google search keywords, Oct 13 to 16', '<h3>Google search <span class="sep">·</span> Oct 13–16</h3><table class="keywords"><thead><tr><th scope="col"><span class="sr-only">Linked</span></th><th scope="col">Query</th><th scope="col">Clicks</th><th scope="col">Position</th></tr></thead><tbody>'
+const google = card('Google search keywords, Oct 13 to 16', `<h3>Google search <span class="sep">·</span> Oct 13–16</h3><table class="keywords"><thead><tr><th scope="col"><span class="sr-only">Linked</span></th><th scope="col">Query</th><th scope="col">Clicks</th><th scope="col">${byWidth('Position', 'Pos.')}</th></tr></thead><tbody>`
   + queries.map(([query, clicks, position], i) => `<tr${i ? '' : ' class="picked"'}><td><span class="row-dot" aria-hidden="true"></span></td><td>${query}</td><td>${clicks}</td><td>${position}${i ? '' : ` <span class="rank-up">${icons.up}5</span>`}</td></tr>`).join('')
   + '</tbody></table>', 'card-google')
 

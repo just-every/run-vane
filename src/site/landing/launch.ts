@@ -3,10 +3,10 @@
 import { onlineChart } from './charts'
 import { hackerNews, n, onlineNow, site, today } from './data'
 import { icons, swallow } from './icons'
-import { bend, card, head, trailDot } from './parts'
+import { bend, byWidth, card, head, trailDot } from './parts'
 
 const slack = card('The spike alert in Slack', `<p class="channel"><span class="channel-hash">${icons.hash}</span>#marketing</p><div class="message"><span class="avatar">${swallow(34)}</span><div><p><strong>Vane</strong> <span class="muted">9:41 am</span></p>`
-  + '<p>Traffic spike on /blog/cold-brew-launch · 3.4× a usual Tuesday · first source Hacker News.</p></div></div>', 'card-slack')
+  + `<p>${byWidth('Traffic spike on /blog/cold-brew-launch · 3.4× a usual Tuesday · first source Hacker News.', 'Traffic spike on /blog/cold-brew-launch · 3.4× a usual Tuesday.')}</p></div></div>`, 'card-slack')
 
 // Each list sums to the day: sources and countries to 4,812 visitors, pages are visitors per page.
 const lists = [

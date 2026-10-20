@@ -29,8 +29,8 @@ export function onlineChart() {
   return `<div class="online-chart"><div class="plot-box">${svg(`<defs><linearGradient id="online-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1d58f0" stop-opacity=".22"/><stop offset="1" stop-color="#1d58f0" stop-opacity="0"/></linearGradient></defs>`
     + `<path d="${line}L${f(pts[pts.length - 1][0])} 100H${f(pts[0][0])}z" fill="url(#online-fill)"/><path d="${line}" fill="none" stroke="#2556e8" stroke-width="2.4" vector-effect="non-scaling-stroke"/>`)}`
     + pin(9 + 14 / 60, 'pin-blue') + pin(9 + 41 / 60, 'pin-blue') + pin(peak[0], 'pin-blue') + `<span class="pin-dot pin-green" style="${at(pts[pts.length - 1][0], pts[pts.length - 1][1])}"></span>`
-    + `<p class="pin pin-launch" style="--px:${f(x(9 + 14 / 60))}%"><span>9:14 am · Launch post on Hacker News</span></p>`
-    + `<p class="pin pin-alert" style="--px:${f(x(9 + 41 / 60))}%"><span>9:41 am · Spike alert sent to #marketing</span></p>`
+    + `<p class="pin pin-launch" style="--px:${f(x(9 + 14 / 60))}%;--py:${f(y(6))}%"><span>9:14 am · Launch post on Hacker News</span></p>`
+    + `<p class="pin pin-alert" style="--px:${f(x(9 + 41 / 60))}%;--py:${f(y(35))}%"><span>9:41 am · Spike alert sent to #marketing</span></p>`
     + `<p class="pin pin-peak" style="--px:${f(x(peak[0]))}%;--py:${f(y(peak[1]))}%"><span>12:10 pm · <b class="gold">${peak[1]} online</b></span></p></div>`
     + `<div class="axis-x">${ticks.map(([hour, label]) => `<span style="left:${f(x(hour))}%">${label}</span>`).join('')}</div>`
     + `<p class="sr-only">People online on Tue, Oct 13: about ${online[0][1]} at 6 am, ${peak[1]} at the 12:10 pm peak and ${onlineNow} now, at 9:30 pm.</p></div>`

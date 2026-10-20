@@ -29,6 +29,10 @@
 .by-source ul { margin-top: 12px; display: grid; gap: 10px; }
 .by-source li { display: flex; align-items: flex-start; gap: 12px; padding: 13px 12px; border-radius: 10px; color: var(--ink); font-size: 15px; font-weight: 500; }
 .by-source li .sep { margin: 0 .3em; }
+.by-source .phone-only { display: none; }
+/* A row too narrow for its one line (342 px of text) puts the source on its own line above its numbers. */
+.by-source li { container-type: inline-size; }
+@container (max-width: 371px) { .src-name { display: block; } .src-name + .sep { display: none; } }
 .source-green { background: #eaf7ef; }
 .source-dot { flex: none; width: 15px; height: 15px; margin-top: 3px; border-radius: 50%; background: #2556e8; }
 .source-green .source-dot { background: #22b573; }
@@ -50,7 +54,7 @@
 .row-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #8e98ad; vertical-align: middle; }
 .picked .row-dot { position: relative; z-index: 2; width: 13px; height: 13px; background: #2556e8; }
 .rank-up { display: inline-flex; align-items: center; gap: 2px; margin-left: 20px; color: var(--gold-ink); font-weight: 500; }
-.rank-up .up { width: 14px; height: 14px; }
+.rank-up .up { flex: none; width: 14px; height: 14px; }
 .query-link { position: relative; z-index: 2; grid-row: 1; align-self: end; width: calc(34.6% - 40px); height: calc(100% - 152px + 46px); margin: 0 0 -46px 40px; overflow: visible; }
 .search-cards > .trail-bend { position: relative; grid-row: 1; align-self: end; margin: 0 0 -23px 62%; }
 .card-landing { grid-row: 2; margin: 46px 0 0 24%; padding: 26px 30px 28px; }
@@ -88,6 +92,7 @@
 .moved-title { margin-top: 18px; padding-top: 16px; border-top: 1px solid #e8edf4; color: #3c4560; font-size: 15px; font-weight: 600; }
 .moved { margin-top: 6px; }
 .moved li { display: flex; gap: 14px; padding: 8px 0; color: #2d3550; font-size: 13.5px; line-height: 1.5; }
+.moved .gold { white-space: nowrap; }
 .moved-dot { flex: none; width: 13px; height: 13px; margin-top: 3px; border-radius: 50%; background: #3b78f2; }
 .moved-coral .moved-dot { background: #f05a5a; }
 .moved-green .moved-dot { background: #33c47a; }
@@ -121,8 +126,9 @@
 .hash-inputs li, .hash-id, .hash-counted, .salt-old, .salt-new { display: flex; align-items: center; gap: 14px; min-height: 52px; padding: 0 18px; border-radius: 10px; background: #fff; box-shadow: var(--chip-shadow); color: var(--ink); font-size: 16px; }
 .hash-inputs .icon { flex: none; color: #2556e8; }
 .hash-join { width: 100%; height: 222px; }
-.hash-id { justify-content: center; }
-.hash-id code { font: 400 16px/1 var(--font-mono); }
+/* A visitor id never splits: it needs 206 px of the column's 203 at the chips' usual padding. */
+.hash-id { justify-content: center; padding-inline: 14px; }
+.hash-id code { font: 400 16px/1 var(--font-mono); white-space: nowrap; }
 .hash-arrow { width: 44px; height: 14px; margin-left: 2px; }
 .hash-counted { gap: 12px; white-space: nowrap; }
 .ring-gold { display: inline-flex; color: var(--gold); }
@@ -150,9 +156,12 @@
   .searched .story-head { grid-row: 1; }
   .report-grid { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); row-gap: 40px; column-gap: 16px; }
   .report .story-head { grid-column: 1 / -1; padding: 0; }
+  .owned { gap: 20px 48px; }
+}
+/* Below 1,241 px the midnight salt change drops under the hash, where each salt chip keeps its date on one line. */
+@media (max-width: 1240px) {
   .hash { grid-template-columns: 219px 44px minmax(0, 203px) 50px minmax(0, 220px); justify-content: center; }
   .hash-night { grid-column: 1 / -1; width: min(460px, 100%); justify-self: center; margin: 48px 0 0; }
-  .owned { gap: 20px 48px; }
 }
 @media (max-width: 960px) {
   .hash { grid-template-columns: 200px 36px minmax(0, 1fr) 40px minmax(0, 1fr); }
@@ -176,15 +185,21 @@
   .revenue-total { font-size: 32px; }
   .by-source { padding: 0 16px 16px; border-left: 0; }
   .by-source li { padding: 10px 12px; font-size: 14px; }
+  .by-source li > p { flex: 1; }
+  .by-source .phone-only { display: flex; justify-content: space-between; gap: 12px; }
   .card-google { padding: 18px 8px 6px; }
   .card-google h3 { padding-left: 8px; font-size: 18px; }
   .keywords { font-size: 14px; }
   .keywords th { font-size: 13px; }
   .keywords td { height: 46px; }
   .keywords th:first-child, .keywords td:first-child { width: 30px; }
-  .keywords th:nth-child(4), .keywords td:nth-child(4) { width: 26%; }
+  .keywords :is(th, td):is(:nth-child(3), :nth-child(4)) { width: 1%; padding-left: 14px; white-space: nowrap; }
+  .keywords :is(th, td):nth-child(4) { padding-right: 8px; }
   .rank-up { margin-left: 6px; }
-  .query-link, .card-landing::before, .search-cards > .trail-bend { display: none; }
+  .search-cards > .trail-bend { display: none; }
+  /* The link runs from the first query's dot (--row-x, --row-y in the card) down to the landing card's dot. */
+  .search-cards { --row-x: 23px; --row-y: 111px; }
+  .query-link { width: calc(14% + .5px - var(--row-x)); height: calc(100% - var(--row-y) + 14px); margin: 0 0 -14px var(--row-x); }
   .card-landing { margin: 14px 0 0; padding: 18px 16px; }
   .card-landing h3 { font-size: 17px; }
   .landing-stats div { padding: 0 8px; }
@@ -198,8 +213,9 @@
   .mail-stats div, .mail-stats div + div { padding: 10px 12px; border: 1px solid #e8edf4; border-radius: 10px; }
   .report-side { gap: 14px; }
   .hash { display: flex; flex-direction: column; align-items: stretch; gap: 0; margin-top: 32px; padding: 18px 14px; border-radius: 14px; background: rgba(255,255,255,.55); }
-  .hash-inputs { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-  .hash-inputs li { min-height: 40px; padding: 0 10px; gap: 8px; font-size: 13px; overflow-wrap: anywhere; }
+  /* Two chips a row; a chip that can't fit half the row takes the whole row, so no date splits. */
+  .hash-inputs { display: flex; flex-wrap: wrap; gap: 8px; }
+  .hash-inputs li { flex: 1 1 calc(50% - 4px); min-height: 40px; padding: 0 10px; gap: 8px; font-size: 13px; white-space: nowrap; }
   .hash-inputs .icon { width: 18px; height: 18px; }
   .hash-join { display: none; }
   .hash-id { min-height: 40px; align-self: center; margin-top: 30px; }
