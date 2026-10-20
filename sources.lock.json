@@ -3139,7 +3139,7 @@
       "executable": false
     },
     "tests/chat.test.mjs": {
-      "sha256": "72e65071c8286dd2bda7255d44c55d659dc53246c1c183791829759e5480a36d",
+      "sha256": "d7e13fbf71777919c8eece3a2b5edd4d5bde56f843533fffb153e0411c932af6",
       "executable": false
     },
     "tests/demo.journey.mjs": {
