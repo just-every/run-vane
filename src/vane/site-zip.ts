@@ -48,7 +48,7 @@ SELECT day,${Object.keys(columns).map(name=>`"${name}"`).join(',')},COUNT(DISTIN
   file('operating_systems',['date','operating_system','operating_system_version',...VISIT],measured(systems!.results,['operating_system','operating_system_version'])),
  ]
  const sourceReports=await importedReports(env,[value.id],ALL[0],ALL[1]);
- for(const method of new Set(sourceReports.map(r=>r.report))){const records=sourceReports.filter(r=>r.report===method);files.push({name:`matomo_${method}_${records[0]!.day}_${records.at(-1)!.day}.csv`,text:toCsv(records.map(aggregateCsvRow))})}
+ for(const method of new Set(sourceReports.map(r=>r.report))){const records=sourceReports.filter(r=>r.report===method);files.push({name:`${records[0]!.provider}_${method}_${records[0]!.day}_${records.at(-1)!.day}.csv`,text:toCsv(records.map(aggregateCsvRow))})}
  const bingRows=await rows<Record<string,unknown>>(env,'SELECT property,day,kind,query,page,clicks,impressions,CASE WHEN impressions>0 THEN 1.0*clicks/impressions ELSE NULL END AS ctr,CASE WHEN position_weight>0 THEN position_sum/position_weight ELSE NULL END AS position FROM vane_bing_rows WHERE site_id=? ORDER BY day,kind,query,page',value.id);
  if(bingRows.length)files.push({name:'bing_search.csv',text:toCsv(bingRows)});
  const searchRows=await rows<Record<string,unknown>>(env,"SELECT r.day,r.grain,r.query,r.page,r.path,r.clicks,r.impressions,r.ctr,r.position FROM vane_search_rows r JOIN vane_search_days d ON d.site_id=r.site_id AND d.day=r.day AND d.snapshot_id=r.snapshot_id WHERE r.site_id=? AND d.status='final' ORDER BY r.day,r.grain,r.query,r.page",value.id);

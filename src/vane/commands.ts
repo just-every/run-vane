@@ -12,7 +12,7 @@ function analystChange(value:Site,input:any) {
  const config:any={...value.config};
  if('customGoals' in input)config.customGoals=input.customGoals;
  if('goals' in input){config.goals=input.goals;config.scrollGoals=input.scrollGoals}
- for(const key of ['funnels','eventDefinitions'])if(key in input)config[key]=input[key];
+ for(const key of ['funnels','eventDefinitions','propertyNames','propertySources'])if(key in input)config[key]=input[key];
  return {name:value.name,origin:value.origin,config};
 }
 // The command API is the agent door: proposals it prepares are audited as agent actions.
@@ -43,6 +43,7 @@ export async function decide(env:Env,actor:Actor,id:string,approve:boolean) {
  if(approve&&p.command!=='site.create') {
   const current=await site(env,payload.siteId); insist(current.version===payload.version,'stale','Site settings changed; prepare a new proposal.',409);
   operations.push(statement(env,'INSERT INTO vane_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM vane_sites WHERE id=? AND version=?) THEN 1 ELSE 0 END',current.id,payload.version));
+  if(p.command==='site.configure'){for(const [name,g] of Object.entries(payload.config.customGoals??{}) as [string,any][])if(g.source&&JSON.stringify(current.config.customGoals?.[name])!==JSON.stringify(g))operations.push(statement(env,"INSERT INTO vane_annotations(id,site_id,day,kind,text,url,author,at) VALUES(?,?,?,'settings',?,NULL,?,?)",uid(),current.id,localDay(clock(),payload.config.timeZone??'UTC'),`Goal ${name} approved; recovered source: ${g.source}.`,actor.id,clock()));for(const name of payload.config.propertyNames??[])if(payload.config.propertySources?.[name]&&current.config.propertySources?.[name]!==payload.config.propertySources[name])operations.push(statement(env,"INSERT INTO vane_annotations(id,site_id,day,kind,text,url,author,at) VALUES(?,?,?,'settings',?,NULL,?,?)",uid(),current.id,localDay(clock(),payload.config.timeZone??'UTC'),`Property ${name} approved; recovered source: ${payload.config.propertySources[name]}.`,actor.id,clock()))}
   if(p.command==='site.configure')operations.push(statement(env,'UPDATE vane_sites SET name=?,origin=?,config_json=?,version=version+1 WHERE id=?',payload.name,payload.origin,JSON.stringify(dated(current.config,payload.config)),current.id));
   // SITE-001: deleting a site first erases its history exactly as history.erase does, then removes the site with its
   // counters and salts. Import custody checks the site at the end of its erasure, so the site goes in a second batch;

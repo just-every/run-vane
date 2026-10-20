@@ -1,4 +1,6 @@
 import './chat.test.mjs'
+
+import './plausible-definitions.test.mjs'
 import './bing.test.mjs'
 import './search-console.test.mjs'
 import './matomo.test.mjs'

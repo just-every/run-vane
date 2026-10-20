@@ -44,6 +44,7 @@ export interface ViewData {
   imports?: any[]
   notice?: string
   error?: string
+  importDefinitions?:import('../movein/plausible-types').RecoveredDefinition[]
   importPreview?: any
   eventPreview?: any
   importCarry?: string

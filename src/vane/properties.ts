@@ -35,3 +35,6 @@ export function eventName(input:unknown):string {
  insist(!EMAIL.test(name),'personal','An event carrying an email address is refused.');
  return name;
 }
+
+// Recovered source goals use the same normalized property values as native events.
+export const propertiesMatch=(expected:Record<string,string>|undefined,actual:[string,string][])=>{const values=Object.fromEntries(actual);return Object.entries(expected??{}).every(([key,value])=>values[key]===value)}

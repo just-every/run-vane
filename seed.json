@@ -118,6 +118,16 @@
         "Aggregate figures and private filtered dashboard link; no visitor records"
       ],
       "adapters": []
+    },
+    {
+      "id": "plausible",
+      "required": false,
+      "why": "Owner-initiated read-only goal and property recovery at fixed official plausible.io endpoints (IMPORT-009)",
+      "data": [
+        "Source site ID, one-use Stats or Enterprise Sites API key, goal/property listing and revenue-by-goal query",
+        "Goal and custom-property definitions and aggregate revenue currencies returned; no collected Vane visits sent"
+      ],
+      "adapters": []
     }
   ],
   "env": [],

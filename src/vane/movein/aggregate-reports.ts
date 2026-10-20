@@ -18,6 +18,6 @@ export async function prepareImportedGoal(env:Env,actor:Actor,p:any) {
  const config={...value.config}
  const name=eventName(d.name),event=eventName(d.kind==='pageview'?d.name:d.pattern??d.name)
  insist(!Object.hasOwn(config.goals,name)&&!Object.hasOwn(config.scrollGoals??{},name),'import_goal','A native goal already has this name; review its settings before replacing it.',409)
- config.customGoals={...config.customGoals,[name]:{event,...(d.kind==='pageview'?{path:d.pattern}:{}),revenue:d.kind==='revenue',currency:d.currency}}
+ config.customGoals={...config.customGoals,[name]:{event,...(d.kind==='pageview'?{path:d.pattern}:{}),revenue:d.kind==='revenue',currency:d.currency,source:'Matomo Goals.getGoals'}}
  return prepare(env,actor,'site.configure',{siteId:value.id,name:value.name,origin:value.origin,config,customGoals:config.customGoals},'app')
 }

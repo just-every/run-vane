@@ -10,7 +10,7 @@ export const commands: Record<string, string> = {
 
 // A proposal's values as the owner reads them: named settings with plain values, never ids or raw JSON.
 const LABELS: Record<string, string> = {
-  name: 'Site name', origin: 'Address', paths: 'Counted paths', excludePaths: 'Excluded paths', goals: 'Goals', scrollGoals: 'Scroll-depth goals',
+  propertyNames:'Recovered property names',propertySources:'Property definition sources',incumbentCompatibility:'Incumbent tracking compatibility',name: 'Site name', origin: 'Address', paths: 'Counted paths', excludePaths: 'Excluded paths', goals: 'Goals', scrollGoals: 'Scroll-depth goals',
   consent: 'Consent', consentRegions: 'Consent regions', consentAdapter: 'Consent manager', sampleRate: 'Sample rate', retentionDays: 'Retention',
   signalCounter: 'Privacy-signal counter', timeZone: 'Time zone', currency: 'Currency', origins: 'Extra allowed addresses', rewrites: 'Rewrite rules',
   sourceRules: 'Source grouping rules', queryKeys: 'Kept query parameters', funnels: 'Funnels', eventDefinitions: 'No-code events', campaigns: 'Campaigns',
@@ -20,7 +20,7 @@ const label = (key: string) => LABELS[key] ?? key.replace(/([a-z])([A-Z])/g, '$1
 function plain(key: string, value: unknown): string {
   if (value === null || value === undefined || value === '') return 'None'
   if (typeof value === 'boolean') return value ? 'On' : 'Off'
-  if(key==='customGoals'&&typeof value==='object')return Object.entries(value as Record<string,any>).map(([name,g])=>`${name}: ${g.path?`page path equals ${g.path}`:`custom event equals ${g.event}`}${g.revenue?`; revenue required in ${g.currency}`:''}`).join('; ')||'None'
+  if(key==='customGoals'&&typeof value==='object')return Object.entries(value as Record<string,any>).map(([name,g])=>`${name}: ${g.path?`page path equals ${g.path}`:`custom event equals ${g.event}`}${g.depth?`; scroll at least ${g.depth}%`:''}${g.props?`; properties ${JSON.stringify(g.props)}`:''}${g.source?`; source ${g.source}`:''}${g.revenue?`; revenue required in ${g.currency}`:''}`).join('; ')||'None'
   if (key === 'sampleRate') return `${value}%`
   if (key === 'retentionDays') return `${value} days`
   if (key === 'consent') return value === 'not-required' ? 'Not required' : 'Required'

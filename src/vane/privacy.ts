@@ -1,4 +1,4 @@
-import { eventName } from './properties'
+import { cleanProps, eventName } from './properties'
 import { cleanRates } from './revenue'
 import { cleanConsent } from './consent'
 import { cleanExperiments } from './experiments'
@@ -39,8 +39,12 @@ export function cleanConfig(input:any):Config {
   eventName(name);insist(!names.includes(name),'custom_goals','Goal names must be distinct.');
   insist(raw&&typeof raw.revenue==='boolean'&&typeof raw.currency==='string'&&Intl.supportedValuesOf('currency').includes(raw.currency),'custom_goals','Choose the revenue flag and an ISO currency for each event goal.');
   if(raw.path!==undefined)insist(typeof raw.path==='string'&&/^\/[A-Za-z0-9_\-/*.:]{0,119}$/.test(raw.path),'custom_goals','An imported page goal needs a path without queries.');
-  customGoals[name]={event:eventName(raw.event),...(raw.path?{path:raw.path}:{}),revenue:raw.revenue,currency:raw.currency};names.push(name)
+  if(raw.depth!==undefined)insist(raw.path&&Number.isInteger(raw.depth)&&raw.depth>=1&&raw.depth<=100,'custom_goals','A scroll goal needs a path and a whole percentage from 1 to 100.');
+  const props=cleanProps(raw.props);insist(props.dropped===0,'custom_goals','Complete property conditions that cannot be kept under the privacy rules.');
+  customGoals[name]={event:eventName(raw.event),...(raw.path?{path:raw.path}:{}),...(raw.depth!==undefined?{depth:raw.depth}:{}),...(props.kept.length?{props:Object.fromEntries(props.kept)}:{}),...(raw.source?{source:eventName(raw.source)}:{}),revenue:raw.revenue,currency:raw.currency};names.push(name)
  }
+ const propertyNames=[...new Set(list(input.propertyNames))],propertySources:Record<string,string>={};insist(propertyNames.length<=30&&propertyNames.every(n=>/^[a-z0-9_-]{1,40}$/.test(n)),'property_names','Choose up to 30 valid property names.');const sourceInput=typeof input.propertySources==='string'?JSON.parse(input.propertySources):input.propertySources??{};insist(sourceInput&&typeof sourceInput==='object'&&!Array.isArray(sourceInput),'property_sources','Use the recovered property source map.');for(const [name,source] of Object.entries(sourceInput)){insist(propertyNames.includes(name),'property_sources','A source must name a recovered property.');propertySources[name]=eventName(source)}
+ const incumbentCompatibility=input.incumbentCompatibility===true||input.incumbentCompatibility==='on';
  const consent=input.consent??'required',sampleRate=Number(input.sampleRate??100),retention=retentionConfig(input);
  insist(['required','not-required'].includes(consent),'consent','Choose an explicit consent mode.');
  // PRIVACY-003: regions that require consent and the consent manager the script reads.
@@ -73,6 +77,6 @@ export function cleanConfig(input:any):Config {
  const eventDefinitions=cleanEventDefinitions(input.eventDefinitions);
  // COLLECT-003: the owner's excluded IP addresses or ranges and countries.
  const excludeIps=cleanExcludedIps(input.excludeIps),excludeCountries=cleanExcludedCountries(input.excludeCountries);
- return {...(Object.keys(customGoals).length?{customGoals}:{}),...(eventDefinitions.length?{eventDefinitions}:{}),paths,...(excludePaths.length?{excludePaths}:{}),...(rewrites.length?{rewrites}:{}),...(queryKeys.length?{queryKeys}:{}),...(sourceRules.length?{sourceRules}:{}),...(declinedCounter?{declinedCounter}:{}),goals,scrollGoals,consent,...consentRules,sampleRate,...retention,signalCounter,timeZone,currency,...(rates.length?{rates}:{}),...(origins.length?{origins}:{}),...(searchParam?{searchParam}:{}),...(publicReports.length?{publicReports,publicIndexing}:{}),...(autoEvents.length?{autoEvents}:{}),...(visitTimeout!==DEFAULT_VISIT_TIMEOUT?{visitTimeout}:{}),...(definitions.length?{definitions}:{}),...(excludeIps.length?{excludeIps}:{}),...(excludeCountries.length?{excludeCountries}:{}),...(funnels.length?{funnels}:{}),...(experiments.length?{experiments}:{})};
+ return {...(propertyNames.length?{propertyNames,propertySources}:{}),...(incumbentCompatibility?{incumbentCompatibility}:{}),...(Object.keys(customGoals).length?{customGoals}:{}),...(eventDefinitions.length?{eventDefinitions}:{}),paths,...(excludePaths.length?{excludePaths}:{}),...(rewrites.length?{rewrites}:{}),...(queryKeys.length?{queryKeys}:{}),...(sourceRules.length?{sourceRules}:{}),...(declinedCounter?{declinedCounter}:{}),goals,scrollGoals,consent,...consentRules,sampleRate,...retention,signalCounter,timeZone,currency,...(rates.length?{rates}:{}),...(origins.length?{origins}:{}),...(searchParam?{searchParam}:{}),...(publicReports.length?{publicReports,publicIndexing}:{}),...(autoEvents.length?{autoEvents}:{}),...(visitTimeout!==DEFAULT_VISIT_TIMEOUT?{visitTimeout}:{}),...(definitions.length?{definitions}:{}),...(excludeIps.length?{excludeIps}:{}),...(excludeCountries.length?{excludeCountries}:{}),...(funnels.length?{funnels}:{}),...(experiments.length?{experiments}:{})};
 }
 export function cleanSite(input:any) { const name=String(input.name??'').trim(); insist(name.length>0&&name.length<=80&&!/[<>@]/.test(name),'name','Enter a short site name, without personal details.'); const origin=browserOrigin(input.origin),config=cleanConfig(input.config??input); insist(!config.origins?.includes(origin),'origins','Extra origins must differ from the website origin.'); return {name,origin,config} }

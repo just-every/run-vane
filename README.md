@@ -319,3 +319,35 @@ REPORT-002 remains partial:
 and owner-entered destination URLs await Base's resolved-address/pinned egress
 door. Today these URLs must be public HTTPS names/address literals, without URL
 credentials or redirects, under API-002's host rules.
+
+### Recover Plausible definitions
+
+Open a site's History, then **Recover Plausible definitions**. Upload the dashboard
+ZIP and label its selected period with a date inside that period, or use a Stats
+API or Enterprise Sites API key for the fixed official `https://plausible.io`
+endpoints. The key is used for that read only, without redirects, and is never
+saved or included in the import journal or archives. Only the owner can read
+from Plausible. Preview and apply the sanitized definition summaries through
+the existing reviewed import journal; undo removes those source rows.
+
+Recovered definitions name their source. A name with no confirmed trigger stays
+in **Needs completion** until matching live evidence arrives or a person
+completes it. The owner or an analyst can prepare native goals and property
+names; the owner reviews the exact paths, thresholds, property conditions,
+events and currencies under Approvals before collection uses them. Approved
+source definitions add chart annotations. Approval is a settings change and
+is kept when a historical import is undone.
+
+Plausible exports and APIs expose no funnel definitions. Paste two to eight
+recovered goal display names, in order, to prepare a native funnel. It counts
+live visits after approval; source summary counts cannot reconstruct historical
+steps. Existing Matomo goals use the same guided rebuild.
+
+Enable **Keep Plausible and Fathom tracking calls counting** in Collection settings before swapping
+the snippet for `vane.js`. Queued and later Plausible event calls, properties,
+revenue and the `plausible-event-name=…` and `plausible-event-name--…` class forms
+use the native collection rules. Fathom's `trackEvent` amount uses minor units
+(`_value: 4999` is 49.99 in the site's currency). This is a partial cut-over:
+full `plausible.init` options, file-extension mapping, the incumbent call-site
+scan and rewrite drafts remain `IMPORT-008` gaps. GA4 and Fathom definition
+imports inherit the definition rules when their import clauses ship.

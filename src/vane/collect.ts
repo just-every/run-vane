@@ -14,7 +14,7 @@ import { hostOf, keptValue, pathAllowed, redactPath, storedPath, visitSource } f
 import { channelOf, webmail } from './channels'
 import { countExclusion, declinedResponse } from './exclusions'
 import { excludedTraffic } from './traffic'
-import { cleanProps, droppedStatement, propStatements } from './properties'
+import { propertiesMatch, cleanProps, droppedStatement, propStatements } from './properties'
 export async function collector(request:Request,env:Env):Promise<Response|null> {
  const url=new URL(request.url);
  const signal=await signalResponse(request,env)??await declinedResponse(request,env);if(signal)return signal;
@@ -34,7 +34,7 @@ export async function collector(request:Request,env:Env):Promise<Response|null> 
   // The script's configuration door serves only what the script uses (PRIVACY-003: whether this visitor's region
   // requires consent, never the region itself, and the consent manager to read); the owner's excluded addresses and countries
   // (COLLECT-003), goals, funnels and other settings stay in the installation.
-  if(match) { insist(request.method==='GET','method','GET required.',405); const c=value.config; return Response.json({consent:consentRequired(c,request)?'required':'not-required',...(c.consentAdapter?{consentAdapter:c.consentAdapter}:{}),sampleRate:c.sampleRate,...(c.declinedCounter?{declinedCounter:true}:{}),autoEvents:c.autoEvents??[],queryKeys:c.queryKeys??[],...(c.searchParam?{searchParam:c.searchParam}:{}),eventDefinitions:c.eventDefinitions??[]},{headers:cors}); }
+  if(match) { insist(request.method==='GET','method','GET required.',405); const c=value.config; return Response.json({consent:consentRequired(c,request)?'required':'not-required',...(c.consentAdapter?{consentAdapter:c.consentAdapter}:{}),sampleRate:c.sampleRate,...(c.declinedCounter?{declinedCounter:true}:{}),autoEvents:c.autoEvents??[],queryKeys:c.queryKeys??[],...(c.searchParam?{searchParam:c.searchParam}:{}),incumbentCompatibility:c.incumbentCompatibility??false,currency:c.currency??'USD',eventDefinitions:c.eventDefinitions??[]},{headers:cors}); }
   if(engage) {
    // METRIC-003: a ping names only the site and its own page load, at least 10 seconds and at most
    // 30 minutes after that load; the latest ping marks the page engaged and ends its time.
@@ -45,7 +45,8 @@ export async function collector(request:Request,env:Env):Promise<Response|null> 
    insist(typeof load?.at==='number','page_load','No timed page load has this ID.',404);
    insist(at-load.at>=ENGAGED_AFTER_MS,'engagement','Engagement counts after 10 seconds on the page.',409);
    insist(at-load.at<=ENGAGEMENT_WINDOW_MS,'expired','Engagement more than 30 minutes after its page load is not counted.',409);
-   const goals=Object.entries(value.config.scrollGoals??{}).filter(([,goal])=>goalApplies(goal.path,load.hostname,load.path));
+   const recovered=Object.entries(value.config.customGoals??{}).filter(([,g])=>g.depth!==undefined),pageProps=recovered.some(([,g])=>g.props)?(await env.DB.prepare('SELECT key,value FROM vane_event_props WHERE event_id=?').bind(eventId).all<{key:string,value:string}>()).results.map(p=>[p.key,p.value] as [string,string]):[];
+   const goals=[...Object.entries(value.config.scrollGoals??{}),...recovered.filter(([,g])=>propertiesMatch(g.props,pageProps)).map(([name,g])=>[name,{path:g.path!,depth:g.depth!}] as [string,{path:string;depth:number}])].filter(([,goal])=>goalApplies(goal.path,load.hostname,load.path));
    await env.DB.batch([statement(env,'UPDATE vane_events SET engaged_at=MAX(COALESCE(engaged_at,0),?),scroll=MAX(COALESCE(scroll,0),?) WHERE id=?',at,payload.scroll,eventId),...goals.map(([name,goal])=>statement(env,'INSERT OR IGNORE INTO vane_events(id,site_id,day,kind,path,source,campaign,consent,sample_rate,visitor,at,hostname) SELECT id||?,site_id,day,?,path,source,campaign,consent,sample_rate,visitor,at,hostname FROM vane_events WHERE id=? AND scroll>=?',':'+name,name,eventId,goal.depth))]);
    return Response.json({accepted:true},{status:202,headers:cors});
   }
@@ -81,7 +82,7 @@ export async function collector(request:Request,env:Env):Promise<Response|null> 
   if(prior) { insist(prior.path===e.path&&(payment||prior.source===e.source)&&prior.campaign===e.campaign,'conflict','Event ID already has different data.',409); return Response.json({accepted:true,duplicate:true},{headers:cors}); }
   const visitor=await visitorHash(env,value,request,today,now),d=deviceOf(request.headers.get('user-agent')??'',payload.width),search=payload.search===undefined?null:searchTerm(payload.search);
   if(payment){const before=await env.DB.prepare("SELECT source,referrer,campaign,utm_source,utm_medium,utm_term,utm_content,paid_click,channel FROM vane_events WHERE site_id=? AND day=? AND visitor=? AND kind='pageview' ORDER BY at DESC,id DESC LIMIT 1").bind(value.id,today,visitor).first<any>();Object.assign(e,{source:before?.source??'direct',referrer:before?.referrer??null,campaign:before?.campaign??'none',utmSource:before?.utm_source??null,utmMedium:before?.utm_medium??null,utmTerm:before?.utm_term??null,utmContent:before?.utm_content??null,paidClick:before?.paid_click??0});channel=before?.channel??channelOf('direct',null,false)}
-  const kinds=['pageview',...[...Object.entries(value.config.goals),...Object.entries(value.config.customGoals??{}).filter(([,g])=>g.path).map(([name,g])=>[name,g.path!] as [string,string])].filter(([,goal])=>goalApplies(goal,e.hostname,e.path)).map(([name])=>name)];
+  const kinds=['pageview',...[...Object.entries(value.config.goals),...Object.entries(value.config.customGoals??{}).filter(([,g])=>g.path&&g.depth===undefined&&propertiesMatch(g.props,props.kept)).map(([name,g])=>[name,g.path!] as [string,string])].filter(([,goal])=>goalApplies(goal,e.hostname,e.path)).map(([name])=>name)];
   const statements=[statement(env,'DELETE FROM vane_guard'),statement(env,'INSERT INTO vane_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM vane_sites WHERE id=? AND version=?) THEN 1 ELSE 0 END',value.id,value.version),statement(env,'INSERT INTO vane_admission(site_id,day,count) VALUES(?,?,1) ON CONFLICT(site_id,day) DO UPDATE SET count=count+1',value.id,today),statement(env,'INSERT INTO vane_guard(value) SELECT CASE WHEN count<=10000 THEN 1 ELSE 0 END FROM vane_admission WHERE site_id=? AND day=?',value.id,today)];
   for(const kind of kinds)statements.push(statement(env,'INSERT INTO vane_events(id,site_id,day,kind,path,source,campaign,consent,sample_rate,visitor,at,device,browser,browser_version,os,os_version,screen,search,hostname,utm_source,utm_medium,utm_term,utm_content,paid_click,query,channel,referrer) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',kind==='pageview'?eventId:eventId+':'+kind,value.id,today,kind,e.path,e.source,e.campaign,payload.consent,value.config.sampleRate,visitor,now,d.device,d.browser,d.browserVersion,d.os,d.osVersion,d.screen,kind==='pageview'?search:null,e.hostname,e.utmSource,e.utmMedium,e.utmTerm,e.utmContent,e.paidClick,e.query,channel,e.referrer));
   // CONV-002: a pageview's properties (INSTALL-007) are stored beside it.
