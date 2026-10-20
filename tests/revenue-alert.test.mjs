@@ -49,6 +49,8 @@ test('ALERT-002 revenue drops use site-currency amounts, dated conversion and ho
  await context.route('**/*',async route=>{
   const request=route.request(),url=new URL(request.url());if(url.origin!==a.origin)return route.abort()
   const response=await a.request(url.pathname+url.search,{method:request.method(),headers:request.headers(),body:['GET','HEAD'].includes(request.method())?undefined:request.postDataBuffer()??undefined})
+  const location=response.headers.get('location')
+  if(response.status===303&&location)return route.fulfill({contentType:'text/html',body:`<!doctype html><title>Redirecting</title><meta http-equiv="refresh" content="0;url=${location.replaceAll('&','&amp;')}">`})
   await route.fulfill({status:response.status,headers:Object.fromEntries(response.headers),body:Buffer.from(await response.arrayBuffer())})
  })
  const page=await context.newPage()
@@ -59,7 +61,9 @@ test('ALERT-002 revenue drops use site-currency amounts, dated conversion and ho
   assert.match(await page.locator('[data-alert-log]').textContent(),/AUD 15.00/)
   await page.getByLabel('Alert on',{exact:true}).selectOption('revenue')
   await page.getByLabel('Threshold (revenue: AUD amount)',{exact:true}).fill(width===1440?'75.50':'75.75')
-  await Promise.all([page.waitForNavigation(),page.getByRole('button',{name:'Add alert',exact:true}).click()])
+  await page.getByRole('button',{name:'Add alert',exact:true}).click()
+  await page.waitForURL(url=>url.searchParams.get('notice')==='Alert added.')
+  await page.locator('[data-alerts]').waitFor()
   assert.match(await page.locator('[data-alerts]').textContent(),width===1440?/above AUD 75.50/:/above AUD 75.75/)
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true)
   if(process.env.VANE_SCREEN_DIR){await mkdir(process.env.VANE_SCREEN_DIR,{recursive:true});await page.getByRole('heading',{name:'Traffic alerts',exact:true}).scrollIntoViewIfNeeded();await page.screenshot({path:join(process.env.VANE_SCREEN_DIR,`revenue-alert-${width}.png`),fullPage:false});await page.getByLabel('Threshold (revenue: AUD amount)',{exact:true}).scrollIntoViewIfNeeded();await page.screenshot({path:join(process.env.VANE_SCREEN_DIR,`revenue-alert-form-${width}.png`),fullPage:false});await page.locator('[data-alert-log]').scrollIntoViewIfNeeded();await page.screenshot({path:join(process.env.VANE_SCREEN_DIR,`revenue-alert-log-${width}.png`),fullPage:false})}

@@ -3323,7 +3323,7 @@
       "executable": false
     },
     "tests/revenue-alert.test.mjs": {
-      "sha256": "8c49ca8d1f1edfe29ac79a5caecb8628936bfe0ff76865b9aeb13eb06301ff21",
+      "sha256": "413af913ce50e010b6d1a9f9a5f5ab3b270524050627b3324afd00cbfe93cc3a",
       "executable": false
     },
     "tests/search-console.test.mjs": {
