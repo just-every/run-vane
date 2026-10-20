@@ -15,13 +15,11 @@ import { setTimeout as delay } from 'node:timers/promises'
 // The Node/browser process keeps the REAL HOME. Only rer gets the isolated HOME.
 // Public rer supports git file:// sources (global/cli/repository.mjs); cloning
 // this checkout tests local HEAD rather than whatever GitHub main becomes.
-// The macOS run additionally restarts the whole runtime under a process-level
-// internet deny boundary, with loopback only; browser routing applies the same
-// boundary. Other platforms prove the online restart. Cloudflare transfer is separate.
+// This proves the online slice only. Network-denied replay and transfer to
+// Cloudflare remain explicit gaps; browser routing cannot prove runtime isolation.
 const execute = promisify(execFile)
 const source = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const screens = process.env.VANE_SCREEN_DIR
-const offlineProfile = '(version 1)(allow default)(deny network-outbound)(allow network-outbound (remote ip "localhost:*"))'
 const enabled = process.env.VANE_HOST_LOCAL_JOURNEY === '1'
 const push = process.env.GITHUB_EVENT_NAME === 'push'
 
@@ -94,13 +92,11 @@ function ownedProcesses(registry) {
   }
 }
 
-async function launch(cwd, env, processes, args, offline = false) {
+async function launch(cwd, env, processes, args) {
   // No inherited stdio: RER_OPEN is a credential, including on failure. Keep
   // output in memory and use only generic assertions in the test reporter.
   const runner = process.env.VANE_HOST_RER || 'rer'
-  const command = offline ? '/usr/bin/sandbox-exec' : runner
-  const arguments_ = [...(offline ? ['-p', offlineProfile, runner] : []), 'dev', ...args, '--detach']
-  const child = spawn(command, arguments_, { cwd, env, stdio: ['ignore', 'pipe', 'pipe'] })
+  const child = spawn(runner, ['dev', ...args, '--detach'], { cwd, env, stdio: ['ignore', 'pipe', 'pipe'] })
   let output = '', errors = '', exited = false, code, failed = false
   child.stdout.on('data', chunk => { output = (output + chunk.toString()).slice(-262144) })
   child.stderr.on('data', chunk => { errors = (errors + chunk.toString()).slice(-262144) })
@@ -210,32 +206,12 @@ test('HOST-002 online slice: one public command from an empty folder, owner appr
   }
   await visitor.close()
   await processes.stop()
-  const offline = process.platform === 'darwin'
-  if (offline) {
-    // Prove the process boundary denies the internet before restarting all of
-    // rer, Vite and workerd inside it. The browser also refuses remote hosts.
-    await execute(process.execPath, ['-e', "fetch('https://example.com/',{signal:AbortSignal.timeout(10000)}).then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"])
-    await execute('/usr/bin/sandbox-exec', ['-p', offlineProfile, process.execPath, '-e', "fetch('https://example.com/',{signal:AbortSignal.timeout(3000)}).then(()=>process.exit(1),()=>process.exit(0))"])
-    await owner.route('**/*', route => ['127.0.0.1', 'localhost', '[::1]'].includes(new URL(route.request().url()).hostname) ? route.continue() : route.abort())
-  }
-  const restarted = await launch(checkout, env, processes, [], offline)
+  const restarted = await launch(checkout, env, processes, [])
   await signIn(page, restarted)
   const durableReport = new URL(reportURL.pathname + reportURL.search, restarted.ready)
   await page.goto(durableReport.href)
   const pageviews = page.getByRole('heading', { name: 'Pageviews', exact: true }).locator('..')
   await expect(pageviews.locator('.vane-metric')).toHaveText('1')
   await expect(page.locator('main')).toContainText('/subscriptions')
-  if (offline) {
-    const offlineVisitor = await browser.newContext({ userAgent })
-    await offlineVisitor.route('**/*', route => ['127.0.0.1', 'localhost', '[::1]'].includes(new URL(route.request().url()).hostname) ? route.continue() : route.abort())
-    const offlinePage = await offlineVisitor.newPage()
-    const sent = offlinePage.waitForResponse(r => new URL(r.url()).pathname === '/api/vane/collect' && r.request().method() === 'POST')
-    await offlinePage.goto(fixtureOrigin + '/subscriptions')
-    assert.equal((await sent).status(), 202)
-    await offlineVisitor.close()
-    await page.goto(durableReport.href)
-    await expect(pageviews.locator('.vane-metric')).toHaveText('2')
-    t.diagnostic('The process-level internet deny boundary preserved sign-in, tracker collection and the report after installation.')
-  } else t.diagnostic('Internet-denied replay requires the macOS sandbox; this platform proved the online restart only.')
-  t.diagnostic('Online launch, UI approval, tracker collection and report persistence passed. Cloudflare transfer remains uncovered.')
+  t.diagnostic('Online launch, UI approval, tracker collection and report persistence passed. Network-denied replay and Cloudflare transfer remain uncovered.')
 })

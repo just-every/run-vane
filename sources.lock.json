@@ -3303,7 +3303,7 @@
       "executable": false
     },
     "tests/host-local.journey.mjs": {
-      "sha256": "c93d42474c42194cf1681e2b2f6fdff150e93c72a1133a23c3dc589e8e164426",
+      "sha256": "ad12080677448aa2aa6a67795233d6d399ddc178bbfad025359164639d32af61",
       "executable": false
     },
     "tests/incumbent-options.test.mjs": {
