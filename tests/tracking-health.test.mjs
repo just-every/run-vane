@@ -34,7 +34,10 @@ test('ALERT-002 the daily tracking-health check names a silent site, a goal sile
  const settings=async(id,cookie=a.owner)=>plain(await (await a.request(`/app/sites/${id}?section=settings`,{headers:{cookie}})).text())
  assert.ok((await settings(fern)).includes('2026-10-20 was not judged: fewer than 4 earlier Tuesdays to compare.'))
  const alert=(siteId,metric,extra={})=>a.form({operation:'alert.create',siteId,metric,cooldown:6,...extra},a.owner)
- for(const [siteId,metric] of [[fern,'silent-goal'],[fern,'silent-page'],[fern,'error-surge'],[oak,'silent-site'],[pine,'consent-collapse']])assert.equal((await alert(siteId,metric)).status,303,metric)
+ // The error surge also goes to Fern's signed webhook that takes traffic alerts (API-003).
+ const hooks=[];a.fixtureSites['https://hooks.fixture.example']=async request=>{hooks.push({headers:Object.fromEntries(request.headers),body:await request.text()});return new Response(null,{status:204})}
+ assert.equal((await a.form({operation:'webhook.create',siteId:fern,url:'https://hooks.fixture.example/vane','event_traffic.alert':'on'},a.owner)).status,200)
+ for(const [siteId,metric,extra] of [[fern,'silent-goal'],[fern,'silent-page'],[fern,'error-surge',{webhooks:'on'}],[oak,'silent-site'],[pine,'consent-collapse']])assert.equal((await alert(siteId,metric,extra)).status,303,metric)
  assert.equal((await alert(fern,'consent-collapse')).status,400,'a site that does not count declined consent has no consent rate')
  for(const day of ['2026-10-27','2026-11-03','2026-11-10'])await ordinary(day)
  // Only the owner moves the daily check, and the change is audited.
@@ -83,6 +86,9 @@ test('ALERT-002 the daily tracking-health check names a silent site, a goal sile
  assert.deepEqual(after.vane_follow_items.map(i=>i.title).sort(),['Tracking health: a goal stops firing','Tracking health: a page stops sending pageviews','Tracking health: collection errors surge','Tracking health: the consent rate collapses','Tracking health: the site stops sending page loads'])
  assert.ok(after.vane_health.every(r=>!/198\.51|Mozilla|visitor/i.test(r.result_json)),'the check keeps names and counts, never a visitor field')
  await a.scheduled();assert.equal(health().length,5,'one check a day')
+ assert.equal(hooks.length,1,'the next 5-minute run delivers the surge to the webhook once');const hook=JSON.parse(hooks[0].body)
+ assert.deepEqual([hooks[0].headers['vane-event'],hook.alert,hook.metric,hook.condition,hook.value,hook.bound],['traffic.alert','Tracking health: collection errors surge','error-surge','tracking-health',12,'0 to 0'])
+ assert.match(hooks[0].headers['vane-signature'],/^t=\d+,v1=[0-9a-f]{64}$/);assert.deepEqual(Object.keys(hook).sort(),['alert','bound','condition','direction','event','metric','seen_at','site_id','value'],'no visitor field')
  // The overview: 11 of 12 goals tracking, naming the silent goal, with the time the check ran.
  const lines=await overview()
  assert.ok(lines.includes('11 of 12 goals tracking (no conversion on 2026-11-17: Signup) · checked Wed, Nov 18, 7:30 AM CST'))

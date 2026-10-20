@@ -3423,7 +3423,7 @@
       "executable": false
     },
     "tests/tracking-health.test.mjs": {
-      "sha256": "ecc495b08aa6cedacc3d4adbaede6c475ca2092d5eb6f787d8603b2f21a8db4e",
+      "sha256": "022d852a51f5f8063b05c29647ecdb2ad4be3b4508a6eafb027358d1c95eb21f",
       "executable": false
     },
     "tests/vane.test.mjs": {
