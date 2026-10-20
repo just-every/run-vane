@@ -2959,7 +2959,7 @@
       "executable": false
     },
     "src/vane/views/alert-settings.ts": {
-      "sha256": "5099e4af4d11217aef89b90f464d9f52467ab00b594c515fb46512cf290e7a0f",
+      "sha256": "105260c0d8c9f2a19986f9c707203d2daab4b005751fd9cb21f2518c34c05d36",
       "executable": false
     },
     "src/vane/views/api-keys.ts": {
@@ -2979,7 +2979,7 @@
       "executable": false
     },
     "src/vane/views/chat-settings.ts": {
-      "sha256": "31f3dfafb7ec1033db6980b8be16d5c4817e4ceff093e249ad380ef27a0178c8",
+      "sha256": "bf31bf518c21b8b95f21d5e4d17fbf2348f776de42ae64205631633c0dc24a37",
       "executable": false
     },
     "src/vane/views/dashboard.ts": {
@@ -3139,7 +3139,7 @@
       "executable": false
     },
     "tests/chat.test.mjs": {
-      "sha256": "62b10a33a96b888fa03e1d5b35a5046076b9454af1738100e68e444752b67334",
+      "sha256": "b308d566c540b66524b999e8c43079ef08e872e49dfc4260f2efcc2e493ee10d",
       "executable": false
     },
     "tests/demo.journey.mjs": {
