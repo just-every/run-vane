@@ -3383,7 +3383,7 @@
       "executable": false
     },
     "tests/locations.journey.mjs": {
-      "sha256": "13e703b7674ee389a50c67e37c1bd134dd50638edaa0446e77bfa89c118e6544",
+      "sha256": "abac35e69538c25dd39c9de4535554d72405968ffbe62896e0c7ce3262ff17b1",
       "executable": false
     },
     "tests/matomo.test.mjs": {
