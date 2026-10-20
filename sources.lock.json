@@ -2527,7 +2527,7 @@
       "executable": false
     },
     "src/site/landing/dip.ts": {
-      "sha256": "48cdbab51b92d55040fb12a40b1b72340c08dde446d195a7a37ee7e97dc7b3c8",
+      "sha256": "f9a41c264f25deca8f283134b3b91b11605de1217b116512e7bca09fa6d87309",
       "executable": false
     },
     "src/site/landing/funnel.ts": {
@@ -2551,7 +2551,7 @@
       "executable": false
     },
     "src/site/landing/monday.ts": {
-      "sha256": "0b9aa2ec01fc4ba07ebab92fbd9e940e2e210fa29fb58021eb1df784e0d2a7a9",
+      "sha256": "f8aa52049317b0beb95cca536baa2311a0edda7a798e44c6bfbd9eb9c6669625",
       "executable": false
     },
     "src/site/landing/page.ts": {

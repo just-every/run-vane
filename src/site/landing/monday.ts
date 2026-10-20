@@ -9,7 +9,7 @@ const importCard = card('Import from Plausible, finished', '<h3>Import from Plau
   + `<ul class="rows">${imported.map(([label, value]) => `<li>${check(label)}<strong>${value}</strong></li>`).join('')}</ul>`
   + '<p class="imported-note"><span class="grey-dot" aria-hidden="true"></span>Mar 2023 – Oct 11 · labelled as imported on charts</p>', 'card-step')
 
-const scriptCard = card('The script, added', `<h3>Add the script.</h3><pre class="snippet"><code>${'&lt;script defer src="/vane.js"&gt;&lt;/script&gt;'}</code></pre>`
+const scriptCard = card('The script, added', `<h3>Add the script.</h3><pre class="snippet"><code>${'&lt;script defer src=&quot;/vane.js&quot;&gt;&lt;/script&gt;'}</code></pre>`
   + `<ul class="rows rows-loose"><li>${check('Shopify · connected')}</li><li>${check('Served from your own domain')}</li><li><span class="state-dot" aria-hidden="true"></span><span>First page load</span><strong>10:42 am</strong></li></ul>`, 'card-step')
 
 const goalRows = [[icons.cart, 'Subscribed · revenue in USD', ''], [icons.user, 'Signup · form on /pricing', '<span class="tag">custom event</span>'], [icons.outbound, 'Outbound links · automatic', ''], [icons.file, 'File downloads · automatic', ''], [icons.warning, '404 pages · automatic', '']]

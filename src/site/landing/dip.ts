@@ -16,7 +16,7 @@ const log = [
 const agent = card('Why signups moved on Tue, Oct 13', '<header class="why-head"><p class="why-label">Why it moved</p><p class="agent-pill">Agent</p></header><h3 class="why-title">No signups recorded from 2:12 pm</h3>'
   + `${signupsChart()}<ol class="log">${log.map(([tone, time, text]) => `<li class="log-${tone}"><span class="log-dot" aria-hidden="true"></span><p><b class="log-time">${time}</b><span class="sep">·</span><span>${text}</span></p></li>`).join('')}</ol>`, 'card-why')
 
-const fix = `<figure class="code-card" aria-label="The fix in pull request #218"><p>pricing.tsx · #218</p><pre><code>+ ${'&lt;script defer src="/vane.js"&gt;&lt;/script&gt;'}</code></pre></figure>`
+const fix = `<figure class="code-card" aria-label="The fix in pull request #218"><p>pricing.tsx · #218</p><pre><code>+ ${'&lt;script defer src=&quot;/vane.js&quot;&gt;&lt;/script&gt;'}</code></pre></figure>`
 
 export const dip = () => `<section class="story dip" id="dip" aria-labelledby="dip-title"><div class="col dip-grid">${agent}`
   + `<header class="story-head">${head('dip', 'Tue, Oct 13 · 2:12 pm', 'Signups dipped. <br>Vane found why.', 'The agent checks your tracking, your traffic and the site itself, ships the fix and measures the result.')}</header>${fix}</div>`
