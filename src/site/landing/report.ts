@@ -11,7 +11,7 @@ const moved = [
   ['coral', `Tracking gap on /pricing, Tue 2:12–3:05 pm · <b class="gold">fixed in #218 <span class="tick-inline">${icons.tick}</span></b>`],
   ['green', 'Newsletter readers subscribe at 11.2% · resend to non-openers drafted for Thu 9:00 am'],
 ]
-const email = card('The weekly report email', `<header class="mail-head"><span class="avatar">${swallow(40)}</span><p><span>From Vane</span><span class="muted">To team@${site} · Mon 8:00 am</span></p></header>`
+const email = card('The weekly report email', `<header class="mail-head"><span class="avatar">${swallow(40)}</span><p><span>From Vane</span><span class="muted">To the Juniper team · Mon 8:00 am</span></p></header>`
   + `<h3 class="title-split">${site}<span class="sep">·</span><span class="keep">Week of Oct 12</span></h3><dl class="mail-stats">${stats.map(([label, value, extra]) => `<div><dt>${label}</dt><dd>${value}</dd>${extra}</div>`).join('')}</dl>`
   + `<p class="subs"><span class="small-label">Subscriptions</span><span class="subs-total">${order.subscribed} <span class="sep">·</span> <b class="gold">${order.revenue}</b></span></p>`
   + `<p class="moved-title">What moved</p><ul class="moved">${moved.map(([tone, text]) => `<li class="moved-${tone}"><span class="moved-dot" aria-hidden="true"></span><p>${text}</p></li>`).join('')}</ul>`, 'card-mail')

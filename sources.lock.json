@@ -2567,7 +2567,7 @@
       "executable": false
     },
     "src/site/landing/report.ts": {
-      "sha256": "5af8fbdf8637b0804b5f156293b9b1711437a5839bb0b72b8f091adaf5da941a",
+      "sha256": "5b850e61660e4737e590422f774b598d0665d954b173cfc858249d69fb04b3a5",
       "executable": false
     },
     "src/site/landing/search.ts": {
