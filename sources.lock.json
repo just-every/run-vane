@@ -34,6 +34,10 @@
     }
   ],
   "files": {
+    ".github/workflows/host-local.yml": {
+      "sha256": "aac2bf742218154242ca53cfa77854ed550381d2e5da6970ad04f3273364dc18",
+      "executable": false
+    },
     ".github/workflows/run-demo.yml": {
       "sha256": "41365ec7c002e9451166313b085f9e64ed2e3ea002c27f3d5ead845bc9c302b2",
       "executable": false
@@ -55,7 +59,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "4ff19aecb3082a96241e699724e5ba9816ee50f9c62319e3825c67fa08698092",
+      "sha256": "fcdac6a762ad43df1fe4aad37634f4cc49e32f7623fb83feedab55fb61ae41a0",
       "executable": false
     },
     "AGENTS.md": {
@@ -87,7 +91,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "6c53a9d72dd3949404e45ea50ae6288ba0adf276657018d42ee72889b863091a",
+      "sha256": "cefbe9128d7c49bcdbdcf79fe0840852e804acfe465b4d863b976fe4f050029c",
       "executable": false
     },
     "DEMO.md": {
@@ -3296,6 +3300,10 @@
     },
     "tests/harness.mjs": {
       "sha256": "e19ff9c615764ebbb53d476a99ef18d814f9934ee80a6a1022dc2658e56b9032",
+      "executable": false
+    },
+    "tests/host-local.journey.mjs": {
+      "sha256": "330515a0cef5629e0b776086fff443419622a99b4b86d0ffea897b5a0174d846",
       "executable": false
     },
     "tests/incumbent-options.test.mjs": {
