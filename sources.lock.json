@@ -91,7 +91,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "6b7baca131c8d5ba05f946e41610f19a58778dc8382b412768e74257f285c2de",
+      "sha256": "7433aa3c84dfb3fce7d384a06a11b22c12701bb8fb2cb03ce8ae2d310dda9973",
       "executable": false
     },
     "DEMO.md": {
@@ -376,6 +376,10 @@
     },
     "migrations/core/0058_vane_locations.sql": {
       "sha256": "13f20d57d4d906fed2596d6983f8804175682b5455f5dbb43928eaae1cedf2a3",
+      "executable": false
+    },
+    "migrations/core/0059_vane_alert_currency.sql": {
+      "sha256": "cd223249b0a9cdd2123dc0fce4d8e0ba2e17bdb188714052967c8882536cd076",
       "executable": false
     },
     "ONBOARDING.md": {
@@ -2555,7 +2559,7 @@
       "executable": false
     },
     "src/vane/annotations.ts": {
-      "sha256": "001ef98b24d3f063834c3647065ecc271fa7089a8ca0c6a25ad429f248b21d6b",
+      "sha256": "8d2b6e384eb1a602c8b8d275ca3d7519305782b8adb16aa6b5ce1fc9503de7ab",
       "executable": false
     },
     "src/vane/api-door.ts": {
@@ -2747,7 +2751,7 @@
       "executable": false
     },
     "src/vane/inventory.ts": {
-      "sha256": "b98bdea69bfb131ababc9e152106658d1495201a3ffcec2044434f93918b967f",
+      "sha256": "e974d72c70ef1b0c631d5078b8a0f0d8884588809f9c4692848d90ebc3bf60a9",
       "executable": false
     },
     "src/vane/journeys.ts": {
@@ -3019,7 +3023,7 @@
       "executable": false
     },
     "src/vane/traffic-alerts.ts": {
-      "sha256": "9f161c03b06b3b31029b5cd35c495b3649a29a56194e3bff6f9ee540c19992a0",
+      "sha256": "d3098dcff096b874147c04212d1009e851e83599ec77e37401202b7eb831c2b3",
       "executable": false
     },
     "src/vane/traffic.ts": {
@@ -3031,7 +3035,7 @@
       "executable": false
     },
     "src/vane/views/alert-settings.ts": {
-      "sha256": "28c274f8e894a1409562741b791a60429057fefb49d53ccfd9f2c67f608a9131",
+      "sha256": "0b5d6d65cff1d0ebd6dddd217303056bda878e6dc15bced36e7a4b4d9a3c6fe4",
       "executable": false
     },
     "src/vane/views/api-keys.ts": {
@@ -3323,7 +3327,7 @@
       "executable": false
     },
     "tests/revenue-alert.test.mjs": {
-      "sha256": "413af913ce50e010b6d1a9f9a5f5ab3b270524050627b3324afd00cbfe93cc3a",
+      "sha256": "2f9ada622d8ea6b7aea4c58ea6856e5064664fa5011fdb6e6a0be03b0f7922d0",
       "executable": false
     },
     "tests/search-console.test.mjs": {

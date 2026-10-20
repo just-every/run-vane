@@ -34,7 +34,7 @@ test('ALERT-002 revenue drops use site-currency amounts, dated conversion and ho
  assert.ok(fixed);assert.match(fixed.text,/Now AUD 15.00\./)
  assert.match(anomaly.subject,/Revenue \(AUD\)/);assert.match(anomaly.text,/AUD 15.00 revenue/);assert.match(anomaly.text,/usual range for this weekday and hour is AUD 150.00 to AUD 150.00/)
  const log=(await a.dump()).vane_alert_log
- assert.equal(log.length,2);assert.ok(log.every(r=>r.value===15&&r.sent_at!==null))
+ assert.equal(log.length,2);assert.ok(log.every(r=>r.value===15&&r.sent_at!==null&&r.currency==='AUD'))
  assert.equal(log.find(r=>r.condition==='threshold').threshold,50.25)
  assert.equal(log.find(r=>r.condition==='anomaly').threshold,150)
  await a.scheduled();assert.equal(mails().length,2,'one send for the crossing/hour')
@@ -67,6 +67,16 @@ test('ALERT-002 revenue drops use site-currency amounts, dated conversion and ho
   assert.match(await page.locator('[data-alerts]').textContent(),width===1440?/above AUD 75.50/:/above AUD 75.75/)
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true)
   if(process.env.VANE_SCREEN_DIR){await mkdir(process.env.VANE_SCREEN_DIR,{recursive:true});await page.getByRole('heading',{name:'Traffic alerts',exact:true}).scrollIntoViewIfNeeded();await page.screenshot({path:join(process.env.VANE_SCREEN_DIR,`revenue-alert-${width}.png`),fullPage:false});await page.getByLabel('Threshold (revenue: AUD amount)',{exact:true}).scrollIntoViewIfNeeded();await page.screenshot({path:join(process.env.VANE_SCREEN_DIR,`revenue-alert-form-${width}.png`),fullPage:false});await page.locator('[data-alert-log]').scrollIntoViewIfNeeded();await page.screenshot({path:join(process.env.VANE_SCREEN_DIR,`revenue-alert-log-${width}.png`),fullPage:false})}
+ }
+ // Changing the reporting currency must not relabel an already sent AUD crossing.
+ const current=(await(await a.request('/api/vane/sites',{headers:{cookie:a.owner}})).json()).find(s=>s.id===id)
+ const proposal=await a.post('/api/vane/commands',{command:'site.configure',input:{siteId:id,name:current.name,origin:current.origin,config:{...current.config,currency:'USD',rates:[]}}},a.owner)
+ assert.equal(proposal.status,201);assert.equal((await a.form({operation:'proposal.approve',id:(await proposal.json()).id},a.owner)).status,303)
+ for(const width of [1440,390]){
+  await page.setViewportSize({width,height:1000});await page.goto(`${a.origin}/app/sites/${id}?section=settings`)
+  assert.match(await page.locator('[data-alert-log]').textContent(),/AUD 15.00/)
+  assert.doesNotMatch(await page.locator('[data-alert-log]').textContent(),/USD 15.00/)
+  if(process.env.VANE_SCREEN_DIR){await page.locator('[data-alert-log]').scrollIntoViewIfNeeded();await page.screenshot({path:join(process.env.VANE_SCREEN_DIR,`revenue-alert-currency-change-${width}.png`)});await page.getByRole('row').filter({has:page.getByRole('cell',{name:'Alert log',exact:true})}).scrollIntoViewIfNeeded();await page.screenshot({path:join(process.env.VANE_SCREEN_DIR,`revenue-alert-inventory-${width}.png`)})}
  }
  await browser.close()
 })

@@ -79,7 +79,7 @@ async function notify(env:Env,alert:Alert,value:Site,text:string,now:number,coun
  const n=(k:number,one:string,many:string)=>k===1?`one ${one}`:`${k} ${many}`
  return `sent: email accepted by the mail provider for ${n(emailed,'person','people')}; push accepted by ${n(pushed,'browser','browsers')}${chosen.webhooks?`; queued for ${n(hooks.length,'webhook','webhooks')}`:''}`
 }
-const log=(env:Env,alert:Alert,value:number,bound:number,now:number,sent:boolean,outcome:string)=>statement(env,'INSERT INTO vane_alert_log(id,alert_id,site_id,metric,condition,direction,threshold,value,seen_at,sent_at,outcome) VALUES(?,?,?,?,?,?,?,?,?,?,?)',uid(),alert.id,alert.site_id,alert.metric,alert.condition,alert.direction,bound,value,now,sent?now:null,outcome)
+const log=(env:Env,alert:Alert,value:number,bound:number,now:number,sent:boolean,outcome:string,currency:string|null)=>statement(env,'INSERT INTO vane_alert_log(id,alert_id,site_id,metric,condition,direction,threshold,value,seen_at,sent_at,outcome,currency) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',uid(),alert.id,alert.site_id,alert.metric,alert.condition,alert.direction,bound,value,now,sent?now:null,outcome,currency)
 async function held(env:Env,alert:Alert,value:Site,now:number,d:string,h:number,holidayName?:string,closedName?:string) {
  if(alert.quiet_from!==null&&alert.quiet_to!==null){const zone=value.config.timeZone??'UTC',m=localHour(now,zone)*60+Number(new Intl.DateTimeFormat('en-US',{timeZone:zone,minute:'2-digit'}).format(now)),{quiet_from:f,quiet_to:t}=alert
   if(f<t?m>=f&&m<t:m>=f||m<t)return `held: quiet hours (${clockText(f)}–${clockText(t)})`}
@@ -96,7 +96,7 @@ async function anomaly(env:Env,alert:Alert,value:Site,now:number,events:string) 
  const hours=`${WEEKDAY_NAMES[(new Date(Date.parse(d)).getUTCDay()+6)%7]} ${d} ${String(h).padStart(2,'0')}:00–${String(h+1).padStart(2,'0')}:00`
  const text=`${alertAmount(alert.metric,j.value,value.config.currency??'USD')} ${NAMES[alert.metric].toLowerCase()}${goalOf(alert)} ${alert.direction==='above'?'so far in':'in'} ${hours} (${zone}); the usual range for this weekday and hour is ${alertAmount(alert.metric,j.low,value.config.currency??'USD')} to ${alertAmount(alert.metric,j.high,value.config.currency??'USD')}.`
  const reason=await held(env,alert,value,now,d,h,j.holiday,j.closed),outcome=reason??await notify(env,alert,value,`${text} ${await alertExplanation(env,value,j.start,Math.min(j.start+HOUR,now),events)}`,now,j.value,`${alertAmount(alert.metric,j.low,value.config.currency??'USD')} to ${alertAmount(alert.metric,j.high,value.config.currency??'USD')}`)
- await env.DB.batch([statement(env,'UPDATE vane_alerts SET judged_hour=?,last_sent_at=? WHERE id=?',j.start,reason?alert.last_sent_at:now,alert.id),log(env,alert,j.value,alert.metric==='revenue'?(alert.direction==='above'?j.high:j.low):Math.round(alert.direction==='above'?j.high:j.low),now,!reason,`${outcome}; usual range ${alertAmount(alert.metric,j.low,value.config.currency??'USD')} to ${alertAmount(alert.metric,j.high,value.config.currency??'USD')} for ${hours}`)])
+ await env.DB.batch([statement(env,'UPDATE vane_alerts SET judged_hour=?,last_sent_at=? WHERE id=?',j.start,reason?alert.last_sent_at:now,alert.id),log(env,alert,j.value,alert.metric==='revenue'?(alert.direction==='above'?j.high:j.low):Math.round(alert.direction==='above'?j.high:j.low),now,!reason,`${outcome}; usual range ${alertAmount(alert.metric,j.low,value.config.currency??'USD')} to ${alertAmount(alert.metric,j.high,value.config.currency??'USD')} for ${hours}`,alert.metric==='revenue'?value.config.currency??'USD':null)])
  if(!reason)await openItem(env,value,alert.id,alertName(alert,value.config.currency??'USD'),alert.created_by,now)
 }
 export async function runAlerts(env:Env,now=clock()) {
@@ -115,10 +115,10 @@ export async function runAlerts(env:Env,now=clock()) {
   if(alert.crossed)continue
   const reason=await held(env,alert,value,now,localDay(now,zone),localHour(now,zone))
   const outcome=reason??await notify(env,alert,value,`Now ${alertAmount(alert.metric,count,value.config.currency??'USD')}. ${await alertExplanation(env,value,now-(alert.metric==='current'?300000:HOUR),now,events)}`,now,count,alert.metric==='revenue'?alertAmount(alert.metric,alert.threshold,value.config.currency??'USD'):String(alert.threshold))
-  await env.DB.batch([statement(env,'UPDATE vane_alerts SET crossed=1,last_sent_at=? WHERE id=?',reason?alert.last_sent_at:now,alert.id),log(env,alert,count,alert.threshold,now,!reason,outcome)])
+  await env.DB.batch([statement(env,'UPDATE vane_alerts SET crossed=1,last_sent_at=? WHERE id=?',reason?alert.last_sent_at:now,alert.id),log(env,alert,count,alert.threshold,now,!reason,outcome,alert.metric==='revenue'?value.config.currency??'USD':null)])
   if(!reason)await openItem(env,value,alert.id,alertName(alert,value.config.currency??'USD'),alert.created_by,now)
   }finally{await kept?.release()}
  }
 }
 export const siteAlerts=(env:Env,siteId:string)=>rows<Alert>(env,'SELECT * FROM vane_alerts WHERE site_id=? ORDER BY created_at',siteId)
-export const alertLog=(env:Env,siteId:string)=>rows<{metric:Metric,condition:string,direction:string,threshold:number,value:number,seen_at:number,sent_at:number|null,outcome:string}>(env,'SELECT metric,condition,direction,threshold,value,seen_at,sent_at,outcome FROM vane_alert_log WHERE site_id=? ORDER BY seen_at DESC LIMIT 20',siteId)
+export const alertLog=(env:Env,siteId:string)=>rows<{metric:Metric,condition:string,direction:string,threshold:number,value:number,seen_at:number,sent_at:number|null,outcome:string,currency:string|null}>(env,'SELECT metric,condition,direction,threshold,value,seen_at,sent_at,outcome,currency FROM vane_alert_log WHERE site_id=? ORDER BY seen_at DESC LIMIT 20',siteId)
