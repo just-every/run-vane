@@ -1,3 +1,4 @@
+import { scan, scans } from './cutover/scan'
 import * as chat from './chat/connections'
 import * as chatDelivery from './chat/delivery'
 import { importedDefinitions, prepareImportedDefinition, prepareRebuiltFunnel } from './movein/import-definitions'
@@ -72,7 +73,7 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
   const report=selected&&!live?await createInsightsService(env,selected,clock(),range).list():undefined;
   const bingReport=selected&&!live?await bing.report(env,actor!,selected.id,report!.from,report!.to):undefined;
   const search=selected&&!live?await searchConsole.report(env,actor!,selected.id,report!.from,report!.to):undefined;
-  return renderApp({actor:actor as ViewData['actor'],origin:env.AUTH_ORIGIN,store:await storeUse(env),sites:all,overview:list,rollups:(await rollups(env)).filter(r=>r.sites.every((s:any)=>open(s.id))),site:selected,hook,github,...hooks,...reports,warehouse:warehouse?{endpoint:warehouse.endpoint,bucket:warehouse.bucket,region:warehouse.region,prefix:warehouse.prefix,accessKeyId:warehouse.access_key_id,lastDay:warehouse.last_day,lastResult:warehouse.last_result,createdAt:warehouse.created_at}:warehouse,shares:settings?await shareLinks(env,selected.id):undefined,segments:selected&&!live?await segments(env,selected.id):undefined,live:live?await realtime(env,selected,clock()):undefined,liveVisitors:selected?await currentVisitors(env,selected,clock()):undefined,report,chat:chatData,bing:bingReport,bingKeywordPage:url.searchParams.get('bingKeywordPage'),searchConsole:search,googleKeywordPage:url.searchParams.get('googleKeywordPage'),proposals,imports,importDefinitions:recovered,audit,people,apiKeys:keys,...push,section:url.searchParams.get('section')??undefined,notice:url.searchParams.get('notice')??undefined,...extra});
+  return renderApp({cutoverScans:settings?await scans(env,actor!,selected.id):undefined,actor:actor as ViewData['actor'],origin:env.AUTH_ORIGIN,store:await storeUse(env),sites:all,overview:list,rollups:(await rollups(env)).filter(r=>r.sites.every((s:any)=>open(s.id))),site:selected,hook,github,...hooks,...reports,warehouse:warehouse?{endpoint:warehouse.endpoint,bucket:warehouse.bucket,region:warehouse.region,prefix:warehouse.prefix,accessKeyId:warehouse.access_key_id,lastDay:warehouse.last_day,lastResult:warehouse.last_result,createdAt:warehouse.created_at}:warehouse,shares:settings?await shareLinks(env,selected.id):undefined,segments:selected&&!live?await segments(env,selected.id):undefined,live:live?await realtime(env,selected,clock()):undefined,liveVisitors:selected?await currentVisitors(env,selected,clock()):undefined,report,chat:chatData,bing:bingReport,bingKeywordPage:url.searchParams.get('bingKeywordPage'),searchConsole:search,googleKeywordPage:url.searchParams.get('googleKeywordPage'),proposals,imports,importDefinitions:recovered,audit,people,apiKeys:keys,...push,section:url.searchParams.get('section')??undefined,notice:url.searchParams.get('notice')??undefined,...extra});
  }
  try {
   const session=await operatorAuth(env).getSession(request);
@@ -94,6 +95,7 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
     if(url.searchParams.get('format')==='csv'){const table=url.searchParams.get('table')??'queries';insist(['queries','pages','queryPages','days','landingPages'].includes(table),'table','Choose a search report table.');const native=table==='landingPages'?await createInsightsService(env,await site(env,url.searchParams.get('siteId')??''),clock(),range).list():null;const data=table==='landingPages'?source.queryPages.filter(r=>r.query===range.searchQuery).map(r=>({...r,vaneVisitors:r.path?native!.entryPages!.find(p=>p.path===r.path)?.visitors??0:null})):source[table as 'queries'];return new Response(toCsv(data),{headers:{...headers,'content-type':'text/csv; charset=utf-8','content-disposition':`attachment; filename="google-${table}-${source.from}-${source.to}.csv"`}})}
     return json(source);
    }
+   if(path==='/api/vane/cutover-scans')return json(await scans(env,actor,url.searchParams.get('siteId')??''));
    if(path==='/api/vane/import-definitions')return json(await importedDefinitions(env,actor,url.searchParams.get('siteId')??''));
    if(path==='/api/vane/sites')return json((await sites(env)).filter(s=>open(s.id)));
    if(path==='/api/vane/summary'&&url.searchParams.has('rollupId'))return json(await rollupReport(env,await scopedRollup(url.searchParams.get('rollupId')!),range,url.searchParams.get('split')==='site'));
@@ -120,6 +122,7 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
    if(path==='/api/vane/import-preview')return json(await preview(env,actor,{siteId:p.siteId,document:p.plausible?await (p.plausible.history?readPlausibleHistory:readPlausible)(env,actor,{...p.plausible,siteId:p.siteId}):p.matomo?await readMatomo(env,actor,{siteId:p.siteId,...p.matomo}):p.document}));
    if(path==='/api/vane/import-apply')return json(await apply(env,actor,{siteId:p.siteId,document:p.document,fingerprint:p.fingerprint}));
    if(path==='/api/vane/import-undo')return json(await undo(env,actor,{siteId:p.siteId,jobId:p.jobId}));
+   if(path==='/api/vane/cutover-scan')return json(await scan(env,actor,{siteId:String(p.siteId),pageLimit:p.pageLimit}));
    if(path==='/api/vane/install-check')return json(await verifyInstallation(env,actor,p.siteId));
    if(path==='/api/vane/site-import')return json(await importSite(env,actor,p.archive),201);
    if(path==='/api/vane/restore')return json(await restoreHistory(env,actor,p.archive,p.journal));
@@ -136,6 +139,7 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
      const result=await preview(env,actor,{siteId:p.siteId,document:p.operation==='import.plausible.export.preview'?await readPlausibleExport(p.plausibleZip,p.day,p.currency):p.operation==='import.plausible.api.preview'?await (p.history?readPlausibleHistory:readPlausible)(env,actor,p):p.operation==='import.matomo.preview'?await readMatomo(env,actor,p):p.operation==='import.matomo.csv.preview'?{format:'vane-matomo-reports/1',day:p.day,currency:p.currency,reports:{[String(p.report)]:p.document}}:p.document});
      return view(p.siteId,{section:'history',importPreview:{fingerprint:result.fingerprint,count:result.normalized.length+result.aggregates.length,aggregates:result.aggregates,warnings:['Visitor identifiers, titles and raw URLs were discarded before custody. Historical consent and sampling are unknown.'],rows:result.normalized.map(e=>({date:e.day,path:e.path,visits:e.kind==='pageview'?1:0,source:e.source,campaign:e.campaign,goal:e.kind==='pageview'?'':e.kind}))},importCarry:JSON.stringify(result.carry)});
     }
+    if(p.operation==='install.scan'){await scan(env,actor,{siteId:p.siteId,pageLimit:p.pageLimit});return redirect(`/app/sites/${encodeURIComponent(p.siteId)}?section=settings`)}
     if(p.operation==='chat.slack.begin')return view(p.siteId,{section:'settings',chatAuthorize:await chat.begin(request,env,actor,p)});
     if(p.operation==='chat.nook.connect'){const id=await chat.nook(env,actor,p);return redirect(chat.settings(id))}
     if(p.operation==='chat.teams.connect'){const id=await chat.teams(env,actor,p);return redirect(chat.settings(id))}

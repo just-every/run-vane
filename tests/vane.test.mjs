@@ -1,3 +1,4 @@
+import './sitemap-scan.test.mjs'
 import './chat.test.mjs'
 
 import './plausible-definitions.test.mjs'

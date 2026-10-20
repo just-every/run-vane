@@ -9,5 +9,5 @@ export interface PlausibleRecord {
  dimensions:Record<string,string>; metrics:Record<string,number>; definitions:PlausibleDefinition[];
 }
 export interface RecoveredDefinition extends PlausibleDefinition {
- recordId:string; liveEvents:number; importedConversions:number; approved?:boolean; liveRevenueCurrencies?:string[];
+ callSites?:{url:string;at:number;kind:string;rewrite:string}[]; recordId:string; liveEvents:number; importedConversions:number; approved?:boolean; liveRevenueCurrencies?:string[];
 }
