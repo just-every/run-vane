@@ -427,7 +427,7 @@ The approved homepage (17 Oct 2026, `HOME-001`) states 80 capabilities in its co
 
 ## Status
 
-Judged from the code and tests at commit `4fb6b7c89b5794f6cd4e4ce8aaeeee1d7bf46466` (20 October 2026).
+Judged from the code and tests at commit `b3e4e6511f2a5a25bc8ce13361d7c0687bb8b1eb` (20 October 2026).
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
