@@ -167,6 +167,11 @@
   .launch-top { grid-template-columns: minmax(0, 1fr); }
   .card-slack { max-width: 520px; }
   .launch-top > .dot-launch { display: none; }
+  /* Three lists side by side leave a page path too little room beside its count: the name takes its own line, the count follows its bar. */
+  .bars { grid-auto-flow: dense; }
+  .bars .bar-name { grid-column: 1 / -1; padding-bottom: 4px; }
+  .bars .bar-track { grid-column: 1; }
+  .bars .bar-value { grid-column: 2; padding: 2px 0; }
 }
 
 /* Phone: each card whole, under its copy. */

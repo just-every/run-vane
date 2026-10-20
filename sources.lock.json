@@ -651,7 +651,7 @@
       "executable": false
     },
     "public/site/cards.css": {
-      "sha256": "1db8810a803e977a94cf01a6c9d97bb01e858222a7fd14fc4dafe869829c98ed",
+      "sha256": "0d189aaff72df32fe24c54c2ca2ffe602313dc8d23ef871dede6898af9c58ebf",
       "executable": false
     },
     "public/site/docs.css": {
@@ -663,7 +663,7 @@
       "executable": false
     },
     "public/site/results.css": {
-      "sha256": "e08beb7029dfbc0dc5427cd5990d5b2cb06a0d269bd18f61f57d375b76b7db94",
+      "sha256": "dd45a000267fe9f9963d93dc704c6d3a94b98bfeb62eb53e72ef89e1d5738950",
       "executable": false
     },
     "public/site/run.css": {
@@ -2555,7 +2555,7 @@
       "executable": false
     },
     "src/site/landing/launch.ts": {
-      "sha256": "6f99d2aed8e64c2235911fd570a15e009507c142200067f26fdd28ddf7775259",
+      "sha256": "a2afb531945cd2bcfabcfcbadea57a0732eeeeb7eba1742c5f143ba345c3c840",
       "executable": false
     },
     "src/site/landing/monday.ts": {

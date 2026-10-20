@@ -192,13 +192,13 @@
   .keywords { font-size: 14px; }
   .keywords th { font-size: 13px; }
   .keywords td { height: 46px; }
-  .keywords th:first-child, .keywords td:first-child { width: 30px; }
-  .keywords :is(th, td):is(:nth-child(3), :nth-child(4)) { width: 1%; padding-left: 14px; white-space: nowrap; }
+  .keywords th:first-child, .keywords td:first-child { width: 26px; }
+  .keywords :is(th, td):is(:nth-child(3), :nth-child(4)) { width: 1%; padding-left: 12px; white-space: nowrap; }
   .keywords :is(th, td):nth-child(4) { padding-right: 8px; }
-  .rank-up { margin-left: 6px; }
+  .rank-up { margin-left: 4px; }
   .search-cards > .trail-bend { display: none; }
   /* The link runs from the first query's dot (--row-x, --row-y in the card) down to the landing card's dot. */
-  .search-cards { --row-x: 23px; --row-y: 111px; }
+  .search-cards { --row-x: 21px; --row-y: 111px; }
   .query-link { width: calc(14% + .5px - var(--row-x)); height: calc(100% - var(--row-y) + 14px); margin: 0 0 -14px var(--row-x); }
   .card-landing { margin: 14px 0 0; padding: 18px 16px; }
   .card-landing h3 { font-size: 17px; }

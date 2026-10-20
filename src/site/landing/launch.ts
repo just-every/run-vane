@@ -14,9 +14,11 @@ const lists = [
   ['pages', 'Top pages', [['/blog/cold-brew-launch', 3206], ['/pricing', 1140], ['/', 866]]],
   ['countries', 'Countries', [['United States', 52], ['Germany', 9], ['United Kingdom', 8]]],
 ] as const
+// A page path too long for a narrow list breaks after a slash, never inside a name.
+const breakable = (name: string) => name.replace(/(.)\//g, '$1/<wbr>')
 const list = ([id, title, rows]: typeof lists[number]) => {
   const top = rows[0][1], percent = id === 'countries'
-  return `<section class="breakdown" id="launch-${id}" role="tabpanel" aria-labelledby="launch-tab-${id}"><h3>${title}</h3><ul class="bars">${rows.map(([name, value]) => `<li><span class="bar-name">${name}</span><span class="bar-value">${percent ? `${value}%` : n(value)}</span><span class="bar-track"><span style="width:${(percent ? value : value / top * 75).toFixed(1)}%"></span></span></li>`).join('')}</ul></section>`
+  return `<section class="breakdown" id="launch-${id}" role="tabpanel" aria-labelledby="launch-tab-${id}"><h3>${title}</h3><ul class="bars">${rows.map(([name, value]) => `<li><span class="bar-name">${breakable(name)}</span><span class="bar-value">${percent ? `${value}%` : n(value)}</span><span class="bar-track"><span style="width:${(percent ? value : value / top * 75).toFixed(1)}%"></span></span></li>`).join('')}</ul></section>`
 }
 const tabs = `<div class="tabs" role="tablist" aria-label="Breakdowns">${lists.map(([id, title], i) => `<button type="button" role="tab" id="launch-tab-${id}" aria-controls="launch-${id}" aria-selected="${i === 0}">${title.replace('Top pages', 'Pages')}</button>`).join('')}</div>`
 
