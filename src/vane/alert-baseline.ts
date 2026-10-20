@@ -14,7 +14,7 @@ import { convertedSql, MICROS } from './revenue'
 // in the site's time zone, one-off (a date) or weekly (a weekday), and a drop in an hour that overlaps one is held.
 // The business calendar's closed days (owner and admins) are left out of baselines too, and an hour on one is held.
 const HOUR=3600000,DAY=86400000
-const T95:Record<number,number>={3:3.182,4:2.776,5:2.571,6:2.447,7:2.365}
+export const T95:Record<number,number>={3:3.182,4:2.776,5:2.571,6:2.447,7:2.365}
 export const WEEKDAY_NAMES=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
 export interface Window { id:string; site_id:string; kind:'once'|'weekly'; weekday:number|null; day:string|null; start_minute:number; end_minute:number; created_by:string; created_at:number }
 const shift=(d:string,n:number)=>new Date(Date.parse(d)+n*DAY).toISOString().slice(0,10)

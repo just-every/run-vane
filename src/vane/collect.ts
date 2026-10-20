@@ -1,7 +1,7 @@
 import { paymentReferrer } from './revenue'
 import { consentAccepted, consentRequired } from './consent'
 import { assignments } from './experiments'
-import { day, insist, site, siteOrigin, statement, VaneError, type Env } from './core'
+import { day, insist, site, siteOrigin, statement, VaneError, type Env, type Site } from './core'
 import { tracker } from './tracker'
 import { signalResponse } from './privacy-signals'
 import { localDay, visitorHash } from './visitors'
@@ -23,14 +23,14 @@ export async function collector(request:Request,env:Env):Promise<Response|null> 
  const match=url.pathname.match(/^\/api\/vane\/config\/([\w-]+)$/);
  const engage=url.pathname==='/api/vane/engage';
  if(!match&&!engage&&url.pathname!=='/api/vane/collect')return null;
- let cors:Record<string,string>={'vary':'Origin','cache-control':'no-store'};
+ let cors:Record<string,string>={'vary':'Origin','cache-control':'no-store'},known:Site|null=null;
  try {
   let payload:any;
   if(!match&&request.method!=='OPTIONS') { insist(request.method==='POST','method','POST required.',405); const text=await request.text(); insist(text.length<=8192,'body','Event too large.',413); payload=JSON.parse(text); }
   const id=match?.[1]??payload?.siteId??url.searchParams.get('siteId');
   // Preflight advertises no read privilege and never admits an event.
   if(request.method==='OPTIONS')return new Response(null,{status:204,headers:{...cors,'access-control-allow-origin':request.headers.get('origin')??'null','access-control-allow-methods':'POST','access-control-allow-headers':'content-type','access-control-max-age':'600'}});
-  const value=await site(env,String(id));
+  const value=await site(env,String(id));known=value;
   const origin=siteOrigin(value,request);cors={...cors,'access-control-allow-origin':origin};
   // The script's configuration door serves only what the script uses (PRIVACY-003: whether this visitor's region
   // requires consent, never the region itself, and the consent manager to read); the owner's excluded addresses and countries
@@ -92,5 +92,11 @@ export async function collector(request:Request,env:Env):Promise<Response|null> 
   // EXPERIMENT-001: the page load's variant in each split test running on its page, from its visitor hash.
   const experiments=await assignments(value.config.experiments,visitor,e.hostname,e.path);
   return Response.json({accepted:true,...(experiments?{experiments}:{})},{status:202,headers:cors});
- } catch(error) { const e=error instanceof VaneError?error:new VaneError('invalid_event','Event could not be accepted.'); return Response.json({error:e.code,message:e.message},{status:e.status,headers:cors}); }
+ } catch(error) {
+  const e=error instanceof VaneError?error:new VaneError('invalid_event','Event could not be accepted.');
+  // ALERT-002, COVERAGE-001: a page load of a known site refused as malformed, from an origin the site does not register,
+  // or conflicting with an admitted page load or the daily admission limit is counted as a collection error (site, day, count).
+  if(known&&!match&&!engage&&(e.status===400||e.status===413||['origin','conflict','admission'].includes(e.code)))await countExclusion(env,known.id,localDay(clock(),known.config.timeZone??'UTC'),'collection-error').run();
+  return Response.json({error:e.code,message:e.message},{status:e.status,headers:cors});
+ }
 }

@@ -8,7 +8,7 @@ import type { ViewData } from './types'
 // REPORT-003 beside the Overview: what changed between the periods (never why), the evidence for it, the change
 // waiting for the owner, and whether the latest judged day is back inside its weekday's normal variation.
 
-export const reasons: Record<string, string> = { 'dropped-property': 'Dropped properties', 'consent-declined': 'Declined consent', 'excluded-path': 'Excluded paths', 'excluded-ip': 'Excluded IP addresses', 'excluded-country': 'Excluded countries', bot: 'Bots and automation', 'data-centre': 'Data-centre networks', 'referrer-spam': 'Referrer spam', 'own-browser': 'Own browser (opted out)', 'privacy-signals': 'Privacy signals', imported: 'Imported events' }
+export const reasons: Record<string, string> = { 'dropped-property': 'Dropped properties', 'consent-declined': 'Declined consent', 'excluded-path': 'Excluded paths', 'excluded-ip': 'Excluded IP addresses', 'excluded-country': 'Excluded countries', bot: 'Bots and automation', 'data-centre': 'Data-centre networks', 'referrer-spam': 'Referrer spam', 'own-browser': 'Own browser (opted out)', 'collection-error': 'Collection errors', 'privacy-signals': 'Privacy signals', imported: 'Imported events' }
 const judged: Record<string, string> = { visitors: 'Unique visitors', visits: 'Visits', pageviews: 'Pageviews' }
 const signedPercent = (now: number, then: number) => then ? `${now >= then ? '+' : '−'}${Math.abs(Math.round(((now - then) / then) * 1000) / 10)}%` : 'new'
 const moverIcon: Record<string, IconName> = { Channel: 'sources', Page: 'pages', Campaign: 'sources', Device: 'devices', Country: 'visitors', Region: 'visitors', City: 'visitors' }

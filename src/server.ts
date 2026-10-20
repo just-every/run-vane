@@ -18,6 +18,7 @@ import { runReports, unsubscribeResponse } from './vane/email-reports'
 import { mailEventResponse } from './vane/mail-events'
 import { sync as syncSearchConsole } from './vane/search-console'
 import { runAlerts } from './vane/traffic-alerts'
+import { runHealth } from './vane/tracking-health'
 import { runFollowUps } from './vane/follow-up'
 import { clock, clockResponse } from './vane/clock'
 import { vaneResponse } from './vane/routes'
@@ -106,6 +107,8 @@ export default withDemo({
     await runReports(runtimeBindings(env), clock())
     await runChatReports(runtimeBindings(env), clock())
     await runAlerts(runtimeBindings(env), clock())
+    // ALERT-002: each site's daily tracking-health check at the owner's local time.
+    await runHealth(runtimeBindings(env), clock())
     await runFollowUps(runtimeBindings(env), clock())
     } finally {
       const results=await sourceResult;const failed=results.find(r=>r.status==='rejected');if(failed?.status==='rejected')throw failed.reason;
