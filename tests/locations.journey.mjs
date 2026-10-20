@@ -11,7 +11,7 @@ const main='Metro 635 (unnamed)',small='Metro 633 (unnamed)'
 const range='from=2026-03-09&to=2026-03-16&compare=previous'
 const pick=rows=>rows.map(r=>[r.label,r.visitors,r.visits,r.conversions,r.conversionRate,r.previous])
 
-test('DASH-005 metro codes retain honest unnamed labels across reports, segments, APIs, privacy suppression, live expiry and portable history',async t=>{
+test('DASH-005 COLLECT-003 metro codes retain honest unnamed labels across reports, segments, APIs, privacy suppression, live expiry and portable history',async t=>{
  let active=await installation();t.after(()=>active.close())
  const a=active,id=await a.addSite({paths:[],retainForever:true,publicReports:['locations']})
  const owner={headers:{cookie:a.owner}}
@@ -113,6 +113,7 @@ test('DASH-005 metro codes retain honest unnamed labels across reports, segments
   const table=page.locator('table[data-live="Live US metro areas"]');assert.ok((await table.innerText()).includes(main));assert.equal(await table.locator('[data-visitors]').innerText(),'1')
  })
  await capture(`/app/sites/${id}?section=settings`,'settings',()=>page.getByRole('rowheader',{name:'Location',exact:true}),async()=>{const body=await page.locator('body').innerText();assert.ok(body.includes('metro_code'));assert.ok(body.includes('metro_name'))})
+ await capture(`/app/sites/${id}?section=settings`,'exclusions',()=>page.locator('#exclude-countries-help'),async()=>{assert.ok((await page.locator('#exclude-countries-help').innerText()).includes('admitted loads keep the location names'))})
  // Public journeys run with an empty cookie jar.
  await context.clearCookies()
  for(const [path,label] of [[sharedPath,'shared'],[publicPath,'public']])await capture(path,label,metroTable,async()=>{

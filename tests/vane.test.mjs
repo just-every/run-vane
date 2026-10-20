@@ -1020,7 +1020,7 @@ test('METRIC-004 the signed-out methodology page defines every metric the dashbo
  const rolled=await (await a.request(`/api/vane/summary?rollupId=${rollup}&from=2026-03-01&to=2026-03-08`,owner)).json();assert.equal(rolled.visits,6)
  assert.ok((await (await a.request(`/app/rollups/${rollup}?from=2026-03-01&to=2026-03-08&metric=visits`,owner)).text()).includes(`<time datetime="2026-03-05">Mar 5, 2026</time> Fern Studio: ${note}`))
 })
-test('COLLECT-003 a headless browser, crawlers, Cloudflare low bot scores and verified bots, data-centre networks, referrer spam, excluded IP ranges, an excluded country and the owner\'s opted-out browser are refused and counted by reason beside real visits, and no visitor IP, country or user agent is stored',async t=>{
+test('COLLECT-003 a headless browser, crawlers, Cloudflare low bot scores and verified bots, data-centre networks, referrer spam, excluded IP ranges, an excluded country and the owner\'s opted-out browser are refused and counted by reason beside real visits, and refused loads keep only counters while admitted loads keep declared location names',async t=>{
  const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({excludeIps:'198.51.100.0/24\n2001:db8::/32',excludeCountries:'ca',autoEvents:['outbound']})
  const chrome='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',googlebot='Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)'
  // cf carries Cloudflare's request fields (bot score, verified bot, ASN) at the Worker's fetch door.
@@ -1035,8 +1035,12 @@ test('COLLECT-003 a headless browser, crawlers, Cloudflare low bot scores and ve
  assert.equal((await a.post('/api/vane/ignored/'+id,{path:'/'},'',{origin:'https://fern.example'})).status,400,'the count carries no fields')
  // Real visits, one from an address just outside the excluded range and one from a residential network that Cloudflare scores as human.
  for(const ip of ['203.0.113.20','198.51.101.7'])assert.equal((await send({'cf-connecting-ip':ip})).status,202)
- assert.equal((await send({},{},{asn:7922,botManagement:{score:85,verifiedBot:false}})).status,202)
+ assert.equal((await send({},{},{country:'US',region:'Texas',regionCode:'TX',city:'Austin',postalCode:'78799-never-store',latitude:'30.1234567',longitude:'-97.7654321',timezone:'America/never-store',asn:7922,botManagement:{score:85,verifiedBot:false}})).status,202)
+ const beforeRefused=await a.dump()
  for(const [headers,extra,reason,cf] of [[{'user-agent':googlebot},{},'bot'],[{'user-agent':'curl/8.4.0'},{},'bot'],[{},{referrer:'https://semalt.com/'},'referrer-spam'],[{'cf-connecting-ip':'198.51.100.7'},{},'excluded-ip'],[{'cf-connecting-ip':'2001:db8::5'},{},'excluded-ip'],[{'cf-ipcountry':'CA'},{},'excluded-country'],[{},{},'bot',{botManagement:{score:12,verifiedBot:false}}],[{},{},'bot',{botManagement:{score:95,verifiedBot:true}}],[{},{},'data-centre',{asn:16509}],[{},{},'data-centre',{asn:24940}]]){const r=await send(headers,extra,cf);assert.equal(r.status,403,reason);assert.ok((await r.json()).message.endsWith(`(${reason}).`),reason)}
+ const afterRefused=await a.dump();for(const [table,rows] of Object.entries(beforeRefused))if(table!=='vane_exclusions')assert.deepEqual(afterRefused[table],rows,`refused page loads write no ${table} records`)
+ assert.ok(afterRefused.vane_events.some(e=>e.country==='United States'&&e.region==='Texas'&&e.city==='Austin'))
+ const archived=JSON.stringify([afterRefused,await a.archive()]);for(const raw of ['78799-never-store','30.1234567','-97.7654321','America/never-store','\"TX\"',chrome])assert.equal(archived.includes(raw),false,raw)
  const event=(headers,cf)=>a.request('/api/vane/event',{method:'POST',headers:{origin:'https://fern.example','content-type':'application/json','user-agent':chrome,...headers},body:JSON.stringify({id:crypto.randomUUID(),siteId:id,kind:'outbound',prop:'https://elsewhere.example/',consent:'not-required'}),...(cf?{cf}:{})})
  for(const [headers,cf] of [[{'user-agent':googlebot}],[{},{botManagement:{score:4}}],[{},{asn:14061}]])assert.equal((await event(headers,cf)).status,403,'automatic events from excluded traffic are refused');assert.equal((await event({})).status,202)
  const summary=await (await a.request('/api/vane/summary?siteId='+id,owner)).json();assert.equal(summary.pageviews,3)

@@ -59,7 +59,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "0c01f35010c1b837dc0c463ec65e261d5fa301df9fd35a6787654a1e7568f2dd",
+      "sha256": "0a6f4771524a45d7fcaec048334030b20d6e38669eb29aff4ae96bf34022ea65",
       "executable": false
     },
     "AGENTS.md": {
@@ -91,7 +91,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "2b86f849a03b3b72826d22df6491a6bfe5e374e7731bc59ada9330e66e95c040",
+      "sha256": "c0943207765ed709baf8c4af6d1bcc6b93a8a92045136782f765f197c564972b",
       "executable": false
     },
     "DEMO.md": {
@@ -3227,7 +3227,7 @@
       "executable": false
     },
     "src/vane/views/settings.ts": {
-      "sha256": "06d94a51284ec9453dffe5d3cf0b64dd1e645e12103cc3fe72898031cada876f",
+      "sha256": "ed44b7be07bf67c2380fb69f584a9bace83c0f622ca0827b0750565965fbad44",
       "executable": false
     },
     "src/vane/views/share-settings.ts": {
@@ -3383,7 +3383,7 @@
       "executable": false
     },
     "tests/locations.journey.mjs": {
-      "sha256": "0b14f7a1973f42b63394944f105bc68de1be31aef95579f242c0faf06c8bb966",
+      "sha256": "995be5b74a5b185b1bb665557fbdb342ccdcb7c414465102acf8199092d46069",
       "executable": false
     },
     "tests/matomo.test.mjs": {
@@ -3415,7 +3415,7 @@
       "executable": false
     },
     "tests/vane.test.mjs": {
-      "sha256": "4891c757f208be7c2b1f3e13e0882115e7c36984059630d50c54d37d97cbeb04",
+      "sha256": "27dbef4fc46a9782f5ee067e764af9ba6ce7b63965321e07dbc9a9c5a8002247",
       "executable": false
     },
     "tsconfig.json": {
