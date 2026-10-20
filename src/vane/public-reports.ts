@@ -1,3 +1,3 @@
 // SHARE-002: the reports an owner can put on a site's public stats page. None is chosen by default; revenue
 // (CONV-006) appears publicly only when the owner chooses the revenue report.
-export const PUBLIC_REPORTS:Record<string,string>={totals:'Totals (visitors, visits, pageviews, goals)',sources:'Sources',campaigns:'Campaigns',pages:'Top, entry and exit pages',goals:'Goals and conversion rates',devices:'Devices, browsers and screens',revenue:'Revenue (in each event’s currency, and the site-currency total at your labelled exchange rates)'}
+export const PUBLIC_REPORTS:Record<string,string>={totals:'Totals (visitors, visits, pageviews, goals)',sources:'Sources',campaigns:'Campaigns',pages:'Top, entry and exit pages',goals:'Goals and conversion rates',devices:'Devices, browsers and screens',locations:'Countries, regions and cities (small cities folded)',revenue:'Revenue (in each event’s currency, and the site-currency total at your labelled exchange rates)'}

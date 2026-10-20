@@ -1,5 +1,6 @@
 import { breakdown, count, escape, panel } from './html'
 import { revenuePanel } from './revenue'
+import { publicLocationTables } from './locations'
 import { conversionTable, dimensionTable, pageTable, percent, tile } from './tables'
 // SHARE-002: only the reports the owner chose, for a signed-out reader. Revenue (CONV-006) appears only in the revenue
 // report, when the owner chose it; the other reports' rows carry no revenue column.
@@ -11,6 +12,7 @@ const sections:Record<string,(report:any)=>string>={
  pages:r=>pageTable('Top pages',bare(r.topPages))+pageTable('Entry pages',bare(r.entryPages))+pageTable('Exit pages',bare(r.exitPages)),
  goals:r=>breakdown('Goals',r.goalBreakdown)+conversionTable(r.goalBreakdown),
  devices:r=>[['Devices',r.devices],['Browsers',r.browsers],['Operating systems',r.systems],['Screen sizes',r.screens]].map(([title,rows])=>dimensionTable(title,bare(rows))).join(''),
+ locations:r=>publicLocationTables(r,bare),
  revenue:r=>revenuePanel(r)||panel('Revenue','<p class="vane-empty">No revenue recorded in this period or the compared one.</p>'),
 }
 export function publicStats(site:{name:string},keys:string[],report:any):string {

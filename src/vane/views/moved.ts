@@ -11,7 +11,7 @@ import type { ViewData } from './types'
 export const reasons: Record<string, string> = { 'dropped-property': 'Dropped properties', 'consent-declined': 'Declined consent', 'excluded-path': 'Excluded paths', 'excluded-ip': 'Excluded IP addresses', 'excluded-country': 'Excluded countries', bot: 'Bots and automation', 'data-centre': 'Data-centre networks', 'referrer-spam': 'Referrer spam', 'own-browser': 'Own browser (opted out)', 'privacy-signals': 'Privacy signals', imported: 'Imported events' }
 const judged: Record<string, string> = { visitors: 'Unique visitors', visits: 'Visits', pageviews: 'Pageviews' }
 const signedPercent = (now: number, then: number) => then ? `${now >= then ? '+' : '−'}${Math.abs(Math.round(((now - then) / then) * 1000) / 10)}%` : 'new'
-const moverIcon: Record<string, IconName> = { Channel: 'sources', Page: 'pages', Campaign: 'sources', Device: 'devices' }
+const moverIcon: Record<string, IconName> = { Channel: 'sources', Page: 'pages', Campaign: 'sources', Device: 'devices', Country: 'visitors', Region: 'visitors', City: 'visitors' }
 const row = (iconName: IconName, title: string, detail: string, href: string) => `<li><a href="${escape(href)}">${icon(iconName)}<span><strong>${escape(title)}</strong><small>${escape(detail)}</small></span>${icon('chevron', 'vane-chevron')}</a></li>`
 
 export function movedPanel(data: ViewData, report: any): string {

@@ -446,6 +446,43 @@ test('DASH-006 iPhone Safari, Android Chrome, Windows Edge and an iPad fill the 
  const methodology=await (await a.request('/methodology')).text();for(const phrase of ['never the user agent or the width in pixels','Windows 10/11','counts as a macOS desktop'])assert.ok(methodology.includes(phrase),phrase)
  await context.close()
 })
+test('DASH-005 Cloudflare geo for Texas, Ontario and London fills the country, region and city tables with the selected goal\'s conversions, filters by country, folds small cities on a shared link, joins the live locations and the explanation\'s movers, and no IP address is stored',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite()
+ const austin={country:'US',region:'Texas',regionCode:'TX',city:'Austin',metroCode:'635'},marfa={country:'US',region:'Texas',regionCode:'TX',city:'Marfa',metroCode:'633'},toronto={country:'CA',region:'Ontario',regionCode:'ON',city:'Toronto'},london={country:'GB',region:'England',regionCode:'ENG',city:'London'}
+ // cf carries Cloudflare's request geolocation at the Worker's fetch door; each visitor has its own address.
+ let n=0;const visit=async(cf,at,paths=['/'])=>{n++;for(const [i,path] of paths.entries()){await a.clock(at+i*20000);const r=await a.request('/api/vane/collect',{method:'POST',headers:{origin:'https://fern.example','content-type':'application/json','user-agent':'Synthetic Browser','cf-connecting-ip':'198.51.100.'+n},body:JSON.stringify(a.event(id,{path})),cf});assert.equal(r.status,202,await r.clone().text())}}
+ const before=Date.parse('2026-03-03T15:00:00Z'),week=Date.parse('2026-03-10T15:00:00Z')
+ for(let i=0;i<30;i++)await visit(austin,before+i*60000)
+ for(let i=0;i<12;i++)await visit(austin,week+i*60000,i<3?['/','/thanks']:['/'])
+ for(let i=0;i<3;i++)await visit(marfa,week+(20+i)*60000)
+ await visit(toronto,week+30*60000,['/','/thanks']);await visit(london,week+31*60000)
+ const range='&from=2026-03-09&to=2026-03-16',summary=async(extra='')=>(await a.request(`/api/vane/summary?siteId=${id}${range}${extra}`,owner)).json(),r=await summary('&goal=signup')
+ const pick=(rows,...keys)=>rows.map(row=>keys.map(k=>row[k]))
+ assert.deepEqual(pick(r.countries,'label','visitors','visits','conversions','conversionRate','previous'),[['United States',15,15,3,20,30],['Canada',1,1,1,100,0],['United Kingdom',1,1,0,0,0]])
+ assert.deepEqual(pick(r.regions,'label','country','visitors','previous'),[['Texas','United States',15,30],['Ontario','Canada',1,0],['England','United Kingdom',1,0]])
+ assert.deepEqual(pick(r.cities,'label','region','country','visitors','conversions'),[['Austin','Texas','United States',12,3],['Marfa','Texas','United States',3,0],['Toronto','Ontario','Canada',1,1],['London','England','United Kingdom',1,0]])
+ // Texas fell from 30 to 15 unique visitors: the explanation names it among the movers with its totals.
+ assert.deepEqual(r.explain.movers.filter(m=>m.dimension==='Region').map(m=>[m.label,m.then,m.now,m.totalThen,m.totalNow]),[['Texas, United States',30,15,30,17],['England, United Kingdom',0,1,30,17]])
+ const page=unlinked(await (await a.request(`/app/sites/${id}?section=report${range}&goal=signup`,owner)).text())
+ for(const html of ['<h2>Countries</h2>','<th scope="row">United States</th><td class="vane-number">15</td><td class="vane-number">15</td>','<th scope="row">Marfa</th><td>Texas, United States</td><td class="vane-number">3</td>','Region Texas, United States: 30 → 15 unique visitors'])assert.ok(page.includes(html),html)
+ // Filtering by country is United States keeps only those visits.
+ const us=await summary('&filter='+encodeURIComponent('country:is:United States'))
+ assert.deepEqual([us.visitors,pick(us.countries,'label'),pick(us.cities,'label')],[15,[['United States']],[['Austin'],['Marfa']]])
+ // A shared link folds Marfa's 3 visitors into Texas's "Other cities"; the signed-in report lists both cities.
+ const shared=await a.form({operation:'share.create',siteId:id,label:'Partners',share_locations:'on'},a.owner);assert.equal(shared.status,200)
+ const link=(await shared.text()).match(/data-share-url>[^<]*(\/share\/vane_s_[0-9a-f]{64})</)[1],open=unlinked(await (await a.request(link+'?from=2026-03-09&to=2026-03-16')).text())
+ for(const html of ['<th scope="row">Austin</th><td>Texas, United States</td><td class="vane-number">12</td>','<th scope="row">Other cities</th><td>Texas, United States</td><td class="vane-number">3</td>','<th scope="row">Other cities</th><td>Ontario, Canada</td><td class="vane-number">1</td>'])assert.ok(open.includes(html),html)
+ assert.equal(open.includes('Marfa'),false,'a city under 5 visitors is not named on a shared link')
+ // The real-time view lists a current visitor from Texas, and drops them after 5 minutes idle.
+ const now=Date.parse('2026-03-10T18:00:00Z');await visit(austin,now)
+ const live=await (await a.request('/api/vane/realtime?siteId='+id,owner)).json();assert.deepEqual(live.locations,[{label:'Austin, Texas, United States',visitors:1,previous:0}])
+ assert.ok((await (await a.request(`/app/sites/${id}?section=realtime`,owner)).text()).includes('<table data-live="Live locations">'))
+ await a.clock(now+5*60000+1000);assert.deepEqual((await (await a.request('/api/vane/realtime?siteId='+id,owner)).json()).locations,[])
+ // Names are stored, with the US metro-area code; no IP address appears anywhere in storage or the archive.
+ const dump=await a.dump();assert.deepEqual([...new Set(dump.vane_events.map(e=>[e.country,e.region,e.city,e.metro].join('|')))].sort(),['Canada|Ontario|Toronto|','United Kingdom|England|London|','United States|Texas|Austin|635','United States|Texas|Marfa|633'])
+ assert.equal(JSON.stringify([dump,await a.archive()]).includes('198.51.100.'),false)
+ const inventory=await (await a.request(`/app/sites/${id}?section=settings`,owner)).text();assert.ok(inventory.includes('country, region and city'),'the data inventory names location')
+})
 test('DASH-012 with a named search parameter, a term two visitors searched is reported with searches per visit, start pages and exits, and an email-like term never appears',async t=>{
  const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({paths:['/','/search'],goals:{},searchParam:'q'}),plain=await a.addSite({origin:'https://oak.example'}),start=Date.parse('2026-03-11T10:00:00Z')
  const visit=async(n,steps)=>{for(const [i,[path,search]] of steps.entries()){await a.clock(start+n*3600000+i*20000);assert.equal((await a.post('/api/vane/collect',a.event(id,{path,...(search?{search}:{})}),'',{origin:'https://fern.example','cf-connecting-ip':'192.0.2.'+n,'user-agent':'Synthetic Browser '+n})).status,202)}}
