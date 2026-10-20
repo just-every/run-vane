@@ -8,6 +8,44 @@ Open a site's **History**, choose an **Analytics document**, and select **Previe
 
 The **Import journal** records approval, checkpoints and committed records. **Undo import** removes that import's unchanged contributions. Repeat apply or undo while processing remains. Imported consent and sampling stay unknown.
 
+## Google Analytics source documents
+
+`IMPORT-002` currently supports owner-uploaded daily source reports, with preview, exact-fingerprint approval, resumable application, journal and undo. Google OAuth and automatic Data/Admin API reads are not available yet. Export the source responses yourself; do not put OAuth codes or tokens in the document.
+
+For GA4, wrap complete [Data API `runReport` responses](https://developers.google.com/analytics/devguides/reporting/data/v1/rest/v1beta/properties/runReport) and optional [Admin API key events](https://developers.google.com/analytics/devguides/config/admin/v1/rest/v1beta/properties.keyEvents/list) in JSON:
+
+```json
+{
+  "format": "vane-ga4-history/1",
+  "property": "properties/123",
+  "from": "2025-09-01",
+  "to": "2026-09-30",
+  "reports": [],
+  "keyEvents": []
+}
+```
+
+Replace `reports` with your actual source responses, each including a `date` dimension, its headers, all rows and `rowCount`. Dates use the source property's local calendar and the inclusive range above. Each report grouping stays separate; preserve `metadata.currencyCode` for money and `metadata.timeZone` when provided. Incomplete report pagination is refused. Upload at most 500 sanitized report rows in one document; split larger exports into separately reviewed documents. Empty documents are refused.
+
+GA4 users can span days and devices; they differ from Vane's daily cookie-free visitor estimates. Session and engagement rules remain GA4's, with bounce and engagement rates retained as fractions between 0 and 1. Source sampling, thresholding, restrictions and data-loss flags stay on the rows. The reports retain their source dimensions and metrics, never become invented visits, and do not add to native Vane totals. Merging, cut-over and overlap handling remain `IMPORT-007` work.
+
+Admin key events retain their event name, source property and counting method. They appear under **Recovered definitions**, awaiting a matching accepted native event or an explicit completion. A definition still needs the owner's ordinary proposal approval before it changes live counting. A source count never establishes a trigger.
+
+For a dated Universal Analytics archive, use:
+
+```json
+{
+  "format": "vane-ua-csv/1",
+  "property": "UA-123-1",
+  "from": "2024-01-01",
+  "to": "2024-01-31",
+  "currency": "USD",
+  "csv": "Date,Page,Users,Sessions,Pageviews,Bounce Rate,Revenue\n20240101,/pricing,10,12,20,25,49.99\n"
+}
+```
+
+Use an unformatted daily CSV with a `Date` column; period-only summaries do not establish daily dates. UA bounce rates remain percentages and duration metrics remain seconds. Money needs its source currency. Personal-looking labels, query strings, unsupported columns and paths outside the site's approved privacy settings are refused before custody. Open a site's **History → Import a document**, upload the JSON, review the source definitions and apply it. Undo removes imported rows while keeping their journal and any separately approved native settings.
+
 ## Download an archive
 
 In **Data history**, select **Download installation archive**. The analytics archive contains every site's analytics, proposals, deletion journal and import custody. It excludes authentication.

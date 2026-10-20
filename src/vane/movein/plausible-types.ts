@@ -1,4 +1,4 @@
-export type PlausibleSource = 'Matomo Goals.getGoals' | 'Plausible dashboard conversions.csv' | 'Plausible dashboard custom_props.csv' | 'Plausible Sites API (Stats key)' | 'Plausible Sites API (Enterprise key)'
+export type PlausibleSource = 'GA4 Admin keyEvents' | 'Matomo Goals.getGoals' | 'Plausible dashboard conversions.csv' | 'Plausible dashboard custom_props.csv' | 'Plausible Sites API (Stats key)' | 'Plausible Sites API (Enterprise key)'
 export interface PlausibleDefinition {
  name:string; kind:'pageview'|'scroll'|'event'|'revenue'|'property'; currency:string;
  pattern?:string; event?:string; depth?:number; props?:Record<string,string>;

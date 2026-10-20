@@ -5,6 +5,7 @@ import { MoveinError } from './types'
 import { normalizePlausibleHistory } from './plausible-history'
 import { normalizePlausible } from './plausible-definitions'
 import { normalizeMatomo } from './matomo'
+import { normalizeGa4 } from './ga4'
 import { namespace } from './policy'
 import type { AggregateRecord } from './aggregate-types'
 
@@ -12,24 +13,24 @@ export function aggregateSource(document:unknown,site:ImportSite,policy:SitePoli
  let input:any=document
  if(typeof input==='string'){try{input=JSON.parse(input)}catch{return null}}
  const carry=input?.format==='vane-aggregate-preview/1'
- const parsed=carry?input.records:(normalizePlausibleHistory(input,site,policy)??normalizePlausible(input,site,policy)??normalizeMatomo(input,site,policy))
+ const parsed=carry?input.records:(normalizeGa4(input,site,policy)??normalizePlausibleHistory(input,site,policy)??normalizePlausible(input,site,policy)??normalizeMatomo(input,site,policy))
  if(parsed===null||parsed===undefined)return null
  if(!Array.isArray(parsed)||!parsed.length||parsed.length>500)throw new MoveinError('IMPORT_REQUIRES_1_TO_500_REPORT_ROWS')
  const records:AggregateRecord[]=parsed.map((r:any)=>{
-  if(!r||!['matomo','plausible'].includes(r.provider)||!/^\d{4}-\d{2}-\d{2}$/.test(r.day)||!Number.isFinite(Date.parse(r.day))||new Date(r.day).toISOString().slice(0,10)!==r.day||!/^\w+\.\w+$/.test(r.report))throw new MoveinError('INVALID_AGGREGATE')
+  if(!r||!['matomo','plausible','ga4'].includes(r.provider)||!/^\d{4}-\d{2}-\d{2}$/.test(r.day)||!Number.isFinite(Date.parse(r.day))||new Date(r.day).toISOString().slice(0,10)!==r.day||!/^\w+\.\w+$/.test(r.report))throw new MoveinError('INVALID_AGGREGATE')
   // Re-run provider normalization on carries: the hidden form is untrusted too.
   if(!r.dimensions||!r.metrics||!Array.isArray(r.definitions))throw new MoveinError('INVALID_AGGREGATE')
   if(Object.values(r.dimensions).some(v=>typeof v!=='string'||v.length>200||/[<>@\u0000-\u001f]/.test(v)))throw new MoveinError('INVALID_AGGREGATE_DIMENSION')
   if(Object.values(r.metrics).some(v=>typeof v!=='number'||!Number.isFinite(v)))throw new MoveinError('INVALID_AGGREGATE_METRIC')
   // Every row is revalidated by the provider's allowlists, including a reviewed carry.
-  const clean=r.provider==='plausible'?(normalizePlausibleHistory({format:'vane-plausible-history-normalized/1',records:[r]},site,policy)??normalizePlausible({format:'vane-plausible-normalized/1',records:[r]},site,policy)):normalizeMatomo({format:'vane-matomo-normalized/1',records:[r]},site,policy)
+  const clean=r.provider==='ga4'?normalizeGa4({format:'vane-ga4-normalized/1',records:[r]},site,policy):r.provider==='plausible'?(normalizePlausibleHistory({format:'vane-plausible-history-normalized/1',records:[r]},site,policy)??normalizePlausible({format:'vane-plausible-normalized/1',records:[r]},site,policy)):normalizeMatomo({format:'vane-matomo-normalized/1',records:[r]},site,policy)
   if(!clean?.length)throw new MoveinError('INVALID_AGGREGATE')
   const value=clean[0]!
   return {...value,id:sha256(canonicalJson(['vane-report',site.id,value.provider,value.day,value.report,value.dimensions]))}
  })
  const ids=new Set(records.map(r=>r.id));if(ids.size!==records.length)throw new MoveinError('DUPLICATE_AGGREGATE_ROW')
  records.sort((a,b)=>a.id.localeCompare(b.id))
- const content=canonicalJson({records,policyHash:sha256(site.config_json),policyVersion:site.version}),artifactHash=sha256(content),name=records[0]!.provider==='matomo'?'normalized-matomo-reports.json':'normalized-plausible-reports.json'
+ const content=canonicalJson({records,policyHash:sha256(site.config_json),policyVersion:site.version}),artifactHash=sha256(content),name='normalized-'+records[0]!.provider+'-reports.json'
  const source:SourceBundle={artifacts:[{name,sha256:artifactHash,size:new TextEncoder().encode(content).length}],diagnostics:[],records:records.map((r,i)=>({namespace:namespace(site.id),kind:'aggregate',sourceId:r.id,payload:r as unknown as Json,payloadHash:sha256(canonicalJson(r)),artifactHash,location:{artifact:name,row:i+1}}))}
  // An aggregate is a report row, not a page load. Preview rows show the source measures separately.
  return {source,events:[],discarded:{},aggregates:records,carry:{format:'vane-aggregate-preview/1',records}}
