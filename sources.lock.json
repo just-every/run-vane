@@ -3303,7 +3303,7 @@
       "executable": false
     },
     "tests/sitemap-scan.test.mjs": {
-      "sha256": "2ba63b4428d16477cbea4ec82a5bf21df838c29535a9ab64aa5572ad671ececb",
+      "sha256": "aa4c2fe27ce7d15e90697f47709b5b37014ecddac0cd153c41aa0a62f67d27cd",
       "executable": false
     },
     "tests/vane.test.mjs": {
