@@ -1,6 +1,8 @@
 import './chat.test.mjs'
 
 import './plausible-definitions.test.mjs'
+import './incumbent-options.test.mjs'
+import './plausible-history.test.mjs'
 import './bing.test.mjs'
 import './search-console.test.mjs'
 import './matomo.test.mjs'

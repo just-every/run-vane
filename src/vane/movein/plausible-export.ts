@@ -31,6 +31,6 @@ export async function readPlausibleExport(input:unknown,day:unknown,currency:unk
   entries.push({name,method,packed,length,crc,start:offset,end:start+packed});at=next
  }
  insist(at===end&&seen.has('conversions.csv'),'plausible_zip','The dashboard ZIP must contain conversions.csv.');const files:Record<string,string>={};
- for(const e of entries.filter(e=>e.name==='conversions.csv'||e.name==='custom_props.csv')){const offset=e.start,start=offset+30+u16(offset+26)+u16(offset+28),packed=bytes.subarray(start,start+e.packed),data=e.method===0?packed:await inflate(packed,e.length);insist(data.length===e.length&&crc32(data)===e.crc,'plausible_zip','The CSV checksum does not match. Download the export again.');files[e.name]=new TextDecoder('utf-8',{fatal:true}).decode(data)}
+ for(const e of entries){const offset=e.start,start=offset+30+u16(offset+26)+u16(offset+28),packed=bytes.subarray(start,start+e.packed),data=e.method===0?packed:await inflate(packed,e.length);insist(data.length===e.length&&crc32(data)===e.crc,'plausible_zip','The CSV checksum does not match. Download the export again.');files[e.name]=new TextDecoder('utf-8',{fatal:true}).decode(data)}
  return {format:'vane-plausible-dashboard/1',day:localDate(day),currency:plausibleCurrency(currency),files}
 }

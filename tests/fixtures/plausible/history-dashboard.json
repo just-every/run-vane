@@ -1,0 +1,29 @@
+{
+  "format": "vane-plausible-dashboard/1",
+  "day": "2026-10-01",
+  "currency": "USD",
+  "files": {
+    "visitors.csv": "date,visitors,pageviews,visits,views_per_visit,bounce_rate,visit_duration\r\n2026-10-01,80,180,100,1.8,35,92\r\n",
+    "pages.csv": "name,visitors,pageviews,bounce_rate,time_on_page,scroll_depth\r\n/pricing,65,90,20,75,70\r\n/thanks,45,60,10,30,85\r\n",
+    "entry_pages.csv": "name,unique_entrances,total_entrances,bounce_rate,visit_duration\r\n/pricing,65,75,20,95\r\n/,20,25,80,10\r\n",
+    "exit_pages.csv": "name,unique_exits,total_exits,exit_rate\r\n/thanks,45,65,75\r\n/,20,35,25\r\n",
+    "browsers.csv": "name,visitors\r\nChrome,50\r\nSafari,30\r\n",
+    "operating_systems.csv": "name,visitors\r\nMac,50\r\nWindows,30\r\n",
+    "devices.csv": "name,visitors\r\nDesktop,50\r\nMobile,30\r\n",
+    "channels.csv": "name,visitors,bounce_rate,visit_duration\r\nOrganic Search,50,20,100\r\nEmail,30,60,40\r\n",
+    "sources.csv": "name,visitors,bounce_rate,visit_duration\r\nGoogle,50,20,100\r\nnewsletter,30,60,40\r\n",
+    "referrers.csv": "name,visitors,bounce_rate,visit_duration\r\nsearch.example,50,20,100\r\nmail.example,30,60,40\r\n",
+    "utm_mediums.csv": "name,visitors,bounce_rate,visit_duration\r\norganic,50,20,100\r\nemail,30,60,40\r\n",
+    "utm_sources.csv": "name,visitors,bounce_rate,visit_duration\r\nsearch,50,20,100\r\nnewsletter,30,60,40\r\n",
+    "utm_campaigns.csv": "name,visitors,bounce_rate,visit_duration\r\nautumn,50,20,100\r\nlaunch,30,60,40\r\n",
+    "utm_contents.csv": "name,visitors,bounce_rate,visit_duration\r\nbanner,50,20,100\r\nfooter,30,60,40\r\n",
+    "utm_terms.csv": "name,visitors,bounce_rate,visit_duration\r\nanalytics,50,20,100\r\nprivacy,30,60,40\r\n",
+    "countries.csv": "name,visitors\r\nAustralia,50\r\nEstonia,30\r\n",
+    "regions.csv": "name,visitors\r\nQueensland,50\r\nHarjumaa,30\r\n",
+    "cities.csv": "name,visitors\r\nBrisbane,50\r\nTallinn,30\r\n",
+    "browser_versions.csv": "name,version,visitors\r\nChrome,126.0.0.0,50\r\nSafari,18.0,30\r\n",
+    "operating_system_versions.csv": "name,version,visitors\r\nMac,15.0,50\r\nWindows,11,30\r\n",
+    "conversions.csv": "name,unique_conversions,total_conversions\nVisit /thanks*,4,4\nScroll 75% on /blog/**,3,3\nSignup,2,2\nPurchase,1,1\nLeads (old),2,2\n",
+    "custom_props.csv": "property,value,visitors,events,percentage\nplan,pro,2,2,66.7\nplan,free,1,1,33.3\n"
+  }
+}

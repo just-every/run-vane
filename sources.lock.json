@@ -2719,7 +2719,7 @@
       "executable": false
     },
     "src/vane/inventory.ts": {
-      "sha256": "037642322ae8dfd037d2a3c5f0ec1805c272cfcdcf6f619c4988b593695ad5ea",
+      "sha256": "b15bdc1bcf774639c7ea3dd41f35d87aedabb031f4d4ed0a63ad3807cc704dd2",
       "executable": false
     },
     "src/vane/journeys.ts": {
@@ -2747,7 +2747,7 @@
       "executable": false
     },
     "src/vane/movein/aggregates.ts": {
-      "sha256": "160be4fdf69cc3bbfbdc17d773afefcbebacd08124bcaeaaa46a299e8e995740",
+      "sha256": "d26dace6c27d641810086886e05b4583639e4ebb66222c61ce39646814caaf4b",
       "executable": false
     },
     "src/vane/movein/carry.ts": {
@@ -2783,7 +2783,11 @@
       "executable": false
     },
     "src/vane/movein/plausible-export.ts": {
-      "sha256": "33d3832fa706cb68835e1d4843e41ebe2b6b413e4957fbb9d121c5f8b2ebb0c7",
+      "sha256": "17c7719477dfbfa0e14bc82e5ca3a0ee9c883d8f0358d56c9deed23776d41ded",
+      "executable": false
+    },
+    "src/vane/movein/plausible-history.ts": {
+      "sha256": "79cbf0ce3562c03e79c753e37a543d690ad36aca20a79afbcfdfe5f6fd3ebbfd",
       "executable": false
     },
     "src/vane/movein/plausible-reader.ts": {
@@ -2887,7 +2891,7 @@
       "executable": false
     },
     "src/vane/routes.ts": {
-      "sha256": "34a7bf9d39ce7630d81249240ec72adcacc42333504fe6279d9064217d522ac9",
+      "sha256": "97341a94ce0dc8f39e4f3b16b2ebe9be60a5e16c503dcbdee2194c884a8d94c2",
       "executable": false
     },
     "src/vane/sealed.ts": {
@@ -2975,7 +2979,7 @@
       "executable": false
     },
     "src/vane/tracker.ts": {
-      "sha256": "bad6a7f768f0ced8609cb2d32bdcc843c59768c04c0cca2027c4adcda57d0df8",
+      "sha256": "4d274bea10e99fc43b030ed37f10546467932ca06f72d1bab456b852b0e07322",
       "executable": false
     },
     "src/vane/traffic-alerts.ts": {
@@ -3051,11 +3055,11 @@
       "executable": false
     },
     "src/vane/views/import-definitions.ts": {
-      "sha256": "4ff3182deb8a80ab21d3fbe8c6851529c115bba670f57c68e01af4e7faf4a0e8",
+      "sha256": "6813e1b14027357affc29b7fddae8ae35cd487c41c2e2cbce7c6a14e6c072147",
       "executable": false
     },
     "src/vane/views/imported-reports.ts": {
-      "sha256": "67f0913e427c3003bef3c3a5b02a5ae4d91e6736d7a8e3acf94f0c23792e9b55",
+      "sha256": "ce8bd5f0efcb835f20bcccfd4f1d5e43a5eb8f5b666fcd3926fb387d413785c7",
       "executable": false
     },
     "src/vane/views/index.ts": {
@@ -3210,6 +3214,22 @@
       "sha256": "e444a4a533b2a55df78b0eeb545be01c1959e2817bf43c4555e75b2560c8d711",
       "executable": false
     },
+    "tests/fixtures/plausible/history-api.json": {
+      "sha256": "6c2bdc9d8988f367244f07e38438af1e46f353d87fdb9fa38b8617a683fec680",
+      "executable": false
+    },
+    "tests/fixtures/plausible/history-dashboard.json": {
+      "sha256": "6cf9907cd517d4424c41ca8810d0f9f03b59ed9eea8e5076c445a5cebf289752",
+      "executable": false
+    },
+    "tests/fixtures/plausible/history-dashboard.zip": {
+      "sha256": "8b83de0198cb25c009c46154cc2f088b568fe1362d3db11b7c95f33cd1b91659",
+      "executable": false
+    },
+    "tests/fixtures/plausible/history-sources.md": {
+      "sha256": "e2c818fa5d2e7a0b57965436b3239a9c615386b46adf39972ecf6fdb53177f49",
+      "executable": false
+    },
     "tests/fixtures/plausible/instrumented.html": {
       "sha256": "9d41c9dfd17900a7d0680040f3aa71f20588caed26670572c989fca2298f7be2",
       "executable": false
@@ -3246,6 +3266,10 @@
       "sha256": "c5ae12664553ef2c1ca3788cda7295f5b11a6c51634e760a80716da04f794199",
       "executable": false
     },
+    "tests/plausible-history.test.mjs": {
+      "sha256": "a86b67f9569cff96035729a9c49f0432aa2ad855d7312c7b7ab27124880ffabb",
+      "executable": false
+    },
     "tests/search-console.test.mjs": {
       "sha256": "90994a1c7718d71419c916ebd6e0f22f64ea310f382467490012534f304642e8",
       "executable": false
@@ -3255,7 +3279,7 @@
       "executable": false
     },
     "tests/vane.test.mjs": {
-      "sha256": "7a2e7cfc3095d06962c2369b4d4ab11cdce0e02681d8f298fb651b6b614ed68f",
+      "sha256": "4fa724eaa695b2909a42386d0b52567c6db68fcc39f476988200ab68db02715e",
       "executable": false
     },
     "tsconfig.json": {

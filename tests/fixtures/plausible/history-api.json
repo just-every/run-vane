@@ -1,0 +1,1382 @@
+{
+  "format": "vane-plausible-history-api/1",
+  "day": "2026-10-01",
+  "queries": [
+    {
+      "results": [
+        {
+          "dimensions": [
+            "2026-10-01"
+          ],
+          "metrics": [
+            80,
+            100,
+            180,
+            1.8,
+            35,
+            92
+          ]
+        }
+      ],
+      "meta": {
+        "imports_included": true,
+        "total_rows": 1
+      },
+      "query": {
+        "site_id": "switch.fixture.example",
+        "date_range": [
+          "2026-10-01T00:00:00+00:00",
+          "2026-10-01T23:59:59+00:00"
+        ],
+        "dimensions": [
+          "time:day"
+        ],
+        "metrics": [
+          "visitors",
+          "visits",
+          "pageviews",
+          "views_per_visit",
+          "bounce_rate",
+          "visit_duration"
+        ],
+        "filters": [],
+        "include": {
+          "imports": true,
+          "total_rows": true
+        }
+      }
+    },
+    {
+      "results": [
+        {
+          "dimensions": [
+            "/pricing"
+          ],
+          "metrics": [
+            50,
+            60,
+            100,
+            20,
+            75,
+            70
+          ]
+        },
+        {
+          "dimensions": [
+            "/thanks"
+          ],
+          "metrics": [
+            30,
+            40,
+            80,
+            60,
+            30,
+            85
+          ]
+        }
+      ],
+      "meta": {
+        "imports_included": true,
+        "total_rows": 2
+      },
+      "query": {
+        "site_id": "switch.fixture.example",
+        "date_range": [
+          "2026-10-01T00:00:00+00:00",
+          "2026-10-01T23:59:59+00:00"
+        ],
+        "dimensions": [
+          "event:page"
+        ],
+        "metrics": [
+          "visitors",
+          "visits",
+          "pageviews",
+          "bounce_rate",
+          "time_on_page",
+          "scroll_depth"
+        ],
+        "filters": [],
+        "include": {
+          "imports": true,
+          "total_rows": true
+        }
+      }
+    },
+    {
+      "results": [
+        {
+          "dimensions": [
+            "/pricing"
+          ],
+          "metrics": [
+            50,
+            60,
+            100,
+            1.8,
+            20,
+            100
+          ]
+        },
+        {
+          "dimensions": [
+            "/"
+          ],
+          "metrics": [
+            30,
+            40,
+            80,
+            1.8,
+            60,
+            40
+          ]
+        }
+      ],
+      "meta": {
+        "imports_included": true,
+        "total_rows": 2
+      },
+      "query": {
+        "site_id": "switch.fixture.example",
+        "date_range": [
+          "2026-10-01T00:00:00+00:00",
+          "2026-10-01T23:59:59+00:00"
+        ],
+        "dimensions": [
+          "visit:entry_page"
+        ],
+        "metrics": [
+          "visitors",
+          "visits",
+          "pageviews",
+          "views_per_visit",
+          "bounce_rate",
+          "visit_duration"
+        ],
+        "filters": [],
+        "include": {
+          "imports": true,
+          "total_rows": true
+        }
+      }
+    },
+    {
+      "results": [
+        {
+          "dimensions": [
+            "/thanks"
+          ],
+          "metrics": [
+            50,
+            60,
+            100,
+            1.8,
+            20,
+            100
+          ]
+        },
+        {
+          "dimensions": [
+            "/"
+          ],
+          "metrics": [
+            30,
+            40,
+            80,
+            1.8,
+            60,
+            40
+          ]
+        }
+      ],
+      "meta": {
+        "imports_included": true,
+        "total_rows": 2
+      },
+      "query": {
+        "site_id": "switch.fixture.example",
+        "date_range": [
+          "2026-10-01T00:00:00+00:00",
+          "2026-10-01T23:59:59+00:00"
+        ],
+        "dimensions": [
+          "visit:exit_page"
+        ],
+        "metrics": [
+          "visitors",
+          "visits",
+          "pageviews",
+          "views_per_visit",
+          "bounce_rate",
+          "visit_duration"
+        ],
+        "filters": [],
+        "include": {
+          "imports": true,
+          "total_rows": true
+        }
+      }
+    },
+    {
+      "results": [
+        {
+          "dimensions": [
+            "Chrome"
+          ],
+          "metrics": [
+            50,
+            60,
+            100,
+            1.8,
+            20,
+            100
+          ]
+        },
+        {
+          "dimensions": [
+            "Safari"
+          ],
+          "metrics": [
+            30,
+            40,
+            80,
+            1.8,
+            60,
+            40
+          ]
+        }
+      ],
+      "meta": {
+        "imports_included": true,
+        "total_rows": 2
+      },
+      "query": {
+        "site_id": "switch.fixture.example",
+        "date_range": [
+          "2026-10-01T00:00:00+00:00",
+          "2026-10-01T23:59:59+00:00"
+        ],
+        "dimensions": [
+          "visit:browser"
+        ],
+        "metrics": [
+          "visitors",
+          "visits",
+          "pageviews",
+          "views_per_visit",
+          "bounce_rate",
+          "visit_duration"
+        ],
+        "filters": [],
+        "include": {
+          "imports": true,
+          "total_rows": true
+        }
+      }
+    },
+    {
+      "results": [
+        {
+          "dimensions": [
+            "Chrome",
+            "126.0.0.0"
+          ],
+          "metrics": [
+            50,
+            60,
+            100,
+            1.8,
+            20,
+            100
+          ]
+        },
+        {
+          "dimensions": [
+            "Safari",
+            "18.0"
+          ],
+          "metrics": [
+            30,
+            40,
+            80,
+            1.8,
+            60,
+            40
+          ]
+        }
+      ],
+      "meta": {
+        "imports_included": true,
+        "total_rows": 2
+      },
+      "query": {
+        "site_id": "switch.fixture.example",
+        "date_range": [
+          "2026-10-01T00:00:00+00:00",
+          "2026-10-01T23:59:59+00:00"
+        ],
+        "dimensions": [
+          "visit:browser",
+          "visit:browser_version"
+        ],
+        "metrics": [
+          "visitors",
+          "visits",
+          "pageviews",
+          "views_per_visit",
+          "bounce_rate",
+          "visit_duration"
+        ],
+        "filters": [],
+        "include": {
+          "imports": true,
+          "total_rows": true
+        }
+      }
+    },
+    {
+      "results": [
+        {
+          "dimensions": [
+            "Mac"
+          ],
+          "metrics": [
+            50,
+            60,
+            100,
+            1.8,
+            20,
+            100
+          ]
+        },
+        {
+          "dimensions": [
+            "Windows"
+          ],
+          "metrics": [
+            30,
+            40,
+            80,
+            1.8,
+            60,
+            40
+          ]
+        }
+      ],
+      "meta": {
+        "imports_included": true,
+        "total_rows": 2
+      },
+      "query": {
+        "site_id": "switch.fixture.example",
+        "date_range": [
+          "2026-10-01T00:00:00+00:00",
+          "2026-10-01T23:59:59+00:00"
+        ],
+        "dimensions": [
+          "visit:os"
+        ],
+        "metrics": [
+          "visitors",
+          "visits",
+          "pageviews",
+          "views_per_visit",
+          "bounce_rate",
+          "visit_duration"
+        ],
+        "filters": [],
+        "include": {
+          "imports": true,
+          "total_rows": true
+        }
+      }
+    },
+    {
+      "results": [
+        {
+          "dimensions": [
+            "Mac",
+            "15.0"
+          ],
+          "metrics": [
+            50,
+            60,
+            100,
+            1.8,
+            20,
+            100
+          ]
+        },
+        {
+          "dimensions": [
+            "Windows",
+            "11"
+          ],
+          "metrics": [
+            30,
+            40,
+            80,
+            1.8,
+            60,
+            40
+          ]
+        }
+      ],
+      "meta": {
+        "imports_included": true,
+        "total_rows": 2
+      },
+      "query": {
+        "site_id": "switch.fixture.example",
+        "date_range": [
+          "2026-10-01T00:00:00+00:00",
+          "2026-10-01T23:59:59+00:00"
+        ],
+        "dimensions": [
+          "visit:os",
+          "visit:os_version"
+        ],
+        "metrics": [
+          "visitors",
+          "visits",
+          "pageviews",
+          "views_per_visit",
+          "bounce_rate",
+          "visit_duration"
+        ],
+        "filters": [],
+        "include": {
+          "imports": true,
+          "total_rows": true
+        }
+      }
+    },
+    {
+      "results": [
+        {
+          "dimensions": [
+            "Desktop"
+          ],
+          "metrics": [
+            50,
+            60,
+            100,
+            1.8,
+            20,
+            100
+          ]
+        },
+        {
+          "dimensions": [
+            "Mobile"
+          ],
+          "metrics": [
+            30,
+            40,
+            80,
+            1.8,
+            60,
+            40
+          ]
+        }
+      ],
+      "meta": {
+        "imports_included": true,
+        "total_rows": 2
+      },
+      "query": {
+        "site_id": "switch.fixture.example",
+        "date_range": [
+          "2026-10-01T00:00:00+00:00",
+          "2026-10-01T23:59:59+00:00"
+        ],
+        "dimensions": [
+          "visit:device"
+        ],
+        "metrics": [
+          "visitors",
+          "visits",
+          "pageviews",
+          "views_per_visit",
+          "bounce_rate",
+          "visit_duration"
+        ],
+        "filters": [],
+        "include": {
+          "imports": true,
+          "total_rows": true
+        }
+      }
+    },
+    {
+      "results": [
+        {
+          "dimensions": [
+            "Organic Search"
+          ],
+          "metrics": [
+            50,
+            60,
+            100,
+            1.8,
+            20,
+            100
+          ]
+        },
+        {
+          "dimensions": [
+            "Email"
+          ],
+          "metrics": [
+            30,
+            40,
+            80,
+            1.8,
+            60,
+            40
+          ]
+        }
+      ],
+      "meta": {
+        "imports_included": true,
+        "total_rows": 2
+      },
+      "query": {
+        "site_id": "switch.fixture.example",
+        "date_range": [
+          "2026-10-01T00:00:00+00:00",
+          "2026-10-01T23:59:59+00:00"
+        ],
+        "dimensions": [
+          "visit:channel"
+        ],
+        "metrics": [
+          "visitors",
+          "visits",
+          "pageviews",
+          "views_per_visit",
+          "bounce_rate",
+          "visit_duration"
+        ],
+        "filters": [],
+        "include": {
+          "imports": true,
+          "total_rows": true
+        }
+      }
+    },
+    {
+      "results": [
+        {
+          "dimensions": [
+            "Google"
+          ],
+          "metrics": [
+            50,
+            60,
+            100,
+            1.8,
+            20,
+            100
+          ]
+        },
+        {
+          "dimensions": [
+            "newsletter"
+          ],
+          "metrics": [
+            30,
+            40,
+            80,
+            1.8,
+            60,
+            40
+          ]
+        }
+      ],
+      "meta": {
+        "imports_included": true,
+        "total_rows": 2
+      },
+      "query": {
+        "site_id": "switch.fixture.example",
+        "date_range": [
+          "2026-10-01T00:00:00+00:00",
+          "2026-10-01T23:59:59+00:00"
+        ],
+        "dimensions": [
+          "visit:source"
+        ],
+        "metrics": [
+          "visitors",
+          "visits",
+          "pageviews",
+          "views_per_visit",
+          "bounce_rate",
+          "visit_duration"
+        ],
+        "filters": [],
+        "include": {
+          "imports": true,
+          "total_rows": true
+        }
+      }
+    },
+    {
+      "results": [
+        {
+          "dimensions": [
+            "search.example"
+          ],
+          "metrics": [
+            50,
+            60,
+            100,
+            1.8,
+            20,
+            100
+          ]
+        },
+        {
+          "dimensions": [
+            "mail.example"
+          ],
+          "metrics": [
+            30,
+            40,
+            80,
+            1.8,
+            60,
+            40
+          ]
+        }
+      ],
+      "meta": {
+        "imports_included": true,
+        "total_rows": 2
+      },
+      "query": {
+        "site_id": "switch.fixture.example",
+        "date_range": [
+          "2026-10-01T00:00:00+00:00",
+          "2026-10-01T23:59:59+00:00"
+        ],
+        "dimensions": [
+          "visit:referrer"
+        ],
+        "metrics": [
+          "visitors",
+          "visits",
+          "pageviews",
+          "views_per_visit",
+          "bounce_rate",
+          "visit_duration"
+        ],
+        "filters": [],
+        "include": {
+          "imports": true,
+          "total_rows": true
+        }
+      }
+    },
+    {
+      "results": [
+        {
+          "dimensions": [
+            "organic"
+          ],
+          "metrics": [
+            50,
+            60,
+            100,
+            1.8,
+            20,
+            100
+          ]
+        },
+        {
+          "dimensions": [
+            "email"
+          ],
+          "metrics": [
+            30,
+            40,
+            80,
+            1.8,
+            60,
+            40
+          ]
+        }
+      ],
+      "meta": {
+        "imports_included": true,
+        "total_rows": 2
+      },
+      "query": {
+        "site_id": "switch.fixture.example",
+        "date_range": [
+          "2026-10-01T00:00:00+00:00",
+          "2026-10-01T23:59:59+00:00"
+        ],
+        "dimensions": [
+          "visit:utm_medium"
+        ],
+        "metrics": [
+          "visitors",
+          "visits",
+          "pageviews",
+          "views_per_visit",
+          "bounce_rate",
+          "visit_duration"
+        ],
+        "filters": [],
+        "include": {
+          "imports": true,
+          "total_rows": true
+        }
+      }
+    },
+    {
+      "results": [
+        {
+          "dimensions": [
+            "search"
+          ],
+          "metrics": [
+            50,
+            60,
+            100,
+            1.8,
+            20,
+            100
+          ]
+        },
+        {
+          "dimensions": [
+            "newsletter"
+          ],
+          "metrics": [
+            30,
+            40,
+            80,
+            1.8,
+            60,
+            40
+          ]
+        }
+      ],
+      "meta": {
+        "imports_included": true,
+        "total_rows": 2
+      },
+      "query": {
+        "site_id": "switch.fixture.example",
+        "date_range": [
+          "2026-10-01T00:00:00+00:00",
+          "2026-10-01T23:59:59+00:00"
+        ],
+        "dimensions": [
+          "visit:utm_source"
+        ],
+        "metrics": [
+          "visitors",
+          "visits",
+          "pageviews",
+          "views_per_visit",
+          "bounce_rate",
+          "visit_duration"
+        ],
+        "filters": [],
+        "include": {
+          "imports": true,
+          "total_rows": true
+        }
+      }
+    },
+    {
+      "results": [
+        {
+          "dimensions": [
+            "autumn"
+          ],
+          "metrics": [
+            50,
+            60,
+            100,
+            1.8,
+            20,
+            100
+          ]
+        },
+        {
+          "dimensions": [
+            "launch"
+          ],
+          "metrics": [
+            30,
+            40,
+            80,
+            1.8,
+            60,
+            40
+          ]
+        }
+      ],
+      "meta": {
+        "imports_included": true,
+        "total_rows": 2
+      },
+      "query": {
+        "site_id": "switch.fixture.example",
+        "date_range": [
+          "2026-10-01T00:00:00+00:00",
+          "2026-10-01T23:59:59+00:00"
+        ],
+        "dimensions": [
+          "visit:utm_campaign"
+        ],
+        "metrics": [
+          "visitors",
+          "visits",
+          "pageviews",
+          "views_per_visit",
+          "bounce_rate",
+          "visit_duration"
+        ],
+        "filters": [],
+        "include": {
+          "imports": true,
+          "total_rows": true
+        }
+      }
+    },
+    {
+      "results": [
+        {
+          "dimensions": [
+            "banner"
+          ],
+          "metrics": [
+            50,
+            60,
+            100,
+            1.8,
+            20,
+            100
+          ]
+        },
+        {
+          "dimensions": [
+            "footer"
+          ],
+          "metrics": [
+            30,
+            40,
+            80,
+            1.8,
+            60,
+            40
+          ]
+        }
+      ],
+      "meta": {
+        "imports_included": true,
+        "total_rows": 2
+      },
+      "query": {
+        "site_id": "switch.fixture.example",
+        "date_range": [
+          "2026-10-01T00:00:00+00:00",
+          "2026-10-01T23:59:59+00:00"
+        ],
+        "dimensions": [
+          "visit:utm_content"
+        ],
+        "metrics": [
+          "visitors",
+          "visits",
+          "pageviews",
+          "views_per_visit",
+          "bounce_rate",
+          "visit_duration"
+        ],
+        "filters": [],
+        "include": {
+          "imports": true,
+          "total_rows": true
+        }
+      }
+    },
+    {
+      "results": [
+        {
+          "dimensions": [
+            "analytics"
+          ],
+          "metrics": [
+            50,
+            60,
+            100,
+            1.8,
+            20,
+            100
+          ]
+        },
+        {
+          "dimensions": [
+            "privacy"
+          ],
+          "metrics": [
+            30,
+            40,
+            80,
+            1.8,
+            60,
+            40
+          ]
+        }
+      ],
+      "meta": {
+        "imports_included": true,
+        "total_rows": 2
+      },
+      "query": {
+        "site_id": "switch.fixture.example",
+        "date_range": [
+          "2026-10-01T00:00:00+00:00",
+          "2026-10-01T23:59:59+00:00"
+        ],
+        "dimensions": [
+          "visit:utm_term"
+        ],
+        "metrics": [
+          "visitors",
+          "visits",
+          "pageviews",
+          "views_per_visit",
+          "bounce_rate",
+          "visit_duration"
+        ],
+        "filters": [],
+        "include": {
+          "imports": true,
+          "total_rows": true
+        }
+      }
+    },
+    {
+      "results": [
+        {
+          "dimensions": [
+            "Australia"
+          ],
+          "metrics": [
+            50,
+            60,
+            100,
+            1.8,
+            20,
+            100
+          ]
+        },
+        {
+          "dimensions": [
+            "Estonia"
+          ],
+          "metrics": [
+            30,
+            40,
+            80,
+            1.8,
+            60,
+            40
+          ]
+        }
+      ],
+      "meta": {
+        "imports_included": true,
+        "total_rows": 2
+      },
+      "query": {
+        "site_id": "switch.fixture.example",
+        "date_range": [
+          "2026-10-01T00:00:00+00:00",
+          "2026-10-01T23:59:59+00:00"
+        ],
+        "dimensions": [
+          "visit:country_name"
+        ],
+        "metrics": [
+          "visitors",
+          "visits",
+          "pageviews",
+          "views_per_visit",
+          "bounce_rate",
+          "visit_duration"
+        ],
+        "filters": [],
+        "include": {
+          "imports": true,
+          "total_rows": true
+        }
+      }
+    },
+    {
+      "results": [
+        {
+          "dimensions": [
+            "Queensland"
+          ],
+          "metrics": [
+            50,
+            60,
+            100,
+            1.8,
+            20,
+            100
+          ]
+        },
+        {
+          "dimensions": [
+            "Harjumaa"
+          ],
+          "metrics": [
+            30,
+            40,
+            80,
+            1.8,
+            60,
+            40
+          ]
+        }
+      ],
+      "meta": {
+        "imports_included": true,
+        "total_rows": 2
+      },
+      "query": {
+        "site_id": "switch.fixture.example",
+        "date_range": [
+          "2026-10-01T00:00:00+00:00",
+          "2026-10-01T23:59:59+00:00"
+        ],
+        "dimensions": [
+          "visit:region_name"
+        ],
+        "metrics": [
+          "visitors",
+          "visits",
+          "pageviews",
+          "views_per_visit",
+          "bounce_rate",
+          "visit_duration"
+        ],
+        "filters": [],
+        "include": {
+          "imports": true,
+          "total_rows": true
+        }
+      }
+    },
+    {
+      "results": [
+        {
+          "dimensions": [
+            "Brisbane"
+          ],
+          "metrics": [
+            50,
+            60,
+            100,
+            1.8,
+            20,
+            100
+          ]
+        },
+        {
+          "dimensions": [
+            "Tallinn"
+          ],
+          "metrics": [
+            30,
+            40,
+            80,
+            1.8,
+            60,
+            40
+          ]
+        }
+      ],
+      "meta": {
+        "imports_included": true,
+        "total_rows": 2
+      },
+      "query": {
+        "site_id": "switch.fixture.example",
+        "date_range": [
+          "2026-10-01T00:00:00+00:00",
+          "2026-10-01T23:59:59+00:00"
+        ],
+        "dimensions": [
+          "visit:city_name"
+        ],
+        "metrics": [
+          "visitors",
+          "visits",
+          "pageviews",
+          "views_per_visit",
+          "bounce_rate",
+          "visit_duration"
+        ],
+        "filters": [],
+        "include": {
+          "imports": true,
+          "total_rows": true
+        }
+      }
+    },
+    {
+      "results": [
+        {
+          "dimensions": [
+            "Visit /thanks*"
+          ],
+          "metrics": [
+            4,
+            5,
+            10,
+            null,
+            null
+          ]
+        },
+        {
+          "dimensions": [
+            "Scroll 75% on /blog/**"
+          ],
+          "metrics": [
+            3,
+            4,
+            10,
+            null,
+            null
+          ]
+        },
+        {
+          "dimensions": [
+            "Signup"
+          ],
+          "metrics": [
+            2,
+            3,
+            10,
+            null,
+            null
+          ]
+        },
+        {
+          "dimensions": [
+            "Purchase"
+          ],
+          "metrics": [
+            2,
+            3,
+            10,
+            {
+              "value": 49.99,
+              "currency": "EUR",
+              "short": "\u20ac49.99",
+              "long": "\u20ac49.99"
+            },
+            {
+              "value": 24.995,
+              "currency": "EUR",
+              "short": "\u20ac25",
+              "long": "\u20ac24.995"
+            }
+          ]
+        }
+      ],
+      "meta": {
+        "imports_included": true,
+        "total_rows": 4
+      },
+      "query": {
+        "site_id": "switch.fixture.example",
+        "date_range": [
+          "2026-10-01T00:00:00+00:00",
+          "2026-10-01T23:59:59+00:00"
+        ],
+        "dimensions": [
+          "event:goal"
+        ],
+        "metrics": [
+          "visitors",
+          "events",
+          "conversion_rate",
+          "total_revenue",
+          "average_revenue"
+        ],
+        "filters": [],
+        "include": {
+          "imports": true,
+          "total_rows": true
+        }
+      }
+    },
+    {
+      "results": [
+        {
+          "dimensions": [
+            "pro"
+          ],
+          "metrics": [
+            50,
+            70,
+            62.5
+          ]
+        },
+        {
+          "dimensions": [
+            "free"
+          ],
+          "metrics": [
+            30,
+            40,
+            37.5
+          ]
+        }
+      ],
+      "meta": {
+        "imports_included": true,
+        "total_rows": 2
+      },
+      "query": {
+        "site_id": "switch.fixture.example",
+        "date_range": [
+          "2026-10-01T00:00:00+00:00",
+          "2026-10-01T23:59:59+00:00"
+        ],
+        "dimensions": [
+          "event:props:plan"
+        ],
+        "metrics": [
+          "visitors",
+          "events",
+          "percentage"
+        ],
+        "filters": [],
+        "include": {
+          "imports": true,
+          "total_rows": true
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "format": "vane-plausible-api/1",
+    "day": "2026-10-01",
+    "keyType": "stats",
+    "goals": {
+      "goals": [
+        {
+          "id": "1",
+          "goal_type": "page",
+          "display_name": "Visit /thanks*",
+          "event_name": null,
+          "page_path": "/thanks*",
+          "custom_props": {}
+        },
+        {
+          "id": "2",
+          "goal_type": "scroll",
+          "display_name": "Scroll 75% on /blog/**",
+          "event_name": null,
+          "page_path": "/blog/**",
+          "custom_props": {}
+        },
+        {
+          "id": "3",
+          "goal_type": "event",
+          "display_name": "Signup",
+          "event_name": "Signup",
+          "page_path": null,
+          "custom_props": {
+            "plan": "pro"
+          }
+        },
+        {
+          "id": "4",
+          "goal_type": "event",
+          "display_name": "Purchase",
+          "event_name": "Purchase",
+          "page_path": null,
+          "custom_props": {}
+        }
+      ],
+      "meta": {
+        "after": null,
+        "before": null,
+        "limit": 100
+      }
+    },
+    "properties": {
+      "custom_properties": [
+        {
+          "property": "plan"
+        }
+      ]
+    },
+    "revenue": {
+      "results": [
+        {
+          "dimensions": [
+            "Visit /thanks*"
+          ],
+          "metrics": [
+            null
+          ]
+        },
+        {
+          "dimensions": [
+            "Scroll 75% on /blog/**"
+          ],
+          "metrics": [
+            null
+          ]
+        },
+        {
+          "dimensions": [
+            "Signup"
+          ],
+          "metrics": [
+            null
+          ]
+        },
+        {
+          "dimensions": [
+            "Purchase"
+          ],
+          "metrics": [
+            {
+              "value": 49.99,
+              "currency": "EUR",
+              "short": "\u20ac49.99",
+              "long": "\u20ac49.99"
+            }
+          ]
+        }
+      ],
+      "meta": {},
+      "query": {
+        "site_id": "switch.fixture.example",
+        "date_range": "all",
+        "metrics": [
+          "total_revenue"
+        ],
+        "dimensions": [
+          "event:goal"
+        ]
+      }
+    }
+  }
+}

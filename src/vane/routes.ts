@@ -2,6 +2,7 @@ import * as chat from './chat/connections'
 import * as chatDelivery from './chat/delivery'
 import { importedDefinitions, prepareImportedDefinition, prepareRebuiltFunnel } from './movein/import-definitions'
 import { readPlausibleExport } from './movein/plausible-export'
+import { readPlausibleHistory } from './movein/plausible-history'
 import { readPlausible } from './movein/plausible-reader'
 import * as bing from './bing'
 import * as searchConsole from './search-console'
@@ -116,7 +117,7 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
    const p=await input(request);
    for(const id of [p.siteId,p.input?.siteId])if(id!==undefined&&id!=='')inScope(actor,String(id));
    if(path==='/api/vane/commands')return json(await prepare(env,actor,p.command,p.input??{},'command API'),201);
-   if(path==='/api/vane/import-preview')return json(await preview(env,actor,{siteId:p.siteId,document:p.plausible?await readPlausible(env,actor,{siteId:p.siteId,...p.plausible}):p.matomo?await readMatomo(env,actor,{siteId:p.siteId,...p.matomo}):p.document}));
+   if(path==='/api/vane/import-preview')return json(await preview(env,actor,{siteId:p.siteId,document:p.plausible?await (p.plausible.history?readPlausibleHistory:readPlausible)(env,actor,{...p.plausible,siteId:p.siteId}):p.matomo?await readMatomo(env,actor,{siteId:p.siteId,...p.matomo}):p.document}));
    if(path==='/api/vane/import-apply')return json(await apply(env,actor,{siteId:p.siteId,document:p.document,fingerprint:p.fingerprint}));
    if(path==='/api/vane/import-undo')return json(await undo(env,actor,{siteId:p.siteId,jobId:p.jobId}));
    if(path==='/api/vane/install-check')return json(await verifyInstallation(env,actor,p.siteId));
@@ -132,7 +133,7 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
     if(p.operation==='import.definition.prepare'||p.operation==='import.funnel.prepare'){if(p.operation==='import.definition.prepare')await prepareImportedDefinition(env,actor,p);else await prepareRebuiltFunnel(env,actor,p);return redirect('/app?section=approvals&notice=Definition+prepared+for+approval.')}
     if(p.operation==='import.goal.prepare'){await prepareImportedGoal(env,actor,p);return redirect('/app?section=approvals&notice=Goal+prepared+for+approval.')}
     if(p.operation==='import.preview'||p.operation==='import.matomo.preview'||p.operation==='import.matomo.csv.preview'||p.operation==='import.plausible.export.preview'||p.operation==='import.plausible.api.preview') {
-     const result=await preview(env,actor,{siteId:p.siteId,document:p.operation==='import.plausible.export.preview'?await readPlausibleExport(p.plausibleZip,p.day,p.currency):p.operation==='import.plausible.api.preview'?await readPlausible(env,actor,p):p.operation==='import.matomo.preview'?await readMatomo(env,actor,p):p.operation==='import.matomo.csv.preview'?{format:'vane-matomo-reports/1',day:p.day,currency:p.currency,reports:{[String(p.report)]:p.document}}:p.document});
+     const result=await preview(env,actor,{siteId:p.siteId,document:p.operation==='import.plausible.export.preview'?await readPlausibleExport(p.plausibleZip,p.day,p.currency):p.operation==='import.plausible.api.preview'?await (p.history?readPlausibleHistory:readPlausible)(env,actor,p):p.operation==='import.matomo.preview'?await readMatomo(env,actor,p):p.operation==='import.matomo.csv.preview'?{format:'vane-matomo-reports/1',day:p.day,currency:p.currency,reports:{[String(p.report)]:p.document}}:p.document});
      return view(p.siteId,{section:'history',importPreview:{fingerprint:result.fingerprint,count:result.normalized.length+result.aggregates.length,aggregates:result.aggregates,warnings:['Visitor identifiers, titles and raw URLs were discarded before custody. Historical consent and sampling are unknown.'],rows:result.normalized.map(e=>({date:e.day,path:e.path,visits:e.kind==='pageview'?1:0,source:e.source,campaign:e.campaign,goal:e.kind==='pageview'?'':e.kind}))},importCarry:JSON.stringify(result.carry)});
     }
     if(p.operation==='chat.slack.begin')return view(p.siteId,{section:'settings',chatAuthorize:await chat.begin(request,env,actor,p)});
