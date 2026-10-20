@@ -187,6 +187,7 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
     if(p.operation==='export.run'){const sent=await runExportNow(env,actor,String(p.siteId??''));return redirect(`/app/sites/${encodeURIComponent(String(p.siteId))}?${new URLSearchParams({section:'settings',notice:sent.length?`Exported ${sent.join(', ')}.`:'Nothing new to export, or the bucket refused it: see the last result.'})}`)}
     if(p.operation==='rollup.create')return redirect('/app/rollups/'+encodeURIComponent(await createRollup(env,actor,p))+'?'+new URLSearchParams({notice:'Roll-up created.'}));
     const result=await action(env,actor,p),query=new URLSearchParams({notice:result.notice,...(result.section?{section:result.section}:{})});
+    if(result.continueImport){const reviewed=await preview(env,actor,{siteId:p.siteId,document:JSON.parse(p.document)});return view(p.siteId,{section:'history',notice:result.notice,importPreview:{fingerprint:reviewed.fingerprint,count:reviewed.aggregates.length+reviewed.normalized.length,aggregates:reviewed.aggregates},importCarry:JSON.stringify(reviewed.carry)});}
     // DASH-009: a new annotation secret is rendered once in this response, never put in a redirect URL.
     if(result.secret)return view(result.siteId,{section:result.section,notice:result.notice,secret:result.secret});
     // SHARE-001: a new shared link's URL is rendered once in this response, never put in a redirect URL.

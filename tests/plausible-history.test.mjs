@@ -11,6 +11,7 @@ const json=async response=>{assert.equal(response.status,200,await response.clon
 const decode=text=>text.replace(/&(?:quot|amp|lt|gt|#39);/g,x=>({'&quot;':'"','&amp;':'&','&lt;':'<','&gt;':'>','&#39;':"'"}[x]))
 function hidden(html,name){const match=html.match(new RegExp('name="'+name+'" value="([^"]*)"'));assert.ok(match,'reviewed '+name+' must be present');return decode(match[1])}
 async function apply(a,siteId,p){for(let i=0;i<10;i++){const result=await json(await a.post('/api/vane/import-apply',{siteId,document:p.carry,fingerprint:p.fingerprint},a.owner));if(result.complete)return result}assert.fail('bounded import must complete')}
+async function undo(a,siteId,jobId){for(let i=0;i<10;i++){const result=await json(await a.post('/api/vane/import-undo',{siteId,jobId},a.owner));if(result.complete)return result}assert.fail('resumable undo must finish')}
 const summary=(a,siteId)=>a.request(`/api/vane/summary?siteId=${siteId}&from=${day}&to=2026-10-02`,{headers:{cookie:a.owner}}).then(json)
 const preview=(a,siteId,document)=>a.post('/api/vane/import-preview',{siteId,document},a.owner).then(json)
 const key=r=>JSON.stringify(Object.entries(r.dimensions).sort())
@@ -20,7 +21,7 @@ test('IMPORT-003 dashboard ZIP imports every published history table with exact 
  const siteId=await a.addSite({paths:[],goals:{},retainForever:true}),form=new FormData()
  for(const [name,value] of Object.entries({operation:'import.plausible.export.preview',siteId,day,currency:'USD'}))form.set(name,value)
  form.set('plausibleZip',new File([zip],'Plausible export.zip',{type:'application/zip'}))
- const response=await a.request('/app/action',{method:'POST',headers:{origin:a.origin,cookie:a.owner},body:form})
+ const upload=new Request(a.origin+'/app/action',{method:'POST',body:form});const response=await a.request('/app/action',{method:'POST',headers:{origin:a.origin,cookie:a.owner,'content-type':upload.headers.get('content-type')},body:new Uint8Array(await upload.arrayBuffer())})
  assert.equal(response.status,200,await response.clone().text());const html=await response.text()
  const p=await preview(a,siteId,JSON.parse(hidden(html,'document')))
  assert.equal(p.fingerprint,hidden(html,'fingerprint'));assert.equal(p.normalized.length,0)
@@ -46,7 +47,7 @@ test('IMPORT-003 dashboard ZIP imports every published history table with exact 
  assert.equal((await a.post('/api/vane/import-preview',{siteId,document:carry},a.owner)).status,400)
  const unsafe=structuredClone(dashboard);unsafe.files['pages.csv']=unsafe.files['pages.csv'].replace('/pricing','/pricing?email=private%40example.test')
  assert.equal((await a.post('/api/vane/import-preview',{siteId,document:unsafe},a.owner)).status,400)
- assert.equal((await a.post('/api/vane/import-undo',{siteId,jobId:first.job.id},a.owner)).status,200)
+ await undo(a,siteId,first.job.id)
  assert.equal((await summary(a,siteId)).importedReports.length,0)
  assert.equal((await a.archive()).payload.tables.vane_import_events.length,0)
 })
@@ -90,5 +91,5 @@ test('IMPORT-003 official Stats API reads all dimensions, paginates goals, prese
  assert.equal(JSON.stringify(await a.archive()).includes('fixture-history-token'),false)
  redirect=true;assert.equal((await a.post('/api/vane/import-preview',{siteId,plausible},a.owner)).status,502);assert.equal(a.egress.some(url=>url.startsWith('https://offsite.fixture.example')),false)
  assert.equal((await a.post('/api/vane/import-preview',{siteId,plausible:{...plausible,endpoint:'https://other.fixture.example'}},a.owner)).status,400)
- assert.equal((await a.post('/api/vane/import-undo',{siteId,jobId:first.job.id},a.owner)).status,200);assert.equal((await summary(a,siteId)).importedReports.length,0)
+ await undo(a,siteId,first.job.id);assert.equal((await summary(a,siteId)).importedReports.length,0)
 })
