@@ -1,3 +1,4 @@
+import './revenue-alert.test.mjs'
 import './ga4.test.mjs'
 import './sitemap-scan.test.mjs'
 import './chat.test.mjs'
