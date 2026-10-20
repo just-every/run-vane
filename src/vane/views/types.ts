@@ -1,4 +1,5 @@
 export interface ViewData {
+  cutoverScans?:import('../cutover/scan').Scan[]
   actor: { id: string; role: string; displayName: string; access?: string; sites?: string[] | null }
   apiKeys?: (import('../api-keys').ApiKey & { creator: string; today: number | null })[]
   apiToken?: string

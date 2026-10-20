@@ -3,8 +3,8 @@ import { change, changeHead, count, escape, money, panel } from './html'
 // DASH-007: on the signed-in report a row's value links to the same report filtered by it.
 // CONV-006: a row's revenue (for the selected goal) and revenue per visitor, in the report's currency; rows without
 // revenue (the public stats page's reports other than its revenue report, SHARE-002) show neither column.
-const revenueHead = (rows: any[]) => rows.some(row => row.revenue !== undefined) ? '<th scope="col" class="vane-number">Revenue</th><th scope="col" class="vane-number">Revenue per visitor</th>' : ''
-const revenueCells = (row: any) => row.revenue === undefined ? '' : `<td class="vane-number">${money(row.revenue, row.currency)}</td><td class="vane-number">${row.revenuePerVisitor === null ? '—' : money(row.revenuePerVisitor, row.currency)}</td>`
+export const revenueHead = (rows: any[]) => rows.some(row => row.revenue !== undefined) ? '<th scope="col" class="vane-number">Revenue</th><th scope="col" class="vane-number">Revenue per visitor</th>' : ''
+export const revenueCells = (row: any) => row.revenue === undefined ? '' : `<td class="vane-number">${money(row.revenue, row.currency)}</td><td class="vane-number">${row.revenuePerVisitor === null ? '—' : money(row.revenuePerVisitor, row.currency)}</td>`
 export type FilterLink = (label: string) => string | null
 export const filterCell = (label: string, filter?: FilterLink) => { const href = filter?.(label); return href ? `<a href="${escape(href)}" data-filter-link>${escape(label)}</a>` : escape(label) }
 export const decimal = (value: unknown) => value === null || value === undefined ? '—' : Number(value).toLocaleString('en-US', { maximumFractionDigits: 2 })

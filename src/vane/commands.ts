@@ -16,7 +16,7 @@ function analystChange(value:Site,input:any) {
  return {name:value.name,origin:value.origin,config};
 }
 // The command API is the agent door: proposals it prepares are audited as agent actions.
-export async function prepare(env:Env,actor:Actor,command:string,input:any,channel:'app'|'command API'|`key:${string}`) {
+export async function prepare(env:Env,actor:Actor,command:string,input:any,channel:'app'|'command API'|`key:${string}`,definitionEvidence?:{name:string;callSites:{url:string;at:number;kind:string;rewrite:string}[]}[]) {
  allow(actor,'analyst');
  insist(['site.create','site.configure','history.erase','site.delete'].includes(command),'command','Unknown preparation command.');
  // TEAM-001: an analyst prepares only settings changes, and a new site needs installation-wide access.
@@ -25,6 +25,7 @@ export async function prepare(env:Env,actor:Actor,command:string,input:any,chann
  let payload:any;
  if(command==='site.create')payload={...cleanSite(input),siteId:uid()};
  else { const value=await site(env,String(input.siteId)); payload={siteId:value.id,version:value.version,...(command==='site.configure'?cleanSite(actor.access==='analyst'?analystChange(value,input):input):{})}; }
+ if(definitionEvidence?.length)payload.definitionEvidence=definitionEvidence;
  const id=uid();
  await atomic(env,actor,[statement(env,"INSERT INTO vane_proposals(id,command,payload_json,state,prepared_by,created_at) VALUES(?,?,?,'pending',?,?)",id,command,JSON.stringify(payload),actor.id,Date.now()),auditStatement(env,actor.id,channel==='command API'?'agent.prepare':'proposal.prepare',id,`${command} for site ${payload.siteId} via ${channel}`)],actor.access==='analyst'?['owner','admin','member']:['owner','admin']);
  return {id,command,payload,state:'pending'};
@@ -62,13 +63,13 @@ export async function decide(env:Env,actor:Actor,id:string,approve:boolean) {
     {sql:'DELETE FROM vane_event_props WHERE site_id=?',params:[current.id]},
     {sql:'DELETE FROM vane_ecommerce_lines WHERE site_id=?',params:[current.id]},
     {sql:'DELETE FROM vane_exposures WHERE site_id=?',params:[current.id]},
-    ...['vane_bing_rows','vane_search_rows','vane_search_days'].map(table=>({sql:`DELETE FROM ${table} WHERE site_id=?`,params:[current.id]})),
+    ...['vane_cutover_scans','vane_bing_rows','vane_search_rows','vane_search_days'].map(table=>({sql:`DELETE FROM ${table} WHERE site_id=?`,params:[current.id]})),
     ...(remove?[]:[auditSql(actor.id,'proposal.approve',id,`history.erase for site ${current.id}`),auditSql(actor.id,'history.erase',current.id,`version ${payload.version}`),{sql:"UPDATE vane_proposals SET state='approved',approved_by=?,approved_at=? WHERE id=? AND state='pending'",params:[actor.id,at,id]}]),
     {sql:'INSERT INTO vane_deletions(id,site_id,before_day,at,actor,reason) VALUES(?,?,?,?,?,?)',params:[uid(),current.id,day(at+86400000),at,actor.id,remove?'site-deletion':'owner-erasure']},
     {sql:'DELETE FROM vane_guard',params:[]},
    ]);
    if(!remove)return {id,state:'approved',siteId:current.id};
-   await atomic(env,actor,[guard,operations[1]!,...['vane_bing_connections','vane_bing_rows','vane_search_oauth_states','vane_search_connections','vane_search_rows','vane_search_days','vane_events','vane_signals','vane_exclusions','vane_auto_events','vane_import_events','vane_import_reports','vane_admission','vane_salts','vane_annotations','vane_annotation_hooks','vane_github_keys','vane_exports','vane_webhooks','vane_webhook_deliveries','vane_webhook_attempts','vane_report_subscriptions','vane_report_sends','vane_alerts','vane_alert_log','vane_maintenance','vane_closed_days','vane_follow_policy','vane_follow_items','vane_follow_events','vane_segments','vane_share_links','vane_custom_events','vane_event_props','vane_ecommerce_lines','vane_exposures'].map(table=>statement(env,`DELETE FROM ${table} WHERE site_id=?`,current.id)),statement(env,'DELETE FROM vane_sites WHERE id=?',current.id),change,auditStatement(env,actor.id,'proposal.approve',id,`site.delete for site ${current.id}`),auditStatement(env,actor.id,'site.delete',current.id,`version ${payload.version}`)]);
+   await atomic(env,actor,[guard,operations[1]!,...['vane_cutover_scans','vane_bing_connections','vane_bing_rows','vane_search_oauth_states','vane_search_connections','vane_search_rows','vane_search_days','vane_events','vane_signals','vane_exclusions','vane_auto_events','vane_import_events','vane_import_reports','vane_admission','vane_salts','vane_annotations','vane_annotation_hooks','vane_github_keys','vane_exports','vane_webhooks','vane_webhook_deliveries','vane_webhook_attempts','vane_report_subscriptions','vane_report_sends','vane_alerts','vane_alert_log','vane_maintenance','vane_closed_days','vane_follow_policy','vane_follow_items','vane_follow_events','vane_segments','vane_share_links','vane_custom_events','vane_event_props','vane_ecommerce_lines','vane_exposures'].map(table=>statement(env,`DELETE FROM ${table} WHERE site_id=?`,current.id)),statement(env,'DELETE FROM vane_sites WHERE id=?',current.id),change,auditStatement(env,actor.id,'proposal.approve',id,`site.delete for site ${current.id}`),auditStatement(env,actor.id,'site.delete',current.id,`version ${payload.version}`)]);
    return {id,state:'approved'};
   }
  }
