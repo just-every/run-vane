@@ -207,7 +207,7 @@ test('HOST-002 online slice: one public command from an empty folder, owner appr
     await page.setViewportSize({ width, height: 960 })
     await page.goto(reportURL.href)
     await page.getByRole('heading', { name: 'Overview', exact: true, level: 1 }).waitFor()
-    const pageviews = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Pageviews', exact: true }) })
+    const pageviews = page.getByRole('heading', { name: 'Pageviews', exact: true }).locator('..')
     await expect(pageviews.locator('.vane-metric')).toHaveText('1')
     await expect(page.locator('main')).toContainText('/subscriptions')
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false)
@@ -227,7 +227,7 @@ test('HOST-002 online slice: one public command from an empty folder, owner appr
   await signIn(page, restarted)
   const durableReport = new URL(reportURL.pathname + reportURL.search, restarted.ready)
   await page.goto(durableReport.href)
-  const pageviews = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Pageviews', exact: true }) })
+  const pageviews = page.getByRole('heading', { name: 'Pageviews', exact: true }).locator('..')
   await expect(pageviews.locator('.vane-metric')).toHaveText('1')
   await expect(page.locator('main')).toContainText('/subscriptions')
   if (offline) {
