@@ -7,7 +7,7 @@ type Point = [number, number]
 const f = (value: number) => +value.toFixed(2)
 
 // A monotone cubic through the points (Fritsch–Carlson), so the line never overshoots its data.
-export function smooth(points: Point[]) {
+function smooth(points: Point[]) {
   const dx = points.slice(1).map(([x], i) => x - points[i][0]), slope = points.slice(1).map(([, y], i) => (y - points[i][1]) / dx[i])
   const m = points.map((_, i) => i === 0 ? slope[0] : i === points.length - 1 ? slope[i - 1] : slope[i - 1] * slope[i] <= 0 ? 0 : 3 * (dx[i - 1] + dx[i]) / ((2 * dx[i] + dx[i - 1]) / slope[i - 1] + (dx[i] + 2 * dx[i - 1]) / slope[i]))
   return points.slice(1).reduce((d, [x, y], i) => {

@@ -60,7 +60,7 @@
 .landing-stats div { display: flex; flex-direction: column-reverse; justify-content: flex-end; padding: 0 18px; }
 .landing-stats div:first-child { padding-left: 0; }
 .landing-stats div + div { border-left: 1px solid #e3e9f2; }
-.landing-stats dd { margin: 0; font: 650 38px/1.15 var(--font-body); letter-spacing: -.02em; }
+.landing-stats dd { margin: 0; font: 650 clamp(26px, 2.6vw, 38px)/1.15 var(--font-body); letter-spacing: -.02em; white-space: nowrap; }
 .landing-stats dt { color: #7a849c; font-size: 17px; }
 .gold-stat dd { color: var(--gold-ink); }
 .pending { align-items: center; font-size: 15.5px; }
@@ -187,8 +187,8 @@
   .query-link, .card-landing::before, .search-cards > .trail-bend { display: none; }
   .card-landing { margin: 14px 0 0; padding: 18px 16px; }
   .card-landing h3 { font-size: 17px; }
-  .landing-stats div { padding: 0 10px; }
-  .landing-stats dd { font-size: 26px; }
+  .landing-stats div { padding: 0 8px; }
+  .landing-stats dd { font-size: 23px; }
   .landing-stats dt { font-size: 13.5px; }
   .report-grid { grid-template-columns: minmax(0, 1fr); row-gap: 20px; }
   .card-mail { padding: 16px; }

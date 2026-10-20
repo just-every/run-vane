@@ -13,8 +13,6 @@
    1536 x 1024 units (--d is one of them) so they stay on the wind. */
 .hero { position: relative; container-type: inline-size; aspect-ratio: 1536 / 1024; min-height: 640px; overflow: hidden; background: #bfdcf5; }
 .hero { --d: calc(100cqw / 1536); }
-/* The cards' text never drops under 11 px: below 1,252 wide their type and width stop shrinking with the painting. */
-.sky { --u: max(var(--d), .815px); }
 .art img { width: 100%; height: 100%; object-fit: cover; }
 .art-hero { position: absolute; inset: 0; }
 .art-hero img { object-position: center bottom; }
@@ -33,48 +31,54 @@
 
 .sky { position: absolute; inset: 0; z-index: 1; --H: 1024; }
 .sky-wind { position: absolute; inset: 0; width: 100%; height: 100%; }
-.sky-card { position: absolute; left: calc(var(--x) / 1536 * 100%); top: calc(var(--y) / var(--H) * 100%); width: calc(var(--w) * var(--u)); transform: translate(-50%, -50%) rotate(var(--r)); padding: calc(var(--u) * 14) calc(var(--u) * 15); border-radius: calc(var(--u) * 12); background: rgba(255,255,255,.94); border: 1px solid rgba(255,255,255,.9); box-shadow: 0 1px 2px rgba(20,40,90,.06), 0 calc(var(--u) * 16) calc(var(--u) * 34) calc(var(--u) * -12) rgba(20,40,90,.32); color: var(--ink); font-size: calc(var(--u) * 14.5); line-height: 1.3; letter-spacing: -.005em; backdrop-filter: blur(6px); }
-.sky-label, .sky-date { color: #59627b; font-size: calc(var(--u) * 13.5); }
-.sky-date { margin-bottom: calc(var(--u) * 6); }
-.sky-text { font-size: calc(var(--u) * 14.5); }
-.sky-row { display: flex; align-items: center; gap: calc(var(--u) * 10); margin-top: calc(var(--u) * 8); }
+.sky-card { position: absolute; left: calc(var(--x) / 1536 * 100%); top: calc(var(--y) / var(--H) * 100%); width: calc(var(--w) * var(--d)); transform: translate(-50%, -50%) rotate(var(--r)); padding: calc(var(--d) * 14) calc(var(--d) * 15); border-radius: calc(var(--d) * 12); background: rgba(255,255,255,.94); border: 1px solid rgba(255,255,255,.9); box-shadow: 0 1px 2px rgba(20,40,90,.06), 0 calc(var(--d) * 16) calc(var(--d) * 34) calc(var(--d) * -12) rgba(20,40,90,.32); color: var(--ink); font-size: calc(var(--d) * 14.5); line-height: 1.3; letter-spacing: -.005em; backdrop-filter: blur(6px); }
+.sky-label, .sky-date { color: #59627b; font-size: calc(var(--d) * 13.5); }
+.sky-date { margin-bottom: calc(var(--d) * 6); }
+.sky-text { font-size: calc(var(--d) * 14.5); }
+.sky-row { display: flex; align-items: center; gap: calc(var(--d) * 10); margin-top: calc(var(--d) * 8); }
 .sky-row-top { align-items: flex-start; margin-top: 0; }
-.sky-stack { display: grid; gap: calc(var(--u) * 2); }
-.sky-stack strong { font-weight: 550; font-size: calc(var(--u) * 15.5); line-height: 1.22; }
+.sky-stack { display: grid; gap: calc(var(--d) * 2); }
+.sky-stack strong { font-weight: 550; font-size: calc(var(--d) * 15.5); line-height: 1.22; }
 .sky-source strong, .sky-cookies span { white-space: nowrap; }
-.sky-stack span { color: #59627b; font-size: calc(var(--u) * 14); }
-.sky-num { font: 650 calc(var(--u) * 24)/1 var(--font-head); }
-.sky-big { font: 650 calc(var(--u) * 36)/1 var(--font-head); letter-spacing: -.01em; }
-.sky-card .tile { width: calc(var(--u) * 32); height: calc(var(--u) * 32); border-radius: calc(var(--u) * 7); font-size: max(11px, calc(var(--u) * 13)); }
-.sky-card .tile .icon { width: calc(var(--u) * 20); height: calc(var(--u) * 20); }
-.sky-card .delta { font-size: calc(var(--u) * 15); }
-.sky-card .delta-big { font-size: calc(var(--u) * 19); margin-left: calc(var(--u) * 8); }
+.sky-stack span { color: #59627b; font-size: calc(var(--d) * 14); }
+.sky-num { font: 650 calc(var(--d) * 24)/1 var(--font-head); }
+.sky-big { font: 650 calc(var(--d) * 36)/1 var(--font-head); letter-spacing: -.01em; }
+.sky-card .tile { width: calc(var(--d) * 32); height: calc(var(--d) * 32); border-radius: calc(var(--d) * 7); font-size: max(11px, calc(var(--d) * 13)); }
+.sky-card .tile .icon { width: calc(var(--d) * 20); height: calc(var(--d) * 20); }
+.sky-card .delta { font-size: calc(var(--d) * 15); }
+.sky-card .delta-big { font-size: calc(var(--d) * 19); margin-left: calc(var(--d) * 8); }
 .sky-card .delta .up { width: 1em; height: 1em; }
-.sky-spark { width: 100%; height: auto; margin-top: calc(var(--u) * 6); }
-.sky-today { padding-bottom: calc(var(--u) * 12); }
-.sky-why .icon { flex: none; width: calc(var(--u) * 30); height: calc(var(--u) * 30); }
-.sky-cookies { padding-block: calc(var(--u) * 13); font-size: calc(var(--u) * 14); }
+.sky-spark { width: 100%; height: auto; margin-top: calc(var(--d) * 6); }
+.sky-today { padding-bottom: calc(var(--d) * 12); }
+.sky-why .icon { flex: none; width: calc(var(--d) * 30); height: calc(var(--d) * 30); }
+.sky-cookies { padding-block: calc(var(--d) * 13); font-size: calc(var(--d) * 14); }
 .sky-cookies .sky-row { margin-top: 0; }
-.sky-cookies .icon { width: calc(var(--u) * 24); height: calc(var(--u) * 24); }
+.sky-cookies .icon { width: calc(var(--d) * 24); height: calc(var(--d) * 24); }
 
 /* The week's sections: one ground, a 1,200 px column, Inter 800 headings. */
 .story { position: relative; padding: 112px 0 104px; --gut: max(48px, calc((100cqw - 1200px) / 2)); --colw: min(1200px, calc(100cqw - 96px)); }
 .col { position: relative; z-index: 2; width: min(1200px, calc(100% - 96px)); margin-inline: auto; }
 .story-head .eyebrow { font-size: 14px; letter-spacing: .2em; }
-.story h2 { margin-top: 18px; font: 800 clamp(40px, 3.646vw, 56px)/1.04 var(--font-body); letter-spacing: -.025em; color: var(--ink); text-wrap: pretty; }
+.story h2 { margin-top: 18px; font: 800 clamp(40px, 3.646vw, 52.5px)/1.04 var(--font-body); letter-spacing: -.025em; color: var(--ink); text-wrap: pretty; }
 .story .lede { margin-top: 20px; max-width: 452px; color: var(--body); font-size: clamp(17px, 1.32vw, 20px); line-height: 1.58; text-wrap: pretty; }
 .story-head.center { text-align: center; }
 .story-head.center .lede { max-width: 860px; margin-inline: auto; }
 .sep { margin: 0 .42em; color: var(--soft); }
-.landing main :is(p, li, dd) { text-wrap: pretty; }
+.landing main :is(p, li, dd) { text-wrap-style: pretty; }
 .gold { color: var(--gold-ink); font-weight: 650; }
 .wide-only { display: inline; }
+.keep { white-space: nowrap; }
+@media (max-width: 1240px) {
+  .title-split .sep { display: none; }
+  .title-split .keep { display: block; }
+}
 
 /* Interlude: Wednesday's morning check over a band of cloud sea. */
-.interlude { position: relative; aspect-ratio: 1536 / 400; min-height: 300px; }
+/* An explicit height (not aspect-ratio, whose minimum height would widen the band past the page). */
+.interlude { position: relative; height: max(300px, calc(100cqw * 400 / 1536)); }
 .art-interlude { position: absolute; inset: 0; mask-image: linear-gradient(transparent, #000 16%, #000 80%, transparent); }
 .art-interlude img { object-position: center; }
-.morning { position: absolute; z-index: 2; left: 50%; top: 31%; bottom: 47%; display: flex; flex-direction: column; align-items: center; transform: translate(-50%, -50%); }
+.morning { position: absolute; z-index: 2; left: 50%; width: max-content; max-width: calc(100% - 32px); top: 31%; bottom: 47%; display: flex; flex-direction: column; align-items: center; transform: translate(-50%, -50%); }
 .morning-chip { display: inline-flex; align-items: center; gap: 12px; padding: 11px 18px 11px 14px; border-radius: 12px; background: #fff; box-shadow: var(--chip-shadow); color: var(--ink); font-size: 17px; white-space: nowrap; transform: translateY(0); }
 .morning .stamp { color: var(--blue); font-size: 14px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
 .morning .handled-check .check { width: 24px; height: 24px; }
@@ -159,29 +163,39 @@
   /* Stacked sections keep their copy on the left, so the trail runs down the right side, behind each card's right edge. */
   .story > .trail-dot:not(.bend-in), .story > .trail-bend:not(.bend-in) { --f: .94; }
 }
-/* Where the dip card's floor width meets the copy, the alternatives line wraps before it. */
-@media (max-width: 1100px) and (min-width: 981px) {
-  .hero-alt { max-width: 330px; }
+/* Below 1,252 px the cards on the painting would fall under 11 px, so the hero stacks: copy, the cards in a
+   grid at full size, then a crop of the painting (the vane and the roof) fading up into the sky. */
+@media (max-width: 1251px) {
+  .hero { display: flex; flex-direction: column; aspect-ratio: auto; min-height: 0; background: linear-gradient(#b9d9f4, #d4e8f8 55%, #e5f1fb); --d: 1px; }
+  .hero-copy { padding-top: 120px; }
+  .art-hero { position: relative; order: 3; margin-top: -40px; mask-image: linear-gradient(transparent, #000 18%, #000 82%, transparent); }
+  .art-hero img { aspect-ratio: 1536 / 640; object-position: 70% bottom; }
+  .hero .sky { position: relative; z-index: 2; order: 2; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; width: min(1200px, calc(100% - 96px)); margin: 44px auto 0; }
+  .hero .sky-wind { display: none; }
+  .hero .sky-card { position: static; width: auto; transform: none; padding: 16px 18px; border-radius: 12px; }
+  .sky-today { order: -2; }
+  .sky-why .sky-stack strong { white-space: normal; }
 }
-@media (max-width: 980px) and (min-width: 761px) {
-  .hero { aspect-ratio: auto; min-height: 0; padding-bottom: 600px; }
-  .sky { top: auto; height: 640px; }
+/* The closing's chips leave the painting's coordinates and follow the copy, so they never meet it. */
+@media (max-width: 1100px) and (min-width: 761px) {
+  .closing { min-height: 0; }
+  .closing-copy { padding-top: 64px; }
+  .sky-closing { position: relative; inset: auto; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; padding: 24px 48px 0; }
+  .sky-closing .sky-card { position: static; transform: none; padding: 10px 16px; font-size: 15px; }
 }
 
 /* Phone: copy first, then each drawing; the hero cards stack over a crop of the painting. No trail. */
 @media (max-width: 760px) {
-  .hero { display: flex; flex-direction: column; aspect-ratio: auto; min-height: 0; background: linear-gradient(#b9d9f4, #d4e8f8 55%, #e5f1fb); --d: 1px; }
   .hero-copy { padding-top: 92px; }
   .hero h1 { font-size: 46px; line-height: 1; }
   .hero-sub { max-width: none; margin-top: 18px; font-size: 18px; }
   .hero-alt { max-width: none; font-size: 16.5px; }
   .hero-actions { gap: 16px 28px; margin-top: 28px; }
   .hero .run-button { width: 100%; }
-  .art-hero { position: relative; order: 3; margin-top: -28px; mask-image: linear-gradient(transparent, #000 18%, #000 82%, transparent); }
-  .art-hero img { aspect-ratio: 836 / 604; }
-  .sky { position: relative; z-index: 2; order: 2; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 34px 16px 0; }
-  .sky-wind { display: none; }
-  .sky-card { position: static; width: auto; transform: none; padding: 14px 15px; border-radius: 12px; font-size: 14.5px; }
+  .art-hero { margin-top: -28px; }
+  .art-hero img { aspect-ratio: 836 / 604; object-position: center bottom; }
+  .hero .sky { grid-template-columns: 1fr 1fr; gap: 12px; width: auto; margin: 0; padding: 34px 16px 0; }
+  .hero .sky-card { padding: 14px 15px; font-size: 14.5px; }
   .sky-label, .sky-date, .sky-stack span { font-size: 13px; }
   .sky-stack strong { font-size: 15px; }
   .sky-num { font-size: 23px; }
@@ -190,9 +204,8 @@
   .sky-card .tile .icon { width: 18px; height: 18px; }
   .sky-card .delta { font-size: 14px; }
   .sky-card .delta-big { font-size: 17px; }
-  .sky-today { grid-column: 1 / -1; order: -2; }
+  .sky-today { grid-column: 1 / -1; grid-row: auto; }
   .sky-dip, .sky-why { grid-column: 1 / -1; }
-  .sky-why .sky-stack strong { white-space: normal; }
   .sky-why .icon, .sky-cookies .icon { width: 26px; height: 26px; }
   .sky-cookies { grid-column: 1 / -1; font-size: 14.5px; }
 
@@ -204,7 +217,7 @@
   .story .lede { margin-top: 14px; font-size: 16px; line-height: 1.55; }
   .story-head.center { text-align: left; }
 
-  .interlude { aspect-ratio: 900 / 500; min-height: 0; }
+  .interlude { height: calc(100cqw * 500 / 900); }
   .morning { top: 40%; bottom: auto; width: calc(100% - 32px); }
   .morning-chip { max-width: 100%; flex-wrap: wrap; justify-content: center; gap: 4px 10px; padding: 10px 14px; font-size: 15px; white-space: normal; text-align: center; }
   .morning .stamp { font-size: 12.5px; }
