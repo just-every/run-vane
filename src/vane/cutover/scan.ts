@@ -43,7 +43,8 @@ export async function scan(env:Env,actor:Actor,input:{siteId:string,pageLimit:un
    for(const raw of locations(xml)) {
     const url=valid(raw,map.href);if(!url){result.refused++;continue}url.hash='';if(seenPages.has(url.href))continue;seenPages.add(url.href);
     if(result.fetched>=limit||!policy.allows(url)){result.refused++;continue}
-    try{const r=await load(url);result.fetched++;if(!r.ok){await r.body?.cancel();result.refused++;continue}const html=await body(r);result.pages.push({url:url.href,at:clock(),findings:findings(html,script,current.config.currency??'USD')})}catch{result.refused++}
+    result.fetched++;
+    try{const r=await load(url);if(!r.ok){await r.body?.cancel();result.refused++;continue}const html=await body(r);result.pages.push({url:url.href,at:clock(),findings:findings(html,script,current.config.currency??'USD')})}catch{result.refused++}
    }
   }
   result.state='complete';
