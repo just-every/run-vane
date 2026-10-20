@@ -61,10 +61,12 @@ export const rangeText = (from: string, to: string) => usRange(from, to, false)
 export const whenUtc = (at: number) => new Date(at).toLocaleString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })
 export const zoneName = (timeZone: string) => new Intl.DateTimeFormat('en-US', { timeZone, timeZoneName: 'longGeneric' }).formatToParts(0).find(part => part.type === 'timeZoneName')?.value ?? timeZone
 export const timeOfDay = (at: number, timeZone: string) => new Date(at).toLocaleTimeString('en-US', { timeZone, hour: 'numeric', minute: '2-digit' })
+/** An hour bucket's local hour in US time: "12 AM", "9 AM" or "4 PM". */
+export const hourText = (label: string) => { const hour = Number(label.slice(11, 13)); return `${hour % 12 || 12} ${hour < 12 ? 'AM' : 'PM'}` }
 // A chart bucket as people read it: "Tue, Oct 13", "Oct 19, 9 AM CDT", "Week of Oct 12" or "Oct 2026".
 export function bucketText(interval: string, label: string): string {
   if (interval === 'day') return shortDay(label)
-  if (interval === 'hour') { const hour = Number(label.slice(11, 13)); return `${monthDay(label.slice(0, 10))}, ${hour % 12 || 12} ${hour < 12 ? 'AM' : 'PM'}${label.slice(16)}` }
+  if (interval === 'hour') return `${monthDay(label.slice(0, 10))}, ${hourText(label)}${label.slice(16)}`
   if (interval === 'week') return `Week of ${monthDay(label.slice(8))}`
   return calendar(`${label}-01`).toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' })
 }

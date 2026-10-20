@@ -1,4 +1,4 @@
-import { bucketText, count, escape, money, shortDay, usDay, usRange, zoneName } from './html'
+import { bucketText, count, escape, hourText, money, shortDay, usDay, usRange, zoneName } from './html'
 import { duration, percent } from './tables'
 import { METRICS, type Bucket, type Metric } from '../series'
 import { bucketKey, INTERVALS, type Interval } from '../periods'
@@ -65,7 +65,7 @@ export function chartPanel(report: any, companions = ''): string {
   // HTML axes: y ticks spread over the plot height, x labels spread over its width (every bucket; at most eight labelled).
   const yAxis = `<div class="vane-chart-y" aria-hidden="true">${[4, 3, 2, 1, 0].map(n => `<span>${escape(compact(metric, (top * n) / 4, currency))}</span>`).join('')}</div>`
   const every = Math.max(1, Math.ceil(buckets.length / 8))
-  const xLabel = (b: Bucket, i: number) => i % every ? '' : interval === 'day' ? `${escape(shortDay(b.key).split(',')[0]!)}<br>${escape(shortDay(b.key).split(', ')[1]!)}` : interval === 'hour' ? escape(b.label.slice(11, 16)) : interval === 'week' ? escape(b.label.replace('Week of ', '')) : escape(b.label)
+  const xLabel = (b: Bucket, i: number) => i % every ? '' : interval === 'day' ? `${escape(shortDay(b.key).split(',')[0]!)}<br>${escape(shortDay(b.key).split(', ')[1]!)}` : interval === 'hour' ? escape(hourText(b.label)) : interval === 'week' ? escape(b.label.replace('Week of ', '')) : escape(b.label)
   const xAxis = `<div class="vane-chart-x" aria-hidden="true">${buckets.map((b, i) => `<span${flagged.has(b.key) ? ' class="is-flagged"' : ''}>${xLabel(b, i)}${running && i === now ? '<br>so far' : ''}</span>`).join('')}</div>`
   const scale = `<p class="vane-help">Scale 0 to ${escape(shown(metric, max, currency))}. ${buckets.length ? `${escape(bucketText(interval, buckets[0]!.label))} to ${escape(bucketText(interval, buckets[buckets.length - 1]!.label))}.` : ''}${now >= 0 ? ` Both lines stop at the ${interval === 'hour' ? 'hour' : interval} still running, counted to the same time.` : ''}${interval === 'hour' ? ' Hours are real hours from local midnight, labelled with the zone in effect; imported history has no time of day and appears in daily, weekly and monthly charts.' : interval === 'week' ? ' Weeks start on Monday; the first and last weeks are cut to the range.' : interval === 'month' ? ' The first and last months are cut to the range.' : ''}</p>`
   const head = (Object.keys(METRICS) as Metric[]).map(m => `<th scope="col" class="vane-number">${escape(METRICS[m])}</th>`).join('')
