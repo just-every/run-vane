@@ -11,7 +11,7 @@ const main='Metro 635 (unnamed)',small='Metro 633 (unnamed)'
 const range='from=2026-03-09&to=2026-03-16&compare=previous'
 const pick=rows=>rows.map(r=>[r.label,r.visitors,r.visits,r.conversions,r.conversionRate,r.previous])
 
-test('DASH-005 COLLECT-003 metro codes retain honest unnamed labels across reports, segments, APIs, privacy suppression, live expiry and portable history',async t=>{
+test('DASH-005 COLLECT-003 PRIVACY-003 metro codes retain honest unnamed labels across reports, segments, APIs, privacy suppression, live expiry and portable history',async t=>{
  let active=await installation();t.after(()=>active.close())
  const a=active,id=await a.addSite({paths:[],retainForever:true,publicReports:['locations']})
  const owner={headers:{cookie:a.owner}}

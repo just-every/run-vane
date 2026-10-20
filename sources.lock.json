@@ -3383,7 +3383,7 @@
       "executable": false
     },
     "tests/locations.journey.mjs": {
-      "sha256": "995be5b74a5b185b1bb665557fbdb342ccdcb7c414465102acf8199092d46069",
+      "sha256": "cfa99a30af423e220305c917bccbfc581a4cd9ca1f6724bc02cc85f0d1449c9d",
       "executable": false
     },
     "tests/matomo.test.mjs": {
@@ -3415,7 +3415,7 @@
       "executable": false
     },
     "tests/vane.test.mjs": {
-      "sha256": "27dbef4fc46a9782f5ee067e764af9ba6ce7b63965321e07dbc9a9c5a8002247",
+      "sha256": "0445d9c8040c0a464eb0f2b695a114aec70995d12e3ab5a154c84c66483f56a0",
       "executable": false
     },
     "tsconfig.json": {

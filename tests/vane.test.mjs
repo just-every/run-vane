@@ -1812,7 +1812,7 @@ test('IMPORT-006 a page of PostHog $pageview events, a Simple Analytics CSV expo
  assert.deepEqual(await day13(),[2,1],'the same Umami event through the events API counts once')
  const after=JSON.stringify(await a.dump());for(const value of ['sa-session-77','sa-0001','ref=x','77aa-session','88bb-visit','4fb7a9b2-site','Fern pricing','b1a6c0de-0002','q=fern'])assert.ok(!after.includes(value),value)
 })
-test('INSTALL-008 DASH-005 a server sends pageviews and a custom event with its site token, a repeated Idempotency-Key counts once, a token for another site is refused, and no raw IP or user agent is stored',async t=>{
+test('INSTALL-008 DASH-005 COLLECT-003 PRIVACY-003 a server sends pageviews and a custom event with its site token, a repeated Idempotency-Key counts once, a token for another site is refused, and no raw IP or user agent is stored',async t=>{
  const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({paths:[]}),other=await a.addSite({name:'Oak Store',origin:'https://oak.example'})
  await a.clock(Date.parse('2026-03-10T15:00:00Z'))
  const token=async site=>(await (await a.form({operation:'apikey.create',kind:'events',label:'Backend '+site.slice(0,4),[`site_${site}`]:'on'},a.owner)).text()).match(/data-api-key>(vane_e_[0-9a-f]{64})</)[1]
