@@ -340,7 +340,7 @@ The design-desk homepage (page-s1, approved 17 Oct 2026) now serves under `HOME-
 
 ## Homepage claims
 
-The approved homepage (page-s1, 17 Oct 2026, `HOME-001`) follows one launch week at Juniper Coffee and states 74 capabilities in its copy and drawings. Each one is listed here, in page order, with the clauses that promise exactly that capability; its status follows from theirs (done only when every clause is done, missing only when every clause is missing): 55 done, 10 partial, 9 missing. A claim with no clause goes into this contract, never off the page. The Juniper Coffee figures in the drawings are explanatory and are never seeded as analytics.
+The approved homepage (page-s1, 17 Oct 2026, `HOME-001`) follows one launch week at Juniper Coffee and states 74 capabilities in its copy and drawings. Each one is listed here, in page order, with the clauses that promise exactly that capability; its status follows from theirs (done only when every clause is done, missing only when every clause is missing): 54 done, 11 partial, 9 missing. A claim with no clause goes into this contract, never off the page. The Juniper Coffee figures in the drawings are explanatory and are never seeded as analytics.
 
 | # | Claim | Clause(s) | Status |
 | --- | --- | --- | --- |
@@ -373,7 +373,7 @@ The approved homepage (page-s1, 17 Oct 2026, `HOME-001`) follows one launch week
 | 27 | Live card: 8 online now and the people-online chart | `DASH-001`, `DASH-002` | done |
 | 28 | Live card: pins for the launch post and the spike alert | `DASH-009`, `ALERT-001` | done |
 | 29 | Live card: Sources and Top pages | `DASH-003`, `DASH-004`, `DASH-014` | done |
-| 30 | Live card: Countries | `DASH-005` | done |
+| 30 | Live card: Countries | `DASH-005` | partial |
 | 31 | Live card: 4,812 visitors today | `METRIC-001` | done |
 | 32 | 2:12 pm: "The agent checks your tracking, your traffic and the site itself" | `AGENT-001`, `AGENT-002` | missing |
 | 33 | 2:12 pm: "ships the fix" (pull request #218) | `AGENT-003` | missing |
