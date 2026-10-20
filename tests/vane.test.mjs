@@ -1566,7 +1566,7 @@ test('API-002 a whole-site ZIP in Plausible\'s layout, the Looker Studio connect
  const html=await (await a.request(`/app/sites/${id}?section=report`,owner)).text(),href=html.match(/href="([^"]+)" data-site-zip/)[1].replaceAll('&amp;','&')
  const zipped=await a.request(href,owner);assert.equal(zipped.status,200);assert.equal(zipped.headers.get('content-type'),'application/zip');assert.match(zipped.headers.get('content-disposition'),new RegExp(`attachment; filename="vane-${id}_20260309_20260310.zip"`))
  const files=unzip(await zipped.arrayBuffer()),file=name=>csvRows(files[`imported_${name}_20260309_20260310.csv`])
- assert.equal(file('locations').reduce((n,r)=>n+Number(r.visits),0),both.visits,'location export preserves every visit, including unknown locations');assert.equal(file('metros').length,0,'unknown locations do not invent a US metro')
+ assert.equal(file('locations').reduce((n,r)=>n+Number(r.visits),0),both.visits,'location export preserves every visit, including unknown locations');assert.ok(file('metros').every(r=>r.metro_code===''&&r.metro_name===''),'unknown locations do not invent a US metro code or name')
  const visitors=file('visitors');assert.deepEqual(visitors.columns,['date','visitors','pageviews','bounces','visits','visit_duration']);assert.deepEqual(visitors.map(r=>r.date),['2026-03-09','2026-03-10'])
  const total=field=>visitors.reduce((n,r)=>n+Number(r[field]),0)
  assert.deepEqual([total('visitors'),total('visits'),total('pageviews'),Math.round(total('bounces')/total('visits')*1000)/10],[both.visitors,both.visits,both.pageviews,both.bounceRate])
@@ -1808,7 +1808,7 @@ test('IMPORT-006 a page of PostHog $pageview events, a Simple Analytics CSV expo
  assert.deepEqual(await day13(),[2,1],'the same Umami event through the events API counts once')
  const after=JSON.stringify(await a.dump());for(const value of ['sa-session-77','sa-0001','ref=x','77aa-session','88bb-visit','4fb7a9b2-site','Fern pricing','b1a6c0de-0002','q=fern'])assert.ok(!after.includes(value),value)
 })
-test('INSTALL-008 a server sends pageviews and a custom event with its site token, a repeated Idempotency-Key counts once, a token for another site is refused, and no raw IP or user agent is stored',async t=>{
+test('INSTALL-008 DASH-005 a server sends pageviews and a custom event with its site token, a repeated Idempotency-Key counts once, a token for another site is refused, and no raw IP or user agent is stored',async t=>{
  const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({paths:[]}),other=await a.addSite({name:'Oak Store',origin:'https://oak.example'})
  await a.clock(Date.parse('2026-03-10T15:00:00Z'))
  const token=async site=>(await (await a.form({operation:'apikey.create',kind:'events',label:'Backend '+site.slice(0,4),[`site_${site}`]:'on'},a.owner)).text()).match(/data-api-key>(vane_e_[0-9a-f]{64})</)[1]
@@ -1828,6 +1828,7 @@ test('INSTALL-008 a server sends pageviews and a custom event with its site toke
  const summary=await (await a.request(`/api/vane/summary?siteId=${id}&period=today`,owner)).json()
  assert.deepEqual([summary.pageviews,summary.visitors],[3,2],'two visitors from their client IP and user agent');assert.deepEqual(summary.sourceVisits.find(r=>r.label==='Google')?.visits,1)
  const dump=await a.dump(),events=dump.vane_events.filter(e=>e.site_id===id)
+ assert.ok(events.every(e=>[e.country,e.region,e.city,e.metro_code,e.metro_name].every(v=>v===null)),'Events API never stores the sender server’s location');assert.equal(summary.countries.find(r=>r.label==='Unknown location')?.visitors,2)
  assert.deepEqual(events.map(e=>e.browser).sort(),['Chrome','Chrome','Safari']);assert.equal(dump.vane_custom_events.filter(e=>e.site_id===id).length,1)
  const stored=JSON.stringify(dump);for(const value of ['203.0.113.9','198.51.100.4',chrome,iphone,'order-1001',mine])assert.ok(!stored.includes(value),value)
  // A token for another site, a Stats API key, no token and a missing client address are refused.

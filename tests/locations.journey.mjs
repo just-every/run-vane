@@ -35,6 +35,7 @@ test('DASH-005 metro codes retain honest unnamed labels across reports, segments
  const report=await summary('&goal=signup')
  assert.deepEqual(pick(report.metros),[[main,12,12,3,25,30],[small,3,3,0,0,0]])
  assert.equal(report.visitors,19)
+ assert.equal(report.countries.find(r=>r.label==='Unknown location')?.visitors,3)
  const filtered=await summary('&filter='+encodeURIComponent('metro:is:'+main))
  assert.deepEqual([filtered.visitors,filtered.visits,filtered.goals,filtered.pageviews],[12,12,3,15])
  assert.deepEqual((await summary('&filter='+encodeURIComponent('metro:is_not:'+main))).visitors,7)

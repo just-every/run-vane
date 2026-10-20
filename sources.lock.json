@@ -91,7 +91,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "cf6b083ca63b2af1cd4c53f7eebd1093eb26c8338ebe3d0732fac03bc51c0bce",
+      "sha256": "6a75064d4298ab80076c834e983a23fcf3860b9503d5e9cb639eaba3f9ed7805",
       "executable": false
     },
     "DEMO.md": {
@@ -3383,7 +3383,7 @@
       "executable": false
     },
     "tests/locations.journey.mjs": {
-      "sha256": "d082729f9089562e3ec4968b8b3cb8cdfccf171e8b329304a8d467ecd5709e00",
+      "sha256": "13e703b7674ee389a50c67e37c1bd134dd50638edaa0446e77bfa89c118e6544",
       "executable": false
     },
     "tests/matomo.test.mjs": {
@@ -3415,7 +3415,7 @@
       "executable": false
     },
     "tests/vane.test.mjs": {
-      "sha256": "addcbdc54198620aaac881f2756e35b24a5c6dc415930cb2701a484e781a193a",
+      "sha256": "042727c8b505e2973788f4c994800fa085419c54b8c22f791ece67633e39063a",
       "executable": false
     },
     "tsconfig.json": {
