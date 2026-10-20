@@ -1856,7 +1856,7 @@ test('PRIVACY-003 each consent manager adapter and Google Consent Mode decide co
  const tab=await context.newPage()
  // One page load: the script either collects it or sends only the declined-consent count.
  const outcome=async(url,location)=>{where=location;const done=tab.waitForResponse(r=>/\/api\/vane\/(collect|declined\/)/.test(new URL(r.url()).pathname));await tab.goto(url);const r=await done;return new URL(r.url()).pathname==='/api/vane/collect'?[r.status(),JSON.parse(r.request().postData()).consent]:'declined'}
- const california={country:'US',regionCode:'CA'},germany={country:'DE',regionCode:'BE'},texas={country:'US',regionCode:'TX'}
+ const california={country:'US',region:'California',regionCode:'CA'},germany={country:'DE',region:'Berlin',regionCode:'BE',city:'Berlin',postalCode:'never-store-10115',latitude:'52.1234567',longitude:'13.7654321',timezone:'never-store-zone'},texas={country:'US',region:'Texas',regionCode:'TX',city:'Austin'}
  for(const adapter of Object.keys(states))for(const [location,required] of [[california,true],[germany,true],[texas,false]]){
   assert.deepEqual(await outcome(page(adapter,states[adapter](false)),location),required?'declined':[202,'not-required'],`${adapter} denied in ${location.regionCode}`)
   assert.deepEqual(await outcome(page(adapter,states[adapter](true)),location),required?[202,'granted']:[202,'not-required'],`${adapter} granted in ${location.regionCode}`)
@@ -1870,8 +1870,9 @@ test('PRIVACY-003 each consent manager adapter and Google Consent Mode decide co
  // The configuration door says only whether consent is needed, and collection enforces the same rule.
  where=texas;const config=await (await a.request(`/api/vane/config/${sites.osano}`,{headers:{origin:'https://osano.fern.example'},cf:texas})).json();assert.equal(config.consent,'not-required');assert.equal(config.consentAdapter,'osano');assert.ok(!JSON.stringify(config).includes('US'))
  const direct=(cf,consent)=>a.request('/api/vane/collect',{method:'POST',headers:{origin:'https://osano.fern.example','content-type':'application/json','user-agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36'},body:JSON.stringify(a.event(sites.osano,{consent})),cf})
- assert.equal((await direct(germany,'not-required')).status,403);assert.equal((await direct(texas,'not-required')).status,202);assert.equal((await direct(germany,'granted')).status,202)
- assert.ok(!JSON.stringify((await a.dump()).vane_events).match(/"(DE|BE|TX)"/),'no region is stored')
+ const beforeDenied=await a.dump();assert.equal((await direct(germany,'not-required')).status,403);assert.deepEqual(await a.dump(),beforeDenied,'denied consent creates no event, visitor hash, location or other row');assert.equal((await direct(texas,'not-required')).status,202);assert.equal((await direct(germany,'granted')).status,202)
+ const stored=await a.dump();assert.ok(stored.vane_events.some(e=>e.country==='Germany'&&e.region==='Berlin'&&e.city==='Berlin'));assert.ok(stored.vane_events.some(e=>e.country==='United States'&&e.region==='Texas'));
+ const custody=JSON.stringify([stored,await a.archive()]);for(const raw of ['never-store-10115','52.1234567','13.7654321','never-store-zone'])assert.equal(custody.includes(raw),false,raw);assert.ok(!JSON.stringify(stored.vane_events).match(/"(DE|BE|TX)"/),'raw Cloudflare codes are never stored')
  await context.close()
 })
 test('API-003 a signed webhook receives a goal burst as per-minute counts once each after a failed first delivery is retried, and the delivery log shows the failure and the success',async t=>{
