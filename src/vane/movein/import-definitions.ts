@@ -31,7 +31,7 @@ export async function prepareImportedDefinition(env:Env,actor:Actor,p:any) {
  if(d.currencyConfirmation)insist(p.confirmCurrency===true||p.confirmCurrency==='on','import_currency','Confirm the recovered live revenue currency before preparing the goal.');
  if(d.kind==='revenue'&&p.currency)d.currency=plausibleCurrency(p.currency);
  const config:DefinitionConfig={...value.config};native(config,d);
- return prepare(env,actor,'site.configure',{siteId:value.id,name:value.name,origin:value.origin,config,customGoals:config.customGoals,goals:config.goals,scrollGoals:config.scrollGoals,propertyNames:config.propertyNames,propertySources:config.propertySources},'app')
+ return prepare(env,actor,'site.configure',{siteId:value.id,name:value.name,origin:value.origin,config,customGoals:config.customGoals,goals:config.goals,scrollGoals:config.scrollGoals,propertyNames:config.propertyNames,propertySources:config.propertySources},'app',[{name:d.name,callSites:original.callSites??[]}])
 }
 export async function prepareRebuiltFunnel(env:Env,actor:Actor,p:any) {
  allow(actor,'analyst');inScope(actor,String(p.siteId));const value=await site(env,String(p.siteId)),definitions=(await importedDefinitions(env,actor,value.id)).filter(d=>d.kind!=='property'),names=Array.isArray(p.steps)?p.steps.map(String):String(p.steps??'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
@@ -39,5 +39,5 @@ export async function prepareRebuiltFunnel(env:Env,actor:Actor,p:any) {
  const config:DefinitionConfig={...value.config};
  for(const name of names){const source=config.customGoals?.[name]?.source;const matching=definitions.filter(d=>d.name===name&&(!source||d.source===source));insist(matching.length===1&&!matching[0]!.incomplete,'import_funnel',`Complete the recovered goal “${name}” before rebuilding this funnel.`);const d=matching[0]!;if(!config.customGoals?.[name]&&!config.goals[name]&&!config.scrollGoals?.[name]){if(d.currencyConfirmation)insist(p.confirmCurrency===true||p.confirmCurrency==='on','import_currency','Confirm the export revenue currency before preparing the funnel.');native(config,d)}}
  const funnel={name:String(p.funnelName??'').trim(),steps:names.map((name:string)=>'goal:'+name)},funnels=[...(config.funnels??[]),funnel];config.funnels=funnels;
- return prepare(env,actor,'site.configure',{siteId:value.id,name:value.name,origin:value.origin,config,customGoals:config.customGoals,goals:config.goals,scrollGoals:config.scrollGoals,propertyNames:config.propertyNames,propertySources:config.propertySources,funnels},'app')
+ return prepare(env,actor,'site.configure',{siteId:value.id,name:value.name,origin:value.origin,config,customGoals:config.customGoals,goals:config.goals,scrollGoals:config.scrollGoals,propertyNames:config.propertyNames,propertySources:config.propertySources,funnels},'app',definitions.filter(d=>names.includes(d.name)).map(d=>({name:d.name,callSites:d.callSites??[]})))
 }
