@@ -425,7 +425,7 @@ The approved homepage (17 Oct 2026, `HOME-001`) states 80 capabilities in its co
 
 ## Status
 
-Judged from the current code and named public-door tests (20 October 2026).
+Judged from the code and tests at commit `38c3a1c3d089216ea2ca37fdc6ffac89a41d2c39` (20 October 2026).
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
