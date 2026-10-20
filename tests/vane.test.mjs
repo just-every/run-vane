@@ -182,14 +182,14 @@ test('LOBBY-001 a fresh installation keeps its themed Lobby, first-run setup, em
  const owner=a.cookieOf(confirmed),app=await themed('/app',owner)
  assert.match(app,/<link rel="stylesheet" href="\/vane\.css">/)
  assert.deepEqual(await (await a.request('/api/vane/sites',{headers:{cookie:owner}})).json(),[])
- for(const figure of ['Juniper','4,812','28,416','3,912'])for(const html of [lobby,app])assert.equal(html.includes(figure),false,figure)
+ for(const figure of ['Juniper','4,812','21,640','9,312.00'])for(const html of [lobby,app])assert.equal(html.includes(figure),false,figure)
  const {context}=await browse(t,a);await context.addCookies(owner.split('; ').map(pair=>{const [name,...value]=pair.split('=');return {name,value:value.join('='),url:a.origin}}))
  const page=await context.newPage()
  for(const [path,title] of [['/','Vane'],['/app','Sites']]){
   assert.equal((await page.goto(a.origin+path,{waitUntil:'networkidle'})).status(),200,path)
   assert.ok((await page.title()).includes(title),path)
   assert.notEqual(await page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue('--rer-page').trim()),'',`${path} carries the shared theme tokens`)
-  assert.equal(await page.evaluate(()=>/Juniper|4,812|28,416|3,912/.test(document.body.innerText)),false,path)
+  assert.equal(await page.evaluate(()=>/Juniper|4,812|21,640|9,312\.00/.test(document.body.innerText)),false,path)
  }
  await context.close()
 })

@@ -1,17 +1,20 @@
-// Shared pieces of the homepage: a feature section (copy beside its drawing),
-// the green "handled" chip under a drawing, and responsive painted art.
+// Shared pieces of the homepage: a section's dated head, a card, the trail's
+// dots, responsive painted art and the hero's cards on the painting.
 import { icons } from './icons'
 
-export interface Feature { id: string; eyebrow: string; title: string; body: string; drawing: string; flip?: boolean }
-
-// `title` may carry one <br> where the desk breaks the heading.
-export const feature = ({ id, eyebrow, title, body, drawing, flip }: Feature) => `<section class="feature${flip ? ' flip' : ''}" id="${id}" aria-labelledby="${id}-title"><div class="wrap feature-grid"><div class="feature-copy"><p class="eyebrow">${eyebrow}</p><h2 id="${id}-title">${title}</h2><p class="lede">${body}</p></div><div class="feature-drawing">${drawing}</div></div></section>`
+// Every section opens with a date stamp, so the page reads as the buyer's own week.
+export const head = (id: string, eyebrow: string, title: string, body: string) => `<p class="eyebrow">${eyebrow}</p><h2 id="${id}-title">${title}</h2><p class="lede">${body}</p>`
 
 export const card = (label: string, body: string, className = '') => `<figure class="card ${className}" aria-label="${label}">${body}</figure>`
 
-export const handled = (text: string, lead = '') => `<p class="handled">${lead}<span class="handled-check">${icons.check}</span><span>${text} <span class="handled-tick">${icons.tick}</span></span></p>`
+// A dot on the wind trail; `order` places it on the one path that runs down the page (see trail.ts).
+export const trailDot = (order: number, tone: 'gold' | 'hollow', className = '') => `<span class="trail-dot trail-${tone}${className ? ` ${className}` : ''}" data-trail="${order}" aria-hidden="true"></span>`
+// An invisible bend in the trail, placed by CSS in its section.
+export const bend = (order: number, name: string) => `<i class="trail-bend bend-${name}" data-trail="${order}" aria-hidden="true"></i>`
 
-const widths: Record<string, number[]> = { hero: [768, 1152, 1536], interlude: [768, 1152, 1536], closing: [768, 1152, 1536], 'hero-phone': [480, 836], 'interlude-phone': [480, 900], 'closing-phone': [480, 900] }
+export const check = (text: string) => `<span class="state-check">${icons.check}</span><span>${text}</span>`
+
+const widths: Record<string, number[]> = { hero: [768, 1152, 1536, 2304, 3072], interlude: [768, 1152, 1536, 2304, 3072], closing: [768, 1152, 1536, 2304, 3072], 'hero-phone': [480, 836], 'interlude-phone': [480, 900], 'closing-phone': [480, 900] }
 const srcset = (name: string, type: string) => widths[name].map(w => `/site/art/${name}-${w}.${type} ${w}w`).join(', ')
 
 // The wide painting above 760 px and its phone crop below; `eager` for the first screen only.

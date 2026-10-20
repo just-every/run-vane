@@ -70,7 +70,7 @@ These clauses restate what the released first contract and ACCEPTANCE.md promise
 
 - **DOCS-001 — Documentation built from repository Markdown.** `/docs` renders the repository's Markdown guides with readable code blocks, tables, section links and optional copy-to-clipboard controls. **Acceptance evidence:** Build the site and open each guide. Code blocks, tables and heading anchors render, and the clipboard control copies the block.
 
-- **HOME-001 — The approved homepage in the shared theme.** The run site serves the owner-approved design-desk landing page (17 Oct 2026: the weather vane in an open sky, the swallow mark, Inter Tight and Inter type) in the shared theme with locally served fonts and artwork. At phone width its hero cards and every section's drawing stack under their copy. Its Juniper Coffee figures are explanatory drawings and are never seeded as analytics. **Acceptance evidence:** The independent visual gate compares the built homepage at 1440 and 390 px with the approved specification and picks. In the repository, a browser opens the built homepage at 390 and 1440 px: at 390 px the hero cards and every section's drawing sit under their copy with no sideways scrolling, at 1440 px each drawing sits beside its copy, and every font, image and style comes from the run site itself, with Inter Tight and Inter loaded.
+- **HOME-001 — The approved homepage in the shared theme.** The run site serves the owner-approved design-desk landing page (17 Oct 2026: the weather vane in an open sky, the swallow mark, Inter Tight and Inter type; page-s1: one launch week at Juniper Coffee, dated section by section, with the hero's wind carried down the page as one trail) in the shared theme with locally served fonts and artwork. At phone width its hero cards and every section's drawing stack under their copy. Its Juniper Coffee figures are explanatory drawings and are never seeded as analytics. **Acceptance evidence:** The independent visual gate compares the built homepage at 1440 and 390 px with the approved specification and picks. In the repository, a browser opens the built homepage at 390 and 1440 px: at 390 px the hero cards and every section's drawing sit under their copy with no sideways scrolling, at 1440 px each two-column section's drawing sits beside its copy and the wind trail runs down the page, and every font, image and style comes from the run site itself, with Inter Tight and Inter loaded.
 
 - **LOBBY-001 — The installed Lobby and real sign-in stay intact.** An installed instance keeps its Lobby at `/`, real sign-in and first-run setup flows, and its existing authenticated routes, all in the shared Vane theme. **Acceptance evidence:** On a fresh installation, bootstrap the owner, complete `/setup`, sign in by email link and open `/app`. No landing-drawing numbers appear in analytics.
 
@@ -334,11 +334,11 @@ The approved category review (16 October 2026) named what a Plausible or Fathom 
 | WordPress, Shopify, Webflow and Squarespace install paths, and a first-party proxy so ad blockers do not erase data | `INSTALL-001` to `INSTALL-008`, `COVERAGE-001` |
 | Push further: explain why traffic or conversions moved, propose and ship a change under granted authority, and measure the result against coverage gaps | `AGENT-001` to `AGENT-007` |
 
-The design-desk homepage (17 Oct 2026) now serves under `HOME-001`. [Homepage claims](#homepage-claims) maps every capability its copy and drawings claim to the clauses that promise it; the run-site gate checks those claims against the Status section before any deploy.
+The design-desk homepage (page-s1, approved 17 Oct 2026) now serves under `HOME-001`. [Homepage claims](#homepage-claims) maps every capability its copy and drawings claim to the clauses that promise it; the run-site gate checks those claims against the Status section before any deploy.
 
 ## Homepage claims
 
-The approved homepage (17 Oct 2026, `HOME-001`) states 80 capabilities in its copy and drawings. Each one is listed here, in page order, with the clauses that promise exactly that capability; its status follows from theirs (done only when every clause is done, missing only when every clause is missing). A claim with no clause goes into this contract, never off the page. The Juniper Coffee figures in the drawings are explanatory and are never seeded as analytics.
+The approved homepage (page-s1, 17 Oct 2026, `HOME-001`) follows one launch week at Juniper Coffee and states 74 capabilities in its copy and drawings. Each one is listed here, in page order, with the clauses that promise exactly that capability; its status follows from theirs (done only when every clause is done, missing only when every clause is missing): 54 done, 10 partial, 10 missing. A claim with no clause goes into this contract, never off the page. The Juniper Coffee figures in the drawings are explanatory and are never seeded as analytics.
 
 | # | Claim | Clause(s) | Status |
 | --- | --- | --- | --- |
@@ -348,80 +348,74 @@ The approved homepage (17 Oct 2026, `HOME-001`) states 80 capabilities in its co
 | 4 | Hero: "tells you why the numbers moved" | `AGENT-002`, `REPORT-003` | partial |
 | 5 | Hero: "100% free, open source" | `OPEN-001` | done |
 | 6 | Hero: "alternative to Plausible, Fathom and Matomo" | `IMPORT-003`, `IMPORT-004`, `IMPORT-005`, `IMPORT-008` | partial |
-| 7 | Hero card: Visitors today · 4,812 · ↑ 23% with a sparkline | `METRIC-001`, `DASH-002`, `DASH-008` | done |
+| 7 | Hero card: Visitors today · 4,812 · ↑ 115% with a sparkline | `METRIC-001`, `DASH-002`, `DASH-008` | done |
 | 8 | Hero card: Top source · Hacker News · 1,904 visitors | `DASH-004`, `DASH-014` | done |
 | 9 | Hero card: Goal · Signups · 212 · ↑ 4.4% | `CONV-001`, `DASH-008` | done |
-| 10 | Hero card: Why it moved · Brew guide on Hacker News | `AGENT-002` | missing |
-| 11 | Hero card: Wednesday dip: tracking script missing on /pricing · fixed | `AGENT-001`, `ALERT-002` | missing |
+| 10 | Hero card: Why it moved · Launch post on Hacker News | `AGENT-002` | missing |
+| 11 | Hero card: Tue, Oct 13 · Tuesday dip: tracking script missing on /pricing · fixed | `AGENT-001`, `ALERT-002` | partial |
 | 12 | Hero card: No cookies · no banner | `COLLECT-001`, `CONSENT-001` | done |
-| 13 | Visitors: "counts unique visitors" | `METRIC-001` | done |
-| 14 | Visitors: "visits" | `METRIC-002` | done |
-| 15 | Visitors: "bounce rate and visit duration" | `METRIC-003` | done |
-| 16 | Visitors: "with a salted hash that resets every day" | `METRIC-001` | done |
-| 17 | Visitors: "No cookies, no banner" | `COLLECT-001`, `CONSENT-001` | done |
-| 18 | Visitors: "the method is published" | `METRIC-004` | done |
-| 19 | Visitors card: "38 online now" | `DASH-001` | done |
-| 20 | Visitors card: Unique visitors 28,416 ↑ 12%, Visits, Bounce rate, Visit duration tiles | `METRIC-001`, `METRIC-002`, `METRIC-003`, `DASH-008` | done |
-| 21 | Visitors card: Seven-day line chart | `DASH-002` | done |
-| 22 | Visitors chip: Salt rotated at midnight · yesterday's visitors can't be linked | `METRIC-001` | done |
-| 23 | Sources: "Sources" | `DASH-004`, `DASH-014` | done |
-| 24 | Sources: "pages" | `DASH-003` | done |
-| 25 | Sources: "campaigns" | `DASH-004` | done |
-| 26 | Sources: "countries" | `DASH-005` | missing |
-| 27 | Sources: "devices and browsers" | `DASH-006` | done |
-| 28 | Sources: "live" | `DASH-001` | done |
-| 29 | Sources: "over any period" | `TRAFFIC-001`, `DASH-002` | done |
-| 30 | Sources: "with filters" | `DASH-007` | done |
-| 31 | Sources: "and comparisons" | `DASH-008` | done |
-| 32 | Sources card: Country: United States filter | `DASH-005`, `DASH-007` | partial |
-| 33 | Sources chip: android-app://com.slack.android grouped as Slack | `DASH-014` | done |
-| 34 | Goals: "Goals" | `CONV-001` | done |
-| 35 | Goals: "funnels" (Checkout funnel card) | `CONV-005` | done |
-| 36 | Goals: "revenue with real order values" (Revenue · $38,108.40) | `CONV-006`, `CONV-008` | partial |
-| 37 | Goals: "custom event properties" | `CONV-002` | done |
-| 38 | Goals: "outbound links, file downloads and 404s tracked on their own" | `CONV-003` | done |
-| 39 | Goals chip: 404 · /pricng · 37 visits · redirect to /pricing added | `CONV-003`, `AGENT-003` | partial |
-| 40 | Reports: "Scheduled email reports" (Weekly report · Mondays 8:00 am) | `REPORT-001` | done |
-| 41 | Reports: "spike and drop alerts" (Traffic spike card) | `ALERT-001` | done |
-| 42 | Reports: "shared dashboards for your team" | `SHARE-001`, `TEAM-001`, `DASH-007` | done |
-| 43 | Reports: "a public page when you want one" (Public stats page) | `SHARE-002` | done |
-| 44 | Reports chip: Saturday 2–3 am drop held · scheduled maintenance | `ALERT-001` | done |
-| 45 | Interlude: All 12 goals tracking · checked 9:00 am | `ALERT-002`, `AGENT-001` | missing |
-| 46 | Why it moved: "The agent checks your tracking" | `AGENT-001` | missing |
-| 47 | Why it moved: "your channel mix and the site itself, finds the cause" | `AGENT-002` | missing |
-| 48 | Why it moved: "ships the fix" (pull request #218 merged) | `AGENT-003` | missing |
-| 49 | Why it moved: "and measures the result" (Signups back to 214 a day) | `AGENT-004` | missing |
-| 50 | Search: "Connect Google Search Console to see the keywords behind your Google visits" | `SEARCH-001` | done |
-| 51 | Search: "next to the pages they landed on" (Lands on /blog/brew-guide) | `SEARCH-001` | done |
-| 52 | Search chip: Oct 15–16 filled in from Google at the next sync | `SEARCH-001` | done |
-| 53 | Install: "Add one small script" | `INSTALL-001` | done |
-| 54 | Install: "or install for WordPress" | `INSTALL-002` | missing |
-| 55 | Install: "Shopify" | `INSTALL-003` | missing |
-| 56 | Install: "Webflow or Squarespace" | `INSTALL-004` | missing |
-| 57 | Install: "A first-party proxy keeps ad blockers from erasing your numbers" | `INSTALL-006` | missing |
-| 58 | Install chip: Ad blocker on 1 in 5 visits · counted through /stats | `INSTALL-006`, `COVERAGE-001` | partial |
-| 59 | Move in: "Import your past traffic from Google Analytics 4" | `IMPORT-002` | missing |
-| 60 | Move in: "Plausible" (Importing from Plausible card) | `IMPORT-003` | missing |
-| 61 | Move in: "Fathom" | `IMPORT-004` | missing |
-| 62 | Move in: "or Matomo" | `IMPORT-005` | partial |
-| 63 | Move in: "Your charts start full on day one" | `IMPORT-001`, `IMPORT-002`, `IMPORT-003`, `IMPORT-004`, `IMPORT-005`, `IMPORT-007` | partial |
-| 64 | Move in card: Jun 3–4, 2024 · overlap with Google Analytics 4 skipped | `IMPORT-007` | partial |
-| 65 | Ownership: "Run Vane on your own computer or your own Cloudflare account" | `HOST-002`, `HOST-001` | partial |
-| 66 | Ownership: "keep every visit and event" | `RETENTION-002`, `COLLECT-004` | partial |
-| 67 | Ownership: "Export everything, any time" / "Export any time" | `ARCHIVE-001` | done |
-| 68 | Ownership: "Your own computer or your own Cloudflare account" | `HOST-002`, `HOST-001` | partial |
-| 69 | Ownership: "Your visitors' data stays yours" | `PRIVACY-005` | done |
-| 70 | Ownership terminal: `npx -y @runeditrun/rer dev just-every/run-vane` | `RUNSITE-001`, `HOST-002` | partial |
-| 71 | Quiet details: Bot filtering | `COLLECT-003` | done |
-| 72 | Quiet details: Outbound links | `CONV-003` | done |
-| 73 | Quiet details: File downloads | `CONV-003` | done |
-| 74 | Quiet details: Stats API | `API-001` | done |
-| 75 | Quiet details: Team access: "Viewers, analysts and admins for each site" | `TEAM-001` | done |
-| 76 | Quiet details: Data retention: "Keep raw events as long as you choose" | `RETENTION-002` | done |
-| 77 | Closing: "Open source website analytics without cookies" | `OPEN-001`, `COLLECT-001`, `METRIC-001` | done |
-| 78 | Closing: "Free and open source, MIT licensed" | `OPEN-001` | done |
-| 79 | Closing card: Today · 4,812 visitors | `METRIC-001`, `DASH-002` | done |
-| 80 | Closing card: Weekly report sent | `REPORT-001` | done |
+| 13 | Mon, Oct 12: "Bring your history from Plausible" | `IMPORT-003` | done |
+| 14 | Mon, Oct 12: "add one script" | `INSTALL-001` | done |
+| 15 | Mon, Oct 12: "and name the goals that matter" | `CONV-001` | done |
+| 16 | Import card: Pageviews 1,284,610 · Sources 6,402 · Goals 9 · History since Mar 2023 | `IMPORT-003` | done |
+| 17 | Import card: Mar 2023 – Oct 11 · labelled as imported on charts | `IMPORT-007` | partial |
+| 18 | Script card: the script tag and First page load 10:42 am | `INSTALL-001` | done |
+| 19 | Script card: Shopify · connected | `INSTALL-003` | missing |
+| 20 | Script card: Served from your own domain | `INSTALL-006` | missing |
+| 21 | Goals card: Subscribed · revenue in USD | `CONV-006` | done |
+| 22 | Goals card: Signup · form on /pricing · custom event | `CONV-002`, `CONV-003` | done |
+| 23 | Goals card: Outbound links, file downloads and 404 pages · automatic | `CONV-003` | done |
+| 24 | Tue, Oct 13: "Visitors, sources and pages as they happen" | `DASH-001`, `DASH-003`, `DASH-004` | done |
+| 25 | Tue, Oct 13: "with an alert the moment traffic spikes" | `ALERT-001` | done |
+| 26 | Slack card: #marketing · Traffic spike on /blog/cold-brew-launch · 3.4× a usual Tuesday | `ALERT-001`, `REPORT-002` | partial |
+| 27 | Live card: 8 online now and the people-online chart | `DASH-001`, `DASH-002` | done |
+| 28 | Live card: pins for the launch post and the spike alert | `DASH-009`, `ALERT-001` | done |
+| 29 | Live card: Sources and Top pages | `DASH-003`, `DASH-004`, `DASH-014` | done |
+| 30 | Live card: Countries | `DASH-005` | missing |
+| 31 | Live card: 4,812 visitors today | `METRIC-001` | done |
+| 32 | 2:12 pm: "The agent checks your tracking, your traffic and the site itself" | `AGENT-001`, `AGENT-002` | missing |
+| 33 | 2:12 pm: "ships the fix" (pull request #218) | `AGENT-003` | missing |
+| 34 | 2:12 pm: "and measures the result" (212 signups today) | `AGENT-004` | missing |
+| 35 | Why card: signups per hour with the 2:12–3:05 pm coverage gap, not counted as zero | `CONV-001`, `DASH-002`, `COVERAGE-001` | done |
+| 36 | Why card: /pricing sent no page loads after the deploy; Hacker News steady; the cause | `ALERT-002`, `AGENT-001`, `AGENT-002` | partial |
+| 37 | Interlude: Wed, Oct 14 · 9:00 am · All 12 goals tracking | `ALERT-002`, `AGENT-001` | partial |
+| 38 | Oct 13–18: "Funnels" | `CONV-005` | done |
+| 39 | Oct 13–18: "revenue" | `CONV-006` | done |
+| 40 | Oct 13–18: "and custom properties" | `CONV-002` | done |
+| 41 | Oct 13–18: "show which visitors became subscribers, and where they came from" | `CONV-005`, `DASH-004` | done |
+| 42 | Funnel card: four steps to scale with each step's rate | `CONV-005` | done |
+| 43 | Funnel card: Revenue $9,312.00 by plan (monthly 71% · quarterly 29%) | `CONV-006`, `CONV-002` | done |
+| 44 | Funnel card: by source, Newsletter 11.2% and Hacker News 0.9% subscribed | `CONV-006`, `DASH-004` | done |
+| 45 | 404 chip: 404 on /cold-bew · 38 hits from a Reddit link → redirect added | `CONV-003`, `AGENT-003` | partial |
+| 46 | Sun, Oct 18: "Google Search Console keywords" | `SEARCH-001` | done |
+| 47 | Sun, Oct 18: "next to the pages they landed on and what those visitors did" | `SEARCH-001`, `CONV-001` | done |
+| 48 | Search card: clicks and position per query, ↑ 5 on the period before | `SEARCH-001`, `DASH-008` | done |
+| 49 | Landing card: 62% of clicks · 1m 48s average visit · 4.1% subscribed | `SEARCH-001`, `METRIC-003`, `CONV-001` | done |
+| 50 | Pending chip: Oct 17–18 · arrives at Google's next sync | `SEARCH-001` | done |
+| 51 | Mon, Oct 19: "A scheduled email for your team" | `REPORT-001` | done |
+| 52 | Mon, Oct 19: "the numbers, what moved them" | `REPORT-003` | done |
+| 53 | Mon, Oct 19: "and what the agent changed" | `AGENT-003`, `AGENT-004` | missing |
+| 54 | Email card: Unique visitors 21,640 ↑ 38% · Visits · Bounce rate · Visit duration | `METRIC-001`, `METRIC-002`, `METRIC-003`, `DASH-008` | done |
+| 55 | Email card: Subscriptions 388 · $9,312.00 | `CONV-006` | done |
+| 56 | Email card: What moved: launch post, tracking gap | `REPORT-003` | done |
+| 57 | Email card: fixed in #218 | `AGENT-003` | missing |
+| 58 | Email card: resend to non-openers drafted for Thu 9:00 am | `AGENT-006` | missing |
+| 59 | Public card: stats.junipercoffee.com · Public, the week's visitors, top pages | `SHARE-002` | done |
+| 60 | Public card: Search engines · not indexed | `SHARE-002` | done |
+| 61 | Stats API card: GET /api/v1/stats | `API-001` | done |
+| 62 | Every day: "Each visit becomes a daily hash of a secret salt, your site, the IP address and the browser" | `METRIC-001` | done |
+| 63 | Every day: "A new salt at midnight in your time zone; the old one is deleted" | `METRIC-001` | done |
+| 64 | Every day: "No cookies, no banner" | `COLLECT-001`, `CONSENT-001` | done |
+| 65 | Hash diagram: Counted once today; same person, new id: days can't be linked | `METRIC-001` | done |
+| 66 | Never recorded: no session replays, per-visitor logs or person profiles | `COLLECT-001`, `PRIVACY-005` | done |
+| 67 | Never recorded: Read the method | `METRIC-004` | done |
+| 68 | Ownership: Your own account | `HOST-001` | partial |
+| 69 | Ownership: No third-party analytics processor | `HOST-001`, `PRIVACY-005` | partial |
+| 70 | Ownership: Export to CSV or your warehouse | `API-002` | done |
+| 71 | Closing: "Open source website analytics without cookies" | `OPEN-001`, `COLLECT-001`, `METRIC-001` | done |
+| 72 | Closing: "100% free and open source, MIT licensed" | `OPEN-001` | done |
+| 73 | Closing chip: Mon, Oct 19 · Weekly report sent | `REPORT-001` | done |
+| 74 | Closing chip: Last week · 21,640 visitors | `METRIC-001`, `DASH-002` | done |
 
 ## Status
 

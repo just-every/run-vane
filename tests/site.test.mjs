@@ -12,7 +12,7 @@ const exists = path => files.includes(path) || files.includes(path + '.html') ||
 // The built run site served over HTTP to a real headless browser.
 async function serve() {
   const { chromium } = await import('@playwright/test')
-  const types = { '.html': 'text/html', '.css': 'text/css', '.woff2': 'font/woff2', '.svg': 'image/svg+xml', '.png': 'image/png', '.webp': 'image/webp', '.jpg': 'image/jpeg' }
+  const types = { '.html': 'text/html', '.css': 'text/css', '.woff2': 'font/woff2', '.svg': 'image/svg+xml', '.png': 'image/png', '.webp': 'image/webp', '.avif': 'image/avif', '.jpg': 'image/jpeg' }
   const server = createServer(async (request, response) => {
     const path = decodeURIComponent(new URL(request.url, 'http://localhost').pathname).replace(/\/$/, '') || '/index'
     for (const file of [path, path + '.html']) {
@@ -83,7 +83,7 @@ test('DOCS-001 each built guide renders its Markdown code blocks, tables and hea
   }
 })
 
-test('HOME-001 at 390 px the hero cards and every section drawing stack under their copy without sideways scrolling, and sit beside it at 1440 px', async () => {
+test('HOME-001 at 390 px the hero cards and every section drawing stack under their copy without sideways scrolling, sit beside it at 1440 px, and the wind trail runs down the page', async () => {
   const { browser, server, base } = await serve()
   try {
     const layout = async width => {
@@ -92,24 +92,32 @@ test('HOME-001 at 390 px the hero cards and every section drawing stack under th
       page.on('response', response => { if (response.status() >= 400) failed.push(response.url()) })
       await page.goto(base + '/', { waitUntil: 'networkidle' })
       await page.evaluate(() => document.fonts.ready)
+      await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))))
       const result = await page.evaluate(() => {
         const box = element => element.getBoundingClientRect()
         const below = (copy, drawing) => box(drawing).top >= box(copy).bottom - 1
-        const sections = [...document.querySelectorAll('section.feature')].map(section => ({ id: section.id, below: below(section.querySelector('.feature-copy'), section.querySelector('.feature-drawing')) }))
+        const sections = [...document.querySelectorAll('section.story')].map(section => {
+          const copy = section.querySelector('.story-head'), drawings = [...section.querySelectorAll('.card, .code-card, figure.hash')].filter(d => box(d).width > 0)
+          return { id: section.id, drawings: drawings.length, below: drawings.every(d => below(copy, d)), beside: drawings.some(d => !below(copy, d)) }
+        })
         const hero = document.querySelector('.hero-copy'), cards = [...document.querySelectorAll('.hero .sky-card')].filter(card => box(card).width > 0)
         const fonts = [...document.fonts].filter(font => font.status === 'loaded').map(font => font.family.replace(/"/g, ''))
-        return { fonts, sections, cards: cards.length, cardsBelow: cards.every(card => below(hero, card)), scroll: document.documentElement.scrollWidth - document.documentElement.clientWidth }
+        const trail = document.querySelector('.trail'), path = trail.querySelector('.trail-line')
+        return { fonts, sections, cards: cards.length, cardsBelow: cards.every(card => below(hero, card)), scroll: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+          trail: getComputedStyle(trail).display === 'none' ? 0 : path.getTotalLength(), page: document.documentElement.scrollHeight }
       })
       await page.close()
       return { ...result, origins: [...origins], failed }
     }
     const phone = await layout(390), desk = await layout(1440)
-    assert.ok(phone.sections.length >= 5, 'the homepage has its feature sections')
-    for (const section of phone.sections) assert.ok(section.below, `${section.id} drawing stacks under its copy at 390 px`)
+    assert.ok(phone.sections.length >= 7, 'the homepage has the week of sections')
+    for (const section of phone.sections) assert.ok(section.drawings > 0 && section.below, `${section.id} drawings stack under its copy at 390 px`)
     assert.ok(phone.cards >= 4 && phone.cardsBelow, 'hero cards stack under the hero copy at 390 px')
     assert.equal(phone.scroll, 0, 'no sideways scrolling at 390 px')
-    for (const section of desk.sections) assert.ok(!section.below, `${section.id} drawing sits beside its copy at 1440 px`)
+    for (const id of ['launch-day', 'dip', 'orders', 'searched', 'report']) assert.ok(desk.sections.find(section => section.id === id).beside, `${id} drawing sits beside its copy at 1440 px`)
     assert.equal(desk.scroll, 0)
+    assert.ok(desk.trail > desk.page * 0.6, 'the wind trail runs down most of the page at 1440 px')
+    assert.equal(phone.trail, 0, 'phones show no trail')
     for (const view of [phone, desk]) {
       assert.deepEqual(view.origins, [base], 'fonts, artwork and styles are served by the run site itself')
       assert.deepEqual(view.failed, [], 'every font, image and style the page requests is served')
