@@ -1056,7 +1056,8 @@ test('REPORT-003 a week where organic search falls 40% on one page names that ch
  const summary=await (await a.request(`/api/vane/summary?siteId=${id}&from=2026-03-09&to=2026-03-16`,owner)).json(),e=summary.explain
  assert.deepEqual([summary.visits,summary.previousVisits],[24,28])
  const moved=e.movers.map(m=>[m.dimension,m.label,m.then,m.now,m.totalThen,m.totalNow])
- assert.deepEqual(moved.filter(m=>m[0]!=='Device'),[['Channel','Organic Search',10,6,28,24],['Page','/pricing',10,6,28,24]],'direct and / are stable, so only organic search and /pricing moved')
+ // Every visit shares one device class and the local Miniflare location (DASH-005), so those dimensions move with the total.
+ assert.deepEqual(moved.filter(m=>!['Device','Country','Region','City'].includes(m[0])),[['Channel','Organic Search',10,6,28,24],['Page','/pricing',10,6,28,24]],'direct and / are stable, so only organic search and /pricing moved')
  assert.deepEqual(e.annotations.map(n=>n.day),['2026-03-11']);assert.deepEqual(e.coverage,[{label:'excluded-path',now:1,then:0}])
  const judged=Object.fromEntries(e.variation.map(d=>[d.day,d.metrics?.visitors]))
  // Monday's baseline leaves out MLK Day and Washington's Birthday: 4,6,6,4,6,6 gives 5.33 ± 2.571·s·√(7/6); Tuesday's eight give 5 ± 2.365·s·√(9/8).
