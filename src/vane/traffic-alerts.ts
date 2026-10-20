@@ -136,7 +136,7 @@ export async function raiseHealth(env:Env,alert:Alert,value:Site,found:{value:nu
  if(alert.crossed)return
  const zone=value.config.timeZone??'UTC',reason=await held(env,alert,value,now,localDay(now,zone),localHour(now,zone),undefined,undefined,false)
  const outcome=reason??await notify(env,alert,value,`${found.text} ${await alertExplanation(env,value,from,to)}`,now,found.value,found.bound)
- await env.DB.batch([statement(env,'UPDATE vane_alerts SET crossed=1,last_sent_at=? WHERE id=?',reason?alert.last_sent_at:now,alert.id),log(env,alert,found.value,0,now,!reason,`${outcome}; ${found.text}`,null)])
+ await env.DB.batch([statement(env,'UPDATE vane_alerts SET crossed=1,last_sent_at=? WHERE id=?',reason?alert.last_sent_at:now,alert.id),log(env,alert,found.value,0,now,!reason,`${outcome}; ${found.bound}`,null)])
  if(!reason)await openItem(env,value,alert.id,alertName(alert),alert.created_by,now)
 }
 export const siteAlerts=(env:Env,siteId:string)=>rows<Alert>(env,'SELECT * FROM vane_alerts WHERE site_id=? ORDER BY created_at',siteId)

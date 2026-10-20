@@ -62,6 +62,8 @@ export async function decide(env:Env,actor:Actor,id:string,approve:boolean) {
     {sql:'DELETE FROM vane_events WHERE site_id=?',params:[current.id]},
     {sql:'DELETE FROM vane_signals WHERE site_id=?',params:[current.id]},
     {sql:'DELETE FROM vane_exclusions WHERE site_id=?',params:[current.id]},
+    // ALERT-002: the latest tracking-health result is derived from that history; the owner's check time stays.
+    {sql:'UPDATE vane_health SET checked_day=NULL,checked_at=NULL,result_json=NULL WHERE site_id=?',params:[current.id]},
     {sql:'DELETE FROM vane_auto_events WHERE site_id=?',params:[current.id]},
     {sql:'DELETE FROM vane_custom_events WHERE site_id=?',params:[current.id]},
     {sql:'DELETE FROM vane_event_props WHERE site_id=?',params:[current.id]},
