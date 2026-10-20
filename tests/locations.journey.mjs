@@ -103,7 +103,7 @@ test('DASH-005 metro codes retain honest unnamed labels across reports, segments
  }
  const metroTable=()=>page.locator('table[data-locations="US metro areas"]')
  await capture(`/app/sites/${id}?section=report&${range}&goal=signup`,'report',metroTable,async()=>{
-  const text=await metroTable().innerText();assert.ok(text.includes(main));assert.ok(text.includes(small));assert.match(text,/25%/)
+  const text=await metroTable().innerText();assert.ok(text.includes(main));assert.ok(text.includes(small));assert.match(text,/25\.0%/)
  })
  await capture(`/app/sites/${id}?section=report&${range}&segment=${segment}`,'segment',metroTable,async()=>{
   const text=await metroTable().innerText();assert.ok(text.includes(main));assert.equal(text.includes(small),false)
