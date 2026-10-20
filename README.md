@@ -350,3 +350,5 @@ use the native collection rules. Fathom's `trackEvent` amount uses minor units
 (`_value: 4999` is 49.99 in the site's currency). This is a partial cut-over:
 init properties, routing, automatic events and download-extension replacement map to native collection. The incumbent call-site scan and rewrite drafts remain `IMPORT-008` gaps. GA4 and Fathom definition
 imports inherit the definition rules when their import clauses ship.
+
+Plausible traffic history imports through the same reviewed ZIP form, or **Read Plausible history and definitions** for a source-local API date. CSV breakdowns keep their exported-period totals under the selected label date; the visitors series retains its actual dates. API reads preserve source percentages, durations and revenue currencies. Each reviewed request holds up to 500 report rows (and API reads up to 25 custom properties); choose a smaller period in Plausible for a larger export and repeat API reads for other dates. Keep choosing **Apply import** until complete; **Continue undo** finishes a batched reversal. Source reports remain separate from native totals and never reconstruct visitor journeys.

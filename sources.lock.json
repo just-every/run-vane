@@ -55,7 +55,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "db5b273d8e5d3bbb7682c0cc82bdc3753f9260c69d672d7c909385ce0ec2edf7",
+      "sha256": "8e8cd8dfd9228a4e9d76e918edfa58d508e87ba7a23d58ab2f0abcba009fd0ee",
       "executable": false
     },
     "AGENTS.md": {
@@ -87,7 +87,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "955f1e5b4ed4a2c60823eec30848c20b84c916e3530e2334615cdc40331c2f60",
+      "sha256": "e336b014fe360113531f3144e8933533e5ea0120af31b33ad58ef3215ab5aa9b",
       "executable": false
     },
     "DEMO.md": {
@@ -643,7 +643,7 @@
       "executable": false
     },
     "README.md": {
-      "sha256": "303b9bb6fa983b958b102e1ec9131ee70302610746ba0f6ed53e73fe3f576edc",
+      "sha256": "cef2d339aa9865806575793d2a51bbbdde3333e38a8b1088d9c631d20af2c57d",
       "executable": false
     },
     "rer-project.json": {
@@ -3059,7 +3059,7 @@
       "executable": false
     },
     "src/vane/views/imported-reports.ts": {
-      "sha256": "ce8bd5f0efcb835f20bcccfd4f1d5e43a5eb8f5b666fcd3926fb387d413785c7",
+      "sha256": "d1dda9f41a159e0d90883c2d84c70165b78b2718520ba93201038ef4b4d7539f",
       "executable": false
     },
     "src/vane/views/index.ts": {
