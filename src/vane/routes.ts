@@ -130,6 +130,7 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
      return view(p.siteId,{section:'history',importPreview:{fingerprint:result.fingerprint,count:result.normalized.length+result.aggregates.length,aggregates:result.aggregates,warnings:['Visitor identifiers, titles and raw URLs were discarded before custody. Historical consent and sampling are unknown.'],rows:result.normalized.map(e=>({date:e.day,path:e.path,visits:e.kind==='pageview'?1:0,source:e.source,campaign:e.campaign,goal:e.kind==='pageview'?'':e.kind}))},importCarry:JSON.stringify(result.carry)});
     }
     if(p.operation==='chat.slack.begin')return view(p.siteId,{section:'settings',chatAuthorize:await chat.begin(request,env,actor,p)});
+    if(p.operation==='chat.nook.connect'){const id=await chat.nook(env,actor,p);return redirect(chat.settings(id))}
     if(p.operation==='chat.teams.connect'){const id=await chat.teams(env,actor,p);return redirect(chat.settings(id))}
     if(p.operation==='chat.disconnect'){const result=await chat.disconnect(env,actor,String(p.id));return redirect(chat.settings(result.siteId).replace('#chat-reports','')+'&'+new URLSearchParams({notice:result.outcome})+'#chat-reports')}
     if(p.operation==='chat.test'){const id=await chatDelivery.testDelivery(env,actor,String(p.id));return redirect(chat.settings(id))}

@@ -309,7 +309,13 @@ it does not prove the workflow posted to its channel. Both integrations receive
 only aggregate figures and a private filtered dashboard link, with no visitor
 records. Connection credentials and schedules are excluded from history archives.
 
-REPORT-002 remains partial: Nook delivery needs Nook's scoped integration token,
+For Nook, create a scoped integration token under **You → Team → Integration tokens**
+(Nook NOOK-079), bind it to your channel and paste its origin, conversation ID and
+token in Vane’s Connect Nook form. Vane seals the credential and never archives it.
+Weekly reports and alerts carry one stable idempotency key per message. Disconnect
+erases the local credential; revoke it in Nook to end its authority there.
+
+REPORT-002 remains partial:
 and owner-entered destination URLs await Base's resolved-address/pinned egress
 door. Today these URLs must be public HTTPS names/address literals, without URL
 credentials or redirects, under API-002's host rules.

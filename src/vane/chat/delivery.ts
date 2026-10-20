@@ -1,4 +1,4 @@
-import { allow, inScope, insist, role, rows, site, statement, uid, type Actor, type Env } from '../core'
+import { digest, allow, inScope, insist, role, rows, site, statement, uid, type Actor, type Env } from '../core'
 import { clock } from '../clock'
 import { auditStatement } from '../audit'
 import { teamActor } from '../team'
@@ -38,6 +38,10 @@ async function deliver(env:Env,c:Connection,kind:string,period:string,text:strin
    const secret=await unseal(env,PURPOSE,c.id,c.sealed_secret)
    if(c.provider==='slack'){
     const r=await slack('chat.postMessage',secret,{channel:c.channel!,text:text+'\nOpen Vane: '+link,unfurl_links:false,unfurl_media:false} as any);state=r.ok?'accepted':'failed';reason=r.ok?'accepted by Slack; channel delivery unconfirmed':'Slack refused: '+r.error
+   }else if(c.provider==='nook'){
+    const credential=JSON.parse(secret),origin=publicHttps(credential.origin,true).origin
+    const r=await fetch(origin+'/api/conversations/'+encodeURIComponent(c.channel!)+'/messages',{method:'POST',redirect:'manual',signal:AbortSignal.timeout(15000),headers:{authorization:'Bearer '+credential.token,'idempotency-key':'vane:'+(await digest(c.id+':'+kind+':'+period)).slice(0,59),'content-type':'application/json'},body:JSON.stringify({body:text+'\nOpen Vane: '+link})})
+    state=r.ok?'accepted':'failed';reason=r.ok?'accepted by Nook':`Nook refused: HTTP ${r.status}`
    }else{
     const endpoint=publicHttps(secret,true),r=await fetch(endpoint.href,{method:'POST',redirect:'manual',signal:AbortSignal.timeout(15000),headers:{'content-type':'application/json'},body:JSON.stringify({type:'message',attachments:[{contentType:'application/vnd.microsoft.card.adaptive',contentUrl:null,content:{$schema:'http://adaptivecards.io/schemas/adaptive-card.json',type:'AdaptiveCard',version:'1.2',body:[{type:'TextBlock',text,wrap:true}],actions:[{type:'Action.OpenUrl',title:'Open Vane',url:link}]}}]})})
     state=r.ok?'accepted':'failed';reason=r.ok?'accepted by workflow; channel delivery unconfirmed':`Workflow refused: HTTP ${r.status}`

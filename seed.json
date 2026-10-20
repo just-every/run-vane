@@ -108,6 +108,16 @@
         "Aggregate figures and private filtered dashboard link; no visitor records"
       ],
       "adapters": []
+    },
+    {
+      "id": "nook",
+      "required": false,
+      "why": "Owner-connected Nook NOOK-079 scoped integration token for aggregate reports/alerts (REPORT-002)",
+      "data": [
+        "Scoped integration token to the owner-entered HTTPS Nook origin",
+        "Aggregate figures and private filtered dashboard link; no visitor records"
+      ],
+      "adapters": []
     }
   ],
   "env": [],

@@ -1,6 +1,6 @@
 CREATE TABLE vane_chat_connections (
  id TEXT PRIMARY KEY, site_id TEXT NOT NULL REFERENCES vane_sites(id) ON DELETE CASCADE,
- provider TEXT NOT NULL CHECK(provider IN ('slack','teams')), label TEXT NOT NULL,
+ provider TEXT NOT NULL CHECK(provider IN ('slack','teams','nook')), label TEXT NOT NULL,
  channel TEXT, sealed_secret TEXT NOT NULL, created_by TEXT NOT NULL, created_at INTEGER NOT NULL
 );
 CREATE TABLE vane_chat_states (

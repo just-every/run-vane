@@ -5,7 +5,7 @@ import { digest, inScope, insist, role, rows, site, statement, uid, type Actor, 
 import { publicHttps } from '../warehouse'
 import { seal, unseal } from '../sealed'
 export const CALLBACK='/api/vane/chat/slack/callback',PURPOSE='vane-chat-v1'
-export interface Connection {id:string;site_id:string;provider:'slack'|'teams';label:string;channel:string|null;sealed_secret:string;created_by:string;created_at:number}
+export interface Connection {id:string;site_id:string;provider:'slack'|'teams'|'nook';label:string;channel:string|null;sealed_secret:string;created_by:string;created_at:number}
 const redirect=(location:string)=>new Response(null,{status:303,headers:{location,'cache-control':'no-store','referrer-policy':'no-referrer'}})
 export const settings=(siteId:string)=>`/app/sites/${encodeURIComponent(siteId)}?section=settings#chat-reports`
 export const connections=(env:Env,siteId:string)=>rows<Connection>(env,'SELECT * FROM vane_chat_connections WHERE site_id=? ORDER BY created_at',siteId)
@@ -18,6 +18,17 @@ export async function teams(env:Env,actor:Actor,p:any) {
  role(actor);inScope(actor,String(p.siteId));const value=await site(env,String(p.siteId));await room(env,value.id)
  const endpoint=publicHttps(String(p.endpoint??'').trim(),true).href,label=labelOf(p),id=uid()
  await env.DB.batch([statement(env,'INSERT INTO vane_chat_connections VALUES(?,?,?,?,?,?,?,?)',id,value.id,'teams',label,null,await seal(env,PURPOSE,id,endpoint),actor.id,clock()),auditStatement(env,actor.id,'chat.connect',value.id,'Teams workflow connected')]);return value.id
+}
+// NOOK-079 accepts only scoped integration credentials, never a person's session cookie.
+export async function nook(env:Env,actor:Actor,p:any) {
+ role(actor);inScope(actor,String(p.siteId));const value=await site(env,String(p.siteId));await room(env,value.id)
+ const origin=publicHttps(String(p.origin??'').trim(),true)
+ insist(origin.pathname==='/'&&!origin.search&&!origin.hash,'nook_origin','Enter only your Nook installation origin.')
+ const channel=String(p.channel??'').trim(),token=String(p.token??'').trim()
+ insist(/^[A-Za-z0-9_-]{1,128}$/.test(channel),'nook_channel','Enter the Nook conversation ID for a channel bound to this token.')
+ insist(/^nookit_[A-Za-z0-9_-]{20,200}$/.test(token),'nook_token','Paste the scoped integration token created in Nook’s You → Team → Integration tokens.')
+ const id=uid(),label=labelOf(p)
+ await env.DB.batch([statement(env,'INSERT INTO vane_chat_connections VALUES(?,?,?,?,?,?,?,?)',id,value.id,'nook',label,channel,await seal(env,PURPOSE,id,JSON.stringify({origin:origin.origin,token})),actor.id,clock()),auditStatement(env,actor.id,'chat.connect',value.id,'Nook NOOK-079 scoped integration token connected')]);return value.id
 }
 async function native(request:Request,env:Env,actor:Actor) {
  role(actor);const session=await operatorAuth(env).getSession(request);insist(session&&session.operator.id===actor.id&&session.operator.role==='owner','forbidden','Use the owner’s native session.',403);return digest(session.id)
