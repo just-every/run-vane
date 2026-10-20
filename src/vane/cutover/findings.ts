@@ -13,11 +13,11 @@ export function findings(html:string,script:string,currency:string):Finding[] {
   if(provider)add({kind:'script',provider,detail:'Incumbent script still loaded',rewrite:script});
  }
  for(const match of html.matchAll(/\b(plausible\s*\(|fathom\s*\.\s*(trackEvent|trackPageview)\s*\()/g)) {
-  const provider=match[2]?'Fathom':'Plausible',rest=html.slice(match.index!+match[0].length),named=rest.match(/^\s*(['"])([^'"\n]*)\1/),name=named?safeName(named[2]!):undefined,pageview=match[2]==='trackPageview';
+  const provider=match[2]?'Fathom':'Plausible',rest=html.slice(match.index!+match[0].length),named=rest.match(/^\s*(['"])([^'"\n]*)\1/),name=named?safeName(named[2]!):undefined,pageview=match[2]==='trackPageview'||named?.[2]==='pageview';
   const cents=provider==='Fathom'?rest.match(/^[^)]*?_value\s*:\s*(\d+(?:\.\d+)?)/)?.[1]:undefined;
   let options:Record<string,unknown>={};const parsed=literal(rest);const tail=parsed?rest.slice(parsed.end).trimStart():'';const input=tail.startsWith(',')?literal(tail.slice(1))?.value:undefined;let incomplete=false;
   if(input&&typeof input==='object'){if(input.props)try{options.props=Object.fromEntries(cleanProps(input.props).kept)}catch{incomplete=true}if(input.revenue&&typeof input.revenue.amount==='number'&&/^[A-Z]{3}$/.test(input.revenue.currency))options.revenue={amount:input.revenue.amount,currency:input.revenue.currency};if(provider==='Fathom'&&cents)options.revenue={amount:Number(cents)/100,currency}}else if(tail.startsWith(','))incomplete=true;
-  const rewrite=pageview?"vane('pageview')":name?`vane(${JSON.stringify(name)}, ${incomplete?'OPTIONS_TO_COMPLETE':JSON.stringify(options)})`:`vane(EVENT_NAME, OPTIONS_TO_COMPLETE)`;
+  const rewrite=pageview?`vane('pageview', ${JSON.stringify(options)})`:name?`vane(${JSON.stringify(name)}, ${incomplete?'OPTIONS_TO_COMPLETE':JSON.stringify(options)})`:`vane(EVENT_NAME, OPTIONS_TO_COMPLETE)`;
   add({kind:'call',provider,...(name?{name}:{}),...(options.props?{properties:Object.keys(options.props as object)}:{}),detail:pageview?'Pageview call':name?'Event call; carry per-call properties and revenue through the native event fields':'Dynamic call; complete event name, properties and revenue before replacing',rewrite});
  }
  for(const tag of html.matchAll(/\bclass\s*=\s*(['"])(.*?)\1/gi))for(const token of tag[2]!.split(/\s+/)) {

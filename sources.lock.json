@@ -2647,7 +2647,7 @@
       "executable": false
     },
     "src/vane/cutover/findings.ts": {
-      "sha256": "47ccd5f5fbdbbcbcaa6bcedf9cc3437f55818beb133ae38cdf56e164caacb694",
+      "sha256": "12db38c8560bbc03ab0d7982a64b8687af989da888a5d71ae1886c40a855af57",
       "executable": false
     },
     "src/vane/cutover/literals.ts": {
@@ -3303,7 +3303,7 @@
       "executable": false
     },
     "tests/sitemap-scan.test.mjs": {
-      "sha256": "00ac46dd4d58ae6d44a5cea2198fca56066a71dd7be9da342e8db464d072a7f2",
+      "sha256": "7e6cbf1d3a8cb57d260554f1f5af9ebfae9ad5d6d9204c6c9012786c53c46368",
       "executable": false
     },
     "tests/vane.test.mjs": {
