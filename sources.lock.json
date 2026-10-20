@@ -55,7 +55,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "374cfa614c23dd171466939360273339fa35fd1e67d836dc6f754d6bf73f4d8a",
+      "sha256": "db5b273d8e5d3bbb7682c0cc82bdc3753f9260c69d672d7c909385ce0ec2edf7",
       "executable": false
     },
     "AGENTS.md": {
@@ -87,7 +87,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "bdb87f6992024a11c04362b0826c8a13b65fe0935bdbe551f7ea83a6c9670abf",
+      "sha256": "955f1e5b4ed4a2c60823eec30848c20b84c916e3530e2334615cdc40331c2f60",
       "executable": false
     },
     "DEMO.md": {
@@ -643,7 +643,7 @@
       "executable": false
     },
     "README.md": {
-      "sha256": "c7254518c289b25c40f93e49f88d996362d1fcb31dfd0505c54db844c7315e3f",
+      "sha256": "303b9bb6fa983b958b102e1ec9131ee70302610746ba0f6ed53e73fe3f576edc",
       "executable": false
     },
     "rer-project.json": {
@@ -2563,7 +2563,7 @@
       "executable": false
     },
     "src/vane/auto-events.ts": {
-      "sha256": "56ae3ea49c7b58b706865f7a283b02cd75323787fbd99663c9d1869925cc4d0a",
+      "sha256": "b0ca266f6db67ae54d10b938c44fa5280a8c125dbb581e80a95d96f3c97ac85c",
       "executable": false
     },
     "src/vane/bing/api.ts": {
@@ -2719,7 +2719,7 @@
       "executable": false
     },
     "src/vane/inventory.ts": {
-      "sha256": "0638b2c39e7b772c1288bb06c5c2c86b2e9379afd976fed5b26a32f2b1db2925",
+      "sha256": "037642322ae8dfd037d2a3c5f0ec1805c272cfcdcf6f619c4988b593695ad5ea",
       "executable": false
     },
     "src/vane/journeys.ts": {
@@ -2966,12 +2966,16 @@
       "sha256": "603282563665ec633e2cf749cf406dce84711284dcc116d780263443df8abb97",
       "executable": false
     },
+    "src/vane/tracker-compat-options.ts": {
+      "sha256": "7cfdee691c45c1b05f7e0022bb2c8ebd44c485e065bfc9549f1da4df4cc16154",
+      "executable": false
+    },
     "src/vane/tracker-compat.ts": {
-      "sha256": "920bde2f0d08f2da4eaccd49fdcbe14455ed8131419afc27afd8de6ec5b51f07",
+      "sha256": "c58d1d41991bb7dc9f8547ce82292e92b7fb9f9abb7d6a61830f6b18af39c8a6",
       "executable": false
     },
     "src/vane/tracker.ts": {
-      "sha256": "14597a8c4e9a083dc86276c103eae181e1dee033356a6f8930c244be54855ecd",
+      "sha256": "bad6a7f768f0ced8609cb2d32bdcc843c59768c04c0cca2027c4adcda57d0df8",
       "executable": false
     },
     "src/vane/traffic-alerts.ts": {
@@ -3228,6 +3232,10 @@
     },
     "tests/harness.mjs": {
       "sha256": "e19ff9c615764ebbb53d476a99ef18d814f9934ee80a6a1022dc2658e56b9032",
+      "executable": false
+    },
+    "tests/incumbent-options.test.mjs": {
+      "sha256": "c38021dc5d9b94609de4d7fcd7d4d304d62c8b42b57a1b6bbe839bc342447392",
       "executable": false
     },
     "tests/matomo.test.mjs": {

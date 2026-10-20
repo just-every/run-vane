@@ -9,7 +9,7 @@ import { retentionPhrase } from './retention'
 // (CONV-008, custom events and properties CONV-002 now listed), Slack/Teams/Nook delivery (REPORT-002) and webhooks (API-003).
 export interface Field { name:string; table:string; columns:string[]; description:string }
 export function inventory(site:Site,searchConnected=false,bingConnected=false,chatProviders:string[]=[])  {
- const c=site.config,auto=c.autoEvents??[],page='vane_events'
+ const c=site.config,auto=c.incumbentCompatibility?[...new Set([...(c.autoEvents??[]),'outbound','download','form'])]:c.autoEvents??[],page='vane_events'
  const fields:Field[]=[
   {name:'Chat connections',table:'vane_chat_connections',columns:['id','site_id','provider','label','channel','sealed_secret','created_by','created_at'],description:'Owner-connected Slack bot tokens, Teams workflow URLs or Nook origins and scoped integration tokens, sealed with AES-GCM and excluded from archives. Only aggregate report or alert figures and a private native dashboard link leave the installation. Disconnect deletes the credential.'},
   {name:'Slack OAuth approval',table:'vane_chat_states',columns:['state_hash','site_id','actor_id','session_hash','label','channel','expires_at','consumed_at'],description:'Single-use ten-minute state bound to the native owner session and site; only state/session hashes are stored. Excluded from archives.'},

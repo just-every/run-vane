@@ -348,6 +348,5 @@ the snippet for `vane.js`. Queued and later Plausible event calls, properties,
 revenue and the `plausible-event-name=…` and `plausible-event-name--…` class forms
 use the native collection rules. Fathom's `trackEvent` amount uses minor units
 (`_value: 4999` is 49.99 in the site's currency). This is a partial cut-over:
-full `plausible.init` options, file-extension mapping, the incumbent call-site
-scan and rewrite drafts remain `IMPORT-008` gaps. GA4 and Fathom definition
+init properties, routing, automatic events and download-extension replacement map to native collection. The incumbent call-site scan and rewrite drafts remain `IMPORT-008` gaps. GA4 and Fathom definition
 imports inherit the definition rules when their import clauses ship.
