@@ -426,8 +426,8 @@ Judged from the code and tests at commit `b3e4e6511f2a5a25bc8ce13361d7c0687bb8b1
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 17 | 0 | 0 | 17 |
-| Target and push further | 61 | 8 | 22 | 91 |
-| All | 78 | 8 | 22 | 108 |
+| Target and push further | 61 | 9 | 21 | 91 |
+| All | 78 | 9 | 21 | 108 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -495,7 +495,7 @@ Judged from the code and tests at commit `b3e4e6511f2a5a25bc8ce13361d7c0687bb8b1
 | `SEARCH-001` | Google Search Console keywords | target | done | `src/vane/search-console/index.ts`; `src/vane/routes.ts`; `src/vane/views/search-keywords.ts`; `migrations/core/0054_vane_search.sql`; `tests/search-console.test.mjs` | Owner OAuth, private source query/page figures, organic landing filters, daily pending fill, 16-month history, encrypted tokens, disconnect and portable aggregates. |
 | `SEARCH-002` | Bing Webmaster Tools keywords | target | done | `src/vane/bing/index.ts`; `src/vane/routes.ts`; `src/vane/views/search-keywords.ts`; `migrations/core/0055_vane_bing.sql`; `tests/bing.test.mjs` | Verified-property owner connection, sealed key, private query/page/date aggregates beside Google, organic landing filters, daily sync and source limits. |
 | `ADS-001` | Ad spend matched to campaigns | target | missing |  | No ad-platform connections. |
-| `IMPORT-002` | Google Analytics 4 history import | target | missing |  | No GA4 or Universal Analytics import. |
+| `IMPORT-002` | Google Analytics 4 history import | target | partial | `src/vane/movein/ga4.ts`; `src/vane/movein/aggregates.ts`; `src/vane/views/imported-reports.ts`; `tests/ga4.test.mjs`; `docs/history.md` | Daily GA4 Data API response documents and dated Universal Analytics CSV documents use owner-reviewed preview, exact-fingerprint apply, resumable journal and undo, with source metrics, dimensions, currency and definition differences retained separately from native totals. GA4 Admin key-event documents expose definitions for observed or explicit human completion and ordinary approval. Gap: read-only OAuth connection, property/date selection and automatic Data/Admin API reads; full-export streaming beyond 500 rows. |
 | `IMPORT-003` | Plausible import | target | done | `src/vane/movein/plausible-history.ts`; `src/vane/movein/plausible-export.ts`; `src/vane/movein/aggregates.ts`; `src/vane/views/imported-reports.ts`; `tests/plausible-history.test.mjs`; `tests/plausible-definitions.test.mjs` | |
 | `IMPORT-004` | Fathom import | target | missing |  | No Fathom import. |
 | `IMPORT-005` | Matomo import | target | partial | `src/vane/movein/matomo.ts`; `src/vane/movein/matomo-reader.ts`; `src/vane/movein/aggregates.ts`; `src/vane/views/imported-reports.ts`; `migrations/core/0053_vane_import_reports.sql`; `tests/matomo.test.mjs` | Matomo Cloud/self-hosted Reporting API and unformatted report CSVs import daily aggregate visits, visitors, actions, pages, referrers, campaigns, locations, devices, goals and ecommerce without visitor logs. Owner-reviewed preview, resumable apply, journal, undo, archive/restore, retention and native goal proposals work. Gap: resolved-address/pinned egress (Base egress door), required by ct 19 Oct 20:44Z for the owner-entered endpoint before DONE. |
