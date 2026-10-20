@@ -3235,7 +3235,7 @@
       "executable": false
     },
     "tests/plausible-definitions.test.mjs": {
-      "sha256": "52cc93b7a4e5743365b6849a34899f5fc67c944b7fa5bff9b8cf9cbe1a32a409",
+      "sha256": "48902811ad727cb49d07d23aaa16bc7b7a25e3ce232344043e587d85795395fe",
       "executable": false
     },
     "tests/search-console.test.mjs": {
