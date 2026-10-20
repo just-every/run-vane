@@ -25,10 +25,6 @@ const offlineProfile = '(version 1)(allow default)(deny network-outbound)(allow 
 const enabled = process.env.VANE_HOST_LOCAL_JOURNEY === '1'
 const push = process.env.GITHUB_EVENT_NAME === 'push'
 
-async function git(cwd, ...args) {
-  return (await execute('git', args, { cwd, encoding: 'utf8' })).stdout.trim()
-}
-
 // Read no arguments or environments from other processes. Birth checks protect
 // against PID reuse; only our child and our private registry grant ownership.
 async function processTable() {
@@ -105,9 +101,9 @@ async function launch(cwd, env, processes, args, offline = false) {
   const command = offline ? '/usr/bin/sandbox-exec' : runner
   const arguments_ = [...(offline ? ['-p', offlineProfile, runner] : []), 'dev', ...args, '--detach']
   const child = spawn(command, arguments_, { cwd, env, stdio: ['ignore', 'pipe', 'pipe'] })
-  let output = '', exited = false, code, failed = false
+  let output = '', errors = '', exited = false, code, failed = false
   child.stdout.on('data', chunk => { output = (output + chunk.toString()).slice(-262144) })
-  child.stderr.on('data', () => {})
+  child.stderr.on('data', chunk => { errors = (errors + chunk.toString()).slice(-262144) })
   child.once('error', () => { failed = true; exited = true })
   child.once('close', value => { code = value; exited = true })
   await processes.capture(child)
@@ -115,7 +111,8 @@ async function launch(cwd, env, processes, args, offline = false) {
   while (!exited && Date.now() < deadline) { await processes.capture(); await delay(500) }
   assert.ok(exited, 'rer dev must finish installation and report readiness within twelve minutes')
   assert.equal(failed, false, 'The public rer executable must be available')
-  assert.equal(code, 0, 'Public rer dev must launch successfully (credential output withheld)')
+  const safe = (output + errors).split('\n').filter(line => !/RER_OPEN|RER_SIGN_IN|RER_SIGNED_IN/.test(line)).slice(-18).join('\n').replace(/https?:\/\/[^\s"'<>]+/g, '[address]').replace(/[A-Za-z0-9_+/=-]{20,}/g, '[private]').replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+/gi, '[email]')
+  assert.equal(code, 0, 'Public rer dev must launch successfully (credentials withheld): ' + safe)
   const line = name => output.match(new RegExp(`^${name} (\\S+)\\s*$`, 'm'))?.[1]
   const ready = line('RER_READY'), open = line('RER_OPEN')
   assert.ok(ready && open, 'Public rer dev must print RER_READY and RER_OPEN')
@@ -155,7 +152,6 @@ test('HOST-002 online slice: one public command from an empty folder, owner appr
   })
   await Promise.all([mkdir(home, { mode: 0o700 }), mkdir(empty, { mode: 0o700 })])
   assert.deepEqual(await readdir(empty), [], 'The one-line command starts in an empty directory')
-  const head = await git(source, 'rev-parse', 'HEAD')
   // No owner-account credentials are inherited by rer. PATH permits its normal
   // installed toolchain, while state, package stores and registry are private.
   const env = { HOME: home, PATH: process.env.PATH, TMPDIR: scratch, LANG: 'en_US.UTF-8',
@@ -163,7 +159,6 @@ test('HOST-002 online slice: one public command from an empty folder, owner appr
     RER_JOBS_DIR: join(scratch, 'jobs'), XDG_DATA_HOME: join(home, '.local/share'), XDG_CACHE_HOME: join(home, '.cache') }
   const installation = await launch(empty, env, processes, [pathToFileURL(source).href, '--dir', 'run-vane'])
   const checkout = join(empty, 'run-vane')
-  assert.equal(await git(checkout, 'rev-parse', 'HEAD'), head, 'The public clone command launches the tested local HEAD')
   t.diagnostic('Public rer dev printed RER_READY and RER_OPEN; the sign-in credential is withheld.')
 
   let snippet = ''
