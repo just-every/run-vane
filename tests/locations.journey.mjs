@@ -112,7 +112,7 @@ test('DASH-005 metro codes retain honest unnamed labels across reports, segments
  await capture(`/app/sites/${id}?section=realtime`,'realtime',()=>page.locator('table[data-live="Live US metro areas"]'),async()=>{
   const table=page.locator('table[data-live="Live US metro areas"]');assert.ok((await table.innerText()).includes(main));assert.equal(await table.locator('[data-visitors]').innerText(),'1')
  })
- await capture(`/app/sites/${id}?section=settings`,'settings',()=>page.getByRole('cell',{name:'Location',exact:true}),async()=>{const body=await page.locator('body').innerText();assert.ok(body.includes('metro_code'));assert.ok(body.includes('metro_name'))})
+ await capture(`/app/sites/${id}?section=settings`,'settings',()=>page.getByRole('rowheader',{name:'Location',exact:true}),async()=>{const body=await page.locator('body').innerText();assert.ok(body.includes('metro_code'));assert.ok(body.includes('metro_name'))})
  // Public journeys run with an empty cookie jar.
  await context.clearCookies()
  for(const [path,label] of [[sharedPath,'shared'],[publicPath,'public']])await capture(path,label,metroTable,async()=>{
