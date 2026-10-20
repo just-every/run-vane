@@ -22,7 +22,7 @@ test('IMPORT-002 thirteen months of GA4 daily history and independent dimensions
  const p=await preview();assert.equal(p.normalized.length,0);assert.equal(p.aggregates.length,daily.length+sets.length+1)
  const totals=p.aggregates.filter(r=>r.report==='GA4.totals');assert.equal(totals.length,daily.length)
  for(const row of totals){assert.deepEqual(row.metrics,{sessions:41,totalUsers:30,screenPageViews:76,bounceRate:0.125,purchaseRevenue:18.5});assert.equal(row.dimensions.currency,'EUR');assert.equal(row.dimensions.sourceTimeZone,'Europe/Berlin');assert.equal(row.dimensions.sourceCoverage,'thresholded')}
- for(const [dimension,value] of sets){const row=p.aggregates.find(r=>r.dimensions[dimension]===value);assert.ok(row,dimension);assert.deepEqual(row.metrics,{sessions:17,eventCount:21})}
+ for(const [dimension,value] of sets){const row=p.aggregates.find(r=>r.report==='GA4.'+dimension&&r.dimensions[dimension]===value);assert.ok(row,dimension);assert.deepEqual(row.metrics,{sessions:17,eventCount:21})}
  const definition=p.aggregates.flatMap(r=>r.definitions)[0];assert.equal(definition.event,'purchase');assert.equal(definition.requiresObservation,true);assert.ok(definition.incomplete);assert.equal(definition.kind,'event')
  const first=await finish(a,siteId,p),again=await finish(a,siteId,p);assert.equal(first.job.id,again.job.id)
  const result=await summary(a,siteId);assert.equal(result.pageviews,0);assert.equal(result.importedReports.length,p.aggregates.length)
