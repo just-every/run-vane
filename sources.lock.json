@@ -55,7 +55,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "f0146904de7ce727b9a8e4b2589c86d31a86f549583912f3a88c5d593412c24e",
+      "sha256": "374cfa614c23dd171466939360273339fa35fd1e67d836dc6f754d6bf73f4d8a",
       "executable": false
     },
     "AGENTS.md": {
@@ -87,7 +87,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "306f698a48c54bdae573c5aef3065747ba1f569e6eec262a0cbf0ea4bf354267",
+      "sha256": "bdb87f6992024a11c04362b0826c8a13b65fe0935bdbe551f7ea83a6c9670abf",
       "executable": false
     },
     "DEMO.md": {
@@ -2615,7 +2615,7 @@
       "executable": false
     },
     "src/vane/collect.ts": {
-      "sha256": "4089551e5a722a2d091fef6bf6d1a12d006f9819adc155e5fa2aee8d28a4e71b",
+      "sha256": "47498b71093b16a4dd714da902f20fddbf15306c134469cbbdad5d8a7ccb7327",
       "executable": false
     },
     "src/vane/commands.ts": {
@@ -3247,7 +3247,7 @@
       "executable": false
     },
     "tests/vane.test.mjs": {
-      "sha256": "1139d2c92517f97bf51a0cbb68841edb4f80e30a37d7ca0f54470f1b7206e1c6",
+      "sha256": "7a2e7cfc3095d06962c2369b4d4ab11cdce0e02681d8f298fb651b6b614ed68f",
       "executable": false
     },
     "tsconfig.json": {

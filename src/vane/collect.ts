@@ -34,7 +34,7 @@ export async function collector(request:Request,env:Env):Promise<Response|null> 
   // The script's configuration door serves only what the script uses (PRIVACY-003: whether this visitor's region
   // requires consent, never the region itself, and the consent manager to read); the owner's excluded addresses and countries
   // (COLLECT-003), goals, funnels and other settings stay in the installation.
-  if(match) { insist(request.method==='GET','method','GET required.',405); const c=value.config; return Response.json({consent:consentRequired(c,request)?'required':'not-required',...(c.consentAdapter?{consentAdapter:c.consentAdapter}:{}),sampleRate:c.sampleRate,...(c.declinedCounter?{declinedCounter:true}:{}),autoEvents:c.autoEvents??[],queryKeys:c.queryKeys??[],...(c.searchParam?{searchParam:c.searchParam}:{}),incumbentCompatibility:c.incumbentCompatibility??false,currency:c.currency??'USD',eventDefinitions:c.eventDefinitions??[]},{headers:cors}); }
+  if(match) { insist(request.method==='GET','method','GET required.',405); const c=value.config; return Response.json({consent:consentRequired(c,request)?'required':'not-required',...(c.consentAdapter?{consentAdapter:c.consentAdapter}:{}),sampleRate:c.sampleRate,...(c.declinedCounter?{declinedCounter:true}:{}),autoEvents:c.autoEvents??[],queryKeys:c.queryKeys??[],...(c.searchParam?{searchParam:c.searchParam}:{}),...(c.incumbentCompatibility?{incumbentCompatibility:true,currency:c.currency??'USD'}:{}),eventDefinitions:c.eventDefinitions??[]},{headers:cors}); }
   if(engage) {
    // METRIC-003: a ping names only the site and its own page load, at least 10 seconds and at most
    // 30 minutes after that load; the latest ping marks the page engaged and ends its time.

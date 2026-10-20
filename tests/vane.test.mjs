@@ -33,13 +33,23 @@ async function browse(t,a,pages={},{userAgent=DESKTOP_CHROME,...options}={}){
 }
 async function movein(app,siteId,document=fixture){const r=await app.post('/api/vane/import-preview',{siteId,document},app.owner);assert.equal(r.status,200,await r.clone().text());const p=await r.json();const a=await app.post('/api/vane/import-apply',{siteId,document:p.carry,fingerprint:p.fingerprint},app.owner);assert.equal(a.status,200,await a.clone().text());return {preview:p,applied:await a.json()}}
 
-test('HTTP-001 and ACCESS-002: one Worker serves honest public doors; every private door rejects anonymous and cross-origin requests',async t=>{
+test('HTTP-001, ACCESS-002 and COLLECT-001: honest public doors expose compatibility config only after owner approval, keep private fields absent and refuse anonymous or cross-origin private requests',async t=>{
  const a=await withApp(t),id=await a.addSite()
  const health=await a.request('/health');assert.equal(health.status,200);assert.equal((await health.json()).status,'ok')
  for(const path of ['/','/signin'])assert.equal((await a.request(path)).status,200,path)
  const setup=await a.request('/setup');assert.ok([200,303].includes(setup.status),'setup answers')
  const script=await a.request('/vane.js');assert.equal(script.status,200);assert.match(script.headers.get('content-type'),/javascript/);assert.match(await script.text(),/\/api\/vane\/collect/)
- const config=await a.request('/api/vane/config/'+id,{headers:{origin:'https://fern.example'}});assert.equal(config.status,200);assert.deepEqual(Object.keys(await config.json()).sort(),['autoEvents','consent','eventDefinitions','queryKeys','sampleRate'],'the script\'s config door serves only what the script uses')
+ const config=await a.request('/api/vane/config/'+id,{headers:{origin:'https://fern.example'}});assert.equal(config.status,200);const baseline=await config.text();assert.deepEqual(Object.keys(JSON.parse(baseline)).sort(),['autoEvents','consent','eventDefinitions','queryKeys','sampleRate'],'the script\'s config door serves only what the script uses')
+ // COLLECT-001 / IMPORT-008: public metadata changes only with the owner's approved compatibility mode.
+ const current=(await(await a.request('/api/vane/sites',{headers:{cookie:a.owner}})).json()).find(s=>s.id===id)
+ const readConfig=async()=>{const r=await a.request('/api/vane/config/'+id,{headers:{origin:'https://fern.example'}});assert.equal(r.status,200);return r.text()}
+ const toggle=async enabled=>{const r=await a.post('/api/vane/commands',{command:'site.configure',input:{siteId:id,name:current.name,origin:current.origin,config:{...current.config,incumbentCompatibility:enabled,currency:'CAD',excludeIps:['203.0.113.0/24'],excludeCountries:['NZ']}}},a.owner);assert.equal(r.status,201,await r.clone().text());return(await r.json()).id}
+ const enable=await toggle(true);assert.equal(await readConfig(),baseline,'an unapproved compatibility proposal changes no public field')
+ assert.equal((await a.form({operation:'proposal.approve',id:enable},a.owner)).status,303)
+ const active=JSON.parse(await readConfig());assert.equal(active.incumbentCompatibility,true);assert.equal(active.currency,'CAD');assert.deepEqual(Object.keys(active).sort(),['autoEvents','consent','currency','eventDefinitions','incumbentCompatibility','queryKeys','sampleRate'])
+ for(const privateField of ['excludeIps','excludeCountries','goals','scrollGoals','customGoals','funnels','sourceRules','retentionDays','publicReports','secrets','SESSION_SECRET'])assert.equal(Object.hasOwn(active,privateField),false,privateField+' never leaves the public config door')
+ const disable=await toggle(false);assert.equal(JSON.parse(await readConfig()).incumbentCompatibility,true,'the active approval stays in force until its replacement is approved')
+ assert.equal((await a.form({operation:'proposal.approve',id:disable},a.owner)).status,303);assert.equal(await readConfig(),baseline,'compatibility off is byte-for-byte identical even with private exclusions and a non-default currency')
  for(const path of ['/no-such-page','/api/no-such-door'])assert.equal((await a.request(path)).status,404,path)
  assert.equal((await a.request('/api/vane/no-such-door',{headers:{cookie:a.owner}})).status,404)
  for(const path of ['/api/vane/sites','/api/vane/summary','/api/vane/export','/api/vane/proposals','/api/vane/import-journal'])assert.equal((await a.request(path)).status,401)
