@@ -5,6 +5,7 @@ import { BASELINE_WEEKS, MIN_BASELINE_DAYS, usHolidays } from './explain'
 import { instant } from './email-reports'
 import { localDay } from './visitors'
 import { timedFrom } from './visits'
+import { convertedSql, MICROS } from './revenue'
 // ALERT-001: the anomaly condition and scheduled maintenance. An hour's visitors or pageviews are judged against the
 // same weekday and local hour in the 8 weeks before, leaving out US federal holidays, with REPORT-003's interval
 // (mean ± t·s·√(1 + 1/n), at least 4 baseline hours). A spike is judged on the running hour, as soon as its count
@@ -23,9 +24,20 @@ export const holiday=(d:string)=>usHolidays(Number(d.slice(0,4)))[d]
 // Visitors, visits, pageviews, goal conversions or the conversion rate (percent of visits that convert, one decimal) in
 // [from, to) from `events` (the site's events, or a segment's kept visits). A visit counts in the window it starts in;
 // conversions are goal events (one goal, or every goal) in the window.
-export type Counted='visitors'|'visits'|'pageviews'|'conversions'|'conversion-rate'
-export async function count(env:Env,value:Site,metric:Counted,from:number,to:number,events='vane_events',goal:string|null=null) {
+export type Counted='visitors'|'visits'|'pageviews'|'conversions'|'conversion-rate'|'revenue'
+export async function count(env:Env,value:Site,metric:Counted,from:number,to:number,events='vane_events',goal:string|null=null):Promise<number|null> {
  const day=new Date(from-DAY).toISOString().slice(0,10),next=new Date(to+DAY).toISOString().slice(0,10)
+ // A missing dated exchange rate makes the window unknown, never zero revenue.
+ if(metric==='revenue'){
+  const converted=convertedSql([value],value.config.currency??'USD')
+  const r=await env.DB.prepare(`SELECT COALESCE(SUM(${converted}),0) AS amount,SUM(CASE WHEN ${converted} IS NULL THEN 1 ELSE 0 END) AS unavailable FROM vane_custom_events ce JOIN ${events} e ON e.id=ce.page_id AND e.kind='pageview' WHERE ce.site_id=? AND ce.at>=? AND ce.at<? AND ce.revenue_micros IS NOT NULL`).bind(value.id,from,to).first<{amount:number,unavailable:number}>()
+  if(r?.unavailable){
+   const detail=`Revenue in ${value.config.currency??'USD'} not judged: missing dated exchange rate in ${new Date(from).toISOString()} to ${new Date(to).toISOString()}.`
+   if(!(await rows(env,"SELECT 1 FROM vane_audit WHERE action='alert.revenue-unavailable' AND subject=? AND detail=? LIMIT 1",value.id,detail)).length)await auditStatement(env,'system','alert.revenue-unavailable',value.id,detail).run()
+   return null
+  }
+  return Number(r?.amount??0)/MICROS
+ }
  if(metric==='visits'||metric==='conversion-rate'){
   const r=await env.DB.prepare(`${timedFrom(events)} SELECT COUNT(*) AS n,COALESCE(SUM(visit_converted),0) AS c FROM v WHERE started>=?5 AND started<?6`).bind(JSON.stringify([value.id]),day,next,goal,from,to).first<{n:number,c:number}>()
   const n=Number(r?.n??0);return metric==='visits'?n:n?Math.round(Number(r!.c)/n*1000)/10:0
@@ -41,9 +53,13 @@ export async function judge(env:Env,value:Site,metric:Counted,d:string,h:number,
  const closed=Object.fromEntries((await rows<{day:string,label:string}>(env,'SELECT day,label FROM vane_closed_days WHERE site_id=?',value.id)).map(r=>[r.day,r.label]))
  const base=Array.from({length:BASELINE_WEEKS},(_,i)=>shift(d,-7*(i+1))).filter(b=>!holiday(b)&&!closed[b]&&first!==null&&b>=first)
  if(base.length<MIN_BASELINE_DAYS)return null
- const xs=await Promise.all(base.map(b=>{const s=instant(b,h,zone);return count(env,value,metric,s,s+HOUR,events,goal)})),n=xs.length,mean=xs.reduce((a,x)=>a+x,0)/n,sd=Math.sqrt(xs.reduce((a,x)=>a+(x-mean)**2,0)/(n-1)),half=T95[n-1]!*sd*Math.sqrt(1+1/n)
+ const xs=await Promise.all(base.map(b=>{const s=instant(b,h,zone);return count(env,value,metric,s,s+HOUR,events,goal)}))
+ if(xs.some(x=>x===null))return null
+ const amounts=xs as number[],n=amounts.length,mean=amounts.reduce((a,x)=>a+x,0)/n,sd=Math.sqrt(amounts.reduce((a,x)=>a+(x-mean)**2,0)/(n-1)),half=T95[n-1]!*sd*Math.sqrt(1+1/n)
  const v=await count(env,value,metric,start,Math.min(start+HOUR,clock()+1),events,goal)
- return {start,day:d,hour:h,value:v,low:Math.round((mean-half)*10)/10,high:Math.round((mean+half)*10)/10,...(holiday(d)?{holiday:holiday(d)}:{}),...(closed[d]?{closed:closed[d]}:{})}
+ if(v===null)return null
+ const precision=metric==='revenue'?1e6:10
+ return {start,day:d,hour:h,value:v,low:Math.round((mean-half)*precision)/precision,high:Math.round((mean+half)*precision)/precision,...(holiday(d)?{holiday:holiday(d)}:{}),...(closed[d]?{closed:closed[d]}:{})}
 }
 // The hour to judge now: the running one for a spike, the one just ended for a drop.
 export function hourToJudge(now:number,timeZone:string,direction:'above'|'below') {
