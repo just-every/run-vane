@@ -19,7 +19,7 @@ function edge(a,mode={}) {
 }
 async function browserPage(a) {
  const browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']});
- const context=await browser.newContext();await context.addCookies(a.owner.split('; ').map(pair=>{const [name,...value]=pair.split('=');return {name,value:value.join('='),url:a.origin}}));
+ const context=await browser.newContext({userAgent:'Mozilla/5.0 (Macintosh; Intel Mac OS X) AppleWebKit/537.36 (KHTML, like Gecko) Safari/537.36'});await context.addCookies(a.owner.split('; ').map(pair=>{const [name,...value]=pair.split('=');return {name,value:value.join('='),url:a.origin}}));
  await context.route('**/*',async route=>{const req=route.request(),url=new URL(req.url());if(url.origin!==a.origin)return route.abort();const r=await a.request(url.pathname+url.search,{method:req.method(),headers:req.headers(),body:['GET','HEAD'].includes(req.method())?undefined:req.postDataBuffer()??undefined});const location=r.headers.get('location');if(r.status===303&&location)return route.fulfill({contentType:'text/html',body:`<meta http-equiv="refresh" content="0;url=${location.replaceAll('&','&amp;')}">`});return route.fulfill({status:r.status,headers:Object.fromEntries(r.headers),body:Buffer.from(await r.arrayBuffer())})});
  return {browser,page:await context.newPage()};
 }
@@ -59,7 +59,7 @@ test('IMPORT-008 static sitemap fallback, fail-closed robots, native rewrite exe
  const scans=await(await a.request('/api/vane/cutover-scans?siteId='+siteId,{headers:{cookie:a.owner}})).json(),drafts=scans[0].pages[0].findings.filter(f=>['Signup','Purchase','Order'].includes(f.name)).map(f=>f.rewrite);
  // Execute the actual derived native rewrites on a page with only Vane's script.
  await page.context().route(origin+'/**',route=>route.fulfill({contentType:'text/html',body:`<!doctype html><title>Native tracking</title><script>window.plausible=function(){};plausible.init=o=>plausible.o=o;plausible.init({captureOnLocalhost:true});</script><script defer src="${a.origin}/vane.js" data-site="${siteId}"></script>`}));
- await page.goto(origin+'/native');await page.waitForFunction(()=>window.plausible?.vane===true);await page.evaluate(()=>window.vane('pageview'));await new Promise(r=>setTimeout(r,100));await page.evaluate(calls=>{for(const call of calls)Function(call)()},drafts);
+ const accepted=page.waitForResponse(r=>new URL(r.url()).pathname==='/api/vane/collect');await page.goto(origin+'/native');assert.equal((await accepted).status(),202);await page.waitForFunction(()=>window.plausible?.vane===true);await page.evaluate(()=>window.vane('pageview'));await new Promise(r=>setTimeout(r,100));await page.evaluate(calls=>{for(const call of calls)Function(call)()},drafts);
  await assertEventually(async()=>{const report=await(await a.request('/api/vane/summary?siteId='+siteId,{headers:{cookie:a.owner}})).json();assert.ok(report.customEvents.some(e=>e.name==='Signup'));assert.ok(report.customEvents.some(e=>e.name==='Purchase'));assert.ok(report.customEvents.some(e=>e.name==='Order'))});
  mode.robotsStatus=503;const before=recorded.length,r=await a.post('/api/vane/cutover-scan',{siteId,pageLimit:1},a.owner);assert.equal((await r.json()).state,'failed');assert.deepEqual(recorded.slice(before).map(r=>new URL(r.url).pathname),['/robots.txt']);
  mode.robotsStatus=200;mode.robots='User-agent: *\nDisallow: /\n';const blocked=await(await a.post('/api/vane/cutover-scan',{siteId,pageLimit:1},a.owner)).json();assert.equal(blocked.fetched,0);
