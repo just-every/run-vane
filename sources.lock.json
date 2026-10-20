@@ -3003,7 +3003,7 @@
       "executable": false
     },
     "src/vane/views/chart.ts": {
-      "sha256": "ca66452b6395a73c558d33b1627153b98e5889cd829c0e2938708850c8a74af9",
+      "sha256": "b6fe8a2c69e1f2df7b59f8f2953238af49b96b69fac4a996bb272c3821d1cb33",
       "executable": false
     },
     "src/vane/views/chat-settings.ts": {
@@ -3039,7 +3039,7 @@
       "executable": false
     },
     "src/vane/views/html.ts": {
-      "sha256": "88b510c1944187f91329706ebff9eb73442b1dbb84f78a2c025b7043a8d83ecc",
+      "sha256": "6d15e83a95389a358dc359f13dce2b1169bd4c1ac9b2e655484cbb9f35d59f0d",
       "executable": false
     },
     "src/vane/views/icons.ts": {
