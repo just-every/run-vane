@@ -87,7 +87,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "78746bd0fc1406b80c1b216ec6c2f7c50f1f8aa7f3b4d1561816d2fb34b151f1",
+      "sha256": "8bd213319f141c4df50f3f94015c8b04de3b4fa1a84c1e1968f91a044d7bd3fc",
       "executable": false
     },
     "DEMO.md": {
@@ -703,7 +703,7 @@
       "executable": false
     },
     "scripts/installer/local.mjs": {
-      "sha256": "b3254bc529be2a1159cf44df6b7ba7a93852987733138eb574aa9bc9f4d5a019",
+      "sha256": "23d834fed714c7fef6295f264049b012cd5ea6ededb83c1ae1d5d6d1dd961404",
       "executable": false
     },
     "scripts/installer/seed.mjs": {
