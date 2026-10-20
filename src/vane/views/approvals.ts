@@ -1,11 +1,13 @@
 import { date, escape, hidden, operation, panel } from './html'
 import type { ViewData } from './types'
+import { metroProposal } from './metro-names'
 
 export const commands: Record<string, string> = {
   'site.prepare': 'Add site', 'site.create': 'Add site',
   'config.prepare': 'Update collection settings', 'site.configure': 'Update collection settings',
   'history.erase.prepare': 'Erase site history', 'history.erase': 'Erase site history',
   'site.delete.prepare': 'Delete site', 'site.delete': 'Delete site',
+  'metro.names': 'Set US metro-area names',
 }
 
 // A proposal's values as the owner reads them: named settings with plain values, never ids or raw JSON.
@@ -32,6 +34,7 @@ function values(data: ViewData, proposal: any): string {
   let parsed: any
   try { parsed = JSON.parse(proposal.payload_json) } catch { return `<p>${escape(proposal.payload_json)}</p>` }
   const site = (data.sites ?? []).find(s => s.id === parsed?.siteId), config = parsed?.config ?? {}
+  if (proposal.command === 'metro.names') return `${site ? `<dl><dt>Site</dt><dd>${escape(site.name)}</dd></dl>` : ''}${metroProposal(parsed)}`
   const rows: [string, string][] = [...(site && !parsed.name ? [['Site', site.name] as [string, string]] : []), ...(['name', 'origin'] as const).filter(k => parsed?.[k] !== undefined).map(k => [label(k), plain(k, parsed[k])] as [string, string])]
   // A settings change lists what differs from the site's settings now first; every value stays one fold away.
   const current = site?.config ?? {}, keys = Object.keys(config), changed = proposal.command.includes('config') || proposal.command === 'site.configure' ? keys.filter(k => JSON.stringify(config[k]) !== JSON.stringify(current[k])) : []

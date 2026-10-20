@@ -476,7 +476,7 @@ test('DASH-005 Cloudflare geo for Texas, Ontario and London fills the country, r
  const link=(await shared.text()).match(/data-share-url>[^<]*(\/share\/vane_s_[0-9a-f]{64})</)[1],open=unlinked(await (await a.request(link+'?from=2026-03-09&to=2026-03-16')).text())
  for(const html of ['<th scope="row">Austin</th><td>Texas, United States</td><td class="vane-number">12</td>','<th scope="row">Other cities</th><td>Texas, United States</td><td class="vane-number">3</td>','<th scope="row">Other cities</th><td>Ontario, Canada</td><td class="vane-number">1</td>'])assert.ok(open.includes(html),html)
  assert.equal(open.includes('Marfa'),false,'a city under 5 visitors is not named on a shared link')
- const filtered=await summary('&filter='+encodeURIComponent('metro:is:Metro 635 (unnamed)'));assert.equal(filtered.visitors,12)
+ const filtered=await summary('&filter=metro:is:635');assert.equal(filtered.visitors,12)
  // The real-time view lists a current visitor from Texas, and drops them after 5 minutes idle.
  const now=Date.parse('2026-03-10T18:00:00Z');await visit(austin,now)
  const live=await (await a.request('/api/vane/realtime?siteId='+id,owner)).json();assert.deepEqual(live.locations,[{label:'Austin, Texas, United States',visitors:1,previous:0}])
@@ -485,11 +485,11 @@ test('DASH-005 Cloudflare geo for Texas, Ontario and London fills the country, r
  // Names are stored, with the US metro-area code; no IP address appears anywhere in storage or the archive.
  const dump=await a.dump();assert.deepEqual([...new Set(dump.vane_events.map(e=>[e.country,e.region,e.city,e.metro_code].join('|')))].sort(),['Canada|Ontario|Toronto|','United Kingdom|England|London|','United States|Texas|Austin|635','United States|Texas|Marfa|633'])
  assert.equal(JSON.stringify([dump,await a.archive()]).includes('198.51.100.'),false)
- assert.ok(dump.vane_events.every(e=>e.metro_name===null))
- assert.deepEqual(pick(r.metros,'label','visitors','conversions','conversionRate','previous'),[['Metro 635 (unnamed)',12,3,25,30],['Metro 633 (unnamed)',3,0,0,0]])
+ assert.ok(dump.vane_events.every(e=>!Object.hasOwn(e,'metro_name')),'events keep the metro code only')
+ assert.deepEqual(pick(r.metros,'metro_code','metro_name','visitors','conversions','conversionRate','previous'),[['635',null,12,3,25,30],['633',null,3,0,0,0]])
  assert.ok(open.includes('Other metro areas'));assert.equal(open.includes('Metro 633'),false)
  assert.ok(r.explain.movers.some(m=>m.dimension==='US metro area'&&m.label.includes('635')&&m.then===30&&m.now===12))
- assert.deepEqual(live.metros,[{label:'Metro 635 (unnamed)',visitors:1,previous:0}])
+ assert.deepEqual(live.metros.map(m=>[m.metro_code,m.metro_name,m.visitors,m.previous]),[['635',null,1,0]])
  const inventory=await (await a.request(`/app/sites/${id}?section=settings`,owner)).text();assert.ok(inventory.includes('country, region and city'),'the data inventory names location')
 })
 test('DASH-012 with a named search parameter, a term two visitors searched is reported with searches per visit, start pages and exits, and an email-like term never appears',async t=>{
@@ -1570,7 +1570,7 @@ test('API-002 a whole-site ZIP in Plausible\'s layout, the Looker Studio connect
  const html=await (await a.request(`/app/sites/${id}?section=report`,owner)).text(),href=html.match(/href="([^"]+)" data-site-zip/)[1].replaceAll('&amp;','&')
  const zipped=await a.request(href,owner);assert.equal(zipped.status,200);assert.equal(zipped.headers.get('content-type'),'application/zip');assert.match(zipped.headers.get('content-disposition'),new RegExp(`attachment; filename="vane-${id}_20260309_20260310.zip"`))
  const files=unzip(await zipped.arrayBuffer()),file=name=>csvRows(files[`imported_${name}_20260309_20260310.csv`])
- assert.equal(file('locations').reduce((n,r)=>n+Number(r.visits),0),both.visits,'location export preserves every visit, including unknown locations');assert.deepEqual(sumBy(file('metros').map(r=>({...r,label:r.metro_name||(r.metro_code?`Metro ${r.metro_code} (unnamed)`:'Unknown location')})),'label','visits'),Object.fromEntries(both.metros.map(r=>[r.label,r.visits])),'metro export figures equal the dashboard')
+ assert.equal(file('locations').reduce((n,r)=>n+Number(r.visits),0),both.visits,'location export preserves every visit, including unknown locations');assert.deepEqual(sumBy(file('metros').map(r=>({...r,label:r.metro_name||(r.metro_code?`Metro ${r.metro_code} (unnamed)`:'Unknown metro area')})),'label','visits'),Object.fromEntries(both.metros.map(r=>[r.label,r.visits])),'metro export figures equal the dashboard')
  const visitors=file('visitors');assert.deepEqual(visitors.columns,['date','visitors','pageviews','bounces','visits','visit_duration']);assert.deepEqual(visitors.map(r=>r.date),['2026-03-09','2026-03-10'])
  const total=field=>visitors.reduce((n,r)=>n+Number(r[field]),0)
  assert.deepEqual([total('visitors'),total('visits'),total('pageviews'),Math.round(total('bounces')/total('visits')*1000)/10],[both.visitors,both.visits,both.pageviews,both.bounceRate])
@@ -1832,7 +1832,7 @@ test('INSTALL-008 DASH-005 COLLECT-003 PRIVACY-003 a server sends pageviews and 
  const summary=await (await a.request(`/api/vane/summary?siteId=${id}&period=today`,owner)).json()
  assert.deepEqual([summary.pageviews,summary.visitors],[3,2],'two visitors from their client IP and user agent');assert.deepEqual(summary.sourceVisits.find(r=>r.label==='Google')?.visits,1)
  const dump=await a.dump(),events=dump.vane_events.filter(e=>e.site_id===id)
- assert.ok(events.every(e=>[e.country,e.region,e.city,e.metro_code,e.metro_name].every(v=>v===null)),'Events API never stores the sender server’s location');assert.equal(summary.countries.find(r=>r.label==='Unknown location')?.visitors,2)
+ assert.ok(events.every(e=>[e.country,e.region,e.city,e.metro_code].every(v=>v===null)&&!Object.hasOwn(e,'metro_name')),'Events API never stores the sender server’s location');assert.equal(summary.countries.find(r=>r.label==='Unknown location')?.visitors,2)
  assert.deepEqual(events.map(e=>e.browser).sort(),['Chrome','Chrome','Safari']);assert.equal(dump.vane_custom_events.filter(e=>e.site_id===id).length,1)
  const stored=JSON.stringify(dump);for(const value of ['203.0.113.9','198.51.100.4',chrome,iphone,'order-1001',mine])assert.ok(!stored.includes(value),value)
  // A token for another site, a Stats API key, no token and a missing client address are refused.

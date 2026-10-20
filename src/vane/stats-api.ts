@@ -15,7 +15,8 @@ export async function report(env:Env,value:Site,query:StatsQuery) {
  return createInsightsService(env,value,clock(),{from:query.from??null,to:query.to??null,period:query.period??null,compare:query.compare??null,compareFrom:query.compareFrom??null,compareTo:query.compareTo??null,filters:query.filters,segment:query.segment??null,searchQuery:query.searchQuery??null,searchProvider:query.searchProvider??null}).list() as Promise<any>
 }
 // A breakdown row's label and its figures, in the shape the dashboard table shows them.
-const rowOf=(row:any)=>{const {label,path,key,...rest}=row;return {value:label??path??key,...rest}}
+// A US metro row's value is its code, which filters match, beside metro_code and metro_name (null when unnamed).
+const rowOf=(row:any)=>{const {label,path,key,...rest}=row;return {value:rest.metro_code??label??path??key,...rest}}
 export async function statsV1(env:Env,url:URL) {
  const value=await site(env,url.searchParams.get('site_id')??'');
  const query:StatsQuery={from:url.searchParams.get('from'),to:url.searchParams.get('to'),period:url.searchParams.get('period'),compare:url.searchParams.get('compare'),compareFrom:url.searchParams.get('compare_from'),compareTo:url.searchParams.get('compare_to'),filters:url.searchParams.getAll('filter'),segment:url.searchParams.get('segment'),searchQuery:url.searchParams.get('search_query'),searchProvider:url.searchParams.get('search_provider')};

@@ -13,6 +13,7 @@ import { createHook, revokeHook } from './annotation-door'
 import { createGithubKey, revokeGithubKey } from './github-releases'
 import { deleteSegment } from './segments'
 import { createShareLink, revokeShareLink } from './share'
+import { prepareMetroNames } from './metro-names'
 export async function action(env:Env,actor:Actor,p:any):Promise<{siteId?:string;notice:string;section?:string;secret?:string;sharePath?:string;continueImport?:boolean}> {
  let siteId=p.siteId;
  switch(p.operation) {
@@ -42,6 +43,9 @@ export async function action(env:Env,actor:Actor,p:any):Promise<{siteId?:string;
   // SHARE-001: a new link's path holds its token, returned once to be shown once.
   case 'share.create': {const created=await createShareLink(env,actor,p);return {siteId:created.siteId,notice:'Shared link created. Copy it now: it is not shown again.',section:'settings',sharePath:created.path};}
   case 'share.revoke': return {siteId:await revokeShareLink(env,actor,String(p.id)),notice:'Shared link revoked. It now answers 404.',section:'settings'};
+  // DASH-005: the site's US metro-name table (or its clearing) waits for the owner's approval.
+  case 'metro.prepare': await prepareMetroNames(env,actor,p);return {siteId,notice:'Metro names prepared. The owner reviews them under Approvals before any page shows them.',section:'approvals'};
+  case 'metro.clear': await prepareMetroNames(env,actor,p,true);return {siteId,notice:'Clearing the metro names is prepared for the owner’s approval.',section:'approvals'};
   case 'segment.delete': return {siteId:await deleteSegment(env,actor,String(p.id)),notice:'Segment deleted.'};
   default:throw new Error('Unknown action.');
  }

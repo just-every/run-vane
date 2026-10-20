@@ -8,7 +8,8 @@ import { zip } from './zip'
 // one row per site-local date and dimension value). Each file is measured with the visit SQL the dashboard uses
 // (METRIC-002/003): visitors are daily-unique hashes, a visit is attributed to its first page load (DASH-004), so
 // summing a file's rows over any dates gives the dashboard's figures for them. visit_duration is the visits' total in
-// whole seconds and pageviews are the page loads of those visits, as in Plausible's files. Locations retain their declared names and metro code/name, while direct visits have an empty source, as in Plausible.
+// whole seconds and pageviews are the page loads of those visits, as in Plausible's files. Locations keep their stored names; the metros file carries each US metro code and the name the site's owner-approved
+// table gives it at export time (empty when unnamed), and direct visits have an empty source, as in Plausible.
 const ALL=['0000-01-01','9999-12-31'] as const
 const seconds=(ms:unknown)=>Math.round(Number(ms??0)/1000)
 type Row=Record<string,unknown>
@@ -28,7 +29,7 @@ SELECT day,${Object.keys(columns).map(name=>`"${name}"`).join(',')},COUNT(DISTIN
   visits({device:`COALESCE(ev.device,'')`}),visits({browser:`COALESCE(ev.browser,'')`,browser_version:`COALESCE(ev.browser_version,'')`}),visits({operating_system:`COALESCE(ev.os,'')`,operating_system_version:`COALESCE(ev.os_version,'')`}),
   env.DB.prepare(`SELECT ce.day,ce.name,'' AS link_url,p.path,COUNT(DISTINCT p.visitor) AS visitors,COUNT(*) AS events FROM vane_custom_events ce JOIN vane_events p ON p.id=ce.page_id WHERE ce.site_id=? GROUP BY ce.day,ce.name,p.path ORDER BY ce.day,events DESC,ce.name`).bind(value.id),
   visits({country:'q.country',region:'q.region',city:'q.city'}),
-  visits({metro_code:'q.metro_code',metro_name:'q.metro_name'},"q.starts=1 AND q.country='United States'"),
+  visits({metro_code:'q.metro_code',metro_name:"COALESCE((SELECT n.metro_name FROM vane_metro_names n WHERE n.site_id=ev.site_id AND n.metro_code=q.metro_code),'')"},"q.starts=1 AND q.country='United States'"),
  ])
  const totals=new Map<string,Row>(days!.results.map((r:any)=>[r.day,r]))
  const visitorRows=[...new Set([...totals.keys(),...loads!.results.map((r:any)=>r.day as string)])].sort().map(day=>{const t=totals.get(day) as any,l=loads!.results.find((r:any)=>r.day===day) as any;return {date:day,visitors:Number(t?.visitors??0),pageviews:Number(l?.pageviews??0),bounces:Number(t?.bounces??0),visits:Number(t?.visits??0),visit_duration:seconds(t?.duration)}})

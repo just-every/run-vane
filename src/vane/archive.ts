@@ -27,7 +27,8 @@ export async function restoreHistory(env:Env,actor:Actor,input:any,journal?:any)
  const fences=[...(later?.payload.tables.vane_deletions??[]),...await rows(env,'SELECT * FROM vane_deletions')];
  const contained=new Set((data.vane_deletions??[]).map(r=>r.id));
  insist(fences.every(f=>contained.has(f.id)),'erased_history','This archive predates a deletion in the later journal. Restore a newer export.',409);
- for(const record of data.vane_events)if(Object.hasOwn(record,'metro')){record.metro_code=record.metro;delete record.metro;}
+ // Earlier releases named the code column metro and kept an always-empty per-event metro_name (DASH-005).
+ for(const record of data.vane_events){if(Object.hasOwn(record,'metro')){record.metro_code=record.metro;delete record.metro;}delete record.metro_name}
  for(const value of data.vane_sites)cleanSite({...value,config:JSON.parse(value.config_json)});
  let count=0;
  for(const name of names) {

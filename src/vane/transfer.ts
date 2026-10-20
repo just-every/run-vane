@@ -3,9 +3,9 @@ import { cleanSite } from './privacy'
 import { audit, auditStatement } from './audit'
 // SITE-001: a site archive moves one site, its settings and its history to another installation.
 // It carries the site's own events, privacy-signal and exclusion counts, automatic events, deletion journal and
-// imported rows, chart annotations and saved segments. Daily salts never leave an installation, and an import's journal and undo stay
+// imported rows, chart annotations, saved segments and its US metro-name table (DASH-005). Daily salts never leave an installation, and an import's journal and undo stay
 // with the source installation's whole archive (ARCHIVE-001), so imported rows arrive settled.
-const TABLES=['vane_cutover_scans','vane_bing_rows','vane_search_days','vane_search_rows','vane_events','vane_signals','vane_exclusions','vane_auto_events','vane_deletions','vane_import_events','vane_import_reports','vane_annotations','vane_segments','vane_custom_events','vane_event_props','vane_ecommerce_lines','vane_exposures'] as const
+const TABLES=['vane_cutover_scans','vane_bing_rows','vane_search_days','vane_search_rows','vane_events','vane_signals','vane_exclusions','vane_auto_events','vane_deletions','vane_import_events','vane_import_reports','vane_annotations','vane_segments','vane_custom_events','vane_event_props','vane_ecommerce_lines','vane_exposures','vane_metro_names','vane_metro_tables'] as const
 interface Payload { format:'vane-site/1'; exportedAt:number; site:Record<string,any>; tables:Record<string,Record<string,any>[]> }
 interface SiteArchive { payload:Payload; sha256:string }
 
@@ -34,6 +34,8 @@ export async function importSite(env:Env,actor:Actor,input:any) {
  let count=0;
  for(const name of ['vane_sites',...TABLES,'vane_import_revisions']) {
   const records=name==='vane_sites'?[value]:tables[name]??[];insist(Array.isArray(records),'archive','Invalid archive table.');
+  // Site archives from earlier releases carried an always-empty per-event metro_name (DASH-005).
+  if(name==='vane_events')for(const record of records)if(record&&typeof record==='object')delete record.metro_name;
   const columns=(await rows(env,`PRAGMA table_info("${name}")`)).map(c=>c.name as string);
   for(const record of records) {
    insist(record&&typeof record==='object'&&Object.keys(record).every(c=>columns.includes(c))&&Object.values(record).every(v=>v===null||['string','number'].includes(typeof v)),'columns','Archive contains an invalid record.');

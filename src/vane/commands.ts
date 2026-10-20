@@ -6,6 +6,7 @@ import { auditSql, auditStatement } from './audit'
 import { versioned } from './definitions'
 import { localDay } from './visitors'
 import { clock } from './clock'
+import { approveMetroNames } from './metro-names'
 // TEAM-001: an analyst's settings proposal changes only goals (with scroll goals), funnels and no-code events; every
 // other setting is carried over from the site as it stands. The owner still approves it.
 function analystChange(value:Site,input:any) {
@@ -18,6 +19,8 @@ function analystChange(value:Site,input:any) {
 // The command API is the agent door: proposals it prepares are audited as agent actions.
 export async function prepare(env:Env,actor:Actor,command:string,input:any,channel:'app'|'command API'|`key:${string}`,definitionEvidence?:{name:string;callSites:{url:string;at:number;kind:string;rewrite:string}[]}[]) {
  allow(actor,'analyst');
+ // DASH-005: a metro-name table is uploaded only on the site's settings page by a signed-in owner or administrator.
+ insist(command!=='metro.names','forbidden','Metro names are uploaded on the site’s settings page by its owner or an administrator; the command API cannot prepare them.',403);
  insist(['site.create','site.configure','history.erase','site.delete'].includes(command),'command','Unknown preparation command.');
  // TEAM-001: an analyst prepares only settings changes, and a new site needs installation-wide access.
  if(actor.access==='analyst')insist(command==='site.configure','forbidden','An analyst prepares only goal, funnel and no-code event changes.',403);
@@ -37,6 +40,7 @@ export async function decide(env:Env,actor:Actor,id:string,approve:boolean) {
  const payload=JSON.parse(p.payload_json),at=Date.now();
  const guard=statement(env,"INSERT INTO vane_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM vane_proposals WHERE id=? AND state='pending') THEN 1 ELSE 0 END",id);
  const change=statement(env,"UPDATE vane_proposals SET state=?,approved_by=?,approved_at=? WHERE id=? AND state='pending'",approve?'approved':'rejected',actor.id,at,id);
+ if(approve&&p.command==='metro.names')return approveMetroNames(env,actor,p,payload);
  const operations=[guard];
  // METRIC-004: an approved visit-timeout change becomes a definition version dated the site's local day of approval.
  const dated=(before:any,next:any)=>versioned(before,next,localDay(clock(),next.timeZone??'UTC'),clock());
@@ -69,7 +73,7 @@ export async function decide(env:Env,actor:Actor,id:string,approve:boolean) {
     {sql:'DELETE FROM vane_guard',params:[]},
    ]);
    if(!remove)return {id,state:'approved',siteId:current.id};
-   await atomic(env,actor,[guard,operations[1]!,...['vane_cutover_scans','vane_bing_connections','vane_bing_rows','vane_search_oauth_states','vane_search_connections','vane_search_rows','vane_search_days','vane_events','vane_signals','vane_exclusions','vane_auto_events','vane_import_events','vane_import_reports','vane_admission','vane_salts','vane_annotations','vane_annotation_hooks','vane_github_keys','vane_exports','vane_webhooks','vane_webhook_deliveries','vane_webhook_attempts','vane_report_subscriptions','vane_report_sends','vane_alerts','vane_alert_log','vane_maintenance','vane_closed_days','vane_follow_policy','vane_follow_items','vane_follow_events','vane_segments','vane_share_links','vane_custom_events','vane_event_props','vane_ecommerce_lines','vane_exposures'].map(table=>statement(env,`DELETE FROM ${table} WHERE site_id=?`,current.id)),statement(env,'DELETE FROM vane_sites WHERE id=?',current.id),change,auditStatement(env,actor.id,'proposal.approve',id,`site.delete for site ${current.id}`),auditStatement(env,actor.id,'site.delete',current.id,`version ${payload.version}`)]);
+   await atomic(env,actor,[guard,operations[1]!,...['vane_cutover_scans','vane_bing_connections','vane_bing_rows','vane_search_oauth_states','vane_search_connections','vane_search_rows','vane_search_days','vane_events','vane_signals','vane_exclusions','vane_auto_events','vane_import_events','vane_import_reports','vane_admission','vane_salts','vane_annotations','vane_annotation_hooks','vane_github_keys','vane_exports','vane_webhooks','vane_webhook_deliveries','vane_webhook_attempts','vane_report_subscriptions','vane_report_sends','vane_alerts','vane_alert_log','vane_maintenance','vane_closed_days','vane_follow_policy','vane_follow_items','vane_follow_events','vane_segments','vane_share_links','vane_custom_events','vane_event_props','vane_ecommerce_lines','vane_exposures','vane_metro_names','vane_metro_tables'].map(table=>statement(env,`DELETE FROM ${table} WHERE site_id=?`,current.id)),statement(env,'DELETE FROM vane_sites WHERE id=?',current.id),change,auditStatement(env,actor.id,'proposal.approve',id,`site.delete for site ${current.id}`),auditStatement(env,actor.id,'site.delete',current.id,`version ${payload.version}`)]);
    return {id,state:'approved'};
   }
  }
