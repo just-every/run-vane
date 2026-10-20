@@ -427,7 +427,7 @@ The approved homepage (17 Oct 2026, `HOME-001`) states 80 capabilities in its co
 
 ## Status
 
-Judged from the code and tests at commit `38c3a1c3d089216ea2ca37fdc6ffac89a41d2c39` (20 October 2026).
+Judged from the code and tests at commit `4fb6b7c89b5794f6cd4e4ce8aaeeee1d7bf46466` (20 October 2026).
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
@@ -529,7 +529,7 @@ Judged from the code and tests at commit `38c3a1c3d089216ea2ca37fdc6ffac89a41d2c
 | `PRIVACY-002` | US state privacy signals honored | target | done | `src/vane/tracker.ts`; `src/vane/privacy-signals.ts`; `src/vane/methodology.ts`; `src/vane/views/settings.ts`; `src/vane/views/report.ts`; `migrations/core/0016_vane_signals.sql`; `tests/vane.test.mjs` |  |
 | `PRIVACY-003` | Consent managers and regional consent modes | target | done | `src/vane/consent.ts`; `src/vane/tracker.ts`; `src/vane/collect.ts`; `src/vane/views/settings.ts`; `src/vane/privacy.ts`; `tests/vane.test.mjs` |  |
 | `PRIVACY-004` | Data location choice | target | missing |  | No data location choice. |
-| `PRIVACY-005` | Visitor data stays in the owner's installation | target | done | `src/vane/tracker.ts`; `src/vane/collect.ts`; `seed.json`; `tests/harness.mjs`; `tests/vane.test.mjs` |  |
+| `PRIVACY-005` | Visitor data stays in the owner's installation | target | done | `src/vane/cutover/scan.ts`; `tests/sitemap-scan.test.mjs`; `src/vane/tracker.ts`; `src/vane/collect.ts`; `seed.json`; `tests/harness.mjs`; `tests/vane.test.mjs` |  |
 | `AUDIT-001` | Durable audit of settings, data and agent actions | target | done | `migrations/core/0017_vane_audit.sql`; `src/vane/audit.ts`; `src/vane/commands.ts`; `src/vane/views/audit.ts`; `tests/vane.test.mjs` |  |
 | `SITE-001` | Site management | target | done | `src/vane/commands.ts`; `src/vane/privacy.ts`; `src/vane/transfer.ts`; `tests/vane.test.mjs` |  |
 | `HOST-001` | Owner-run hosting with measured cost | target | partial | `deploy.json`; `wrangler.jsonc` | Owner-account deployment is declared; no measured cost per 100,000 pageviews or in-app cost panel. |
