@@ -1,3 +1,4 @@
+import './locations.journey.mjs'
 import './revenue-alert.test.mjs'
 import './ga4.test.mjs'
 import './sitemap-scan.test.mjs'
@@ -481,8 +482,14 @@ test('DASH-005 Cloudflare geo for Texas, Ontario and London fills the country, r
  assert.ok((await (await a.request(`/app/sites/${id}?section=realtime`,owner)).text()).includes('<table data-live="Live locations">'))
  await a.clock(now+5*60000+1000);assert.deepEqual((await (await a.request('/api/vane/realtime?siteId='+id,owner)).json()).locations,[])
  // Names are stored, with the US metro-area code; no IP address appears anywhere in storage or the archive.
- const dump=await a.dump();assert.deepEqual([...new Set(dump.vane_events.map(e=>[e.country,e.region,e.city,e.metro].join('|')))].sort(),['Canada|Ontario|Toronto|','United Kingdom|England|London|','United States|Texas|Austin|635','United States|Texas|Marfa|633'])
+ const dump=await a.dump();assert.deepEqual([...new Set(dump.vane_events.map(e=>[e.country,e.region,e.city,e.metro_code].join('|')))].sort(),['Canada|Ontario|Toronto|','United Kingdom|England|London|','United States|Texas|Austin|635','United States|Texas|Marfa|633'])
  assert.equal(JSON.stringify([dump,await a.archive()]).includes('198.51.100.'),false)
+ assert.ok(dump.vane_events.every(e=>e.metro_name===null))
+ assert.deepEqual(pick(r.metros,'label','visitors','conversions','conversionRate','previous'),[['Metro 635 (unnamed)',12,3,25,30],['Metro 633 (unnamed)',3,0,0,0]])
+ assert.ok(open.includes('Other metro areas'));assert.equal(open.includes('Metro 633'),false)
+ const filtered=await summary('&filter='+encodeURIComponent('metro:is:Metro 635 (unnamed)'));assert.equal(filtered.visitors,12)
+ assert.ok(r.explain.movers.some(m=>m.dimension==='US metro area'&&m.label.includes('635')&&m.then===30&&m.now===12))
+ assert.deepEqual(live.metros,[{label:'Metro 635 (unnamed)',visitors:1,previous:0}])
  const inventory=await (await a.request(`/app/sites/${id}?section=settings`,owner)).text();assert.ok(inventory.includes('country, region and city'),'the data inventory names location')
 })
 test('DASH-012 with a named search parameter, a term two visitors searched is reported with searches per visit, start pages and exits, and an email-like term never appears',async t=>{

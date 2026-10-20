@@ -1,6 +1,7 @@
 import { allow, day, inScope, insist, rows, site, statement, uid, type Actor, type Env } from './core'
 import { auditStatement } from './audit'
 import { clock } from './clock'
+import { metroSql } from './locations'
 import { gapSql } from './definitions'
 import { goalMatches } from './goals'
 import { sourceNameSql, type SourceRule } from './sources'
@@ -25,7 +26,7 @@ export const DIMENSIONS:Record<string,Dimension>={
  utm_source:{label:'UTM source',scope:'first',sql:column('utm_source')},utm_medium:{label:'UTM medium',scope:'first',sql:column('utm_medium')},utm_campaign:{label:'UTM campaign',scope:'first',sql:row=>`NULLIF(${row}.campaign,'none')`},utm_term:{label:'UTM term',scope:'first',sql:column('utm_term')},utm_content:{label:'UTM content',scope:'first',sql:column('utm_content')},
  entry:{label:'Entry page',scope:'first',sql:column('path')},page:{label:'Page',scope:'any',sql:column('path')},hostname:{label:'Hostname',scope:'any',sql:column('hostname')},goal:{label:'Goal',scope:'goal',sql:column('kind')},search:{label:'Site search term',scope:'any',sql:column('search')},event:{label:'Custom event',scope:'event',sql:column('name')},
  device:{label:'Device',scope:'first',sql:column('device')},browser:{label:'Browser',scope:'first',sql:column('browser')},browser_version:{label:'Browser version',scope:'first',sql:row=>`trim(${row}.browser||' '||COALESCE(${row}.browser_version,''))`},os:{label:'Operating system',scope:'first',sql:column('os')},os_version:{label:'Operating system version',scope:'first',sql:row=>`trim(${row}.os||' '||COALESCE(${row}.os_version,''))`},screen:{label:'Screen size',scope:'first',sql:column('screen')},
- country:{label:'Country',scope:'first',sql:column('country')},region:{label:'Region',scope:'first',sql:column('region')},city:{label:'City',scope:'first',sql:column('city')},
+ country:{label:'Country',scope:'first',sql:column('country')},region:{label:'Region',scope:'first',sql:column('region')},city:{label:'City',scope:'first',sql:column('city')},metro:{label:'US metro area',scope:'first',sql:metroSql},
 }
 // CONV-002: prop.<key> filters by a custom-event or pageview property, as in prop.plan:is:pro.
 export const dimensionOf=(name:string):Dimension|undefined=>Object.hasOwn(DIMENSIONS,name)?DIMENSIONS[name]:/^prop\.[a-z0-9_-]{1,40}$/.test(name)?{label:`Property ${name.slice(5)}`,scope:'prop',sql:column('value'),key:name.slice(5)}:undefined

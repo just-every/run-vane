@@ -108,7 +108,7 @@ export function createInsightsService(env:Env,value:Site,now=clock(),range?:{fro
   // DASH-005: countries, regions and cities, each visit under its first page load's location, with the selected goal's
   // conversions and rate (CONV-004) and the compared period's visitors; they join the explanation's movers by unique visitors.
   const [placesNow,placesThen]=await Promise.all([locationMetrics(env,scope,from,to,goal,evNow,converted),locationMetrics(env,scope,previousFrom,previousTo,goal,evThen,converted)])
-  const LEVELS:[LocationLevel,string][]=[['countries','Country'],['regions','Region'],['cities','City']],places=Object.fromEntries(LEVELS.map(([level])=>[level,withPrevious(placesNow[level],placesThen[level],['label','country','region'],'visitors')])) as Record<LocationLevel,ReturnType<typeof withPrevious<any>>>
+  const LEVELS:[LocationLevel,string][]=[['countries','Country'],['regions','Region'],['cities','City'],['metros','US metro area']],places=Object.fromEntries(LEVELS.map(([level])=>[level,withPrevious(placesNow[level],placesThen[level],['label','country','region'],'visitors')])) as Record<LocationLevel,ReturnType<typeof withPrevious<any>>>
   const placeName=(r:any)=>[r.label,r.region??r.country].filter(Boolean).join(', ')
   const deviceRows=withPrevious(current.devices,before.devices,['label'],'visitors'),channelRows=withPrevious(current.entries.channels,before.entries.channels,['label'],'visits'),named=campaigns.filter(r=>r.label!=='none')
   const reasonsNow=new Map(exclusions.map(r=>[r.reason,Number(r.count)])),reasonsThen=new Map(previousExclusions.map(r=>[r.reason,Number(r.count)]))

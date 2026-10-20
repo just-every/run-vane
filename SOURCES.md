@@ -26,3 +26,15 @@ Read package-mode examples run-coaster `3cdb77f`, run-beam `9029728` and run-pie
 `dcd4c59`. No sibling repository was changed.
 
 The exact published RER 0.2.17 package supplies bounded, nonblocking macOS listener ownership inspection. No local RER patches are applied.
+
+## DASH-005 metro names (20 October 2026)
+
+No code-to-name dataset is shipped yet. `metro_code` preserves the US DMA code
+provided by Cloudflare; `metro_name` stays NULL, and the interface labels an
+unmapped code as “Metro NNN (unnamed)”. DASH-005 remains partial. A future table
+must pin its source, publication date and redistribution terms here before use.
+Cloudflare documents the source field at
+https://developers.cloudflare.com/workers/runtime-apis/request/#incomingrequestcfproperties.
+The legacy PEAR Net_GeoIP 1.0.0 mapping (12 May 2011) is LGPL-2.1-or-later,
+so it has not been incorporated into this MIT seed. No current Nielsen or
+Google linked-data redistribution licence has been established in this round.

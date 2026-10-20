@@ -8,8 +8,7 @@ import { zip } from './zip'
 // one row per site-local date and dimension value). Each file is measured with the visit SQL the dashboard uses
 // (METRIC-002/003): visitors are daily-unique hashes, a visit is attributed to its first page load (DASH-004), so
 // summing a file's rows over any dates gives the dashboard's figures for them. visit_duration is the visits' total in
-// whole seconds and pageviews are the page loads of those visits, as in Plausible's files. Vane collects no location,
-// so there is no imported_locations file; direct visits have an empty source, as in Plausible.
+// whole seconds and pageviews are the page loads of those visits, as in Plausible's files. Locations retain their declared names and metro code/name, while direct visits have an empty source, as in Plausible.
 const ALL=['0000-01-01','9999-12-31'] as const
 const seconds=(ms:unknown)=>Math.round(Number(ms??0)/1000)
 type Row=Record<string,unknown>
@@ -19,7 +18,7 @@ export async function siteZip(env:Env,value:Site,now:number):Promise<{name:strin
  const visits=(columns:Record<string,string>,where='q.starts=1')=>env.DB.prepare(`${timed},vp AS (SELECT day,visitor,visit,COUNT(*) AS pages FROM q GROUP BY day,visitor,visit),
 x AS (SELECT q.day,${Object.entries(columns).map(([name,sql])=>`${sql} AS "${name}"`).join(',')},v.visitor,v.visit,v.bounce,v.duration,vp.pages FROM q JOIN v USING(day,visitor,visit) JOIN vp USING(day,visitor,visit) JOIN vane_events ev ON ev.id=q.id WHERE ${where})
 SELECT day,${Object.keys(columns).map(name=>`"${name}"`).join(',')},COUNT(DISTINCT visitor) AS visitors,COUNT(*) AS visits,SUM(bounce) AS bounces,SUM(duration) AS duration,SUM(pages) AS pageviews FROM x GROUP BY day,${Object.keys(columns).map(name=>`"${name}"`).join(',')} ORDER BY day,visits DESC`).bind(...args)
- const [days,loads,sources,pages,entries,exits,devices,browsers,systems,custom]=await env.DB.batch<any>([
+ const [days,loads,sources,pages,entries,exits,devices,browsers,systems,custom,locations,metros]=await env.DB.batch<any>([
   env.DB.prepare(`${timed} SELECT day,COUNT(DISTINCT visitor) AS visitors,COUNT(*) AS visits,SUM(bounce) AS bounces,SUM(duration) AS duration FROM v GROUP BY day`).bind(...args),
   // Pageviews per date count every page load, imported ones included, as the dashboard's pageviews do.
   env.DB.prepare(`SELECT day,COUNT(*) AS pageviews FROM (SELECT day FROM vane_events WHERE site_id=?1 AND kind='pageview' UNION ALL SELECT day FROM vane_import_events WHERE site_id=?1 AND kind='pageview') GROUP BY day ORDER BY day`).bind(value.id),
@@ -28,6 +27,8 @@ SELECT day,${Object.keys(columns).map(name=>`"${name}"`).join(',')},COUNT(DISTIN
   visits({entry_page:'q.path'}),visits({exit_page:'q.path'},'q.ends=1'),
   visits({device:`COALESCE(ev.device,'')`}),visits({browser:`COALESCE(ev.browser,'')`,browser_version:`COALESCE(ev.browser_version,'')`}),visits({operating_system:`COALESCE(ev.os,'')`,operating_system_version:`COALESCE(ev.os_version,'')`}),
   env.DB.prepare(`SELECT ce.day,ce.name,'' AS link_url,p.path,COUNT(DISTINCT p.visitor) AS visitors,COUNT(*) AS events FROM vane_custom_events ce JOIN vane_events p ON p.id=ce.page_id WHERE ce.site_id=? GROUP BY ce.day,ce.name,p.path ORDER BY ce.day,events DESC,ce.name`).bind(value.id),
+  visits({country:'q.country',region:'q.region',city:'q.city'}),
+  visits({metro_code:'q.metro_code',metro_name:'q.metro_name'},"q.starts=1 AND q.country='United States'"),
  ])
  const totals=new Map<string,Row>(days!.results.map((r:any)=>[r.day,r]))
  const visitorRows=[...new Set([...totals.keys(),...loads!.results.map((r:any)=>r.day as string)])].sort().map(day=>{const t=totals.get(day) as any,l=loads!.results.find((r:any)=>r.day===day) as any;return {date:day,visitors:Number(t?.visitors??0),pageviews:Number(l?.pageviews??0),bounces:Number(t?.bounces??0),visits:Number(t?.visits??0),visit_duration:seconds(t?.duration)}})
@@ -43,6 +44,8 @@ SELECT day,${Object.keys(columns).map(name=>`"${name}"`).join(',')},COUNT(DISTIN
   file('entry_pages',['date','entry_page','visitors','entrances','visit_duration','bounces','pageviews'],measured(entries!.results,['entry_page'],{visits:'entrances'})),
   file('exit_pages',['date','exit_page','visitors','visit_exits','visit_duration','bounces','pageviews'],measured(exits!.results,['exit_page'],{visits:'visit_exits'})),
   file('custom_events',['date','name','link_url','path','visitors','events'],custom!.results.map((r:any)=>({date:r.day,name:r.name,link_url:r.link_url,path:r.path,visitors:Number(r.visitors),events:Number(r.events)}))),
+  file('locations',['date','country','region','city',...VISIT],measured(locations!.results,['country','region','city'])),
+  file('metros',['date','metro_code','metro_name',...VISIT],measured(metros!.results,['metro_code','metro_name'])),
   file('devices',['date','device',...VISIT],measured(devices!.results,['device'])),
   file('browsers',['date','browser','browser_version',...VISIT],measured(browsers!.results,['browser','browser_version'])),
   file('operating_systems',['date','operating_system','operating_system_version',...VISIT],measured(systems!.results,['operating_system','operating_system_version'])),
