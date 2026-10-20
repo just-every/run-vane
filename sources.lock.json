@@ -386,6 +386,10 @@
       "sha256": "9112e57b3c0a86a964976321c8970dd594adf0353610d5479e5d55d21bc44044",
       "executable": false
     },
+    "migrations/core/0061_vane_tracking_health.sql": {
+      "sha256": "41a34372df0db61873cab2dc25ccf67862512221bb190f80bb0ecea6ce9cd844",
+      "executable": false
+    },
     "ONBOARDING.md": {
       "sha256": "b28a79254e2278d81d877ffd5987972aaf135d85683ae285b52fd98cc44e608e",
       "executable": false
@@ -2703,7 +2707,7 @@
       "executable": false
     },
     "src/vane/commands.ts": {
-      "sha256": "9b308ccca0c6d3cff2a8c515e84ac24ec72f12d54390cf882ae8b69d53ac20a0",
+      "sha256": "23ef9140e31a48f2b511bd6e137f0cb0b0bbab10207a6319320b749db85644aa",
       "executable": false
     },
     "src/vane/consent.ts": {
@@ -3090,8 +3094,12 @@
       "sha256": "4d274bea10e99fc43b030ed37f10546467932ca06f72d1bab456b852b0e07322",
       "executable": false
     },
+    "src/vane/tracking-health.ts": {
+      "sha256": "b349e09f636339a990d848743792a1ab7f060ea8fe5d673fc1f507e05a92eba0",
+      "executable": false
+    },
     "src/vane/traffic-alerts.ts": {
-      "sha256": "5b44a2cdf355e42a7a70f2257a02307a3880610e2fe243493f625519ddb4dbce",
+      "sha256": "4198e1950df8b0b629d5ee1fbc8104352d82ad9d8cb52484574efae42d98ea0b",
       "executable": false
     },
     "src/vane/traffic.ts": {
@@ -3412,6 +3420,10 @@
     },
     "tests/sitemap-scan.test.mjs": {
       "sha256": "d2d8b13d98168d4920d47bbf7d448944fbea0cd05f3d84910ccbbbc18c04d8b4",
+      "executable": false
+    },
+    "tests/tracking-health.test.mjs": {
+      "sha256": "ecc495b08aa6cedacc3d4adbaede6c475ca2092d5eb6f787d8603b2f21a8db4e",
       "executable": false
     },
     "tests/vane.test.mjs": {
