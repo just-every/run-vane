@@ -209,10 +209,14 @@ test('DASH-005 APPROVE-001 AUDIT-001 ARCHIVE-001 the owner-approved metro-name t
  // Every signed-in surface, export and API answer names 635 now, 999 stays unnamed, and event rows are unchanged.
  const r=await summary();assert.deepEqual([metro(r.metros,'635').metro_name,metro(r.metros,'635').label,metro(r.metros,'999').metro_name],['Fixture Metro A','Fixture Metro A',null])
  assert.equal(JSON.stringify((await a.dump()).vane_events),events,'approval rewrites no event')
+ assert.ok(r.explain.movers.some(m=>m.dimension==='US metro area'&&m.label==='Fixture Metro A'&&m.now===6&&m.then===0),'the explanation names the mover')
  const page=await (await a.request(`/app/sites/${id}?section=report&from=2026-03-09&to=2026-03-16`,owner)).text()
  assert.ok(page.includes('>Fixture Metro A</a>'));assert.match(page,/data-metro-attribution>[^<]*Fixture licence 2026/);assert.match(page,/data-metro-unnamed>1 metro code/)
  const csv=csvRows(await (await a.request(`/api/vane/csv?siteId=${id}&from=2026-03-09&to=2026-03-16&table=metros`,owner)).text());assert.deepEqual(csv.map(row=>[row.metro_code,row.metro_name]),[['635','Fixture Metro A'],['999','']])
  const api=await json(await a.request(`/api/v1/stats?site_id=${id}&from=2026-03-09&to=2026-03-16&dimension=metro`,{headers:{authorization:'Bearer '+stats}}));assert.deepEqual(api.breakdown.map(row=>[row.value,row.metro_code,row.metro_name]),[['635','635','Fixture Metro A'],['999','999',null]])
+ const mcp=async(method,params,rid)=>json(await a.request('/api/v1/mcp',{method:'POST',headers:{authorization:'Bearer '+stats,'content-type':'application/json',accept:'application/json, text/event-stream','mcp-protocol-version':'2025-06-18'},body:JSON.stringify({jsonrpc:'2.0',id:rid,method,params})}))
+ await mcp('initialize',{protocolVersion:'2025-06-18',capabilities:{},clientInfo:{name:'metro-names',version:'1'}},1)
+ assert.deepEqual((await mcp('tools/call',{name:'query_stats',arguments:{site_id:id,from:'2026-03-09',to:'2026-03-16',dimension:'metro'}},2)).result.structuredContent.breakdown.map(row=>[row.metro_code,row.metro_name]),[['635','Fixture Metro A'],['999',null]])
  const zip=unzip(await (await a.request(`/api/vane/site-zip?siteId=${id}`,owner)).arrayBuffer()),metros=csvRows(zip[Object.keys(zip).find(name=>name.startsWith('imported_metros_'))]);assert.deepEqual(metros.map(row=>[row.metro_code,row.metro_name]),[['635','Fixture Metro A'],['999','']])
  await visit(austin,day+30*60000);const live=await json(await a.request('/api/vane/realtime?siteId='+id,owner));assert.deepEqual(live.metros.map(row=>[row.label,row.metro_code,row.metro_name,row.visitors]),[['Fixture Metro A','635','Fixture Metro A',1]])
  // The warehouse export names the code at export time, empty when unnamed; its schema lists both columns.
