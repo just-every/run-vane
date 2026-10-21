@@ -38,7 +38,7 @@ test('IMPORT-007 any viewer switches imported data off and on for the dashboard,
  const id=await a.addSite(),range='from=2026-10-01&to=2026-10-06'
  await a.clock(Date.parse('2026-10-05T12:00:00Z'));assert.equal((await a.collect(a.event(id))).status,202)
  const imported=await json(await preview(a,id,umami));await apply(a,id,imported)
- await apply(a,id,await json(await preview(a,id,ga4('2026-10-03','2026-10-03',['2026-10-03']))))
+ await apply(a,id,await json(await preview(a,id,ga4('2026-10-04','2026-10-04',['2026-10-04']))))
  const summary=async (extra='')=>json(await a.request(`/api/vane/summary?siteId=${id}&${range}${extra}`,{headers:{cookie:a.owner}}))
  const on=await summary(),off=await summary('&imported=off')
  assert.equal(on.pageviews,3);assert.ok(on.imported>0&&on.unknownCoverage>0&&on.importedReports.length>0)
@@ -98,7 +98,7 @@ test('IMPORT-007 a reviewed cut-over keeps live days once across events, source 
  for(const d of ['2026-10-03','2026-10-04']){await a.clock(Date.parse(d+'T12:00:00Z'));assert.equal((await a.collect(a.event(aggregateId),'https://source.example')).status,202)}await a.clock(Date.parse('2026-10-10T12:00:00Z'));
  const g=await json(await a.post('/api/vane/import-preview',{siteId:aggregateId,document:ga4(days[0],days.at(-1),days),cutover:'2026-10-05'},a.owner));await apply(a,aggregateId,g)
  const aggregateReport=async()=>json(await a.request(`/api/vane/summary?siteId=${aggregateId}&${range}`,{headers:{cookie:a.owner}}));
- assert.deepEqual((await aggregateReport()).importedReports.map(r=>r.day),days.slice(0,2))
+ assert.deepEqual((await aggregateReport()).importedReports.map(r=>r.day),days.slice(0,2));const sourceChart=await (await a.request(`/app/sites/${aggregateId}?section=report&${range}`,{headers:{cookie:a.owner}})).text();assert.match(sourceChart,/data-imported-source="ga4"/);assert.match(sourceChart,/never added to native chart totals/)
  const zip=async(app,off=false)=>{const response=await app.request(`/api/vane/site-zip?siteId=${id}${off?'&imported=off':''}`,{headers:{cookie:app.owner}});assert.equal(response.status,200);return unzipStored(await response.arrayBuffer())}
  const zipped=await zip(a),off=await zip(a,true)
  const totals=files=>csvTotal(files[Object.keys(files).find(name=>name.startsWith('imported_visitors_'))],'pageviews')
@@ -144,7 +144,7 @@ test('IMPORT-007 the owner reviews and applies a dated import through the histor
   const [applied]=await Promise.all([tab.waitForResponse(r=>r.url().endsWith('/app/action')&&r.request().method()==='POST'),review.getByRole('button',{name:'Apply import',exact:true}).click()]);assert.equal(applied.status(),303);await tab.getByRole('heading',{name:'Import journal',exact:true}).waitFor({state:'visible'})
   const r=await json(await a.request(`/api/vane/summary?siteId=${id}&from=2026-10-01&to=2026-10-04`,{headers:{cookie:a.owner}}));assert.equal(r.pageviews,2);assert.equal(r.imported,1)
   await tab.goto(`${a.origin}/app/sites/${id}?section=report&from=2026-10-01&to=2026-10-04&metric=pageviews`)
-  const tile=tab.locator('.vane-metrics-more section').filter({has:tab.getByRole('heading',{name:'Pageviews',exact:true})});await tile.waitFor({state:'visible'});assert.equal(await tile.locator('.vane-metric').innerText(),'2');await capture('report',width)
+  const tile=tab.locator('.vane-metrics-more section').filter({has:tab.getByRole('heading',{name:'Pageviews',exact:true})});await tile.waitFor({state:'visible'});assert.equal(await tile.locator('.vane-metric').innerText(),'2');assert.match(await tab.locator('[data-imported-ranges]').innerText(),/Umami[\s\S]*2026-10-01[\s\S]*coverage unknown|coverage unknown[\s\S]*Umami[\s\S]*2026-10-01/);await capture('report',width);await tab.locator('.vane-chart-panel').scrollIntoViewIfNeeded();await capture('chart',width)
   await tab.getByText('More options',{exact:true}).click();await tab.getByLabel('Leave imported data out',{exact:true}).check()
   // The ordinary form applies the same viewer choice to the whole-site ZIP download.
   const filter=tab.locator('input[name="imported"][value="off"]').locator('xpath=ancestor::form');await filter.getByRole('button',{name:/apply|update|show/i}).click()

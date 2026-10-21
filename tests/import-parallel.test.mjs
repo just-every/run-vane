@@ -14,11 +14,12 @@ const querySpecs=[
  {dimensions:['time:day','visit:source'],metrics:['visitors']},
  {dimensions:['time:day','event:goal'],metrics:['events']},
 ]
+const goalsFor=day=>['signup','signed-up','paid-order',...(day===days[1]?['scroll-read']:[])]
 // Independent source fixture: the first day includes the bot rejected by Vane's real collect door.
-const exported={format:'vane-plausible-parallel/1',sourceSite,timeZone,queries:querySpecs.map((spec,i)=>({
- query:{site_id:sourceSite,...spec,date_range:[from,days.at(-1)],filters:[],include:{imports:false,total_rows:true},pagination:{limit:500,offset:0}},
- results:days.map((day,n)=>({dimensions:i===0?[day]:[day,i===1?sourceLabel:'signup'],metrics:i===0?[n===0?2:1,n===0?2:1,n===0?2:1,100]:[i===1&&n===0?2:1]})),meta:{total_rows:14},raw_source:raw,
-}))}
+const exported={format:'vane-plausible-parallel/1',sourceSite,timeZone,queries:querySpecs.map((spec,i)=>{
+ const results=i===2?days.flatMap(day=>goalsFor(day).map(label=>({dimensions:[day,label],metrics:[1]}))):days.map((day,n)=>({dimensions:i===0?[day]:[day,sourceLabel],metrics:i===0?[n===0?2:1,n===0?2:1,n===0?2:1,n===1?0:100]:[n===0?2:1]}))
+ return {query:{site_id:sourceSite,...spec,date_range:[from,days.at(-1)],filters:[],include:{imports:false,total_rows:true},pagination:{limit:500,offset:0}},results,meta:{total_rows:results.length},raw_source:raw}
+})}
 const evidence=['visitors','visits','pageviews','sourceVisitors'].map(metric=>({day:from,metric,...(metric==='sourceVisitors'?{label:sourceLabel}:{}),cause:'bot filtering',detail:'The source fixture retains one confirmed crawler page load; Vane rejected that same fixture crawler with reason bot.',source:'synthetic-vane-6 collector exclusion audit on 2026-10-01'}))
 const json=async response=>{assert.equal(response.status,200,await response.clone().text());return response.json()}
 const domainTables=async a=>Object.fromEntries(Object.entries(await a.dump()).filter(([name])=>/^(vane_|ik_)/.test(name)))
@@ -33,10 +34,17 @@ test('IMPORT-007 owner compares 14 live overlap days with paginated Plausible qu
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve))
  t.after(async()=>{await browser?.close();await a?.close();const closed=new Promise(resolve=>server.close(resolve));server.closeAllConnections();await closed})
  a=await installation({origin:`http://127.0.0.1:${server.address().port}`})
- const siteId=await a.addSite({name:'synthetic-vane-1',origin:'https://synthetic-vane-1.example',paths:[],goals:{signup:'/thanks'},timeZone,retainForever:true})
+ const siteId=await a.addSite({name:'synthetic-vane-1',origin:'https://synthetic-vane-1.example',paths:[],goals:{signup:'/thanks'},scrollGoals:{'scroll-read':{path:'/thanks',depth:75}},customGoals:{'signed-up':{event:'Signup',revenue:false,currency:'USD',props:{plan:'pro'}},'paid-order':{event:'Purchase',revenue:true,currency:'USD'}},timeZone,retainForever:true})
  for(const day of days){
   await a.clock(Date.parse(day+'T12:00:00Z'))
-  assert.equal((await a.collect(a.event(siteId,{path:'/thanks',source:sourceLabel}),'https://synthetic-vane-1.example')).status,202)
+  const page=a.event(siteId,{path:'/thanks',source:sourceLabel}),origin='https://synthetic-vane-1.example'
+  assert.equal((await a.collect(page,origin)).status,202)
+  const custom=extra=>a.post('/api/vane/custom',{id:crypto.randomUUID(),siteId,page:page.id,consent:'not-required',...extra},'',{origin})
+  assert.equal((await custom({name:'Signup',props:{plan:'pro'}})).status,202)
+  assert.equal((await custom({name:'Purchase',revenue:{amount:3.5,currency:'USD'}})).status,202)
+  // Accepted custom events that do not match a configured goal must stay out of goal conversions.
+  if(day===from){assert.equal((await custom({name:'Untracked'})).status,202);assert.equal((await custom({name:'Signup',props:{plan:'free'}})).status,202);assert.equal((await custom({name:'Purchase',revenue:{amount:2,currency:'EUR'}})).status,202)}
+  if(day===days[1])assert.equal((await a.post('/api/vane/engage',{siteId,id:page.id,scroll:80},'',{origin})).status,202)
   if(day===from)assert.equal((await a.post('/api/vane/collect',a.event(siteId,{path:'/',source:sourceLabel}),'',{origin:'https://synthetic-vane-1.example','user-agent':'Googlebot/2.1'})).status,403)
  }
  await a.clock(Date.parse(to+'T12:00:00Z'))
@@ -59,11 +67,12 @@ test('IMPORT-007 owner compares 14 live overlap days with paginated Plausible qu
  for(const change of [{endpoint:'https://synthetic-vane-7.example/'},{from:'2026-02-30'},{to:'2026-10-14'},{timeZone:'Australia/Brisbane'},{token:'short'},{evidence:[{...evidence[0],source:''}]}])assert.equal((await read({token,...change})).status,400)
  const before=await domainTables(a)
  const unknown=await json(await read({token}))
- assert.equal(unknown.importedOff,true);assert.equal(unknown.complete,false);assert.equal(unknown.unresolved,4);assert.equal(unknown.days.length,14);assert.equal(calls.length,6)
+ assert.equal(unknown.importedOff,true);assert.equal(unknown.complete,false);assert.equal(unknown.unresolved,4);assert.equal(unknown.days.length,14);assert.equal(calls.length,exported.queries.reduce((sum,q)=>sum+Math.ceil(q.results.length/7),0))
  for(const [n,d] of unknown.days.entries()){
-  assert.equal(d.day,days[n]);assert.deepEqual(d.metrics.map(r=>r.vane),[1,1,1,100,1]);assert.deepEqual(d.metrics.map(r=>r.plausible),[n===0?2:1,n===0?2:1,n===0?2:1,100,1])
+  const goalCount=goalsFor(d.day).length,bounce=n===1?0:100
+  assert.equal(d.day,days[n]);assert.deepEqual(d.metrics.map(r=>r.vane),[1,1,1,bounce,goalCount]);assert.deepEqual(d.metrics.map(r=>r.plausible),[n===0?2:1,n===0?2:1,n===0?2:1,bounce,goalCount])
   assert.equal(d.sources[0].label,sourceLabel);assert.equal(d.sources[0].vane,1);assert.equal(d.sources[0].plausible,n===0?2:1)
-  assert.equal(d.goals[0].label,'signup');assert.equal(d.goals[0].vane,1);assert.equal(d.goals[0].plausible,1)
+  assert.deepEqual(d.goals.map(r=>r.label).sort(),goalsFor(d.day).sort());for(const goal of d.goals){assert.equal(goal.vane,1);assert.equal(goal.plausible,1)}
  }
  for(const difference of [...unknown.days[0].metrics,...unknown.days[0].sources].filter(r=>r.material)){assert.equal(difference.status,'unmeasured');assert.equal(difference.evidence,undefined)}
  const explained=await json(await read({token,evidence}));assert.equal(explained.complete,true);assert.equal(explained.unresolved,0)
@@ -72,6 +81,8 @@ test('IMPORT-007 owner compares 14 live overlap days with paginated Plausible qu
  }
  const summary=await json(await a.request(`/api/vane/summary?siteId=${siteId}&from=${from}&to=${to}&imported=off`,{headers:{cookie:a.owner}}))
  assert.deepEqual(summary.exclusions,[{reason:'bot',count:1}]);assert.equal(summary.pageviews,14)
+ assert.deepEqual(summary.goalBreakdown.map(r=>[r.label,r.count]).sort(),[['paid-order',14],['scroll-read',1],['signed-up',14],['signup',14]])
+ assert.ok(summary.customEvents.find(r=>r.name==='Untracked'),'ordinary custom events remain visible in their own report')
  const reads=calls.length,uploaded=await json(await read({document:exported,evidence}))
  assert.deepEqual(uploaded.days,explained.days);assert.equal(uploaded.source,'Plausible Stats API export');assert.equal(calls.length,reads)
  const nullBounce=structuredClone(exported);nullBounce.queries[0].results[1].metrics[3]=null

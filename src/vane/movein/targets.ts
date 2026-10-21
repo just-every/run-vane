@@ -2,6 +2,7 @@ import type { D1TargetAdapter, D1Sql, D1Database } from '../../modules/import-ki
 import type { TargetRow, Json } from '../../modules/import-kit/src/types.ts'
 import { MoveinError } from './types.ts'
 import { aggregateFields } from './aggregate-types'
+import { jsonChunks } from '../../modules/import-kit/src/d1/sets.ts'
 
 const eventFields=['day','kind','path','source','campaign','consent','sample_rate'] as const
 const kinds={
@@ -24,6 +25,23 @@ export function targetAdapter(applyingJobId?:string):D1TargetAdapter {
   async read(db,destination,kind,id){
    const {table}=definition(kind),found=await db.prepare(`SELECT e.*,r.revision FROM ${table} e LEFT JOIN vane_import_revisions r ON r.event_id=e.id WHERE e.site_id=? AND e.id=?`).bind(destination,id).first<Stored>()
    return found?row(found,kind):undefined
+  },
+  async readMany(db,destination,requested){
+   const groups=new Map<string,Set<string>>(),found=new Map<string,TargetRow>()
+   for(const {kind,id} of requested){definition(kind);const ids=groups.get(kind)??new Set<string>();ids.add(id);groups.set(kind,ids)}
+   for(const [kind,ids] of groups){
+    const {table}=definition(kind)
+    // The requested IDs drive primary-key probes; never scan the site's
+    // complete native history as the import grows into millions of rows.
+    // Anonymous event fields have fixed small bounds. Report JSON can be
+    // much larger, so retain the scalar read's one-row response bound there.
+    const values=[...ids],rowsPerRead=kind==='analytics-event'?1000:1
+    for(let start=0;start<values.length;start+=rowsPerRead)for(const chunk of jsonChunks(values.slice(start,start+rowsPerRead))){
+     const result=await db.prepare(`SELECT e.*,r.revision FROM json_each(?) wanted CROSS JOIN ${table} e ON e.id=wanted.value AND e.site_id=? LEFT JOIN vane_import_revisions r ON r.event_id=e.id`).bind(chunk,destination).all<Stored>()
+     for(const value of result.results)found.set(JSON.stringify([kind,value.id]),row(value,kind))
+    }
+   }
+   return requested.map(({kind,id})=>found.get(JSON.stringify([kind,id])))
   },
   matches(expected,destination,kind,id){
    const {table,fields}=definition(kind)

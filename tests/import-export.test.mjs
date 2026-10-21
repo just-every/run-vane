@@ -59,7 +59,7 @@ test('IMPORT-006 whole Umami and Simple Analytics CSV files preview in bounded p
  const row=i=>`raw-event-${i},2024-03-13 09:00:00,/pricing,1,private-session,private-site,"${(i===0?title:'private-title').replaceAll('"','""')}"\r\n`
  const source='event_id,created_at,url_path,event_type,session_id,website_id,page_title\r\n'+Array.from({length:1003},(_,i)=>row(i)).join('')
  await writeFile(umami,source)
- const preview=['preview','--origin',origin,'--site',site,'--format','umami','--input',umami,'--cookie-file',cookie,'--review-dir',review]
+ const preview=['preview','--origin',origin,'--site',site,'--cutover','2024-03-15','--format','umami','--input',umami,'--cookie-file',cookie,'--review-dir',review]
  interruptPreview=true
  const failed=await command(preview);assert.notEqual(failed.code,0)
  assert.equal((await a.dump()).vane_import_events.length,0,'preview publishes nothing')
@@ -89,7 +89,7 @@ test('IMPORT-006 whole Umami and Simple Analytics CSV files preview in bounded p
  // A complete Simple Analytics file uses the same public workflow and checkpoints.
  const simple=join(privateDir,'simple.csv'),simpleReview=join(privateDir,'simple-review')
  await writeFile(simple,'added_iso,path,uuid,session_id,utm_source\n'+Array.from({length:1003},(_,i)=>`2024-03-14T10:00:00Z,/,simple-raw-${i},private-simple-session,newsletter\n`).join(''))
- const simplePreviewArgs=['preview','--origin',origin,'--site',site,'--format','simple','--input',simple,'--cookie-file',cookie,'--review-dir',simpleReview]
+ const simplePreviewArgs=['preview','--origin',origin,'--site',site,'--cutover','2024-03-15','--format','simple','--input',simple,'--cookie-file',cookie,'--review-dir',simpleReview]
  previewCalls=0;interruptPreview=true
  const simpleInterrupted=await command(simplePreviewArgs);assert.notEqual(simpleInterrupted.code,0);assert.match(simpleInterrupted.stderr,/HTTP_503/)
  const simpleCheckpoint=JSON.parse(await readFile(join(simpleReview,'manifest.json'),'utf8'))
@@ -144,7 +144,7 @@ test('IMPORT-006 whole PostHog JSON Lines preview and apply resume after interru
  // A repeated ID on a later page must retain one identity after a lost response.
  const source='\uFEFF'+Array.from({length:1003},(_,i)=>JSON.stringify(event(i))).join('\r\n')+'\r\n\r\n'+JSON.stringify(event(0))
  await writeFile(input,source)
- const preview=['preview','--origin',origin,'--site',site,'--format','posthog','--input',input,'--cookie-file',cookie,'--review-dir',review]
+ const preview=['preview','--origin',origin,'--site',site,'--cutover','2024-03-15','--format','posthog','--input',input,'--cookie-file',cookie,'--review-dir',review]
  const apply=['apply','--review-dir',review,'--cookie-file',cookie,'--yes']
  const failed=await command(preview);assert.notEqual(failed.code,0);assert.match(failed.stderr,/IMPORT_ERROR HTTP_503/)
  let manifest=JSON.parse(await readFile(join(review,'manifest.json'),'utf8'))
@@ -194,7 +194,7 @@ test('IMPORT-006 whole PostHog JSON Lines preview and apply resume after interru
   ['type',JSON.stringify({...event(10),event:'person-updated'}),'HTTP_400'],
  ]){
   const bad=join(root,name+'.jsonl'),badReview=join(root,name+'-review');await writeFile(bad,content)
-  const result=await command(['preview','--origin',origin,'--site',site,'--format','posthog','--input',bad,'--cookie-file',cookie,'--review-dir',badReview])
+  const result=await command(['preview','--origin',origin,'--site',site,'--cutover','2024-03-15','--format','posthog','--input',bad,'--cookie-file',cookie,'--review-dir',badReview])
   assert.notEqual(result.code,0,name);assert.ok(result.stderr.includes(diagnostic),result.stderr)
   assert.notEqual((await command(['apply','--review-dir',badReview,'--cookie-file',cookie,'--yes'])).code,0,name+' cannot apply')
   assert.equal((await a.dump()).vane_import_events.length,0,name+' publishes no records')

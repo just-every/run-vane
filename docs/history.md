@@ -24,18 +24,18 @@ source export, session file and review directory outside the checkout.
 ```sh
 node scripts/import-export.mjs preview \
   --origin http://127.0.0.1:8787 \
-  --site YOUR_SITE_ID --format umami \
+  --site YOUR_SITE_ID --cutover 2024-03-15 --format umami \
   --input /private/website_event.csv \
   --cookie-file /private/vane-session.txt \
   --review-dir /private/vane-review
 ```
 
-Use `--format simple` for a Simple Analytics export. Its header must include
+Use `--cutover 2024-03-15 --format simple` for a Simple Analytics export. Its header must include
 `added_iso`, `path` and `uuid`. Umami requires `event_id`, `created_at`,
 `url_path` and `event_type`; custom events must already have approved native goals.
 All formats use the same field rules as the document importer.
 
-For PostHog use `--format posthog` and a UTF-8 JSON Lines file: one complete
+For PostHog use `--cutover 2024-03-15 --format posthog` and a UTF-8 JSON Lines file: one complete
 `$pageview` event object per line, with `uuid` (or `id`), `event`, `timestamp`
 and `properties`. Blank lines, CRLF and an initial UTF-8 BOM are accepted; the
 last line need not end with a newline. Select pageviews when exporting: other
@@ -175,3 +175,5 @@ The owner may set a cut-over date in any history import form, or send `cutover: 
 For a dated import, reports include only source dates strictly before the cut-over. Any date with live collection uses live data alone, even if live data arrives after import. This uses each record's normalized date (source-local dates for aggregate reports; the existing UTC date for event imports). Imported source reports remain separate from native event totals. Report CSVs, Stats API answers and the whole-site ZIP use the same precedence. `imported=off` also leaves imported history out of the ZIP. Installation and site archives retain the complete imported records and date, so undo and transfer preserve the original history.
 
 Leaving the field empty preserves the earlier import behavior. The streaming CLI does not yet accept a cut-over date. Dated imports do not yet add an imported-range chart label or a parallel-run comparison report; IMPORT-007 remains partial.
+
+Every whole-export preview requires `--cutover YYYY-MM-DD`, reviewed once for the entire export, and resumes only with that same date. Only normalized source dates strictly before it appear in reports; live collection wins each overlap day. The command retains the reviewed date across every page, including duplicate source events across pages.

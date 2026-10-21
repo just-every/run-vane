@@ -113,7 +113,7 @@ test('IMPORT-006 two-million-row Umami CSV preview and publication resume after 
  a = await installation({ origin }); t.after(() => a.close())
  const site = await a.addSite({ paths: [], goals: {}, retainForever: true })
  await writeFile(cookie, a.owner, { mode: 0o600 })
- const args = ['preview', '--origin', origin, '--site', site, '--format', 'umami', '--input', input, '--cookie-file', cookie, '--review-dir', review]
+ const args = ['preview', '--origin', origin, '--site', site, '--cutover','2024-03-15','--format', 'umami', '--input', input, '--cookie-file', cookie, '--review-dir', review]
  const interrupted = await command(args)
  assert.notEqual(interrupted.code, 0); assert.match(interrupted.stderr, /IMPORT_ERROR HTTP_503/)
  let manifest = JSON.parse(await readFile(join(review, 'manifest.json'), 'utf8'))

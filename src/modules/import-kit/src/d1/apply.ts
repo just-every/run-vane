@@ -1,5 +1,5 @@
 import { retainedSql } from './retained-values.ts';
-import { nativeStagingScope, readStagedTarget, expectedStagedTarget, type NativeStagingScope } from './native-staging-context.ts';
+import { nativeStagingScope, expectedStagedTarget, type NativeStagingScope } from './native-staging-context.ts';
 import { targetGuards } from './target-guards.ts';
 import { D1RequestLimitError, requestContext, remaining } from './budget.ts';
 import type { ImportJob, PlanEntry, ProvenanceRow, TargetRow } from '../types.ts';
@@ -13,7 +13,7 @@ import { custodyGuards, validatedProvenance, inventoryGuards, reusedSourceGuards
 import { supersedeTarget } from './history.ts';
 import { readOriginals } from './originals.ts';
 import { changed, putRow, updateRows } from './expected-state.ts';
-import { publicationEntries, publicationReads } from './apply-reads.ts';
+import { publicationEntries, publicationReads, readPublicationTarget } from './apply-reads.ts';
 
 export async function applyD1ImportBatches(jobOrId: ImportJob | string, context: D1ImportContext): Promise<ImportJob> {
   context = requestContext(context);
@@ -70,7 +70,7 @@ async function publishEntry(id: string, entry: PlanEntry, ordinal: number, conte
       const raw = await db.prepare('SELECT * FROM ik_provenance WHERE source_identity=? AND destination=? AND target_kind=? AND target_id=? AND reversed=0').bind(entry.identity, context.destination, effect.targetKind, effect.targetId).first();
       if (!raw) throw new Error('PROVENANCE_MISSING');
       const p = await validatedProvenance(raw, context, statements);
-      const current = await readStagedTarget(context, scope, effect.targetKind, effect.targetId);
+      const current = await readPublicationTarget(context, scope, reads, effect.targetKind, effect.targetId);
       if (!current || current.revision !== p.appliedRevision || sha256(canonicalJson(current.value)) !== p.valueHash || attachmentHash(current.attachment) !== p.attachmentHash) throw new Error('NATIVE_EDIT_CONFLICT');
       const post = targetGuards(targets,current,context.destination,effect.targetKind,effect.targetId);
       scope.postGuards.push(...post);
@@ -82,7 +82,7 @@ async function publishEntry(id: string, entry: PlanEntry, ordinal: number, conte
   statements.push(guard(sql('NOT EXISTS(SELECT 1 FROM ik_sources WHERE identity=?)', entry.identity)));
   for (const [index, effect] of entry.effects.entries()) {
     validateEffect(effect);
-    const before = await readStagedTarget(context, scope, effect.targetKind, effect.targetId);
+    const before = await readPublicationTarget(context, scope, reads, effect.targetKind, effect.targetId);
     if (before ? effect.expectedRevision !== before.revision : effect.expectedRevision !== undefined) throw new Error('TARGET_REVISION_CONFLICT');
     const appliedRevision = sha256(canonicalJson([id, entry.identity, index, 'applied']));
     const row: TargetRow = { destination: context.destination, targetKind: effect.targetKind, targetId: effect.targetId, value: effect.value, revision: appliedRevision, ...(effect.attachment ? { attachment: effect.attachment } : {}) };

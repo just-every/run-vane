@@ -39,6 +39,10 @@ export interface D1TargetAdapter extends Partial<D1PreservedUndoAdapter> {
    * read-only after every mutation and must bind the expected post-state. */
   stagingPublication?(stageId: string, destination: string, targets: { kind: string; id: string; present: boolean }[]): { protect: D1Sql[]; seal: D1Sql[]; release: D1Sql[]; final: D1Sql[] };
   read(db: D1Database, destination: string, kind: string, id: string): Promise<TargetRow | undefined>;
+  /** Optional bounded set read. Return one exact snapshot (or absence) in the
+   * same order as requested; matches still fences every snapshot at commit.
+   * Transport staging continues to use stagingRead's earlier exact guards. */
+  readMany?(db: D1Database, destination: string, targets: readonly { kind: string; id: string }[]): Promise<(TargetRow | undefined)[]>;
   matches(row: TargetRow | null, destination: string, kind: string, id: string): D1Sql;
   /** Optional exact row snapshot split into conjunctive predicates. All parts,
    * including absence/cardinality, commit in the same native transaction. */

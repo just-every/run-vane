@@ -1,18 +1,21 @@
 import type { MoveinEnvironment } from './types'
 import { MoveinError } from './types'
 
-// IMPORT-007: two imports never double count. A day that another source's import already holds is skipped by a new
-// source's import and listed in its preview and journal.
 export interface HeldDay { day:string; provider:string }
 export const providers=['matomo','plausible','ga4','umami','simple','posthog']
 
-/** The days among `days` that an import by a source other than `provider` already holds on this site. */
+/** Ask the small job/source index first. A whole export from the same provider
+ * must not repeatedly scan millions of its own rows on every continuation. */
 export async function heldByOthers(env:MoveinEnvironment,siteId:string,provider:string,days:string[]):Promise<HeldDay[]> {
  if(!days.length)return []
- const found=await env.DB.prepare(`SELECT DISTINCT day,provider FROM (SELECT day,provider,site_id FROM vane_import_reports UNION ALL SELECT e.day,COALESCE(s.provider,'umami') AS provider,e.site_id FROM vane_import_events e LEFT JOIN vane_import_sources s ON s.site_id=e.site_id AND s.job_id=e.import_job) WHERE site_id=? AND provider!=? AND day IN (SELECT value FROM json_each(?)) ORDER BY day,provider`).bind(siteId,provider,JSON.stringify([...new Set(days)])).all<HeldDay>()
+ const dates=JSON.stringify([...new Set(days)])
+ const found=await env.DB.prepare(`SELECT DISTINCT day,provider FROM (
+ SELECT day,provider FROM vane_import_reports WHERE site_id=?1 AND provider!=?2 AND day IN (SELECT value FROM json_each(?3))
+ UNION ALL SELECT e.day,s.provider FROM vane_import_sources s CROSS JOIN vane_import_events e ON e.site_id=s.site_id AND e.import_job=s.job_id WHERE s.site_id=?1 AND s.provider!=?2 AND e.day IN (SELECT value FROM json_each(?3))
+ UNION ALL SELECT e.day,'umami' AS provider FROM vane_import_events e WHERE ?2!='umami' AND e.site_id=?1 AND e.day IN (SELECT value FROM json_each(?3)) AND NOT EXISTS(SELECT 1 FROM vane_import_sources s WHERE s.site_id=e.site_id AND s.job_id=e.import_job)
+ ) ORDER BY day,provider`).bind(siteId,provider,dates).all<HeldDay>()
  return found.results
 }
-/** A reviewed carry may name days its preview skipped; each is listed only while another source still holds it. */
 export function carriedSkips(input:any):string[] {
  if(input?.skipped===undefined)return []
  if(!Array.isArray(input.skipped)||input.skipped.length>500)throw new MoveinError('INVALID_AGGREGATE')

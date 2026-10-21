@@ -148,6 +148,9 @@ export async function parallelRun(env:Env,actor:Actor,input:unknown):Promise<Par
  const scope=JSON.stringify([siteId])
  const [nativeSources,nativeGoals]=await Promise.all([
   rows<{day:string,label:string,n:number}>(env,`${timedFrom('vane_events')} SELECT day,${sourceNameSql(value.config.sourceRules)} AS label,COUNT(DISTINCT visitor) AS n FROM q WHERE starts=1 GROUP BY day,label ORDER BY day,n DESC,label`,scope,from,to,null),
+  // Like reports.ts goalBreakdown and series.ts conversions: collect/engage/customEventResponse
+  // materialize every matched page, scroll, custom-event and revenue goal here. Raw custom
+  // events are a separate report; counting them again would double-count matches and admit non-goals.
   rows<{day:string,label:string,n:number}>(env,"SELECT day,kind AS label,COUNT(*) AS n FROM vane_events WHERE site_id=? AND day>=? AND day<? AND kind!='pageview' GROUP BY day,kind ORDER BY day,kind",siteId,from,to),
  ])
  const used=new Set<string>()

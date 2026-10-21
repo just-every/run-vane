@@ -11,11 +11,11 @@ export async function preview(options) {
   await privateDirectory(dir);
   const saved = await readJson(dir, 'manifest.json', true);
   const manifest = saved ? checkManifest(saved) : {
-    version: 1, origin: options.origin, siteId: options.site, format: options.format,
+    version: 1, origin: options.origin, siteId: options.site, format: options.format, cutover:options.cutover,
     source, complete: false, rows: 0, normalizedRows: 0, pages: [],
   };
   requireValue(manifest.origin === options.origin && manifest.siteId === options.site &&
-    manifest.format === options.format && manifest.source.sha256 === source.sha256 &&
+    manifest.format === options.format && manifest.cutover === options.cutover && manifest.source.sha256 === source.sha256 &&
     manifest.source.bytes === source.bytes, 'REVIEW_SOURCE_MISMATCH');
   const post = await client(options.origin, options['cookie-file']);
   manifest.complete = false;

@@ -73,7 +73,7 @@ export async function apply(env: MoveinEnvironment, actor: MoveinActor, input: D
   if (approval?.fingerprint !== input.fingerprint || approval.owner_id !== actor.id) throw new MoveinError('OWNER_APPROVAL_REQUIRED',403);
   if(cutover)await env.DB.prepare('INSERT INTO vane_import_cutovers(site_id,job_id,day) VALUES(?,?,?) ON CONFLICT(site_id,job_id) DO NOTHING').bind(site.id,created.id,cutover).run();
   await env.DB.prepare('INSERT INTO vane_import_sources(site_id,job_id,provider) VALUES(?,?,?) ON CONFLICT(site_id,job_id) DO NOTHING').bind(site.id,created.id,normalized.candidates.provider).run();
-  if(preferNew)await env.DB.prepare(`INSERT INTO vane_import_day_choices(site_id,day,job_id) SELECT ?,value,? FROM json_each(?) ON CONFLICT(site_id,day) DO UPDATE SET job_id=excluded.job_id`).bind(site.id,created.id,JSON.stringify(normalized.candidates.days)).run();
+  if(preferNew)await env.DB.prepare(`INSERT INTO vane_import_day_choices(site_id,day,job_id) SELECT ?,value,? FROM json_each(?) WHERE 1 ON CONFLICT(site_id,day) DO UPDATE SET job_id=excluded.job_id`).bind(site.id,created.id,JSON.stringify(normalized.candidates.days)).run();
   // Let the kit fill a publication batch up to its measured D1 request budget,
   // rather than ending every request after only 20 entries. Planning and undo
   // keep their existing bounds; the kit retains all authority and custody fences.
