@@ -59,7 +59,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "fe01f01f162e723c99cac7bde3805e4a7a76aece0076c8788ca2f2042dbcb705",
+      "sha256": "69e4096b6e07ab72c5207dcfb3b8cd1e74c72ae47808301415c1491da29253da",
       "executable": false
     },
     "AGENTS.md": {
@@ -91,7 +91,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "5f1dfe0362ccc8f963d1751c53b22c22d14c5ea3da19d5f24e4be0044ac1580c",
+      "sha256": "f6d4a647d49340e3488299c729b3b644b0900c7f73e1edec20d456eb9b47af7d",
       "executable": false
     },
     "DEMO.md": {
@@ -127,7 +127,7 @@
       "executable": false
     },
     "docs/history.md": {
-      "sha256": "48b47c291c91d3ca3bd578f18545056db241a7132a5a60451120904a0dbadb6d",
+      "sha256": "fee78e031c0982f077bd23f4cf892aaa5d8cab34c9f0320a11ae932acba5482f",
       "executable": false
     },
     "docs/umami-import.md": {
@@ -790,8 +790,12 @@
       "sha256": "bfadde38dacd8ab357f2f70a28eb746ea903dc94dda39ad7ba7cb886fbc9cdcb",
       "executable": false
     },
+    "scripts/history-import/posthog.mjs": {
+      "sha256": "6ead10f011880a8d8a153c61b7d5ee9cc20d39ab228f2eb0c81da5d98b0d81c4",
+      "executable": false
+    },
     "scripts/history-import/preview.mjs": {
-      "sha256": "111f8a34d91e56a459ea4a096544cd160bfc6dcb741c6bc7f1644011822f1d01",
+      "sha256": "1cc4858d40cf8775452d5ea2b3d61a995e0bd8c2637df3edf766af848418d3c5",
       "executable": false
     },
     "scripts/history-import/review.mjs": {
@@ -799,11 +803,11 @@
       "executable": false
     },
     "scripts/history-import/store.mjs": {
-      "sha256": "ee0dd499ddbe3b7ec43b248dff62ce4c49ce0c391eb82f1b12e8099b0bfd241f",
+      "sha256": "842b23bb82a78865eb4a4202f3d669ae515bed7adf2568a7b4087371d48acc9b",
       "executable": false
     },
     "scripts/import-export.mjs": {
-      "sha256": "ec032c53bfb068de72b288e21c91af83b46648055ed8c5d6812c51c2d415bc97",
+      "sha256": "5527ac834ebdb40c350ed575283519d9d0a682ec9a4d78d7cc6073fe5404d5c4",
       "executable": false
     },
     "scripts/install.mjs": {
@@ -3431,7 +3435,7 @@
       "executable": false
     },
     "tests/import-export.test.mjs": {
-      "sha256": "aa16615b258626a62fe5ba7309dff57feb9a33658f2ac959de17bab221da58c6",
+      "sha256": "facdfa178a3d87d9e6972c7b8447f4c33b3b6a706be9f010da5f37cac5455f32",
       "executable": false
     },
     "tests/incumbent-options.test.mjs": {

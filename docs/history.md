@@ -8,12 +8,13 @@ Open a site's **History**, choose an **Analytics document**, and select **Previe
 
 The **Import journal** records approval, checkpoints and committed records. **Undo import** removes that import's unchanged contributions. Repeat apply or undo while processing remains. Imported consent and sampling stay unknown.
 
-## Whole CSV exports
+## Whole event exports
 
-For a complete Umami `website_event` CSV or Simple Analytics data-point CSV,
+For a complete Umami `website_event` CSV, Simple Analytics data-point CSV or
+PostHog `$pageview` JSON Lines export,
 use the checkout's streaming command instead of splitting the file by hand.
-It reads RFC 4180 CSV, including quoted commas and multiline fields, in bounded
-pages and uses the same owner-only preview, fingerprint, apply and journal doors
+It reads RFC 4180 CSV (including quoted commas and multiline fields) or JSON
+Lines in bounded pages and uses the same owner-only preview, fingerprint, apply and journal doors
 as the History page. No new provider credentials or API keys are used.
 
 Save the `Cookie` request-header value from your signed-in installation in a
@@ -32,8 +33,22 @@ node scripts/import-export.mjs preview \
 Use `--format simple` for a Simple Analytics export. Its header must include
 `added_iso`, `path` and `uuid`. Umami requires `event_id`, `created_at`,
 `url_path` and `event_type`; custom events must already have approved native goals.
-Both formats use the same field rules as the document importer. PostHog remains
-a separately reviewed JSON page import.
+All formats use the same field rules as the document importer.
+
+For PostHog use `--format posthog` and a UTF-8 JSON Lines file: one complete
+`$pageview` event object per line, with `uuid` (or `id`), `event`, `timestamp`
+and `properties`. Blank lines, CRLF and an initial UTF-8 BOM are accepted; the
+last line need not end with a newline. Select pageviews when exporting: other
+event types are refused by the existing preview door. A JSON array or a
+`{ "results": [...] }` API response is still a document import; this streaming
+command expects JSON Lines, not an API response or CSV.
+
+Each preview request contains at most 500 events and 2,000,000 document bytes;
+an oversized single row or malformed JSON stops preview. Only the UTC day,
+kind, redacted path, source and campaign survive, with hashed event identity
+for deduplication. Person/session/device IDs, IPs, titles, full URLs and other
+properties are dropped by the ordinary server importer. If preview stops on a
+later page, its incomplete manifest cannot be applied.
 
 Preview publishes no analytics. The review directory holds only sanitized
 records, discard counts, fingerprints and checkpoints, with private file
@@ -56,9 +71,10 @@ review directory. Jobs remain visible in History and use the ordinary journal
 and Undo import action. The command does not provide a single whole-file undo.
 
 The public-door test exercises interrupted preview and application with complete
-multi-page Umami and Simple Analytics files, matching totals, unknown coverage,
-identifier absence and ordinary undo. A two-million-row interrupted run and
-whole-export PostHog ingestion remain unproven `IMPORT-006` work.
+multi-page Umami, Simple Analytics and PostHog files, matching totals, unknown
+coverage, identifier absence and ordinary undo. PostHog also exercises a lost
+apply response, repeated source IDs across pages, malformed and oversized rows.
+A two-million-row interrupted Umami run remains unproven `IMPORT-006` work.
 
 ## Google Analytics source documents
 

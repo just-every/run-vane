@@ -39,7 +39,7 @@ export const pageDigest = page => digest(JSON.stringify(page));
 
 export function checkManifest(value) {
   requireValue(value?.version === 1 && typeof value.origin === 'string' && typeof value.siteId === 'string' &&
-    ['umami', 'simple'].includes(value.format) && typeof value.complete === 'boolean' &&
+    ['umami', 'simple', 'posthog'].includes(value.format) && typeof value.complete === 'boolean' &&
     /^[a-f0-9]{64}$/.test(value.source?.sha256) && Number.isSafeInteger(value.source.bytes) &&
     value.source.bytes >= 0 && Array.isArray(value.pages), 'INVALID_MANIFEST');
   let rows = 0, normalizedRows = 0;

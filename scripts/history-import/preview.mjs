@@ -1,4 +1,5 @@
 import { csvPages } from './csv.mjs';
+import { posthogPages } from './posthog.mjs';
 import { sourceHash, digest, requireValue, progress } from './common.mjs';
 import { privateDirectory, readJson, atomicJson, pageName, pageDigest, readPage, checkManifest } from './store.mjs';
 import { reviewedPage, checkHeader } from './review.mjs';
@@ -20,8 +21,9 @@ export async function preview(options) {
   manifest.complete = false;
   await atomicJson(dir, 'manifest.json', manifest);
   const second = {}; let index = 0, rows = 0;
-  for await (const page of csvPages(options.input, second)) {
-    checkHeader(page.header, options.format);
+  const pages = options.format === 'posthog' ? posthogPages(options.input, second) : csvPages(options.input, second);
+  for await (const page of pages) {
+    if (options.format !== 'posthog') checkHeader(page.header, options.format);
     const sourceSha256 = digest(page.document);
     const existing = manifest.pages[index];
     if (existing) {
@@ -41,7 +43,7 @@ export async function preview(options) {
     progress('preview', index, rows, false);
   }
   requireValue(second.sha256 === source.sha256 && second.bytes === source.bytes, 'SOURCE_CHANGED_DURING_PREVIEW');
-  requireValue(index > 0 && index === manifest.pages.length && rows === manifest.rows, 'CSV_ROW_COUNT_MISMATCH');
+  requireValue(index > 0 && index === manifest.pages.length && rows === manifest.rows, 'SOURCE_ROW_COUNT_MISMATCH');
   manifest.complete = true;
   await atomicJson(dir, 'manifest.json', manifest);
   progress('preview', index, rows, true);

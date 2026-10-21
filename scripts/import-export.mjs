@@ -5,7 +5,7 @@ import { apply } from './history-import/apply.mjs';
 import { ImportError, requireValue, originOf } from './history-import/common.mjs';
 
 // Cookie files contain the session Cookie header value, without the header name.
-// Preview: --origin URL --site ID --format umami|simple --input FILE --cookie-file FILE --review-dir DIR
+// Preview: --origin URL --site ID --format umami|simple|posthog --input FILE --cookie-file FILE --review-dir DIR
 // Apply: --review-dir DIR --cookie-file FILE --yes
 export async function main(args = process.argv.slice(2)) {
   const [command, ...flags] = args;
@@ -28,7 +28,7 @@ export async function main(args = process.argv.slice(2)) {
   requireValue(allowed.every(key => key === 'yes' || Object.hasOwn(options, key)), 'MISSING_ARGUMENT');
   if (command === 'preview') {
     options.origin = originOf(options.origin);
-    requireValue(['umami', 'simple'].includes(options.format), 'INVALID_FORMAT');
+    requireValue(['umami', 'simple', 'posthog'].includes(options.format), 'INVALID_FORMAT');
     await preview(options);
   } else await apply(options);
 }
