@@ -80,7 +80,7 @@ export async function apply(env: MoveinEnvironment, actor: MoveinActor, input: D
   const publication = context(env,actor,site,created.id);
   const current = await applyD1ImportBatches(created.id,{ ...base,
     storage:{...publication.storage,database:base.storage.database},
-    batchSize:500,reviewedFingerprint: input.fingerprint });
+    batchSize:100,reviewedFingerprint: input.fingerprint });
   return { job: current, complete: current.state === 'completed', fingerprint: plan.fingerprint };
 }
 

@@ -63,7 +63,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "68079bab7f48404bf0cd83f7e775421d06824abd93e81f06ddc1de0d42a8a277",
+      "sha256": "1d0a7c6cb8f37d6f1c0061134b7f812177cc025b9b2258916f3b0fd04d535190",
       "executable": false
     },
     "AGENTS.md": {
@@ -95,7 +95,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "67ac80c0a79d2436d354492842c0a686b0b4e2a46f0b0b5f116e5d41ba9f9095",
+      "sha256": "9e91682c66fcc3cc577a933481d5f6b04c5049eaf4c61ba822fee5431a80fd82",
       "executable": false
     },
     "DEMO.md": {
@@ -2959,7 +2959,7 @@
       "executable": false
     },
     "src/vane/movein/index.ts": {
-      "sha256": "77b68a4a817fe8c5c5e0329af17d04c9901420ca8d5f7ecff41b26f0750bd491",
+      "sha256": "2881be02971c77c7384f081b570a23bdc136d58d32182cafe088d74fd967117b",
       "executable": false
     },
     "src/vane/movein/matomo-reader.ts": {
