@@ -13,7 +13,7 @@ import { promisify } from 'node:util'
 import { chromium } from '@playwright/test'
 import { build } from 'esbuild'
 import { installation } from './harness.mjs'
-import { extensionBackground } from './extension-background.mjs'
+import { extensionState } from './extension-state.mjs'
 
 // Explicit Linux journey, outside push Verify. Supply the official Chrome 138
 // executable and unpacked uBlock Origin MV2 release (see proxy-blocker.yml).
@@ -116,15 +116,11 @@ async function chrome(t, scratch) {
   browser = await chromium.connectOverCDP('http://127.0.0.1:' + port)
   const context = browser.contexts()[0]
   assert.ok(context, 'Use the fresh Chrome default context where the extension is installed')
-  const background = await extensionBackground(port)
-  t.after(()=>background.close())
-  await background.waitForFunction(u=>u.readyToFilter === true && Number.isFinite(parseFloat(u.supportStats.allReadyAfter)), undefined, { timeout: 60_000 })
-  const selected = await background.evaluate(u => [...u.selectedFilterLists])
-  assert.ok(selected.includes('easyprivacy'), 'The untouched default selection must include EasyPrivacy')
-  const easyprivacy = await background.evaluate(u => u.availableFilterLists.easyprivacy)
-  assert.ok(easyprivacy?.entryUsedCount > 0, 'EasyPrivacy must contain active compiled rules')
-  t.diagnostic('Chrome ' + browser.version() + '; uBlock Origin ' + manifest.version + '; default lists: ' + selected.join(', '))
-  return { context, background, selected }
+  const filters = await extensionState(port,context)
+  t.after(()=>filters.close())
+  const {selected,netFilterCount} = await filters.read()
+  t.diagnostic('Chrome ' + browser.version() + '; uBlock Origin ' + manifest.version + '; active network filters: '+netFilterCount+'; default lists: ' + selected.join(', '))
+  return { context, filters, selected }
 }
 
 test('INSTALL-006: default uBlock Origin/EasyPrivacy blocks unproxied Vane before the real first-party tracker collects', {
@@ -142,7 +138,7 @@ test('INSTALL-006: default uBlock Origin/EasyPrivacy blocks unproxied Vane befor
   // Chrome owns only this fresh profile. Its after-hook must finish before the
   // enclosing cleanup removes it, so register its cleanup with this same stack.
   const browserHooks = { after: close => cleanup.push(close), diagnostic: message => t.diagnostic(message) }
-  const { context, background, selected } = await chrome(browserHooks, scratch)
+  const { context, filters, selected } = await chrome(browserHooks, scratch)
   const key = join(scratch, 'site.key'), cert = join(scratch, 'site.crt')
   await execute('openssl', ['req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-days', '1',
     '-subj', '/CN=' + hostname, '-addext', 'subjectAltName=DNS:' + hostname, '-keyout', key, '-out', cert])
@@ -212,7 +208,7 @@ test('INSTALL-006: default uBlock Origin/EasyPrivacy blocks unproxied Vane befor
   assert.equal(configResponse.status(), 200)
   assert.equal(accepted.status(), 202)
   assert.equal((await accepted.json()).accepted, true)
-  assert.deepEqual(await background.evaluate(u => [...u.selectedFilterLists]), selected, 'Keep default lists unchanged throughout both visits')
+  assert.deepEqual((await filters.read()).selected, selected, 'Keep default lists unchanged throughout both visits')
   for (const door of ['script.js', 'config/' + siteId, 'collect']) {
     assert.ok(browserDoors.some(request => request.path === prefix + '/' + door), 'Browser must request first-party ' + door)
     assert.ok(workerDoors.includes('/api/vane/proxy/' + connection.id + '/' + door), 'Real Worker must receive authenticated proxy ' + door)
