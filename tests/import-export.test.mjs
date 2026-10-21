@@ -102,6 +102,7 @@ test('IMPORT-006 whole Umami and Simple Analytics CSV files preview in bounded p
  const simpleSummary=await a.request(`/api/vane/summary?siteId=${site}&from=2024-03-14&to=2024-03-15`,{headers:{cookie:a.owner}})
  const simpleReport=await simpleSummary.json();assert.equal(simpleReport.pageviews,1003);assert.equal(simpleReport.unknownCoverage,1003)
  const simpleFiles=await files(simpleReview);assert.ok(!simpleFiles.includes('simple-raw-'));assert.ok(!simpleFiles.includes('private-simple-session'))
+ const simpleStored=JSON.stringify(await a.dump());assert.ok(!simpleStored.includes('simple-raw-'));assert.ok(!simpleStored.includes('private-simple-session'))
  assert.ok(![failed.stdout,failed.stderr,lost.stdout,lost.stderr,prepared.stdout,prepared.stderr].join('').includes(a.owner),'credentials never enter command output')
  const journals=(await a.dump()).vane_import_approvals;assert.equal(journals.length,6,'six reviewed page jobs keep ordinary custody and undo')
  for(const entry of journals){let undone;do{const r=await a.post('/api/vane/import-undo',{siteId:site,jobId:entry.job_id},a.owner);assert.equal(r.status,200,await r.clone().text());undone=await r.json()}while(!undone.complete)}
