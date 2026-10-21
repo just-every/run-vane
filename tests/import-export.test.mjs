@@ -122,8 +122,8 @@ test('IMPORT-006 whole Umami and Simple Analytics CSV files preview in bounded p
  assert.ok(![failed.stdout,failed.stderr,lost.stdout,lost.stderr,prepared.stdout,prepared.stderr].join('').includes(a.owner),'credentials never enter command output')
  const journals=(await a.dump()).vane_import_approvals;assert.equal(journals.length,6,'six reviewed page jobs keep ordinary custody and undo')
  const priorSite=(await a.dump()).vane_sites.find(row=>row.id===site),policy=JSON.parse(priorSite.config_json);
- const proposal=await a.post('/api/vane/commands',{command:'site.configure',input:{...policy,siteId:site,name:priorSite.name,origin:priorSite.origin,sampleRate:90}},a.owner);
- assert.equal(proposal.status,201);assert.equal((await a.form({operation:'proposal.approve',id:(await proposal.json()).id},a.owner)).status,303);
+ const proposal=await a.post('/api/vane/commands',{command:'site.configure',input:{...policy,siteId:site,name:priorSite.name,origin:priorSite.origin,sampleRate:50}},a.owner);
+ assert.equal(proposal.status,201,await proposal.clone().text());assert.equal((await a.form({operation:'proposal.approve',id:(await proposal.json()).id},a.owner)).status,303);
  assert.equal((await a.post('/api/vane/import-apply',resume,a.owner)).status,409,'changed site policy needs another source review');
  for(const entry of journals){let undone;do{const r=await a.post('/api/vane/import-undo',{siteId:site,jobId:entry.job_id},a.owner);assert.equal(r.status,200,await r.clone().text());undone=await r.json()}while(!undone.complete)}
  assert.equal((await a.dump()).vane_import_events.length,0,'ordinary undo removes every completed page')
