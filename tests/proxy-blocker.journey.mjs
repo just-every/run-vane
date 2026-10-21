@@ -118,7 +118,7 @@ async function chrome(t, scratch) {
   assert.ok(context, 'Use the fresh Chrome default context where the extension is installed')
   const background = await extensionBackground(port)
   t.after(()=>background.close())
-  await background.waitForFunction(u=>u.readyToFilter === true, undefined, { timeout: 60_000 })
+  await background.waitForFunction(u=>u.readyToFilter === true && Number.isFinite(parseFloat(u.supportStats.allReadyAfter)), undefined, { timeout: 60_000 })
   const selected = await background.evaluate(u => [...u.selectedFilterLists])
   assert.ok(selected.includes('easyprivacy'), 'The untouched default selection must include EasyPrivacy')
   const easyprivacy = await background.evaluate(u => u.availableFilterLists.easyprivacy)
