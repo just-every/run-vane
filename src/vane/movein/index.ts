@@ -49,7 +49,10 @@ export async function apply(env: MoveinEnvironment, actor: MoveinActor, input: D
     ON CONFLICT(job_id) DO NOTHING`).bind(created.id,site.id,actor.id,new Date().toISOString(),plan.fingerprint,JSON.stringify(normalized.discarded),actor.id,site.id,site.version,site.config_json).run();
   const approval = await env.DB.prepare('SELECT fingerprint,owner_id FROM vane_import_approvals WHERE job_id=? AND site_id=?').bind(created.id,site.id).first<{ fingerprint: string; owner_id: string }>();
   if (approval?.fingerprint !== input.fingerprint || approval.owner_id !== actor.id) throw new MoveinError('OWNER_APPROVAL_REQUIRED',403);
-  const current = await applyD1ImportBatches(created.id,{ ...context(env,actor,site,created.id),reviewedFingerprint: input.fingerprint });
+  // Let the kit fill a publication batch up to its measured D1 request budget,
+  // rather than ending every request after only 20 entries. Planning and undo
+  // keep their existing bounds; the kit retains all authority and custody fences.
+  const current = await applyD1ImportBatches(created.id,{ ...context(env,actor,site,created.id),batchSize:100,reviewedFingerprint: input.fingerprint });
   return { job: current, complete: current.state === 'completed', fingerprint: plan.fingerprint };
 }
 

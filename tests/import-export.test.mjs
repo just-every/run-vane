@@ -30,7 +30,7 @@ async function browserProof(a,origin,site,label){
 
 test('IMPORT-006 whole Umami and Simple Analytics CSV files preview in bounded pages, resume interrupted preview and publication, preserve totals without identifiers, and refuse changed sources or unreviewed apply',async t=>{
  const privateDir=await mkdtemp(join(tmpdir(),'vane-import-'));t.after(()=>rm(privateDir,{recursive:true,force:true}))
- let a,interruptPreview=false,interruptApply=false,previewCalls=0,applyCalls=0,interruptApplyAt=2,maxRows=0
+ let a,interruptPreview=false,interruptApply=false,previewCalls=0,applyCalls=0,interruptApplyAt=2,maxRows=0,publicationRequests=0,loseSecondPage=false,firstApplyJob
  const server=createServer(async(req,res)=>{try{
   const chunks=[];for await(const chunk of req)chunks.push(chunk);const body=Buffer.concat(chunks)
   const path=req.url,headers={...req.headers};delete headers.host
@@ -39,7 +39,13 @@ test('IMPORT-006 whole Umami and Simple Analytics CSV files preview in bounded p
    if(interruptPreview&&previewCalls===2){res.writeHead(503);res.end();return}
   }
   const response=await a.request(path,{method:req.method,headers,...(body.length?{body}:{})})
-  if(path==='/api/vane/import-apply'&&interruptApply&&++applyCalls===interruptApplyAt){req.socket.destroy();return}
+  if(path==='/api/vane/import-apply'){
+   publicationRequests++
+   if(interruptApply){
+    const result=await response.clone().json();firstApplyJob??=result.job.id
+    if(loseSecondPage?result.job.id!==firstApplyJob:++applyCalls===interruptApplyAt){req.socket.destroy();return}
+   }
+  }
   res.writeHead(response.status,Object.fromEntries(response.headers));res.end(Buffer.from(await response.arrayBuffer()))
  }catch{res.writeHead(500);res.end()}})
  server.listen(0,'127.0.0.1');await once(server,'listening');t.after(()=>new Promise(resolve=>server.close(resolve)))
@@ -73,6 +79,7 @@ test('IMPORT-006 whole Umami and Simple Analytics CSV files preview in bounded p
  assert.equal((await a.dump()).vane_import_events.length,1003)
  assert.equal((await command(apply)).code,0,'completed application is resumable')
  assert.equal((await a.dump()).vane_import_events.length,1003,'a lost response never duplicates a committed record')
+ t.diagnostic(`Umami publication: 1003 distinct rows, ${publicationRequests} apply requests including a lost response and a completed repeat`)
  const response=await a.request(`/api/vane/summary?siteId=${site}&from=2024-03-13&to=2024-03-14`,{headers:{cookie:a.owner}})
  const report=await response.json();assert.equal(report.pageviews,1003);assert.equal(report.unknownCoverage,1003)
  await browserProof(a,origin,site,'csv')
@@ -91,10 +98,10 @@ test('IMPORT-006 whole Umami and Simple Analytics CSV files preview in bounded p
  interruptPreview=false
  const simplePreview=await command(simplePreviewArgs);assert.equal(simplePreview.code,0,simplePreview.stderr)
  const simpleApplyArgs=['apply','--review-dir',simpleReview,'--cookie-file',cookie,'--yes']
- applyCalls=0;interruptApplyAt=26;interruptApply=true
+ applyCalls=0;firstApplyJob=undefined;loseSecondPage=true;interruptApply=true
  const simpleLost=await command(simpleApplyArgs);assert.notEqual(simpleLost.code,0);assert.match(simpleLost.stderr,/HTTP_REQUEST_FAILED/)
  const simpleDuring=(await a.dump()).vane_import_events.length
- assert.equal(simpleDuring,1003+520,'Simple Analytics loses a committed response just past the middle of its export')
+ assert.ok(simpleDuring>1003+500&&simpleDuring<2006,'Simple Analytics loses a committed response after the first complete page and before the export finishes')
  const simplePublicationCheckpoint=JSON.parse(await readFile(join(simpleReview,'manifest.json'),'utf8'))
  assert.equal(simplePublicationCheckpoint.pages[0].complete,true);assert.equal(simplePublicationCheckpoint.pages[1].complete,false)
  interruptApply=false

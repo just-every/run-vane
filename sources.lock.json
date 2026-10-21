@@ -2923,7 +2923,7 @@
       "executable": false
     },
     "src/vane/movein/index.ts": {
-      "sha256": "321ad2fb7a738006b074d692819c9c7c1e53f84f79074bb88f25fecc96d4761b",
+      "sha256": "6fcfb9e7fbfd59fd2dcaa28b7f2c4ea74827483343ae62221f850cd3c96bfce9",
       "executable": false
     },
     "src/vane/movein/matomo-reader.ts": {
@@ -3439,7 +3439,7 @@
       "executable": false
     },
     "tests/import-export.test.mjs": {
-      "sha256": "ae455c62ed0e1366aab4b951e93ae22e53b40e587390cbafa7de00cda8a06168",
+      "sha256": "4325863e52a97d7e44a9d342eed783583ffca6f46cd0282cbaad856a690ff3a2",
       "executable": false
     },
     "tests/import-scale.journey.mjs": {
