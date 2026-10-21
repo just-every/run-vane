@@ -46,7 +46,7 @@ function explanationPanel(report: any): string {
 // API-002: each table of this report as CSV, for the same range, comparison, filters and segment.
 function csvPanel(data: ViewData, report: any): string {
   if (!data.site || data.rollup) return ''
-  const query = (table: string) => new URLSearchParams([['siteId', data.site.id], ['table', table], ['from', report.from], ['to', report.to], ['compare', report.compare], ...(report.compare === 'custom' ? [['compareFrom', report.previousFrom], ['compareTo', report.previousTo]] : []), ...(report.filterParams ?? []).map((f: string) => ['filter', f]), ...(report.segment ? [['segment', report.segment.id]] : [])] as [string, string][]).toString()
+  const query = (table: string) => new URLSearchParams([['siteId', data.site.id], ['table', table], ['from', report.from], ['to', report.to], ['compare', report.compare], ...(report.compare === 'custom' ? [['compareFrom', report.previousFrom], ['compareTo', report.previousTo]] : []), ...(report.filterParams ?? []).map((f: string) => ['filter', f]), ...(report.segment ? [['segment', report.segment.id]] : []), ...(report.importedOff ? [['imported', 'off']] : [])] as [string, string][]).toString()
   return panel('Download tables as CSV', `<ul class="vane-csv-links">${csvTables(report).map(table => `<li><a href="/api/vane/csv?${escape(query(table))}" data-csv="${escape(table)}" download>${escape(tableTitle(table))}</a></li>`).join('')}</ul><p><a href="/api/vane/site-zip?siteId=${escape(encodeURIComponent(data.site.id))}" data-site-zip download>Whole site as a ZIP of CSVs</a> (every date, in Plausible’s export layout).</p>`)
 }
 

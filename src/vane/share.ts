@@ -87,7 +87,7 @@ export async function shareResponse(request:Request,env:Env):Promise<Response|nu
   if(!signedIn)return document(value,link,passwordPage(value),dark,401);
  } else if(request.method==='POST')return notFound();
  try {
-  const report=await createInsightsService(env,value,now,{from:url.searchParams.get('from'),to:url.searchParams.get('to'),segment:link.segment_id}).list();
+  const report=await createInsightsService(env,value,now,{from:url.searchParams.get('from'),to:url.searchParams.get('to'),segment:link.segment_id,imported:url.searchParams.get('imported')}).list();
   const response=await document(value,link,`${link.segment_id?`<p class="vane-help">Segment: ${escape(report.segment?.name??'')}</p>`:''}${publicStats(value,JSON.parse(link.reports_json),report)}`,dark);
   return request.method==='HEAD'?new Response(null,{headers:response.headers}):response;
  } catch(error) { if(error instanceof VaneError&&error.status===404)return notFound(); throw error }

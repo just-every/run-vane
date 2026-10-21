@@ -10,6 +10,7 @@ import type { MoveinEnvironment, MoveinActor } from './types.ts';
 import { MoveinError } from './types.ts';
 import { context, jobContext, loadSite, namespace, requireOwner } from './policy.ts';
 import { mapping, normalize } from './normalize.ts';
+import { heldByOthers } from './overlap.ts';
 export type { MoveinActor, MoveinEnvironment } from './types.ts';
 export { MoveinError } from './types.ts';
 export { importTables as archiveTables } from './tables.ts';
@@ -19,7 +20,12 @@ interface JobInput { siteId: string; jobId: string }
 
 async function planned(env: MoveinEnvironment, actor: MoveinActor, input: DocumentInput) {
   const { site, policy } = await loadSite(env, actor, input.siteId);
-  const normalized = normalize(input.document, site, policy);
+  let normalized = normalize(input.document, site, policy);
+  // IMPORT-007: days another source's import already holds are skipped, never counted twice.
+  if ('candidates' in normalized) {
+    const held = await heldByOthers(env,site.id,normalized.candidates.provider,normalized.candidates.days);
+    if (held.length) normalized = normalize(input.document, site, policy, held);
+  }
   const plan = await planD1Import(normalized.source,mapping,context(env,actor,site));
   if (plan.counts.rejected || plan.counts.unmapped) throw new MoveinError('UNMAPPED_EVENTS');
   return { site, normalized, plan };
@@ -30,7 +36,7 @@ export async function preview(env: MoveinEnvironment, actor: MoveinActor, input:
   requireOwner(actor);
   const { normalized, plan } = await planned(env,actor,input);
   return { fingerprint: plan.fingerprint, normalized: normalized.events, discarded: normalized.discarded,
-    aggregates:'aggregates' in normalized?normalized.aggregates:[],
+    aggregates:'aggregates' in normalized?normalized.aggregates:[],skipped:'skipped' in normalized?normalized.skipped:[],
     carry: 'carry' in normalized?normalized.carry:{ format:'vane-umami-preview/1' as const,events:normalized.events,discarded:normalized.discarded },
     counts: plan.counts, consent: null, sampleRate: null,
     originalRetention: 'discarded-before-custody' as const };
@@ -50,7 +56,7 @@ export async function apply(env: MoveinEnvironment, actor: MoveinActor, input: D
   await env.DB.prepare(`INSERT INTO vane_import_approvals(job_id,site_id,owner_id,approved_at,fingerprint,discarded_json)
     SELECT ?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND role='owner' AND status='active')
     AND EXISTS(SELECT 1 FROM vane_sites WHERE id=? AND version=? AND config_json=?)
-    ON CONFLICT(job_id) DO NOTHING`).bind(created.id,site.id,actor.id,new Date().toISOString(),plan.fingerprint,JSON.stringify(normalized.discarded),actor.id,site.id,site.version,site.config_json).run();
+    ON CONFLICT(job_id) DO NOTHING`).bind(created.id,site.id,actor.id,new Date().toISOString(),plan.fingerprint,JSON.stringify('skipped' in normalized&&normalized.skipped.length?{heldDays:normalized.skipped}:normalized.discarded),actor.id,site.id,site.version,site.config_json).run();
   const approval = await env.DB.prepare('SELECT fingerprint,owner_id FROM vane_import_approvals WHERE job_id=? AND site_id=?').bind(created.id,site.id).first<{ fingerprint: string; owner_id: string }>();
   if (approval?.fingerprint !== input.fingerprint || approval.owner_id !== actor.id) throw new MoveinError('OWNER_APPROVAL_REQUIRED',403);
   // Let the kit fill a publication batch up to its measured D1 request budget,
@@ -71,7 +77,7 @@ export async function journal(env: MoveinEnvironment, actor: MoveinActor, input:
   const batches = await env.DB.prepare('SELECT action,position,end_position AS endPosition,fence FROM ik_batches WHERE job_id=? ORDER BY fence').bind(job.id).all();
   const provenance = await env.DB.prepare('SELECT target_id AS eventId,reversed FROM ik_provenance WHERE job_id=? ORDER BY ordinal,effect_ordinal').bind(job.id).all();
   return { job, approval: approval ? { ownerId:approval.ownerId,approvedAt:approval.approvedAt,fingerprint:approval.fingerprint } : null,
-    discarded: approval ? JSON.parse(approval.discarded_json) : null, batches:batches.results, provenance:provenance.results };
+    discarded: approval ? JSON.parse(approval.discarded_json) : null, skipped: approval ? (JSON.parse(approval.discarded_json).heldDays ?? []) : [], batches:batches.results, provenance:provenance.results };
 }
 
 export async function undo(env: MoveinEnvironment, actor: MoveinActor, input: JobInput) {

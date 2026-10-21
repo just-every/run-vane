@@ -247,7 +247,7 @@ unique visitors, actions, goal conversions, source rates and currency remain
 Matomo's. Independent breakdowns are never summed together and Vane never
 fabricates visitor hashes or event rows from counts. Coverage is unknown.
 Source reports appear alongside native totals in the selected date range;
-merging source totals into native charts is the separate IMPORT-007 clause.
+merging source totals into native charts is the separate IMPORT-007 clause (its imported-data switch and the skip of days another source holds are in).
 
 Goals show their source names and conditions. Prepare a supported exact URL or
 case-sensitive event-name goal, then review it in **Approvals**. Approval makes

@@ -3,6 +3,7 @@ import './locations.journey.mjs'
 import './revenue-alert.test.mjs'
 import './tracking-health.test.mjs'
 import './ga4.test.mjs'
+import './import-merge.test.mjs'
 import './sitemap-scan.test.mjs'
 import './chat.test.mjs'
 

@@ -4,6 +4,7 @@ import type { DiscardedCounts, ImportSite, SafeEvent, SitePolicy } from './types
 import { MoveinError } from './types.ts';
 import { aggregateSource } from './aggregates'
 import type { AggregateRecord } from './aggregate-types'
+import type { HeldDay } from './overlap'
 import { goalApplies } from '../goals';
 import { hostOf, keptValue, pathAllowed, storedPath, visitSource } from '../paths';
 import { mappingVersion, namespace } from './policy.ts';
@@ -16,8 +17,8 @@ const known = new Set(['id','websiteId','sessionId','createdAt','urlPath','urlQu
 const present = (value: unknown) => value !== undefined && value !== null && value !== '';
 const text = (value: unknown) => typeof value === 'string' ? value : '';
 
-export function normalize(document: unknown, site: ImportSite, policy: SitePolicy) {
-  const aggregate=aggregateSource(document,site,policy); if(aggregate)return aggregate;
+export function normalize(document: unknown, site: ImportSite, policy: SitePolicy, skipped: HeldDay[] = []) {
+  const aggregate=aggregateSource(document,site,policy,skipped); if(aggregate)return aggregate;
   let input: any = document;
   if (isSimpleCsv(document)) { if (new TextEncoder().encode(document as string).length > 2_000_000) throw new MoveinError('DOCUMENT_TOO_LARGE'); const page = simpleEvents(document as string, site, policy); return normalizedSource(page.events, page.discarded, site); }
   if (isUmamiCsv(document)) { if (new TextEncoder().encode(document as string).length > 2_000_000) throw new MoveinError('DOCUMENT_TOO_LARGE'); const page = umamiCsvEvents(document as string, site, policy); return normalizedSource(page.events, page.discarded, site); }

@@ -9,6 +9,7 @@ import { storePanel } from './store'
 /** The route supplies these reviewed values with its sanitized importCarry. */
 export interface ImportPreview {
   aggregates?:AggregateRecord[]
+  skipped?:{ day: string; provider: string }[]
   fingerprint: string
   count: number
   duplicates?: number
@@ -23,10 +24,13 @@ function preview(data: ViewData): string {
   const errors = item.errors ?? []
   const rows = item.rows ?? []
   const details = `<dl><dt>Records in preview</dt><dd>${count(item.count)}</dd>${item.duplicates !== undefined ? `<dt>Duplicate records</dt><dd>${count(item.duplicates)}</dd>` : ''}<dt>Document fingerprint</dt><dd><code>${escape(item.fingerprint)}</code></dd></dl>${item.warnings?.length ? `<ul>${item.warnings.map(warning => `<li>${escape(warning)}</li>`).join('')}</ul>` : ''}${errors.length ? `<div class="vane-error" role="alert"><p>This import needs attention before it can be applied.</p><ul>${errors.map(error => `<li>${escape(error)}</li>`).join('')}</ul></div>` : ''}${rows.length ? `<div class="vane-table-scroll" role="region" aria-label="Import preview records" tabindex="0"><table><caption>Import preview records</caption><thead><tr><th scope="col">Date</th><th scope="col">Path</th><th scope="col">Referring hostname</th><th scope="col">Campaign</th><th scope="col">Goal</th><th scope="col" class="vane-number">Visits (page loads)</th></tr></thead><tbody>${rows.map(row => `<tr><td>${escape(row.date)}</td><th scope="row">${escape(row.path)}</th><td>${escape(row.source ?? '—')}</td><td>${escape(row.campaign ?? '—')}</td><td>${escape(row.goal ?? '—')}</td><td class="vane-number">${count(row.visits)}</td></tr>`).join('')}</tbody></table></div>` : ''}`
+  // IMPORT-007: the days another source already holds, left out of this import.
+  const sources: Record<string, string> = { ga4: 'Google Analytics 4', plausible: 'Plausible', matomo: 'Matomo' }
+  const held = item.skipped?.length ? `<p data-overlap-skipped>These days are already held by another import and are skipped, so nothing counts twice:</p><ul data-overlap-days>${item.skipped.map(s => `<li>${escape(s.day)}: held by ${escape(sources[s.provider] ?? s.provider)}</li>`).join('')}</ul>` : ''
   const apply = data.actor.role === 'owner' && !errors.length && item.fingerprint && data.importCarry
     ? `<form method="post" action="/app/action">${operation('import.apply', data.site.id)}${hidden('document', data.importCarry)}${hidden('fingerprint', item.fingerprint)}<p>Apply the reviewed document to this site. You can undo this import from its journal below.</p><button type="submit">Apply import</button></form>`
     : '<p class="vane-help">Only the owner can apply a validated import.</p>'
-  return panel('Review import', details + apply)+importedReportsPanel(item.aggregates??[])
+  return panel('Review import', details + held + apply)+importedReportsPanel(item.aggregates??[])
 }
 
 function journals(data: ViewData): string {

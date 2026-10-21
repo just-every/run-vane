@@ -15,6 +15,12 @@ const sections:Record<string,(report:any)=>string>={
  locations:r=>publicLocationTables(r,bare),
  revenue:r=>revenuePanel(r)||panel('Revenue','<p class="vane-empty">No revenue recorded in this period or the compared one.</p>'),
 }
+// IMPORT-007: a reader of a public page or shared link switches imported history on or off for every report on it.
+const importSwitch=(report:any)=>{
+ if(!report.importedOff&&!report.imported&&!report.importedReports?.length)return ''
+ const query=new URLSearchParams({from:report.from,to:report.to,...(report.importedOff?{}:{imported:'off'})})
+ return `<p class="vane-help" data-imported-state="${report.importedOff?'off':'on'}">${report.importedOff?'Imported history is left out.':'Imported history is included and counts as unknown coverage.'} <a href="?${escape(query.toString())}" data-imported-switch>${report.importedOff?'Include imported history':'Leave imported history out'}</a></p>`
+}
 export function publicStats(site:{name:string},keys:string[],report:any):string {
- return `<h1>${escape(site.name)}</h1>${panel('Reporting period',`<p>${escape(report.from)} to ${escape(report.to)} (end exclusive, ${escape(report.timeZone)}).</p>`)}${keys.map(key=>sections[key]!(report)).join('')}<p class="vane-help">Counts come from Vane’s cookie-free collection: <a href="/methodology">how Vane measures</a>.</p>`
+ return `<h1>${escape(site.name)}</h1>${panel('Reporting period',`<p>${escape(report.from)} to ${escape(report.to)} (end exclusive, ${escape(report.timeZone)}).</p>${importSwitch(report)}`)}${keys.map(key=>sections[key]!(report)).join('')}<p class="vane-help">Counts come from Vane’s cookie-free collection: <a href="/methodology">how Vane measures</a>.</p>`
 }
