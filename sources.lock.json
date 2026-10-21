@@ -3647,7 +3647,7 @@
       "executable": false
     },
     "tests/proxy-cloudflare.test.mjs": {
-      "sha256": "c31412ec744341c02455ea26ab71fd3187a3ae2848e6c4867140f1642b148fff",
+      "sha256": "b3f189e70641df6c5053c900e480fe4af4f828095c319329a6bddcf6dd29d11f",
       "executable": false
     },
     "tests/proxy-next.journey.mjs": {
