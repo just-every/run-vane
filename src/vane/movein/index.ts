@@ -32,7 +32,12 @@ async function planned(env: MoveinEnvironment, actor: MoveinActor, input: Docume
   // A date cannot silently change the policy of records already held by a prior job.
   if(cutover){
     const ids=JSON.stringify(normalized.source.records.map(r=>r.sourceId));
-    const conflict=await env.DB.prepare(`SELECT 1 FROM (SELECT id,site_id,import_job FROM vane_import_events UNION ALL SELECT id,site_id,import_job FROM vane_import_reports) i LEFT JOIN vane_import_cutovers c ON c.site_id=i.site_id AND c.job_id=i.import_job WHERE i.site_id=? AND i.id IN (SELECT value FROM json_each(?)) AND c.day IS NOT ? LIMIT 1`).bind(site.id,ids,cutover).first();
+    // Drive both lookups from this page, rather than scanning all destination history.
+    const conflict=await env.DB.prepare(`SELECT 1 FROM json_each(?2) wanted CROSS JOIN vane_import_events i ON i.id=wanted.value AND i.site_id=?1
+      LEFT JOIN vane_import_cutovers c ON c.site_id=i.site_id AND c.job_id=i.import_job WHERE c.day IS NOT ?3
+      UNION ALL
+      SELECT 1 FROM json_each(?2) wanted CROSS JOIN vane_import_reports i ON i.id=wanted.value AND i.site_id=?1
+      LEFT JOIN vane_import_cutovers c ON c.site_id=i.site_id AND c.job_id=i.import_job WHERE c.day IS NOT ?3 LIMIT 1`).bind(site.id,ids,cutover).first();
     if(conflict)throw new MoveinError('CUTOVER_CHANGE_REQUIRES_UNDO',409);
   }
   const plan = await planD1Import(cutoverSource(normalized.source,cutover,preferNew),mapping,context(env,actor,site));
