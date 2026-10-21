@@ -403,7 +403,7 @@
       "executable": false
     },
     "migrations/core/0064_vane_import_sources.sql": {
-      "sha256": "c59c4516c31430f6a22c47d2e5c21c83be638abd8e77e174873ec8926ee02cd0",
+      "sha256": "e5a56fdbd715b63a66c3cc4a7b318b3d13431c96a2652f7a70d79e91f4252e28",
       "executable": false
     },
     "ONBOARDING.md": {
