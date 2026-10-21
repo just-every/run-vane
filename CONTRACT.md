@@ -421,13 +421,13 @@ The approved homepage (page-s1, 17 Oct 2026, `HOME-001`) follows one launch week
 
 ## Status
 
-Judged from the code and tests at commit `77f19b5f9bdc30adee0aacb6f0d22017d4b1eba8` (21 October 2026).
+Status follows the code and public-door evidence cited in each row (22 October 2026).
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 17 | 0 | 0 | 17 |
-| Target and push further | 62 | 8 | 21 | 91 |
-| All | 79 | 8 | 21 | 108 |
+| Target and push further | 63 | 7 | 21 | 91 |
+| All | 80 | 7 | 21 | 108 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |

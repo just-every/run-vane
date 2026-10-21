@@ -111,11 +111,11 @@ test('IMPORT-007 owner compares 14 live overlap days with paginated Plausible qu
   if(screens)await tab.screenshot({path:`${screens}/parallel-${label}-${width}.png`})
  }
  for(const width of [1440,390]){
-  await tab.setViewportSize({width,height:960});await tab.goto(`${a.origin}/app/sites/${siteId}?section=history`)
+  await tab.setViewportSize({width,height:960});await tab.goto(`${a.origin}/app/sites/${siteId}?section=history`);await tab.getByRole('heading',{name:'Compare a parallel run',exact:true}).evaluate(el=>el.scrollIntoView({block:'start'}));await tab.evaluate(()=>scrollBy(0,-80));await capture('form',width)
   await upload([]);assert.equal(await tab.locator('[data-parallel-day]').count(),14);assert.equal(await tab.locator('[data-parallel-status="unmeasured"]').count(),4)
   await tab.getByRole('heading',{name:'Parallel-run comparison',exact:true}).scrollIntoViewIfNeeded();await capture('unmeasured',width)
   await upload(evidence);assert.equal(await tab.locator('[data-parallel-report]').getAttribute('data-parallel-complete'),'true');assert.equal(await tab.locator('[data-parallel-status="owner evidence"]').count(),4)
-  const first=tab.locator(`[data-parallel-day="${from}"]`);assert.ok((await first.innerText()).includes('bot filtering'));await first.scrollIntoViewIfNeeded();await capture('evidence',width)
+  const first=tab.locator(`[data-parallel-day="${from}"]`);assert.ok((await first.innerText()).includes('bot filtering'));await first.evaluate(el=>el.scrollIntoView({block:'start'}));await tab.evaluate(()=>scrollBy(0,-80));await capture('evidence',width)
   assert.equal(await tab.getByLabel('One-use Plausible Stats API token',{exact:true}).inputValue(),'')
  }
  await tab.goto(`${a.origin}/app/sites/${siteId}?section=history`);assert.equal(await tab.locator('[data-parallel-report]').count(),0,'report and evidence are request-local')
