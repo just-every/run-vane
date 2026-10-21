@@ -20,7 +20,9 @@ export async function installation({setup=true,vars:extra={},origin='http://127.
  await mf.ready
  const db=await mf.getD1Database('DB','app')
  for(const file of (await readdir('migrations/core')).filter(p=>p.endsWith('.sql')).sort())for(const sql of split(await readFile(join('migrations/core',file),'utf8')))await db.prepare(sql).run()
- const request=(path,options={})=>mf.dispatchFetch(origin+path,{redirect:'manual',...options,headers:{'x-original-url':origin+path,...options.headers}})
+ // Workerd reads its CF blob header as UTF-8. Keep the fixture wire ASCII so
+ // Node's Latin-1 HTTP headers cannot corrupt non-ASCII platform place names.
+ const request=(path,options={})=>{const {cf,...init}=options;return mf.dispatchFetch(origin+path,{redirect:'manual',...init,headers:{'x-original-url':origin+path,...options.headers,...(cf===undefined?{}:{'MF-CF-Blob':JSON.stringify(cf).replace(/[^\x00-\x7f]/g,c=>'\\u'+c.charCodeAt(0).toString(16).padStart(4,'0'))})}})}
  const post=(path,body,cookie='',extra={})=>request(path,{method:'POST',headers:{origin,'content-type':'application/json',cookie,...extra},body:JSON.stringify(body)})
  const form=(body,cookie)=>request('/app/action',{method:'POST',headers:{origin,'content-type':'application/x-www-form-urlencoded',cookie},body:new URLSearchParams(body).toString()})
  const bootstrap=await post('/auth/bootstrap',{token:vars.SETUP_TOKEN,displayName:'Site owner'})
