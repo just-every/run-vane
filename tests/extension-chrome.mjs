@@ -16,10 +16,10 @@ export async function chrome(t, scratch, hostname, trackerHostname) {
   assert.ok(manifest.permissions.includes('webRequestBlocking'))
   const profile = join(scratch, 'chrome-profile')
   const spawnChrome = () => spawn(process.env.CHROMIUM_EXECUTABLE_PATH, [
-    '--headless=new', '--enable-logging=stderr', '--log-level=0', '--vmodule=extension_registrar=2,unpacked_installer=2,manifest_v2_experiment_manager=2', '--remote-debugging-port=0', '--remote-debugging-address=127.0.0.1',
+    '--headless=new', '--enable-logging=stderr', '--log-level=0', '--remote-debugging-port=0', '--remote-debugging-address=127.0.0.1',
     '--user-data-dir=' + profile, '--load-extension=' + extension, '--disable-extensions-except=' + extension,
     '--enable-features=AllowLegacyMV2Extensions',
-    '--disable-features=ExtensionManifestV2Unsupported,ExtensionManifestV2Disabled,ExtensionManifestV2DeprecationWarning,DisableLoadExtensionCommandLineSwitch,ExtensionDisableUnsupportedDeveloper',
+    '--disable-features=ExtensionManifestV2Unsupported,ExtensionManifestV2Disabled,DisableLoadExtensionCommandLineSwitch,ExtensionDisableUnsupportedDeveloper',
     '--password-store=basic', '--no-first-run', '--no-default-browser-check',
     '--no-sandbox', '--disable-dev-shm-usage', '--ignore-certificate-errors', '--no-proxy-server',
     '--host-resolver-rules=MAP ' + hostname + ' 127.0.0.1,MAP ' + trackerHostname + ' 127.0.0.1',
@@ -60,14 +60,7 @@ export async function chrome(t, scratch, hostname, trackerHostname) {
   browser = await chromium.connectOverCDP('http://127.0.0.1:' + port)
   const context = browser.contexts()[0]
   assert.ok(context, 'Use the fresh Chrome default context where the extension is installed')
-  let filters
-  try {filters=await extensionState(port,context)}
-  catch(error){
-    const preferences=JSON.parse(await readFile(join(profile,'Default','Preferences'),'utf8'))
-    t.diagnostic('Owned extension install state: '+JSON.stringify(Object.entries(preferences.extensions?.settings??{}).map(([id,value])=>({id,name:value.manifest?.name,state:value.state,disableReasons:value.disable_reasons,location:value.location}))))
-    t.diagnostic('Chrome extension startup: '+fullStderr.slice(-12000))
-    throw error
-  }
+  const filters=await extensionState(port,context)
   t.after(()=>filters.close())
   const {selected,netFilterCount} = await filters.read()
   t.diagnostic('Chrome ' + browser.version() + '; uBlock Origin ' + manifest.version + '; active network filters: '+netFilterCount+'; default lists: ' + selected.join(', '))

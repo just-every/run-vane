@@ -23,7 +23,7 @@ export async function extensionState(port,context) {
  try {await open()}
  catch(error){
   // Only the observed first-install extension reload can close this owned UI.
-  // A browser crash, a timeout or an unchanged background remains a failure.
+  // A browser crash or a timeout remains a failure.
   if(!page?.isClosed()||!context.browser().isConnected())throw error;
   target=await background(port);
   await open();
