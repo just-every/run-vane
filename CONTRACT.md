@@ -421,7 +421,7 @@ The approved homepage (page-s1, 17 Oct 2026, `HOME-001`) follows one launch week
 
 ## Status
 
-Status follows the code and public-door evidence cited in each row (22 October 2026).
+Judged from the code and tests at commit `ced5a49889057597c26e6133756ecdb9f29c36a9` (22 October 2026).
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
