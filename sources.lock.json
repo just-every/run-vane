@@ -3615,7 +3615,7 @@
       "executable": false
     },
     "tests/proxy.test.mjs": {
-      "sha256": "c3933afd0f0e80b460ec92a21ffb6b6aba593b8c490d0feee3daf26b70f3f5e1",
+      "sha256": "0ea795154e03afecc420cfc75487f4ddf58ffd5766b03fc938996beebe608533",
       "executable": false
     },
     "tests/revenue-alert.test.mjs": {
