@@ -3678,6 +3678,42 @@
       "sha256": "c6aec278559bd14375182bd3845a3f4d4e20bdef9fe986e5908dfd6b5cdfe0a9",
       "executable": false
     },
+    "tests/vane-access.mjs": {
+      "sha256": "6ad6fef5db9de469e2a15762db9342f992dd8b50afe89d0c9446e2e38ca59c8b",
+      "executable": false
+    },
+    "tests/vane-alerts.mjs": {
+      "sha256": "b2b4e4cb20984eced1f9b983fc6b961afa8e51ac064fd1fa6c04c7f071a078aa",
+      "executable": false
+    },
+    "tests/vane-conversions.mjs": {
+      "sha256": "d942f98df40fee35acb8bb4abe7ab0a245eba7b2ff989c39fbdffb9355ec53b4",
+      "executable": false
+    },
+    "tests/vane-helpers.mjs": {
+      "sha256": "9c55d04de9b6880513c4c563665a5a7bf707b2feb8fbfe9b2fe0390208c3cb18",
+      "executable": false
+    },
+    "tests/vane-metrics.mjs": {
+      "sha256": "1759a8a403c39648e28d813a45097773caeacd8b6f6f634c9535e9cb5fd97e34",
+      "executable": false
+    },
+    "tests/vane-mobile-and-api.mjs": {
+      "sha256": "a8fd8f1d7446d0bd86c89bc75f3518feef45c92e992b1436779529b884a98f44",
+      "executable": false
+    },
+    "tests/vane-report-settings.mjs": {
+      "sha256": "3c790623782050deaae55077b374a0ce0d25deeecf410931163f22730d5af251",
+      "executable": false
+    },
+    "tests/vane-reports.mjs": {
+      "sha256": "c43a3830e2307091d890ab270e2b3aad9a9118f6c47da3fb0a59906973e4bb52",
+      "executable": false
+    },
+    "tests/vane-team-and-exports.mjs": {
+      "sha256": "604b07a3a728c34ca79f64a248a24052e0bbdb0e5432da4f91db1c73a044c75a",
+      "executable": false
+    },
     "tests/vane.test.mjs": {
       "sha256": "c60010fc3f229ed1ffe78b53c2f47b85f083b8e23d6a0704be64d2a2380a22ff",
       "executable": false
