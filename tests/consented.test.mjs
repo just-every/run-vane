@@ -94,7 +94,7 @@ test('METRIC-005: approved consented mode, returning cohorts, attribution, cross
   await page.goto(`${a.origin}/app/sites/${siteId}?section=settings`);assert.equal(await page.getByLabel('Consented identifier lifetime (months)',{exact:true}).inputValue(),'13')
   await page.getByLabel('Enable consented visitors after explicit analytics consent (off by default)').scrollIntoViewIfNeeded();assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true)
   if(process.env.VANE_SCREEN_DIR)await page.screenshot({path:join(process.env.VANE_SCREEN_DIR,`consented-settings-${width}.png`)})
-  await page.getByRole('row').filter({has:page.getByRole('cell',{name:'Consented visitor linkage',exact:true})}).evaluate(el=>el.scrollIntoView({block:'start'}));await page.evaluate(()=>scrollBy(0,-80))
+  await page.getByRole('row').filter({has:page.getByRole('rowheader',{name:'Consented visitor linkage',exact:true})}).evaluate(el=>el.scrollIntoView({block:'start'}));await page.evaluate(()=>scrollBy(0,-80))
   if(process.env.VANE_SCREEN_DIR)await page.screenshot({path:join(process.env.VANE_SCREEN_DIR,`consented-inventory-${width}.png`)})
   await page.goto(`${a.origin}/methodology#consented-mode`);await page.locator('#consented-mode').evaluate(el=>el.scrollIntoView({block:'start'}));await page.evaluate(()=>scrollBy(0,-40));assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true)
   if(process.env.VANE_SCREEN_DIR)await page.screenshot({path:join(process.env.VANE_SCREEN_DIR,`consented-methodology-${width}.png`)})

@@ -2959,7 +2959,7 @@
       "executable": false
     },
     "src/vane/movein/index.ts": {
-      "sha256": "2881be02971c77c7384f081b570a23bdc136d58d32182cafe088d74fd967117b",
+      "sha256": "77b68a4a817fe8c5c5e0329af17d04c9901420ca8d5f7ecff41b26f0750bd491",
       "executable": false
     },
     "src/vane/movein/matomo-reader.ts": {
@@ -3427,7 +3427,7 @@
       "executable": false
     },
     "tests/consented.test.mjs": {
-      "sha256": "f68ba861ba8840411fe2e9a60188865b7e54f022adb393ef4fc789313d71c782",
+      "sha256": "6a8fb92a9ed5f0694c17605fafd7e17a6ef9b3f41169e4a89dd00a1a7766bfc9",
       "executable": false
     },
     "tests/demo.journey.mjs": {
@@ -3523,7 +3523,7 @@
       "executable": false
     },
     "tests/import-scale.journey.mjs": {
-      "sha256": "8e14b369a9ae737cbca3c48ec97c77b7398ec761352b635638f49d2e6d974e30",
+      "sha256": "138a3696a4908023d454970c92257694c20cea496ceac209d15f704144e2e481",
       "executable": false
     },
     "tests/incumbent-options.test.mjs": {

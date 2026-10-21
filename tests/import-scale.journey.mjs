@@ -87,6 +87,7 @@ test('IMPORT-006 two-million-row Umami CSV preview and publication resume after 
     // Inject only a transport failure. Every successful preview is the real Worker.
     if (interrupt && previewCalls === ROWS / PAGE_ROWS / 2 + 1) { res.writeHead(503); res.end(); return }
     rowsReceived += PAGE_ROWS
+    if(rowsReceived%100000===0)process.stdout.write(`# Umami preview: ${rowsReceived} rows reviewed\n`)
    }
    const response = await a.request(req.url, { method: req.method, headers, ...(body.length ? { body } : {}) })
    if (req.url === '/api/vane/import-apply' && response.ok) {
@@ -95,7 +96,9 @@ test('IMPORT-006 two-million-row Umami CSV preview and publication resume after 
     assert.equal(result.job.total, PAGE_ROWS)
     const before = committed.get(result.job.id) ?? 0
     assert.ok(result.job.checkpoint >= before)
+    const previousRows=committedRows
     committedRows += result.job.checkpoint - before; committed.set(result.job.id, result.job.checkpoint)
+    if(Math.floor(committedRows/100000)>Math.floor(previousRows/100000))process.stdout.write(`# Umami publication: ${committedRows} rows committed\n`)
     // Lose a real committed response at the midpoint of publication. The CLI
     // must discover the completed job again from its previous checkpoint.
     if (interruptPublication && committedRows >= ROWS / 2) {
