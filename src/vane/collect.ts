@@ -25,13 +25,16 @@ export async function collector(request:Request,env:Env):Promise<Response|null> 
  if(!match&&!engage&&url.pathname!=='/api/vane/collect')return null;
  let cors:Record<string,string>={'vary':'Origin','cache-control':'no-store'},known:Site|null=null;
  try {
-  let payload:any,oversized=false;
-  if(!match&&request.method!=='OPTIONS') { insist(request.method==='POST','method','POST required.',405); const text=await request.text(); oversized=text.length>8192; payload=JSON.parse(text); }
+  let payload:any;
+  if(!match&&request.method!=='OPTIONS') { insist(request.method==='POST','method','POST required.',405); const text=await request.text(); if(text.length>8192){
+    // A well-formed oversized page load still identifies the site's coverage counter, but none of its fields enter custody.
+    try{known=await site(env,String(JSON.parse(text)?.siteId??url.searchParams.get('siteId')))}catch{}
+    throw new VaneError('body','Event too large.',413);
+   } payload=JSON.parse(text); }
   const id=match?.[1]??payload?.siteId??url.searchParams.get('siteId');
   // Preflight advertises no read privilege and never admits an event.
   if(request.method==='OPTIONS')return new Response(null,{status:204,headers:{...cors,'access-control-allow-origin':request.headers.get('origin')??'null','access-control-allow-methods':'POST','access-control-allow-headers':'content-type','access-control-max-age':'600'}});
   const value=await site(env,String(id));known=value;
-  insist(!oversized,'body','Event too large.',413);
   const origin=siteOrigin(value,request);cors={...cors,'access-control-allow-origin':origin};
   // The script's configuration door serves only what the script uses (PRIVACY-003: whether this visitor's region
   // requires consent, never the region itself, and the consent manager to read); the owner's excluded addresses and countries
