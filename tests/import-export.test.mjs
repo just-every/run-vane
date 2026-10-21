@@ -84,7 +84,7 @@ test('IMPORT-006 whole Umami and Simple Analytics CSV files preview in bounded p
  const checkpoint=JSON.parse(await readFile(join(review,'manifest.json'),'utf8')),completed=checkpoint.pages[0];
  const resume={siteId:site,jobId:completed.jobId,fingerprint:JSON.parse(await readFile(join(review,completed.file),'utf8')).fingerprint};
  assert.equal((await a.post('/api/vane/import-apply',{...resume,fingerprint:'synthetic-vane-1'},a.owner)).status,409);
- assert.equal((await a.post('/api/vane/import-apply',resume,await a.invite('viewer@example.test','viewer'))).status,403);
+ assert.equal((await a.post('/api/vane/import-apply',resume,await a.invite('member@example.test','member'))).status,403);
  assert.equal((await a.post('/api/vane/import-apply',{...resume,siteId:await a.addSite({origin:'https://oak.example'})},a.owner)).status,403);
  assert.equal((await a.post('/api/vane/import-apply',{...resume,document:{}},a.owner)).status,400);
  const response=await a.request(`/api/vane/summary?siteId=${site}&from=2024-03-13&to=2024-03-14`,{headers:{cookie:a.owner}})
