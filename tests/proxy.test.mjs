@@ -104,6 +104,20 @@ test('owner first-party proxy setup verifies installation and keeps every tracke
  }
  await tab.goto(a.origin+'/methodology#proxy-coverage')
  assert.equal(await tab.locator('p#proxy-coverage').isVisible(),true,'the public methodology exposes the proxy-share definition anchor')
+ // The owner can complete the browser form; the server credential survives only this response.
+ await tab.goto(`${a.origin}/app/sites/${id}?section=settings`);
+ const createForm=tab.locator('form').filter({has:tab.locator('input[name="operation"][value="proxy.create"]')});
+ await createForm.locator('[name="publicPrefix"]').fill('/browser');
+ await createForm.getByRole('button',{name:'Create connection',exact:true}).click();
+ await tab.locator('[data-proxy-credential]').waitFor();
+ const once=await tab.locator('[data-proxy-credential]').innerText();assert.ok(once.length>16);
+ for(const width of [1440,390]){
+  await tab.setViewportSize({width,height:1000});await tab.getByRole('heading',{name:'One-use server credential',exact:true}).evaluate(el=>el.scrollIntoView({block:'center'}));
+  assert.equal(await tab.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+  if(process.env.VANE_SCREEN_DIR)await tab.screenshot({path:join(process.env.VANE_SCREEN_DIR,`proxy-credential-${width}.png`)});
+ }
+ await tab.goto(`${a.origin}/app/sites/${id}?section=settings`);assert.equal(await tab.locator('[data-proxy-credential]').count(),0);
+ assert.ok(!(await tab.content()).includes(once),'reload cannot expose the one-use credential again');
  const rotated=await json(await a.post(path,{operation:'proxy.rotate',siteId:id,connectionId:c.id},a.owner));assert.notEqual(rotated.credential,credential);assert.equal((await call('script.js')).status,401)
  assert.equal((await a.post(path,{operation:'proxy.revoke',siteId:id,connectionId:c.id},a.owner)).status,200)
  assert.equal((await call('script.js',undefined,{authorization:'Bearer '+rotated.credential})).status,401)
