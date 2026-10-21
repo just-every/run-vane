@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { spawn, execFile } from 'node:child_process'
 import { once } from 'node:events'
-import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { createServer as httpServer } from 'node:http'
 import { createServer as httpsServer } from 'node:https'
 import { tmpdir } from 'node:os'
@@ -71,7 +71,7 @@ async function chrome(t, scratch) {
   assert.ok(manifest.permissions.includes('webRequestBlocking'))
   const profile = join(scratch, 'chrome-profile')
   const child = spawn(process.env.CHROMIUM_EXECUTABLE_PATH, [
-    '--headless=new', '--remote-debugging-port=0', '--remote-debugging-address=127.0.0.1',
+    '--headless=new', '--enable-logging=stderr', '--log-level=0', '--v=1', '--remote-debugging-port=0', '--remote-debugging-address=127.0.0.1',
     '--user-data-dir=' + profile, '--load-extension=' + extension, '--disable-extensions-except=' + extension,
     '--enable-features=AllowLegacyMV2Extensions',
     '--disable-features=ExtensionManifestV2Unsupported,ExtensionManifestV2Disabled,ExtensionManifestV2DeprecationWarning,DisableLoadExtensionCommandLineSwitch',
@@ -81,12 +81,13 @@ async function chrome(t, scratch) {
     '--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
     'about:blank',
   ], { stdio: ['ignore', 'ignore', 'pipe'] })
-  let stderr = '', launchError, browser
-  child.stderr.on('data', bytes => { stderr = (stderr + bytes.toString()).slice(-8192) })
+  let stderr = '', fullStderr = '', launchError, browser
+  child.stderr.on('data', bytes => { fullStderr += bytes.toString(); stderr = fullStderr.slice(-8192) })
   child.on('error', error => { launchError = error })
   t.after(async () => {
     try { await browser?.close() }
     finally {
+      if (process.env.VANE_BLOCKER_LOG) await writeFile(process.env.VANE_BLOCKER_LOG, fullStderr);
       if (child.exitCode === null && child.signalCode === null && child.pid) {
         child.kill('SIGTERM')
         await Promise.race([once(child, 'exit'), delay(5000, undefined, { ref: false })])

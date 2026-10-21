@@ -3,8 +3,6 @@ name: Proxy Next runtime acceptance
 # Installer/runtime journey is deliberately separate from push Verify.
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '37 17 * * *'
 
 permissions:
   contents: read
