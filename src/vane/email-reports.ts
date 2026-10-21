@@ -1,3 +1,4 @@
+import { transportSummary } from './proxy/summary'
 import { allow, digest, inScope, insist, rows, site, statement, uid, VaneError, type Actor, type Env, type Site } from './core'
 import { auditStatement } from './audit'
 import { clock } from './clock'
@@ -71,6 +72,7 @@ function render(value:Site,s:Subscription,r:any,from:string,to:string,link:strin
   'Top pages:',...(r.topPages??[]).slice(0,5).map((p:any)=>`- ${p.path}: ${p.pageviews} pageviews`),'','Top sources:',...(r.sourceVisits??[]).slice(0,5).map((p:any)=>`- ${p.label}: ${p.visits} visits`),'',
   'Goals:',...(Object.keys({...value.config.goals,...value.config.customGoals}).length?(r.goalBreakdown??[]).map((g:any)=>`- ${g.label}: ${g.count}`):['- none set']),'',
   `Coverage: ${r.complete===false?'partial; ':''}${(r.explain?.coverage??[]).filter((c:any)=>c.now||c.then).map((c:any)=>`${c.label} ${c.then} → ${c.now}`).join('; ')||'no coverage count changed'}.`,
+  transportSummary(r.transport),
   `What moved: ${(r.explain?.movers??[]).map(moverText).join('; ')||'no channel, page, campaign or device changed'}.`,'',`Unsubscribe with one click: ${link}`]
  const text=lines.join('\n')
  return {subject:`${value.name}: ${FREQUENCIES[s.frequency].toLowerCase()} report, ${from} to ${shift(to,-1)}`,text,html:`<!doctype html><html><body><pre style="font:14px/1.5 system-ui,sans-serif;white-space:pre-wrap">${escape(text.replace(`Unsubscribe with one click: ${link}`,''))}</pre><p><a href="${escape(link)}">Unsubscribe with one click</a></p></body></html>`}

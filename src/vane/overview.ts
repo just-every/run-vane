@@ -1,3 +1,4 @@
+import { transportCoverage } from './proxy/coverage'
 import { visitorKey } from './visitor-key'
 import { insist, rows, type Env, type Site } from './core'
 import { bucketKey, comparisonRange, intervalOf, PERIODS, presetRange, runningCut, upTo, type Period } from './periods'
@@ -19,10 +20,10 @@ export async function overview(env:Env,list:Site[],now:number,query:{period?:str
   const timeZone=site.config.timeZone??'UTC',earliest=period==='all'?(await rows<{d:string|null}>(env,'SELECT MIN(day) AS d FROM (SELECT day FROM vane_events WHERE site_id=?1 UNION ALL SELECT day FROM vane_import_events WHERE site_id=?1)',site.id))[0]?.d??null:null
   const {from,to}=presetRange(period,now,timeZone,earliest),before=comparisonRange('previous',from,to,false,{from:null,to:null}),scope=JSON.stringify([site.id])
   const cut=runningCut(now,timeZone,from,to,before.from),current='vane_events',then=cut?upTo('vane_events',cut.thenDay,cut.thenAt):'vane_events'
-  const interval=intervalOf(null,from,to),[visitors,previous,series,notes,health]=await Promise.all([uniques(site.id,from,to,current),uniques(site.id,before.from,before.to,then),timeSeries(env,scope,from,to,interval,timeZone,current,current),annotationsFor(env,[site],from,to,false),healthOf(env,site.id)])
+  const interval=intervalOf(null,from,to),[visitors,previous,series,notes,health,transport]=await Promise.all([uniques(site.id,from,to,current),uniques(site.id,before.from,before.to,then),timeSeries(env,scope,from,to,interval,timeZone,current,current),annotationsFor(env,[site],from,to,false),healthOf(env,site.id),transportCoverage(env,scope,from,to,current)])
   // DASH-009: the sparkline (visitors) marks the bucket of each annotation in range; definition versions do not affect visitors.
   const marks=[...new Set(notes.filter(n=>n.kind!=='definition').map(n=>series.findIndex(b=>b.key===bucketKey(interval,n.day,from,timeZone))).filter(i=>i>=0))]
-  return {site,from,to,visitors,previous,running:Boolean(cut),sparkline:series.map(b=>b.visitors),trendLabels:series.map(b=>b.label),marks,health}
+  return {site,from,to,visitors,previous,running:Boolean(cut),sparkline:series.map(b=>b.visitors),trendLabels:series.map(b=>b.label),marks,health,transport}
  }))
  const order:Record<string,(a:any,b:any)=>number>={added:()=>0,name:(a,b)=>a.site.name.localeCompare(b.site.name),visitors:(a,b)=>b.visitors-a.visitors,change:(a,b)=>(b.visitors-b.previous)-(a.visitors-a.previous)}
  return {period,sort,q,rows:[...rowsOf].sort(order[sort])}

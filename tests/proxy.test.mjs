@@ -105,6 +105,18 @@ test('owner first-party proxy setup verifies installation and keeps every tracke
   if(process.env.VANE_SCREEN_DIR)await tab.screenshot({path:join(process.env.VANE_SCREEN_DIR,`proxy-coverage-${width}.png`)})
   await tab.locator('dt').filter({hasText:/^First-party proxy$/}).evaluate(el=>el.nextElementSibling.scrollIntoView({block:'center'}))
   if(process.env.VANE_SCREEN_DIR)await tab.screenshot({path:join(process.env.VANE_SCREEN_DIR,`proxy-share-${width}.png`)})
+  await tab.goto(`${a.origin}/app?period=today`);
+  const siteRow=tab.locator(`li[data-site="${id}"]`);await siteRow.waitFor();
+  const transport=await siteRow.locator('[data-proxy-count]').evaluate(el=>({proxy:Number(el.dataset.proxyCount),total:Number(el.dataset.nativeCount)}));
+  const current=await json(await a.request('/api/vane/summary?'+query,{headers:{cookie:a.owner}}));assert.deepEqual(transport,{proxy:current.transport.proxy,total:current.transport.total});
+  await siteRow.evaluate(el=>el.scrollIntoView({block:'center'}));
+  if(process.env.VANE_SCREEN_DIR)await tab.screenshot({path:join(process.env.VANE_SCREEN_DIR,`proxy-sites-${width}.png`)});
+  await tab.goto(`${a.origin}/methodology#proxy-coverage`);await tab.locator('#proxy-coverage').evaluate(el=>el.scrollIntoView({block:'center'}));
+  assert.equal(await tab.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+  if(process.env.VANE_SCREEN_DIR)await tab.screenshot({path:join(process.env.VANE_SCREEN_DIR,`proxy-methodology-${width}.png`)});
+  await tab.goto(`${a.origin}/app/sites/${id}?section=settings`);await tab.getByRole('heading',{name:'Data inventory',exact:true}).evaluate(el=>el.scrollIntoView({block:'start'}));
+  if(process.env.VANE_SCREEN_DIR)await tab.screenshot({path:join(process.env.VANE_SCREEN_DIR,`proxy-inventory-${width}.png`)});
+
  }
  await tab.goto(a.origin+'/methodology#proxy-coverage')
  assert.equal(await tab.locator('p#proxy-coverage').isVisible(),true,'the public methodology exposes the proxy-share definition anchor')
@@ -138,6 +150,15 @@ test('owner first-party proxy setup verifies installation and keeps every tracke
  const rotated=await json(await a.post(path,{operation:'proxy.rotate',siteId:id,connectionId:c.id},a.owner));assert.notEqual(rotated.credential,credential);assert.equal((await call('script.js')).status,401)
  assert.equal((await a.post(path,{operation:'proxy.revoke',siteId:id,connectionId:c.id},a.owner)).status,200)
  assert.equal((await call('script.js',undefined,{authorization:'Bearer '+rotated.credential})).status,401)
+ const finalDump=await a.dump(),raw=JSON.stringify(finalDump);for(const secret of ['198.51.100.77',userAgent,credential,rotated.credential,once,'private@example.test'])assert.ok(!raw.includes(secret));
+ const ownRow=finalDump.vane_events.find(e=>e.site_id===id&&e.path==='/worker');assert.deepEqual([ownRow.country,ownRow.city],['United States','San José']);
+ const expected=await json(await a.request('/api/vane/summary?'+query,{headers:{cookie:a.owner}}));
+ assert.equal((await a.form({operation:'report.subscribe',siteId:id,frequency:'daily',hour:'8'},a.owner)).status,303);
+ await a.clock(Date.parse('2026-10-06T08:00:00Z'));await a.scheduled();
+ const message=a.sentMail.findLast(m=>m.subject?.includes('daily report'));assert.ok(message,'the scheduled report is delivered through the mail edge');
+ const counts=message.text.match(/First-party proxy: (\d+) of (\d+) accepted native page loads/);assert.ok(counts);
+ assert.deepEqual(counts.slice(1).map(Number),[expected.transport.proxy,expected.transport.total],'scheduled report carries the same native proxy denominator');
+
  homepageScripts=proxyScript()
  assert.equal((await verify()).cause,'script_missing','revoked proxy connections cannot verify')
 })

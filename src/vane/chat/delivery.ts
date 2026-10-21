@@ -1,3 +1,4 @@
+import { transportSummary } from '../proxy/summary'
 import { digest, allow, inScope, insist, role, rows, site, statement, uid, type Actor, type Env } from '../core'
 import { clock } from '../clock'
 import { auditStatement } from '../audit'
@@ -56,7 +57,7 @@ async function report(env:Env,c:Connection,kind:string,period:string,from:string
  const r=await createInsightsService(env,value,clock(),{from,to,compare:'previous',segment}).list() as any
  const link=env.AUTH_ORIGIN+'/app/sites/'+encodeURIComponent(c.site_id)+'?'+new URLSearchParams({from,to,compare:'previous',...(segment?{segment}:{})})
  // Fixed aggregate fields only: no paths, search queries, visitor hashes or custom property values in chat.
- const text=`${value.name}: ${kind==='test'?'test report':'report'} ${from} to ${shift(to,-1)} (${value.config.timeZone??'UTC'})\nVisitors: ${r.visitors} (previous ${r.previousVisitors}); visits: ${r.visits} (previous ${r.previousVisits}); pageviews: ${r.pageviews} (previous ${r.previousPageviews}); goal conversions: ${r.goals} (previous ${r.previousGoals}); bounce rate: ${r.bounceRate===null?'unavailable':r.bounceRate+'%'}.\nCoverage: partial; daily unique visitors, imports and consent limits apply.`
+ const text=`${value.name}: ${kind==='test'?'test report':'report'} ${from} to ${shift(to,-1)} (${value.config.timeZone??'UTC'})\nVisitors: ${r.visitors} (previous ${r.previousVisitors}); visits: ${r.visits} (previous ${r.previousVisits}); pageviews: ${r.pageviews} (previous ${r.previousPageviews}); goal conversions: ${r.goals} (previous ${r.previousGoals}); bounce rate: ${r.bounceRate===null?'unavailable':r.bounceRate+'%'}.\nCoverage: partial; daily unique visitors, imports and consent limits apply.\n${transportSummary(r.transport)}`
  return deliver(env,c,kind,period,text,link)
 }
 export async function testDelivery(env:Env,actor:Actor,id:string) {
