@@ -134,7 +134,7 @@ test('IMPORT-007 the owner reviews and applies a dated import through the histor
   await form.getByRole('button',{name:'Preview import',exact:true}).click()
   const review=tab.getByRole('heading',{name:'Review import',exact:true}).locator('..');await review.waitFor({state:'visible'});await review.scrollIntoViewIfNeeded()
   const text=await review.innerText();assert.ok(text.includes('2026-10-03')&&text.includes('2026-10-02'),'review exposes the date and the live overlap before approval');await capture('review',width)
-  await review.getByRole('button',{name:'Apply import',exact:true}).click();assert.equal(await tab.getByRole('heading',{name:'Import journal',exact:true}).count(),1,await tab.locator('body').innerText())
+  const [applied]=await Promise.all([tab.waitForResponse(r=>r.url().endsWith('/app/action')&&r.request().method()==='POST'),review.getByRole('button',{name:'Apply import',exact:true}).click()]);assert.equal(applied.status(),303);await tab.waitForLoadState('domcontentloaded');assert.equal(await tab.getByRole('heading',{name:'Import journal',exact:true}).count(),1,JSON.stringify({url:tab.url(),body:await tab.locator('body').innerText()}))
   const r=await json(await a.request(`/api/vane/summary?siteId=${id}&from=2026-10-01&to=2026-10-04`,{headers:{cookie:a.owner}}));assert.equal(r.pageviews,2);assert.equal(r.imported,1)
   await tab.goto(`${a.origin}/app/sites/${id}?section=report&from=2026-10-01&to=2026-10-04&metric=pageviews`)
   const tile=tab.getByRole('heading',{name:'Pageviews',exact:true}).first().locator('..');await tile.waitFor({state:'visible'});assert.match(await tile.innerText(),/\b2\b/);await capture('report',width)
