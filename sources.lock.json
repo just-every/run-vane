@@ -51,7 +51,7 @@
       "executable": false
     },
     ".github/workflows/verify.yml": {
-      "sha256": "f45835f0cbb2f16eddded4700cd5089c77662b0f080876d3b84550b27de9860f",
+      "sha256": "9f169316f37c970ce54de89346df6a0fffac6dc127a1cb53a6f7b2067ed07e88",
       "executable": false
     },
     ".gitignore": {
@@ -415,7 +415,7 @@
       "executable": false
     },
     "package.json": {
-      "sha256": "d7c34fa1d1a114d7a71c1b2209c147b89b9b920282106b5a1c8bdbc828d016d4",
+      "sha256": "3c1aea88dc616027f28f4a149bf4d418f9ebb78f15393014c655c662ea033476",
       "executable": false
     },
     "pnpm-lock.yaml": {
@@ -836,6 +836,14 @@
     },
     "scripts/operations-config.mjs": {
       "sha256": "decbd8619e40c741708b49639d54282bd19edc4581a782b240d96a423ad47f01",
+      "executable": false
+    },
+    "scripts/vane-tests.mjs": {
+      "sha256": "062d40030c69e8b4dd0bb44eb8fe6f8293322b02239de170fc2588a40f3175ca",
+      "executable": false
+    },
+    "scripts/verify-app.mjs": {
+      "sha256": "0ba05ab4581581b4ef9394c024eadd33ce07a6c41c30bef2af6f4035944d0611",
       "executable": false
     },
     "SEED-COMMAND-CONTRACT.md": {
@@ -3503,7 +3511,7 @@
       "executable": false
     },
     "tests/vane.test.mjs": {
-      "sha256": "583fc83d13145890ee9d3d58f39c2044dee06929f3b38bffb23cb0f66e1b91b4",
+      "sha256": "6ce0bea5534d1aadda14c1577a4b1ed151ef123d40d4c3734ff1f5ab1d0fb206",
       "executable": false
     },
     "tsconfig.json": {

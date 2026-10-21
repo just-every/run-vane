@@ -8,10 +8,16 @@ permissions:
   contents: read
 
 jobs:
-  verify:
+  shards:
+    name: shards (${{ matrix.shard }})
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [foundation, product, integrations-1, integrations-2]
     env:
+      VANE_VERIFY_SHARD: ${{ matrix.shard }}
       CI: 'true'
       WRANGLER_SEND_METRICS: 'false'
     steps:
@@ -61,3 +67,17 @@ jobs:
           pnpm exec rer setup --answers .cache/setup-answers.json --non-interactive
       - name: DEMO-001 journey
         run: node --test tests/demo.journey.mjs
+
+  # Keep the required check stable and fail closed for failed or skipped shards.
+  verify:
+    if: always()
+    needs: [shards, demo]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Require every verification shard
+        env:
+          SHARDS_RESULT: ${{ needs.shards.result }}
+          DEMO_RESULT: ${{ needs.demo.result }}
+        run: |
+          test "$SHARDS_RESULT" = success
+          test "$DEMO_RESULT" = success

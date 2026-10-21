@@ -17,7 +17,7 @@
     "test:email-link": "rer queue test:email-link -- sh -c \"node tests/email-link.mjs\"",
     "onboard": "node scripts/install.mjs",
     "build:app": "rer queue build:app -- sh -c \"vite build\"",
-    "verify:app": "rer queue verify:app -- sh -c \"pnpm run build && rer build --site && pnpm run test:site && pnpm run typecheck && pnpm run test:vane && pnpm run test:email-link\"",
+    "verify:app": "rer queue verify:app -- node scripts/verify-app.mjs",
     "reset": "rer reset",
     "export": "rer export",
     "import": "rer import",
@@ -28,7 +28,7 @@
     "check": "rer check",
     "deps": "rer install",
     "rer": "rer",
-    "test:vane": "rer queue test:vane -- node --test --test-concurrency=1 tests/vane.test.mjs",
+    "test:vane": "rer queue test:vane -- node scripts/vane-tests.mjs",
     "test:site": "node --test tests/site.test.mjs"
   },
   "dependencies": {
