@@ -16,8 +16,8 @@ import { chrome } from './extension-chrome.mjs'
 // Explicit Linux journey, outside push Verify. Supply the official Chrome 138
 // executable and unpacked uBlock Origin MV2 release (see proxy-blocker.yml).
 // No request routing, custom filters, imported settings or owner browser profile.
-// The actual Vane URL MUST be blocked before first-party success is attempted.
-// If default lists do not block Vane, INSTALL-006 remains unproven and this fails.
+// Check the actual unproxied Vane URL first. Its strict subtest must pass for
+// INSTALL-006 to be done; independent first-party evidence cannot replace it.
 const trackerHostname = 'synthetic-vane-2.test'
 const hostname = 'synthetic-vane-1.test'
 const prefix = '/insights'
@@ -117,6 +117,9 @@ test('INSTALL-006: default uBlock Origin/EasyPrivacy blocks unproxied Vane befor
   origin = 'https://' + hostname + ':' + port
   siteId = await a.addSite({ name: 'synthetic-vane-1', origin, paths: [], goals: {}, consent: 'not-required' })
   const page = await context.newPage()
+  let completeDirect
+  const directCollected=new Promise(resolve=>{completeDirect=resolve})
+  page.on('response',response=>{if(response.url()===new URL('/api/vane/collect',directScript).href)completeDirect(response)})
   const directOutcome = new Promise(resolve => {
     page.on('requestfailed', request => {
       if (request.url() === directScript) resolve({ failure: request.failure()?.errorText })
@@ -127,9 +130,18 @@ test('INSTALL-006: default uBlock Origin/EasyPrivacy blocks unproxied Vane befor
   })
   await page.goto(origin + '/direct', { waitUntil: 'domcontentloaded' })
   const outcome = await Promise.race([directOutcome, delay(30_000, undefined, { ref: false }).then(() => ({ timeout: true }))])
-  assert.equal(outcome.failure, 'net::ERR_BLOCKED_BY_CLIENT',
-    'Default uBlock/EasyPrivacy must block the actual ' + directScript + ' before proxy success can establish INSTALL-006. Observed: ' + JSON.stringify(outcome))
-  t.diagnostic('Actual unproxied Vane script failed with net::ERR_BLOCKED_BY_CLIENT; now exercising the official proxy adapter.')
+  await t.test('default lists block the actual unproxied Vane script',()=>{
+    assert.equal(outcome.failure,'net::ERR_BLOCKED_BY_CLIENT',
+      'Default uBlock/EasyPrivacy must block the actual '+directScript+' before INSTALL-006 can be done. Observed: '+JSON.stringify(outcome))
+  })
+  if(outcome.status===200){
+    const direct=await Promise.race([directCollected,delay(30000,undefined,{ref:false})])
+    assert.ok(direct,'an allowed control must execute the actual installed Vane tracker');assert.equal(direct.status(),202)
+  }
+  const query=`/api/vane/summary?siteId=${siteId}&from=2026-10-05&to=2026-10-06`
+  const before=await(await a.request(query,{headers:{cookie:a.owner}})).json()
+  await t.test('unchanged default lists allow actual first-party collection with private metadata and honest proxy counts',async()=>{
+
 
   const created = await a.post('/api/vane/proxy-connections', {
     operation: 'proxy.create', siteId, hostname, mode: 'external', publicPrefix: prefix,
@@ -170,6 +182,14 @@ test('INSTALL-006: default uBlock Origin/EasyPrivacy blocks unproxied Vane befor
   const summary = await a.request('/api/vane/summary?siteId=' + siteId + '&from=2026-10-05&to=2026-10-06', { headers: { cookie: a.owner } })
   assert.equal(summary.status, 200)
   const report = await summary.json()
-  assert.deepEqual([report.transport.proxy, report.transport.direct, report.transport.total], [1, 0, 1], 'The accepted browser pageview appears once as proxy transport in the native report')
-  t.diagnostic('Real HTTPS site → official server adapter → real Vane Worker: script/config 200, collect 202, report proxy=1/direct=0/total=1.')
+  assert.deepEqual([report.transport.proxy,report.transport.direct,report.transport.total],
+    [before.transport.proxy+1,before.transport.direct,before.transport.total+1],
+    'The browser adds exactly one proxy pageview while preserving the genuine direct control count')
+  const dump=JSON.stringify(await a.dump()),archive=JSON.stringify(await a.archive())
+  for(const stored of [dump,archive]){
+    assert.ok(!stored.includes(credential));assert.ok(!stored.includes(await page.evaluate(()=>navigator.userAgent)))
+    assert.ok(!stored.includes('"127.0.0.1"'),'the peer address is never retained as a raw value')
+  }
+  t.diagnostic('Real HTTPS site → official server adapter → real Vane Worker: script/config 200, collect 202, exactly one added proxy pageview, unchanged defaults and no raw visitor metadata in custody.')
+  })
 })
