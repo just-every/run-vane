@@ -70,3 +70,5 @@ export function bucketText(interval: string, label: string): string {
   if (interval === 'week') return `Week of ${monthDay(label.slice(8))}`
   return calendar(`${label}-01`).toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' })
 }
+
+export const cutoverField='<label>Cut-over date (optional)<input type="date" name="cutover"></label><p class="vane-help">Import dates before this date. Any day with live collection uses live data alone. Leave blank to keep the earlier import behavior.</p>'

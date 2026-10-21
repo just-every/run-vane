@@ -1,3 +1,4 @@
+import { visibleImports } from './movein/cutover'
 import { queryPaths as bingQueryPaths } from './bing'
 import { queryPaths as googleQueryPaths } from './search-console'
 import { aggregateCsvRow, importedReports } from './movein/aggregate-reports'
@@ -32,10 +33,10 @@ export function createInsightsService(env:Env,value:Site,now=clock(),range?:{fro
  // IMPORT-007: with imported data off (`imported=off`), imported events and source reports leave every figure, comparison and CSV table of this view.
  const importedOff=range?.imported==='off'
  // DASH-013: a Hostname filter narrows every query below; imported history has no hostname, so it leaves the set.
- const host=hostFilter(range?.hostOp,range?.host),base=filtered('vane_events',host),baseSet=host||importedOff?`(SELECT ${columns},visitor FROM ${base})`:`(SELECT ${columns},visitor FROM vane_events UNION ALL SELECT ${columns},NULL AS visitor FROM vane_import_events)`;
+ const host=hostFilter(range?.hostOp,range?.host),base=filtered('vane_events',host),baseSet=host||importedOff?`(SELECT ${columns},visitor FROM ${base})`:`(SELECT ${columns},visitor FROM vane_events UNION ALL SELECT ${columns},NULL AS visitor FROM ${visibleImports('vane_import_events')})`;
  // DASH-007: filters, and a saved segment's filters, narrow the set to the kept visits once the range is known (list below).
  const adHoc=parseFilters(range?.filters??[]);insist(!members||!range?.segment,'segment','Saved segments belong to one site; filter a roll-up with filters.');
- let ev=base,eventSet=host||importedOff?`(SELECT ${columns},visitor FROM ${ev})`:`(SELECT ${columns},visitor FROM vane_events UNION ALL SELECT ${columns},NULL AS visitor FROM vane_import_events)`;
+ let ev=base,eventSet=host||importedOff?`(SELECT ${columns},visitor FROM ${ev})`:`(SELECT ${columns},visitor FROM vane_events UNION ALL SELECT ${columns},NULL AS visitor FROM ${visibleImports('vane_import_events')})`;
  // Days are the site's local dates. Explicit start and end dates make a custom range; otherwise a preset
  // (DASH-002) applies, by default the last seven days ending today.
  const timeZone=value.config.timeZone??'UTC',custom=Boolean(range?.from||range?.to),period=(custom?'custom':range?.period||'7d') as Period|'custom';
@@ -70,7 +71,7 @@ export function createInsightsService(env:Env,value:Site,now=clock(),range?:{fro
   if(filters.length||entryPaths!==undefined){const kept=await keptVisits(env,scope,filters,segmentStart(from,previousFrom),to>previousTo?to:previousTo,base,value.config.sourceRules,entryPaths);ev=kept.events;release=kept.release;eventSet=`(SELECT ${columns},visitor FROM ${ev})`}
   try{
   // DASH-008 like with like (periods.ts): with today in the range, the compared period counts up to the same moment of its matching day.
-  const cut=runningCut(now,timeZone,from,to,previousFrom),setOf=(events:string,through:string)=>host||importedOff||filters.length||entryPaths!==undefined?`(SELECT ${columns},visitor FROM ${events})`:`(SELECT ${columns},visitor FROM ${events} UNION ALL SELECT ${columns},NULL AS visitor FROM vane_import_events WHERE day<='${through}')`
+  const cut=runningCut(now,timeZone,from,to,previousFrom),setOf=(events:string,through:string)=>host||importedOff||filters.length||entryPaths!==undefined?`(SELECT ${columns},visitor FROM ${events})`:`(SELECT ${columns},visitor FROM ${events} UNION ALL SELECT ${columns},NULL AS visitor FROM ${visibleImports('vane_import_events')} WHERE day<='${through}')`
   const evNow=ev,evThen=cut?upTo(ev,cut.thenDay,cut.thenAt):ev,setNow=eventSet,setThen=cut?setOf(evThen,cut.thenDay):eventSet
   const count=async(start:string,end:string,kind:boolean,set=setNow)=>Number((await rows(env,`SELECT COUNT(*) AS n FROM ${set} WHERE site_id IN (SELECT value FROM json_each(?)) AND day>=? AND day<? AND kind${kind?'=':'!='}'pageview'`,scope,start,end))[0].n);
   // DASH-006: page loads and daily-unique visitors per derived device, browser, operating system and screen class.

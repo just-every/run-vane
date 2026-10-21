@@ -1,3 +1,4 @@
+import { visibleImports } from './movein/cutover'
 import { aggregateCsvRow, importedReports } from './movein/aggregate-reports'
 import { rows, type Env, type Site } from './core'
 import { timedFrom } from './visits'
@@ -13,7 +14,7 @@ import { zip } from './zip'
 const ALL=['0000-01-01','9999-12-31'] as const
 const seconds=(ms:unknown)=>Math.round(Number(ms??0)/1000)
 type Row=Record<string,unknown>
-export async function siteZip(env:Env,value:Site,now:number):Promise<{name:string,bytes:Uint8Array<ArrayBuffer>}> {
+export async function siteZip(env:Env,value:Site,now:number,includeImports=true):Promise<{name:string,bytes:Uint8Array<ArrayBuffer>}> {
  const args=[JSON.stringify([value.id]),ALL[0],ALL[1],null],timed=timedFrom('vane_events'),source=sourceNameSql(value.config.sourceRules,'q.source')
  // Visits grouped by date and the given first-page-load columns (ev holds the browser and system of that load).
  const visits=(columns:Record<string,string>,where='q.starts=1')=>env.DB.prepare(`${timed},vp AS (SELECT day,visitor,visit,COUNT(*) AS pages FROM q GROUP BY day,visitor,visit),
@@ -22,7 +23,7 @@ SELECT day,${Object.keys(columns).map(name=>`"${name}"`).join(',')},COUNT(DISTIN
  const [days,loads,sources,pages,entries,exits,devices,browsers,systems,custom,locations,metros]=await env.DB.batch<any>([
   env.DB.prepare(`${timed} SELECT day,COUNT(DISTINCT visitor) AS visitors,COUNT(*) AS visits,SUM(bounce) AS bounces,SUM(duration) AS duration FROM v GROUP BY day`).bind(...args),
   // Pageviews per date count every page load, imported ones included, as the dashboard's pageviews do.
-  env.DB.prepare(`SELECT day,COUNT(*) AS pageviews FROM (SELECT day FROM vane_events WHERE site_id=?1 AND kind='pageview' UNION ALL SELECT day FROM vane_import_events WHERE site_id=?1 AND kind='pageview') GROUP BY day ORDER BY day`).bind(value.id),
+  env.DB.prepare(`SELECT day,COUNT(*) AS pageviews FROM (SELECT day FROM vane_events WHERE site_id=?1 AND kind='pageview' ${includeImports?`UNION ALL SELECT day FROM ${visibleImports('vane_import_events')} WHERE site_id=?1 AND kind='pageview'`:''}) GROUP BY day ORDER BY day`).bind(value.id),
   visits({source:`CASE WHEN ${source}='direct' THEN '' ELSE ${source} END`,referrer:`COALESCE(q.referrer,'')`,utm_source:`COALESCE(q.utm_source,'')`,utm_medium:`COALESCE(q.utm_medium,'')`,utm_campaign:`COALESCE(NULLIF(q.campaign,'none'),'')`,utm_content:`COALESCE(q.utm_content,'')`,utm_term:`COALESCE(q.utm_term,'')`}),
   env.DB.prepare(`${timed} SELECT day,COALESCE(hostname,'') AS hostname,path AS page,COUNT(DISTINCT visitor||' '||visit) AS visits,COUNT(DISTINCT visitor) AS visitors,COUNT(*) AS pageviews FROM q GROUP BY day,hostname,path ORDER BY day,pageviews DESC,page`).bind(...args),
   visits({entry_page:'q.path'}),visits({exit_page:'q.path'},'q.ends=1'),
@@ -51,7 +52,7 @@ SELECT day,${Object.keys(columns).map(name=>`"${name}"`).join(',')},COUNT(DISTIN
   file('browsers',['date','browser','browser_version',...VISIT],measured(browsers!.results,['browser','browser_version'])),
   file('operating_systems',['date','operating_system','operating_system_version',...VISIT],measured(systems!.results,['operating_system','operating_system_version'])),
  ]
- const sourceReports=await importedReports(env,[value.id],ALL[0],ALL[1]);
+ const sourceReports=includeImports?await importedReports(env,[value.id],ALL[0],ALL[1]):[];
  for(const method of new Set(sourceReports.map(r=>r.report))){const records=sourceReports.filter(r=>r.report===method);files.push({name:`${records[0]!.provider}_${method}_${records[0]!.day}_${records.at(-1)!.day}.csv`,text:toCsv(records.map(aggregateCsvRow))})}
  const bingRows=await rows<Record<string,unknown>>(env,'SELECT property,day,kind,query,page,clicks,impressions,CASE WHEN impressions>0 THEN 1.0*clicks/impressions ELSE NULL END AS ctr,CASE WHEN position_weight>0 THEN position_sum/position_weight ELSE NULL END AS position FROM vane_bing_rows WHERE site_id=? ORDER BY day,kind,query,page',value.id);
  if(bingRows.length)files.push({name:'bing_search.csv',text:toCsv(bingRows)});

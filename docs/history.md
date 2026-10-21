@@ -167,3 +167,11 @@ For a site's full history, select **Prepare history erasure**, then review and a
 ## Audit history
 
 Owners and administrators can open **Audit history** from the sites page. It lists every proposal and approval, settings change, import and undo, archive download, restore, erasure, retention run, sign-in and change prepared through the agent command API, with who did it, when and to what. Entries hold identifiers and counts only, so erasing a site's history keeps them without the erased data, and they travel in the installation archive.
+
+## Declaring a cut-over date
+
+The owner may set a cut-over date in any history import form, or send `cutover: "2026-10-05"` alongside `siteId` and `document` to `POST /api/vane/import-preview`. Review shows the date and any normalized source dates that already have live collection. Apply the returned sanitized `carry` with its exact `fingerprint`; changing the date invalidates approval. Continue with the same carry until complete. The import journal records the date. To change it for records already imported, undo that import before reviewing it again.
+
+For a dated import, reports include only source dates strictly before the cut-over. Any date with live collection uses live data alone, even if live data arrives after import. This uses each record's normalized date (source-local dates for aggregate reports; the existing UTC date for event imports). Imported source reports remain separate from native event totals. Report CSVs, Stats API answers and the whole-site ZIP use the same precedence. `imported=off` also leaves imported history out of the ZIP. Installation and site archives retain the complete imported records and date, so undo and transfer preserve the original history.
+
+Leaving the field empty preserves the earlier import behavior. The streaming CLI does not yet accept a cut-over date. Dated imports do not yet add an imported-range chart label or a parallel-run comparison report; IMPORT-007 remains partial.

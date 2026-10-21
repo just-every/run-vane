@@ -11,33 +11,44 @@ import { MoveinError } from './types.ts';
 import { context, jobContext, loadSite, namespace, requireOwner } from './policy.ts';
 import { mapping, normalize } from './normalize.ts';
 import { heldByOthers } from './overlap.ts';
+import { cutoverInput, cutoverSource, liveOverlap } from './cutover.ts';
 export type { MoveinActor, MoveinEnvironment } from './types.ts';
 export { MoveinError } from './types.ts';
 export { importTables as archiveTables } from './tables.ts';
 
-interface DocumentInput { siteId: string; document: unknown }
+interface DocumentInput { siteId: string; document: unknown; cutover?: unknown }
 interface JobInput { siteId: string; jobId: string }
 
 async function planned(env: MoveinEnvironment, actor: MoveinActor, input: DocumentInput) {
   const { site, policy } = await loadSite(env, actor, input.siteId);
-  let normalized = normalize(input.document, site, policy);
+  const { document, cutover } = cutoverInput(input.document,input.cutover);
+  let normalized = normalize(document, site, policy);
   // IMPORT-007: days another source's import already holds are skipped, never counted twice.
   if ('candidates' in normalized) {
     const held = await heldByOthers(env,site.id,normalized.candidates.provider,normalized.candidates.days);
-    if (held.length) normalized = normalize(input.document, site, policy, held);
+    if (held.length) normalized = normalize(document, site, policy, held);
   }
-  const plan = await planD1Import(normalized.source,mapping,context(env,actor,site));
+  // A date cannot silently change the policy of records already held by a prior job.
+  if(cutover){
+    const ids=JSON.stringify(normalized.source.records.map(r=>r.sourceId));
+    const conflict=await env.DB.prepare(`SELECT 1 FROM (SELECT id,site_id,import_job FROM vane_import_events UNION ALL SELECT id,site_id,import_job FROM vane_import_reports) i LEFT JOIN vane_import_cutovers c ON c.site_id=i.site_id AND c.job_id=i.import_job WHERE i.site_id=? AND i.id IN (SELECT value FROM json_each(?)) AND c.day IS NOT ? LIMIT 1`).bind(site.id,ids,cutover).first();
+    if(conflict)throw new MoveinError('CUTOVER_CHANGE_REQUIRES_UNDO',409);
+  }
+  const plan = await planD1Import(cutoverSource(normalized.source,cutover),mapping,context(env,actor,site));
   if (plan.counts.rejected || plan.counts.unmapped) throw new MoveinError('UNMAPPED_EVENTS');
-  return { site, normalized, plan };
+  return { site, normalized, plan, cutover };
 }
 
 /** Private owner operation. HTTP integration must also enforce native session + CSRF. */
 export async function preview(env: MoveinEnvironment, actor: MoveinActor, input: DocumentInput) {
   requireOwner(actor);
-  const { normalized, plan } = await planned(env,actor,input);
+  const { normalized, plan, cutover } = await planned(env,actor,input);
+  const document='carry' in normalized?normalized.carry:{format:'vane-umami-preview/1' as const,events:normalized.events,discarded:normalized.discarded};
+  const days='aggregates' in normalized?normalized.aggregates.map(r=>r.day):normalized.events.map(r=>r.day);
+  const overlap=cutover?await liveOverlap(env,input.siteId,days):[];
   return { fingerprint: plan.fingerprint, normalized: normalized.events, discarded: normalized.discarded,
     aggregates:'aggregates' in normalized?normalized.aggregates:[],skipped:'skipped' in normalized?normalized.skipped:[],
-    carry: 'carry' in normalized?normalized.carry:{ format:'vane-umami-preview/1' as const,events:normalized.events,discarded:normalized.discarded },
+    cutover, overlap, carry:cutover?{format:'vane-cutover-preview/1' as const,cutover,document}:document,
     counts: plan.counts, consent: null, sampleRate: null,
     originalRetention: 'discarded-before-custody' as const };
 }
@@ -45,7 +56,7 @@ export async function preview(env: MoveinEnvironment, actor: MoveinActor, input:
 /** Repeating the same reviewed page resumes its existing job without double counting. */
 export async function apply(env: MoveinEnvironment, actor: MoveinActor, input: DocumentInput & { fingerprint: string }) {
   requireOwner(actor);
-  const { site, normalized, plan } = await planned(env,actor,input);
+  const { site, normalized, plan, cutover } = await planned(env,actor,input);
   if (typeof input.fingerprint !== 'string' || input.fingerprint !== plan.fingerprint) throw new MoveinError('REVIEW_FINGERPRINT_MISMATCH',409);
   // Creation and publication run in the same Worker invocation. Share their
   // measured statement budget, reserving room for the surrounding session,
@@ -59,6 +70,7 @@ export async function apply(env: MoveinEnvironment, actor: MoveinActor, input: D
     ON CONFLICT(job_id) DO NOTHING`).bind(created.id,site.id,actor.id,new Date().toISOString(),plan.fingerprint,JSON.stringify('skipped' in normalized&&normalized.skipped.length?{heldDays:normalized.skipped}:normalized.discarded),actor.id,site.id,site.version,site.config_json).run();
   const approval = await env.DB.prepare('SELECT fingerprint,owner_id FROM vane_import_approvals WHERE job_id=? AND site_id=?').bind(created.id,site.id).first<{ fingerprint: string; owner_id: string }>();
   if (approval?.fingerprint !== input.fingerprint || approval.owner_id !== actor.id) throw new MoveinError('OWNER_APPROVAL_REQUIRED',403);
+  if(cutover)await env.DB.prepare('INSERT INTO vane_import_cutovers(site_id,job_id,day) VALUES(?,?,?) ON CONFLICT(site_id,job_id) DO NOTHING').bind(site.id,created.id,cutover).run();
   // Let the kit fill a publication batch up to its measured D1 request budget,
   // rather than ending every request after only 20 entries. Planning and undo
   // keep their existing bounds; the kit retains all authority and custody fences.
@@ -77,6 +89,7 @@ export async function journal(env: MoveinEnvironment, actor: MoveinActor, input:
   const batches = await env.DB.prepare('SELECT action,position,end_position AS endPosition,fence FROM ik_batches WHERE job_id=? ORDER BY fence').bind(job.id).all();
   const provenance = await env.DB.prepare('SELECT target_id AS eventId,reversed FROM ik_provenance WHERE job_id=? ORDER BY ordinal,effect_ordinal').bind(job.id).all();
   return { job, approval: approval ? { ownerId:approval.ownerId,approvedAt:approval.approvedAt,fingerprint:approval.fingerprint } : null,
+    cutover:(await env.DB.prepare('SELECT day FROM vane_import_cutovers WHERE site_id=? AND job_id=?').bind(site.id,job.id).first<{day:string}>())?.day??null,
     discarded: approval ? JSON.parse(approval.discarded_json) : null, skipped: approval ? (JSON.parse(approval.discarded_json).heldDays ?? []) : [], batches:batches.results, provenance:provenance.results };
 }
 
@@ -96,6 +109,7 @@ export async function eraseSite(env: MoveinEnvironment, actor: MoveinActor, site
     { sql:'DELETE FROM vane_import_reports WHERE site_id=?',params:[siteId] },
     { sql:'DELETE FROM vane_import_events WHERE site_id=?',params:[siteId] },
     { sql:'DELETE FROM vane_import_approvals WHERE site_id=?',params:[siteId] },
+    { sql:'DELETE FROM vane_import_cutovers WHERE site_id=?',params:[siteId] },
     ...nativeStatements,
   ];
   const checkpoint:D1Sql[]=[

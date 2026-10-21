@@ -43,6 +43,7 @@ export const importTables = [
   "ik_stages",
   "ik_targets",
   "vane_import_approvals",
+  "vane_import_cutovers",
   "vane_import_erasure_fences",
   "vane_import_events",
   "vane_import_reports",
