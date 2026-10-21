@@ -24,7 +24,7 @@ test('IMPORT-005 / IMPORT-009 Matomo Reporting API aggregates match every source
  const admin=await a.invite('admin@example.test','admin');assert.equal((await a.post('/api/vane/import-preview',{siteId,matomo},admin)).status,403);assert.equal(reads,2)
  const bad=structuredClone(fixture);bad.reports['Live.getLastVisitsDetails']=[{idvisitor:'never-store-this',visitIp:'203.0.113.8'}]
  assert.equal((await a.post('/api/vane/import-preview',{siteId,document:bad},a.owner)).status,400)
- const carry=structuredClone(p.carry);carry.records[0].metrics.visitorId=5;assert.equal((await a.post('/api/vane/import-preview',{siteId,document:carry},a.owner)).status,400)
+ const carry=structuredClone(p.carry);carry.document.records[0].metrics.visitorId=5;assert.equal((await a.post('/api/vane/import-preview',{siteId,document:carry},a.owner)).status,400)
  const changed=await a.post('/api/vane/import-apply',{siteId,document:p.carry,fingerprint:'changed'},a.owner);assert.equal(changed.status,409)
  const apply=async()=>{let result;for(let i=0;i<10;i++){const r=await a.post('/api/vane/import-apply',{siteId,document:p.carry,fingerprint:p.fingerprint},a.owner);assert.equal(r.status,200,await r.clone().text());result=await r.json();if(result.complete)return result}assert.fail('bounded import must finish')}
  const first=await apply(),again=await apply();assert.equal(first.job.id,again.job.id)

@@ -761,7 +761,7 @@ test('COVERAGE-001 declined consent, excluded paths, privacy signals, sampling, 
  for(const n of [1,2])assert.equal((await a.post('/api/vane/collect',a.event(id,{consent:'granted'}),'',{...site,'cf-connecting-ip':'203.0.113.'+n})).status,202)
  assert.equal((await a.post('/api/vane/collect',a.event(id,{consent:'granted',path:'/admin/users'}),'',site)).status,403)
  assert.equal((await a.request('/api/vane/signal/'+id,{method:'POST',headers:site,body:''})).status,202)
- const today=new Date().toISOString().slice(0,10),data=[{id:'cov-1',websiteId:'w',sessionId:'s',createdAt:today+'T00:00:01Z',urlPath:'/',urlQuery:'',referrerPath:'',referrerQuery:'',referrerDomain:'',pageTitle:'',eventType:1,eventName:''}]
+ const today=new Date(Date.now()-86400000).toISOString().slice(0,10),data=[{id:'cov-1',websiteId:'w',sessionId:'s',createdAt:today+'T00:00:01Z',urlPath:'/',urlQuery:'',referrerPath:'',referrerQuery:'',referrerDomain:'',pageTitle:'',eventType:1,eventName:''}]
  await movein(a,id,{data,count:1,page:1,pageSize:1})
  const r=await (await a.request('/api/vane/summary?siteId='+id,owner)).json()
  assert.deepEqual([r.complete,r.exclusions,r.privacySignals,r.imported],[false,[{reason:'consent-declined',count:2},{reason:'excluded-path',count:1}],1,1])
