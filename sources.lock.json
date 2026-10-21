@@ -39,7 +39,7 @@
       "executable": false
     },
     ".github/workflows/import-scale.yml": {
-      "sha256": "16ec4498eb2fb16867db67bca5ae98b0415072eb7e119c6b6228212edfa0ab86",
+      "sha256": "638831a0d1199f2829d51e666c1e42959a2646440c5830c1811317a593c63ef2",
       "executable": false
     },
     ".github/workflows/run-demo.yml": {
@@ -3291,7 +3291,7 @@
       "executable": false
     },
     "src/vane/views/parallel.ts": {
-      "sha256": "3292a188a945c903dfae8f72fe93ab08dbe621daf4cf65f5ced7c88df84fb3b9",
+      "sha256": "8b64b9d769f56b9c26bd49a3bf49eb4464f7d65de94b34b7ba7ec4828c6be8bf",
       "executable": false
     },
     "src/vane/views/public.ts": {
