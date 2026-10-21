@@ -58,6 +58,8 @@ test('METRIC-005: approved consented mode, returning cohorts, attribution, cross
  assert.equal((await a.collect(a.event(other,{consented:token,consent:'granted'}),'https://synthetic-vane-5.test')).status,202)
  const different=(await a.dump()).vane_events.find(e=>e.site_id===other);assert.notEqual(different.consented_visitor,events[0].consented_visitor,'same supplied ID cannot link sites')
  await a.clock(at('2026-11-06'));assert.equal((await a.collect(a.event(other,{consented:token,consent:'granted'}),'https://synthetic-vane-5.test')).status,400,'server enforces owner lifetime')
+ const renewed={...token,createdAt:at('2026-11-06')};assert.equal((await a.collect(a.event(other,{consented:renewed,consent:'granted'}),'https://synthetic-vane-5.test')).status,202)
+ const identities=(await a.dump()).vane_events.filter(e=>e.site_id===other&&e.kind==='pageview').map(e=>e.consented_visitor);assert.equal(new Set(identities).size,2,'changing an expired issue time must not extend the prior linkage')
  const required=await a.addSite({name:'synthetic-vane-9',origin:'https://synthetic-vane-9.test',paths:[],goals:{},consent:'required',consentedVisitors:true});assert.equal((await a.collect(a.event(required),'https://synthetic-vane-9.test')).status,403,'consent-required sites still refuse unknown or denied consent')
  const method=await(await a.request('/methodology')).text();assert.match(method,/1 to 13 calendar months/);assert.doesNotMatch(method,/Consented mode does not exist yet/)
  const publicPage=await(await a.request(`/stats/${siteId}?from=2026-10-05&to=2026-10-13`)).text();assert.doesNotMatch(publicPage,/data-consented-cohorts|data-consented-attribution|consented_visitor/)
