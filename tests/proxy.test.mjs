@@ -108,6 +108,19 @@ test('owner first-party proxy setup verifies installation and keeps every tracke
  }
  await tab.goto(a.origin+'/methodology#proxy-coverage')
  assert.equal(await tab.locator('p#proxy-coverage').isVisible(),true,'the public methodology exposes the proxy-share definition anchor')
+ // A route attached to this installation Worker uses actual edge metadata and exposes no app/auth door.
+ const ownConnection=await json(await a.post(path,{operation:'proxy.create',siteId:id,hostname:new URL(origin).hostname,mode:'worker',publicPrefix:'/worker'},a.owner));
+ assert.equal(ownConnection.credential,null);
+ const worker=(suffix,body,extra={})=>a.request('/worker/'+suffix,{method:body===undefined?'GET':'POST',headers:{'x-original-url':origin+'/worker/'+suffix,...(body===undefined?{}:{origin,'content-type':'application/json'}),'cf-connecting-ip':'198.51.100.77','user-agent':userAgent,...extra},cf:{country:'US',regionCode:'CA',city:'San José'},...(body===undefined?{}:{body:JSON.stringify(body)})});
+ assert.equal((await worker('script.js')).status,200);assert.equal((await worker('config/'+id)).status,200);
+ const ownBefore=await json(await a.request('/api/vane/summary?'+query,{headers:{cookie:a.owner}}));
+ assert.equal((await worker('collect',a.event(id,{path:'/worker'}))).status,202);
+ assert.equal((await worker('collect',a.event(id),{'sec-gpc':'1'})).status,403);
+ assert.equal((await worker('collect',a.event(id),{origin:'https://synthetic-vane-9.test'})).status,403);
+ assert.equal((await worker('collect',{...a.event(id),email:'private@example.test'})).status,400);
+ for(const door of ['/app','/auth/bootstrap','/health'])assert.equal((await a.request(door,{headers:{'x-original-url':origin+door,cookie:a.owner}})).status,404);
+ const ownAfter=await json(await a.request('/api/vane/summary?'+query,{headers:{cookie:a.owner}}));
+ assert.deepEqual([ownAfter.transport.proxy,ownAfter.transport.direct],[ownBefore.transport.proxy+1,ownBefore.transport.direct]);
  // The owner can complete the browser form; the server credential survives only this response.
  await tab.goto(`${a.origin}/app/sites/${id}?section=settings`);
  const createForm=tab.locator('form').filter({has:tab.locator('input[name="operation"][value="proxy.create"]')});
