@@ -3519,7 +3519,7 @@
       "executable": false
     },
     "tests/import-export.test.mjs": {
-      "sha256": "f0340454d057ea00a53cab1b4f2ca6bf866e840345b2130a94bf920793de4639",
+      "sha256": "90986f58276d1e6c9d39403b2b0d222546c50a604a46b28d872fe2825d35c573",
       "executable": false
     },
     "tests/import-merge.test.mjs": {
