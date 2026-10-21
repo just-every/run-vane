@@ -1,3 +1,4 @@
+import { preferredSourceSql, eventProviderSql } from './choices'
 import { canonicalJson, sha256 } from '../../modules/import-kit/src/provenance/identity.ts'
 import type { SourceBundle } from '../../modules/import-kit/src/types.ts'
 import type { MoveinEnvironment } from './types'
@@ -30,7 +31,8 @@ export function cutoverSource(source:SourceBundle,cutover:string|null,preferNew=
  * Match live days before report filters, so a filter cannot make old imported traffic reappear.
  */
 export function visibleImports(table:'vane_import_events'|'vane_import_reports') {
- return `(SELECT i.* FROM ${table} i WHERE NOT EXISTS(SELECT 1 FROM vane_import_day_choices choice WHERE choice.site_id=i.site_id AND choice.day=i.day AND choice.job_id!=i.import_job AND EXISTS(SELECT 1 FROM (SELECT site_id,day,import_job FROM vane_import_events UNION ALL SELECT site_id,day,import_job FROM vane_import_reports) chosen WHERE chosen.site_id=choice.site_id AND chosen.day=choice.day AND chosen.import_job=choice.job_id)) AND NOT EXISTS(SELECT 1 FROM vane_import_cutovers c WHERE c.site_id=i.site_id AND c.job_id=i.import_job AND (i.day>=c.day OR EXISTS(SELECT 1 FROM vane_events live WHERE live.site_id=i.site_id AND live.day=i.day))))`
+ const provider=table==='vane_import_reports'?'i.provider':eventProviderSql('i');
+ return `(SELECT i.* FROM ${table} i WHERE COALESCE(${preferredSourceSql('i')},${provider})=${provider} AND NOT EXISTS(SELECT 1 FROM vane_import_cutovers c WHERE c.site_id=i.site_id AND c.job_id=i.import_job AND (i.day>=c.day OR EXISTS(SELECT 1 FROM vane_events live WHERE live.site_id=i.site_id AND live.day=i.day))))`
 }
 
 export async function liveOverlap(env:MoveinEnvironment,siteId:string,days:string[]) {

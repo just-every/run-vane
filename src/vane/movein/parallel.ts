@@ -142,7 +142,7 @@ export async function parallelRun(env:Env,actor:Actor,input:unknown):Promise<Par
  const evidence=evidenceOf(p.evidence,from,to)
  // The report service supplies native definitions and series, explicitly excluding imports.
  const native=await createInsightsService(env,value,clock(),{from,to,interval:'day',imported:'off'}).list()
- insist(native.series.length===14&&native.series.every(r=>r.pageviews>0),'parallel_overlap','Each selected day needs accepted native Vane page loads. Empty days do not prove an overlap.')
+ insist(native.series.length===14,'parallel_overlap','The selected range must cover fourteen complete local days. Empty days remain zero; this report does not prove a script was installed.')
  const source=await readSource(p,sourceSite,from,to,timeZone)
  for(const group of source){const seen=new Set<string>();for(const row of group){const id=JSON.stringify([row.day,row.label]);insist(!seen.has(id),'parallel_query','A source query repeats a day and dimension.');seen.add(id)}}
  const scope=JSON.stringify([siteId])

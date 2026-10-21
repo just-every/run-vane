@@ -44,7 +44,7 @@ test('IMPORT-007 owner compares 14 live overlap days with paginated Plausible qu
   assert.equal((await custom({name:'Purchase',revenue:{amount:3.5,currency:'USD'}})).status,202)
   // Accepted custom events that do not match a configured goal must stay out of goal conversions.
   if(day===from){assert.equal((await custom({name:'Untracked'})).status,202);assert.equal((await custom({name:'Signup',props:{plan:'free'}})).status,202);assert.equal((await custom({name:'Purchase',revenue:{amount:2,currency:'EUR'}})).status,202)}
-  if(day===days[1])assert.equal((await a.post('/api/vane/engage',{siteId,id:page.id,scroll:80},'',{origin})).status,202)
+  if(day===days[1]){await a.clock(Date.parse(day+'T12:00:45Z'));assert.equal((await a.post('/api/vane/engage',{siteId,id:page.id,scroll:80},'',{origin})).status,202)}
   if(day===from)assert.equal((await a.post('/api/vane/collect',a.event(siteId,{path:'/',source:sourceLabel}),'',{origin:'https://synthetic-vane-1.example','user-agent':'Googlebot/2.1'})).status,403)
  }
  await a.clock(Date.parse(to+'T12:00:00Z'))

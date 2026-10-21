@@ -71,6 +71,11 @@ export function inventory(site:Site,searchConnected=false,bingConnected=false,ch
  fields.push(
   {name:'Bing source aggregates',table:'vane_bing_rows',columns:['site_id','property','day','kind','query','page','clicks','impressions','position_sum','position_weight','fetched_at'],description:'Redacted weekly source query/page/query-page sets and independent daily site totals, with source date, clicks, impressions and impression-weighted position. No visitor attribution.'}
  );
+ fields.push(
+  {name:'Reviewed history cut-over',table:'vane_import_cutovers',columns:['site_id','job_id','day'],description:'Owner-reviewed date boundary per import job. Strictly earlier source dates appear; live collection wins overlap days. No visitor identifiers.'},
+  {name:'History source provenance',table:'vane_import_sources',columns:['site_id','job_id','provider'],description:'Source label per reviewed import job, shared by every page of a provider export. No source credentials or visitor data.'},
+  {name:'Owner history source choices',table:'vane_import_day_choices',columns:['site_id','day','job_id','provider','precedence'],description:'Fingerprint-bound owner preference for a source on held dates, in approval order. Source totals stay separate; undo reveals the preceding active source without deleting custody.'}
+ );
  fields.push({name:'Tracking cut-over scans',table:'vane_cutover_scans',columns:['site_id','actor_id','at','page_limit','fetched','refused','state','findings_json'],description:'Explicit owner/admin sitemap scans: actor, time, counts and derived script/call/class/unsupported-option findings with URL and time. Fetched page bodies are discarded.'});
  const discarded=['IP address and user agent: used once for the visitor hash and device classes, then discarded; the location names come from Cloudflare, not from the stored address','viewport width: turned into the screen-size class','query strings other than kept parameters, URL fragments and page titles: never stored','click-ID values (gclid, fbclid, msclkid): only the paid-click flag is kept']
  const identifiers=['Default mode: no cookie and no browser storage; the server’s visitor hash changes every day.','Consented mode: not offered by this release, so no identifier is stored on any device.']
