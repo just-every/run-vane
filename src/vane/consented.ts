@@ -19,7 +19,7 @@ export async function consentedIdentity(value:Site,request:Request,payload:any,n
  insist(token&&typeof token==='object'&&!Array.isArray(token)&&Object.keys(token).length===2&&Object.keys(token).every(k=>['id','createdAt'].includes(k))&&typeof token.id==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(token.id)&&Number.isSafeInteger(token.createdAt)&&token.createdAt>0&&token.createdAt<=now,'consented','Use a random consented identifier with its issue time.')
  const expiresAt=consentExpiry(token.createdAt,value.config.consentLifetimeMonths??13)
  insist(now<expiresAt,'consented_expired','The consented identifier has expired.')
- return {hash:await digest('vane-consented-v1\0'+value.id+'\0'+token.id),createdAt:token.createdAt,expiresAt}
+ return {hash:await digest('vane-consented-v1\0'+value.id+'\0'+token.id+'\0'+token.createdAt),createdAt:token.createdAt,expiresAt}
 }
 // Linked page-derived events must still have permission and an unexpired approved lifetime.
 export function consentedPage(config:Config,request:Request,page:{consented_visitor?:string|null;consented_created_at?:number|null;consented_expires_at?:number|null},now:number,consent?:unknown) {
