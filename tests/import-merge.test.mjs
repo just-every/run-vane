@@ -141,7 +141,7 @@ test('IMPORT-007 the owner reviews and applies a dated import through the histor
   const [applied]=await Promise.all([tab.waitForResponse(r=>r.url().endsWith('/app/action')&&r.request().method()==='POST'),review.getByRole('button',{name:'Apply import',exact:true}).click()]);assert.equal(applied.status(),303);await tab.getByRole('heading',{name:'Import journal',exact:true}).waitFor({state:'visible'})
   const r=await json(await a.request(`/api/vane/summary?siteId=${id}&from=2026-10-01&to=2026-10-04`,{headers:{cookie:a.owner}}));assert.equal(r.pageviews,2);assert.equal(r.imported,1)
   await tab.goto(`${a.origin}/app/sites/${id}?section=report&from=2026-10-01&to=2026-10-04&metric=pageviews`)
-  const tile=tab.getByRole('heading',{name:'Pageviews',exact:true}).first().locator('..');await tile.waitFor({state:'visible'});assert.match(await tile.innerText(),/\b2\b/);await capture('report',width)
+  const tile=tab.locator('.vane-metrics-more section').filter({has:tab.getByRole('heading',{name:'Pageviews',exact:true})});await tile.waitFor({state:'visible'});assert.equal(await tile.locator('.vane-metric').innerText(),'2');await capture('report',width)
   await tab.getByText('More options',{exact:true}).click();await tab.getByLabel('Leave imported data out',{exact:true}).check()
   // The ordinary form applies the same viewer choice to the whole-site ZIP download.
   const filter=tab.locator('input[name="imported"][value="off"]').locator('xpath=ancestor::form');await filter.getByRole('button',{name:/apply|update|show/i}).click()
