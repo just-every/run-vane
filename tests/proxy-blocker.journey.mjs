@@ -80,7 +80,8 @@ async function chrome(t, scratch) {
     '--host-resolver-rules=MAP ' + hostname + ' 127.0.0.1',
     '--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
     'about:blank',
-  ], { stdio: ['ignore', 'ignore', 'pipe'] })
+  // Chrome's ProcessSingleton UNIX socket must fit Linux's 108-byte pathname limit.
+  ], { env: {...process.env,TMPDIR:'/tmp'}, stdio: ['ignore', 'ignore', 'pipe'] })
   let stderr = '', fullStderr = '', launchError, browser
   child.stderr.on('data', bytes => { fullStderr += bytes.toString(); stderr = fullStderr.slice(-8192) })
   child.on('error', error => { launchError = error })
