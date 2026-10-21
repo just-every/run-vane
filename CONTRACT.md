@@ -340,7 +340,7 @@ The design-desk homepage (page-s1, approved 17 Oct 2026) now serves under `HOME-
 
 ## Homepage claims
 
-The approved homepage (page-s1, 17 Oct 2026, `HOME-001`) follows one launch week at Juniper Coffee and states 74 capabilities in its copy and drawings. Each one is listed here, in page order, with the clauses that promise exactly that capability; its status follows from theirs (done only when every clause is done, missing only when every clause is missing): 55 done, 10 partial, 9 missing. A claim with no clause goes into this contract, never off the page. The Juniper Coffee figures in the drawings are explanatory and are never seeded as analytics.
+The approved homepage (page-s1, 17 Oct 2026, `HOME-001`) follows one launch week at Juniper Coffee and states 74 capabilities in its copy and drawings. Each one is listed here, in page order, with the clauses that promise exactly that capability; its status follows from theirs (done only when every clause is done, missing only when every clause is missing): 55 done, 11 partial, 8 missing. A claim with no clause goes into this contract, never off the page. The Juniper Coffee figures in the drawings are explanatory and are never seeded as analytics.
 
 | # | Claim | Clause(s) | Status |
 | --- | --- | --- | --- |
@@ -363,7 +363,7 @@ The approved homepage (page-s1, 17 Oct 2026, `HOME-001`) follows one launch week
 | 17 | Import card: Mar 2023 – Oct 11 · labelled as imported on charts | `IMPORT-007` | done |
 | 18 | Script card: the script tag and First page load 10:42 am | `INSTALL-001` | done |
 | 19 | Script card: Shopify · connected | `INSTALL-003` | missing |
-| 20 | Script card: Served from your own domain | `INSTALL-006` | missing |
+| 20 | Script card: Served from your own domain | `INSTALL-006` | partial |
 | 21 | Goals card: Subscribed · revenue in USD | `CONV-006` | done |
 | 22 | Goals card: Signup · form on /pricing · custom event | `CONV-002`, `CONV-003` | done |
 | 23 | Goals card: Outbound links, file downloads and 404 pages · automatic | `CONV-003` | done |
@@ -421,13 +421,13 @@ The approved homepage (page-s1, 17 Oct 2026, `HOME-001`) follows one launch week
 
 ## Status
 
-Judged from the code and tests at commit `3fcf922cc87146740b0e086aef4abdf6acafc851` (22 October 2026).
+Judged from the code and tests at commit `fc367f02065670c367e4ba45b98b6dff9d59695a` (22 October 2026).
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 17 | 0 | 0 | 17 |
-| Target and push further | 65 | 6 | 20 | 91 |
-| All | 82 | 6 | 20 | 108 |
+| Target and push further | 65 | 7 | 19 | 91 |
+| All | 82 | 7 | 19 | 108 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -453,7 +453,7 @@ Judged from the code and tests at commit `3fcf922cc87146740b0e086aef4abdf6acafc8
 | `INSTALL-003` | Shopify app with checkout tracking | target | missing |  | No Shopify app, web pixel or order reconciliation. |
 | `INSTALL-004` | Webflow, Squarespace, Wix, Pane and static-site paths | target | missing |  | No platform guides with verification and no Pane switch. |
 | `INSTALL-005` | Google Tag Manager template | target | missing |  | No Google Tag Manager template. |
-| `INSTALL-006` | First-party proxy so blockers do not erase data | target | missing |  | The script and collection endpoint are served only from the Vane origin; no proxy setups or custom collection domain. |
+| `INSTALL-006` | First-party proxy so blockers do not erase data | target | partial | `tests/proxy.test.mjs` — “owner first-party proxy setup verifies installation and keeps every tracker door, regional consent, transport coverage, credential revocation and browser requests within the declared boundary” proves owner setup, one-use credentials, every current tracking door, regional consent and GPC, installation verification, proxy/direct CSV and both Stats APIs, raw-metadata absence and 1440/390 settings/report/credential screens. `tests/proxy-adapters.test.mjs` — “server proxy forwards every public tracker door over HTTP and strips untrusted identity and credentials”, “proxy refuses unsupported doors, untrusted visitors, oversized streaming bodies and leaking upstream responses”, “custom collection hosts answer only registered-origin preflights without upstream credentials or data” and “downloaded adapters execute with platform-attested metadata and Next rewritten path parameters” prove all ready-made server setups at their network/platform edges. `tests/proxy-next.journey.mjs` — “INSTALL-006: downloaded Next setup rewrites real browser script, config and collect into one private proxy pageview” proves production Next build/start with unchanged owner downloads and actual browser/Worker requests. | Real Chromium with default uBlock Origin/EasyPrivacy must first prove that unproxied Vane is blocked, then prove collection succeeds through the proxy; `tests/proxy-blocker.journey.mjs` is committed but has no passing run. The initial Chrome 138 launch on WSL stops with SIGTRAP before CDP. Cloudflare owner-flow assertions are being completed. WordPress carries its install integration under INSTALL-002. |
 | `INSTALL-007` | Single-page applications and hash routing | target | done | `src/vane/tracker.ts`; `src/vane/views/settings.ts`; `tests/fixtures/spa-router.jsx`; `tests/vane.test.mjs` |  |
 | `INSTALL-008` | Server-side and mobile Events API | target | done | `src/vane/events-api.ts`; `src/vane/api-keys.ts`; `src/vane/api-door.ts`; `migrations/core/0040_vane_event_tokens.sql`; `tests/vane.test.mjs` |  |
 | `COLLECT-002` | Open path collection with automatic redaction | target | done | `src/vane/paths.ts`; `src/vane/collect.ts`; `src/vane/tracker.ts`; `tests/vane.test.mjs` |  |
