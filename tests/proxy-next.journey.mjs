@@ -224,6 +224,8 @@ test('INSTALL-006: downloaded Next setup rewrites real browser script, config an
   // A malicious claimed ingress IP must be overwritten with the real socket IP.
   await context.setExtraHTTPHeaders({ 'x-vane-ingress-ip': '203.0.113.2', 'x-forwarded-for': '203.0.113.2' })
   const page = await context.newPage(), requests = []
+  const observed=[];page.on('response',response=>observed.push({path:new URL(response.url()).pathname,status:response.status()}));
+  t.after(()=>t.diagnostic('Browser responses: '+JSON.stringify(observed)));
   page.on('request', request => requests.push({ url: request.url(), headers: request.headers() }))
   const doors = ['script.js', 'config/' + siteId, 'collect']
   const responses = doors.map(door => page.waitForResponse(response => response.url() === siteOrigin + prefix + '/' + door))

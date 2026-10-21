@@ -20,6 +20,10 @@ test('owner first-party proxy setup verifies installation and keeps every tracke
  const headers={origin,'user-agent':userAgent,authorization:'Bearer '+credential,'x-vane-proxy-ip':'198.51.100.77','x-vane-proxy-country':'US','x-vane-proxy-region':'CA','x-vane-proxy-city':encodeURIComponent('San José')}
  const call=(door,body,extra={})=>a.request(`/api/vane/proxy/${c.id}/${door}`,{method:body===undefined?'GET':'POST',headers:{...headers,...(typeof body==='object'?{'content-type':'application/json'}:{}),...extra},...(body===undefined?{}:{body:typeof body==='string'?body:JSON.stringify(body)})})
  assert.equal((await call('script.js')).status,200);assert.equal((await call('config/'+id)).status,200)
+ const originless={authorization:'Bearer '+credential,'x-vane-proxy-ip':'198.51.100.77'};
+ assert.equal((await a.request(`/api/vane/proxy/${c.id}/config/${id}`,{headers:originless})).status,200,'same-origin browser config GET has no Origin header');
+ assert.equal((await call('config/'+id,undefined,{origin:'https://synthetic-vane-8.test'})).status,403);
+ assert.equal((await a.request(`/api/vane/proxy/${c.id}/collect`,{method:'POST',headers:{...originless,'content-type':'application/json'},body:JSON.stringify(a.event(id))})).status,403,'events still require the registered origin');
  assert.equal((await a.request(`/api/vane/proxy/${c.id}/collect`,{method:'POST',body:'{}',headers:{origin}})).status,401)
  assert.equal((await call('collect',{...a.event(id),siteId:'synthetic-vane-3'})).status,403)
  const page=a.event(id,{path:'/pricing',consent:'not-required'});assert.equal((await call('collect',page)).status,202)

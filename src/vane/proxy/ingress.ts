@@ -82,8 +82,10 @@ export async function resolveProxy(request:Request,env:Env):Promise<ProxyResolut
   const value=await site(env,connection.site_id),registered=[value.origin,...(value.config.origins??[])]
   // Changing the site's registered origins also invalidates an obsolete connection.
   insist(registered.includes(connection.site_origin),'proxy_origin','Invalid proxy origin.',403)
-  const origin=request.headers.get('origin')
-  insist(door.script&&!origin||origin===connection.site_origin,'proxy_origin','Invalid proxy origin.',403)
+  const origin=request.headers.get('origin'),originlessRead=door.method==='GET'&&origin===null
+  // Same-origin browser GETs omit Origin. The registered authenticated connection
+  // can serve its public script/config; every event and explicit foreign Origin still fail closed.
+  insist(door.script&&!origin||originlessRead||origin===connection.site_origin,'proxy_origin','Invalid proxy origin.',403)
   if(request.method==='OPTIONS')return preflight(request,origin!,door)
   if(door.method==='POST'&&(request.headers.get('dnt')==='1'||request.headers.get('sec-gpc')==='1')&&!door.path.startsWith('/api/vane/signal/'))return refusal(403)
   let body:string|undefined
@@ -100,6 +102,7 @@ export async function resolveProxy(request:Request,env:Env):Promise<ProxyResolut
   for(const name of ['origin','user-agent','content-type','dnt','sec-gpc']){
    const value=request.headers.get(name);if(value!==null)headers.set(name,value)
   }
+  if(originlessRead&&!door.script)headers.set('origin',connection.site_origin)
   let cf:unknown
   if(foreign){
    const ip=request.headers.get('cf-connecting-ip');if(ip)headers.set('cf-connecting-ip',ip)
