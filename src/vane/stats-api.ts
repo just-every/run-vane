@@ -27,7 +27,7 @@ export async function statsV1(env:Env,url:URL) {
  const r=await report(env,value,query);
  return {site_id:value.id,from:r.from,to:r.to,time_zone:r.timeZone,compare:{mode:r.compare,from:r.previousFrom,to:r.previousTo},filters:r.filterParams,segment:r.segment,search_query:r.searchQuery,search_provider:r.searchProvider,
   results:Object.fromEntries(metrics.map(m=>[m,r[METRICS[m]!]??null])),previous:Object.fromEntries(metrics.filter(m=>PREVIOUS[m]).map(m=>[m,r[PREVIOUS[m]!]])),
-  imported:!r.importedOff,
+  imported:!r.importedOff,transport:r.transport,
   ...(dimension?{dimension,breakdown:(r[BREAKDOWNS[dimension]!] as any[]).map(rowOf)}:{})};
 }
 // Plausible Stats API v2 compatibility: POST /api/v2/query with site_id (the site's ID or its hostname), metrics,
@@ -54,7 +54,7 @@ export async function plausibleQuery(env:Env,body:any,canRead:(siteId:string)=>v
  const r=await report(env,value,query),dimension=dimensions[0]?PLAUSIBLE_DIMENSIONS[dimensions[0]]!:null;
  const figures=(source:any)=>metrics.map(m=>source[METRICS[m]!]??null);
  const results=dimension?(r[BREAKDOWNS[dimension]!] as any[]).map(row=>({dimensions:[row.label??row.path],metrics:figures(row)})):[{dimensions:[],metrics:figures(r),...(comparing?{comparison:{dimensions:[],metrics:metrics.map(m=>PREVIOUS[m]?r[PREVIOUS[m]!]:null)}}:{})}];
- return {results,meta:{time_zone:r.timeZone,imports_included:!r.importedOff},query:{site_id:body.site_id,metrics,date_range:[r.from,before(r.to)],dimensions,filters:body.filters??[]}};
+ return {results,meta:{time_zone:r.timeZone,imports_included:!r.importedOff,transport:r.transport},query:{site_id:body.site_id,metrics,date_range:[r.from,before(r.to)],dimensions,filters:body.filters??[]}};
 }
 export function openApi(origin:string) {
  const limits=`Per key: ${RATE_LIMITS.burst.requests} requests per ${RATE_LIMITS.burst.seconds}-second window and ${RATE_LIMITS.hourly.requests} per clock hour (UTC); over either, 429 with Retry-After.`;
