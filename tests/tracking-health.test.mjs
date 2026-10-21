@@ -58,11 +58,20 @@ test('ALERT-002 the daily tracking-health check names a silent site, a goal sile
  assert.equal((await a.request('/api/vane/annotations',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+secret},body:JSON.stringify({siteId:fern,id:'deploy-7',kind:'deploy',at:'2026-11-17T17:00:00Z',title:'Deploy 7'})})).status,201)
  const home=await load(fern,'https://fern.example','/');await signup(home,'SignUp')
  for(let i=1;i<=11;i++)await load(fern,'https://fern.example',`/g${i}`)
- for(let i=0;i<12;i++)assert.equal((await a.collect(a.event(fern,{path:'/'}),'https://staging.fern.example')).status,403)
+ // Refused origins, malformed events, conflicting IDs and oversized events all contribute, without their payloads.
+ const refused=[
+  [a.event(fern,{path:'/'}),'https://staging.fern.example',403],
+  [a.event(fern,{path:'/bad?private=value'}),'https://fern.example',400],
+  [{...home,path:'/different'},'https://fern.example',409],
+  [a.event(fern,{privatePayload:'discard-me-'.repeat(900)}),'https://fern.example',413]
+ ]
+ for(let i=0;i<3;i++)for(const [payload,origin,status] of refused)assert.equal((await a.collect(payload,origin)).status,status)
+ assert.equal((await a.collect(home)).status,200,'a successful duplicate is not a collection error')
  for(let i=0;i<4;i++)await load(pine,'https://pine.example','/',{consent:'granted'})
  for(let i=0;i<20;i++)assert.equal((await a.post('/api/vane/declined/'+pine,undefined,'',{origin:'https://pine.example'})).status,202)
  const counts=(await a.dump()).vane_exclusions.filter(r=>r.day==='2026-11-17')
  assert.deepEqual(counts.map(r=>[r.site_id===fern?'fern':'pine',r.reason,r.count]).sort(),[['fern','collection-error',12],['pine','consent-declined',20]],'refused page loads are counted by reason and nothing else')
+ assert.ok(counts.every(r=>Object.keys(r).sort().join(',')==='count,day,reason,site_id'),'ALERT-002 coverage holds only site/day/fixed reason/count')
  const health=()=>a.sentMail.filter(m=>/Tracking health/.test(m.subject))
  await a.clock(Date.parse('2026-11-18T13:25:00Z'));await a.scheduled()
  assert.equal(health().length,0,'not before the owner’s 07:30')
@@ -102,7 +111,9 @@ test('ALERT-002 the daily tracking-health check names a silent site, a goal sile
  assert.ok((await settings(pine)).includes('Consent rate: 16.7% of 24 page loads that reached Vane (usual 100%), collapsed.'))
  // The report's coverage names the refused page loads too (COVERAGE-001).
  const report=plain(await (await a.request(`/app/sites/${fern}?from=2026-11-17&to=2026-11-18`,{headers:{cookie:a.owner}})).text())
- assert.ok(report.includes('Collection errors'),'the report states the page loads refused as collection errors')
+ assert.ok(report.includes('Collection errors'),'COVERAGE-001 states the page loads refused as collection errors')
+ const summary=await(await a.request(`/api/vane/summary?siteId=${fern}&from=2026-11-17&to=2026-11-18`,{headers:{cookie:a.owner}})).json()
+ assert.ok(JSON.stringify(summary).includes('collection-error'),'COVERAGE-001 includes collection errors through the report API too')
  // The overview line and the settings section at both review widths, without sideways scrolling.
  const browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']});t.after(()=>browser.close())
  const context=await browser.newContext();await context.addCookies(a.owner.split('; ').map(pair=>{const at=pair.indexOf('=');return {name:pair.slice(0,at),value:pair.slice(at+1),url:a.origin}}))
