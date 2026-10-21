@@ -26,8 +26,14 @@ export async function extensionBackground(port) {
   pending.set(key,{resolve,reject,timer});socket.send(JSON.stringify({id:key,method,params}));
  });
  await send('Runtime.enable',{});
+ const started=Date.now()+60000;let initialized=false;
+ while(Date.now()<started){
+  const state=await send('Runtime.evaluate',{expression:"location.pathname === '/background.html' && typeof globalThis.vAPI?.defer?.create === 'function' && typeof globalThis.vAPI?.messaging?.defaultHandler === 'function'",returnByValue:true});
+  if(state.result.value===true){initialized=true;break;}await delay(200);
+ }
+ assert.ok(initialized,'uBlock must initialize its own modules before inspection');
  const evaluate=async fn=>{
-  const result=await send('Runtime.evaluate',{expression:`(async()=>{const {default:u}=await import('./js/background.js');return (${fn.toString()})(u)})()`,awaitPromise:true,returnByValue:true});
+  const result=await send('Runtime.evaluate',{expression:`(async()=>{const {default:u}=await import('./js/background.js');await u.isReadyPromise;return (${fn.toString()})(u)})()`,awaitPromise:true,returnByValue:true});
   assert.ok(!result.exceptionDetails,JSON.stringify(result.exceptionDetails));return result.result.value;
  };
  return {evaluate,async waitForFunction(fn,_arg,{timeout=60000}={}){
