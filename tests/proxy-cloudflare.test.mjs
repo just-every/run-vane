@@ -1,6 +1,9 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { inspect } from 'node:util'
+import { mkdir } from 'node:fs/promises'
+import { join } from 'node:path'
+import { chromium } from '@playwright/test'
 import { installation } from './harness.mjs'
 
 const token='synthetic-vane-1',accountId='a'.repeat(32),zoneId='b'.repeat(32),workerName='analytics-vane'
@@ -125,4 +128,39 @@ test('owner connects an existing installation Worker with narrow idempotent Clou
  assert.equal(JSON.stringify(a.sentMail).includes(token),false)
  assert.ok(a.egress.filter(url=>url.startsWith('https://api.cloudflare.com')).every(url=>url.startsWith('https://api.cloudflare.com/client/v4/')&&!url.includes(token)))
  assert.equal(inspect(logs.flatMap(log=>log.mock.calls.map(call=>call.arguments)),{depth:null}).includes(token),false,'provider response text and thrown errors cannot leak the token into application/runtime logs')
+ // Finish the owner’s same-account setup through the built settings form too.
+ const browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']});t.after(()=>browser.close());
+ const context=await browser.newContext();
+ await context.addCookies(a.owner.split('; ').map(pair=>{const i=pair.indexOf('=');return {name:pair.slice(0,i),value:pair.slice(i+1),url:a.origin}}));
+ await context.route('**/*',async route=>{
+  const request=route.request(),url=new URL(request.url());assert.equal(url.origin,a.origin);
+  const response=await a.request(url.pathname+url.search,{method:request.method(),headers:request.headers(),body:request.postDataBuffer()??undefined});
+  await route.fulfill({status:response.status,headers:Object.fromEntries(response.headers),body:Buffer.from(await response.arrayBuffer())});
+ });
+ const page=await context.newPage(),settings=`${a.origin}/app/sites/${siteId}?section=settings`;
+ await page.goto(settings);
+ const createForm=page.locator('form').filter({has:page.locator('input[name="operation"][value="proxy.create"]')});
+ await createForm.locator('[name="publicPrefix"]').fill('/browser-worker');await createForm.locator('[name="mode"]').selectOption('worker');
+ await createForm.getByRole('button',{name:'Create connection',exact:true}).click();
+ const row=()=>page.locator('li').filter({has:page.getByRole('heading',{name:hostname+'/browser-worker',exact:true})});
+ await row().locator('summary').click();
+ const capture=async(state)=>{
+  for(const width of [1440,390]){
+   await page.setViewportSize({width,height:1000});await row().evaluate(el=>el.scrollIntoView({block:'start'}));
+   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+   if(process.env.VANE_SCREEN_DIR){await mkdir(process.env.VANE_SCREEN_DIR,{recursive:true});await page.screenshot({path:join(process.env.VANE_SCREEN_DIR,`proxy-cloudflare-${state}-${width}.png`)});}
+  }
+ };
+ await capture('prepared');
+ await row().getByLabel('Cloudflare account ID').fill(accountId);await row().getByLabel('Cloudflare zone ID').fill(zoneId);await row().getByLabel('One-use Cloudflare token').fill(token);
+ await row().getByRole('button',{name:'Connect Cloudflare',exact:true}).click();
+ await row().locator('summary').click();
+ const configured=await read(await a.request(endpoint+'?siteId='+siteId,{headers:{cookie:a.owner}}));
+ const browserConnection=configured.find(item=>item.publicPrefix==='/browser-worker');
+ assert.equal(browserConnection.provider.kind,'route');assert.equal(browserConnection.provider.connectedBy,connection.createdBy);
+ assert.ok(cf.state.routes.some(route=>route.pattern===hostname+'/browser-worker/*'&&route.script===workerName));
+ assert.equal(await row().getByLabel('One-use Cloudflare token').inputValue(),'','the submitted transient token is absent after redirect');
+ assert.equal((await page.content()).includes(token),false);await capture('connected');
+ assert.equal(JSON.stringify(await a.dump()).includes(token),false);assert.equal(JSON.stringify(await a.archive()).includes(token),false);
+
 })
