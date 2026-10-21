@@ -81,9 +81,13 @@ limited to 128 MiB. It publishes no analytics. The **Import scale** workflow
 runs it for relevant candidate changes and supports manual runs.
 
 `IMPORT-006` remains partial: interrupted publication of two million Umami rows
-and matching published totals are still unproven. The current apply path commits
-at most 20 entries per request, so two million distinct rows require at least
-100,000 apply requests. Preview scale is not publication scale.
+and matching published totals are still unproven. Publication now lets the import engine gather up to 100 entries per batch,
+ending earlier when its measured D1 request budget requires it. Planning,
+reviewed fingerprints, authority fences, journal and undo are unchanged. The
+public-door fixture publishes 1,003 distinct Umami rows in 13 apply requests,
+including an interrupted response and a completed repeat; the former 20-entry
+cap required at least 51 requests for those rows. This fixture is not a
+two-million-row publication proof. Preview scale is not publication scale.
 
 ## Google Analytics source documents
 

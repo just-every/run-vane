@@ -63,7 +63,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "5253bc313c7cacb4c979a886bc1f071a8ec184a6efad7995457843c686a9efb2",
+      "sha256": "f5fce6fdffc9bd038d695f89b479a2f558f8b2a5413798a3a5d706d8ce007cc3",
       "executable": false
     },
     "AGENTS.md": {
@@ -95,7 +95,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "0c254e1319a0cd25eec176589ecf2a5ffaa0f19626ac6d362e777980d3af718e",
+      "sha256": "b45e7ec9c40230c9b183ae6a1d559dcd87c6d5675605d27a5a9ed3a67dc42aec",
       "executable": false
     },
     "DEMO.md": {
@@ -131,7 +131,7 @@
       "executable": false
     },
     "docs/history.md": {
-      "sha256": "106ed552213719102eabba04d4067a3e1d233181825e4b0e5dcf6af4098062f6",
+      "sha256": "3e445c8c8fe7c477cbd6d006a680e5fe89469e34e5d75422b57eb1d761b3213e",
       "executable": false
     },
     "docs/umami-import.md": {
