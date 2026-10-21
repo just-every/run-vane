@@ -1,19 +1,17 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { spawn, execFile } from 'node:child_process'
-import { once } from 'node:events'
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { execFile } from 'node:child_process'
+import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { createServer as httpServer } from 'node:http'
 import { createServer as httpsServer } from 'node:https'
 import { tmpdir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { join } from 'node:path'
 import { Readable } from 'node:stream'
 import { setTimeout as delay } from 'node:timers/promises'
 import { promisify } from 'node:util'
-import { chromium } from '@playwright/test'
 import { build } from 'esbuild'
 import { installation } from './harness.mjs'
-import { extensionState, extensionStartup } from './extension-state.mjs'
+import { chrome } from './extension-chrome.mjs'
 
 // Explicit Linux journey, outside push Verify. Supply the official Chrome 138
 // executable and unpacked uBlock Origin MV2 release (see proxy-blocker.yml).
@@ -63,66 +61,6 @@ function handler(fn) {
   }
 }
 
-async function chrome(t, scratch) {
-  assert.ok(process.env.CHROMIUM_EXECUTABLE_PATH, 'Set CHROMIUM_EXECUTABLE_PATH to the official Chrome 138 Linux executable')
-  assert.ok(process.env.UBLOCK_EXTENSION_PATH, 'Set UBLOCK_EXTENSION_PATH to the unpacked official uBlock Origin MV2 extension')
-  const extension = resolve(process.env.UBLOCK_EXTENSION_PATH)
-  const manifest = JSON.parse(await readFile(join(extension, 'manifest.json'), 'utf8'))
-  assert.equal(manifest.manifest_version, 2, 'This journey requires real blocking webRequest support from uBlock Origin MV2')
-  assert.ok(manifest.permissions.includes('webRequestBlocking'))
-  const profile = join(scratch, 'chrome-profile')
-  const child = spawn(process.env.CHROMIUM_EXECUTABLE_PATH, [
-    '--headless=new', '--enable-logging=stderr', '--log-level=0', '--remote-debugging-port=0', '--remote-debugging-address=127.0.0.1',
-    '--user-data-dir=' + profile, '--load-extension=' + extension, '--disable-extensions-except=' + extension,
-    '--enable-features=AllowLegacyMV2Extensions',
-    '--disable-features=ExtensionManifestV2Unsupported,ExtensionManifestV2Disabled,ExtensionManifestV2DeprecationWarning,DisableLoadExtensionCommandLineSwitch',
-    '--password-store=basic', '--no-first-run', '--no-default-browser-check',
-    '--no-sandbox', '--disable-dev-shm-usage', '--ignore-certificate-errors', '--no-proxy-server',
-    '--host-resolver-rules=MAP ' + hostname + ' 127.0.0.1,MAP ' + trackerHostname + ' 127.0.0.1',
-    '--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
-    'about:blank',
-  // Chrome's ProcessSingleton UNIX socket must fit Linux's 108-byte pathname limit.
-  ], { env: {...process.env,TMPDIR:'/tmp'}, stdio: ['ignore', 'ignore', 'pipe'] })
-  let stderr = '', fullStderr = '', launchError, browser
-  child.stderr.on('data', bytes => { fullStderr += bytes.toString(); stderr = fullStderr.slice(-8192) })
-  child.on('error', error => { launchError = error })
-  t.after(async () => {
-    try { await browser?.close() }
-    finally {
-      if (process.env.VANE_BLOCKER_LOG) await writeFile(process.env.VANE_BLOCKER_LOG, fullStderr);
-      if (child.exitCode === null && child.signalCode === null && child.pid) {
-        child.kill('SIGTERM')
-        await Promise.race([once(child, 'exit'), delay(5000, undefined, { ref: false })])
-        if (child.exitCode === null && child.signalCode === null) {
-          child.kill('SIGKILL')
-          await once(child, 'exit')
-        }
-      }
-    }
-  })
-  let port
-  const deadline = Date.now() + 30_000
-  while (Date.now() < deadline) {
-    if (launchError) throw launchError
-    assert.equal(child.exitCode, null, 'Chrome exited before CDP was ready: ' + stderr)
-    assert.equal(child.signalCode, null, 'Chrome stopped before CDP was ready: ' + stderr)
-    try {
-      port = Number((await readFile(join(profile, 'DevToolsActivePort'), 'utf8')).split('\n')[0])
-      if (port) break
-    } catch (error) { if (error.code !== 'ENOENT') throw error }
-    await delay(100)
-  }
-  assert.ok(port, 'Chrome must expose its own ephemeral CDP port: ' + stderr)
-  await extensionStartup(port)
-  browser = await chromium.connectOverCDP('http://127.0.0.1:' + port)
-  const context = browser.contexts()[0]
-  assert.ok(context, 'Use the fresh Chrome default context where the extension is installed')
-  const filters = await extensionState(port,context)
-  t.after(()=>filters.close())
-  const {selected,netFilterCount} = await filters.read()
-  t.diagnostic('Chrome ' + browser.version() + '; uBlock Origin ' + manifest.version + '; active network filters: '+netFilterCount+'; default lists: ' + selected.join(', '))
-  return { context, filters, selected }
-}
 
 test('INSTALL-006: default uBlock Origin/EasyPrivacy blocks unproxied Vane before the real first-party tracker collects', {
   skip: process.platform !== 'linux' ? 'Linux-only Chrome MV2 journey; run the manual proxy-blocker workflow' : false,
@@ -139,7 +77,7 @@ test('INSTALL-006: default uBlock Origin/EasyPrivacy blocks unproxied Vane befor
   // Chrome owns only this fresh profile. Its after-hook must finish before the
   // enclosing cleanup removes it, so register its cleanup with this same stack.
   const browserHooks = { after: close => cleanup.push(close), diagnostic: message => t.diagnostic(message) }
-  const { context, filters, selected } = await chrome(browserHooks, scratch)
+  const { context, filters, selected } = await chrome(browserHooks, scratch, hostname, trackerHostname)
   const key = join(scratch, 'site.key'), cert = join(scratch, 'site.crt')
   await execute('openssl', ['req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-days', '1',
     '-subj', '/CN=' + hostname, '-addext', 'subjectAltName=DNS:' + hostname + ',DNS:' + trackerHostname, '-keyout', key, '-out', cert])
