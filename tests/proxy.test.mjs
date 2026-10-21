@@ -7,7 +7,7 @@ import { installation } from './harness.mjs'
 
 const userAgent='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36'
 const json=async r=>{assert.equal(r.status,200);return r.json()}
-test('owner first-party proxy setup keeps every tracker door, regional consent, transport coverage, credential revocation and browser requests within the declared boundary',async t=>{
+test('owner first-party proxy setup verifies installation and keeps every tracker door, regional consent, transport coverage, credential revocation and browser requests within the declared boundary',async t=>{
  const a=await installation();t.after(()=>a.close())
  const origin='https://synthetic-vane-1.test',now=Date.parse('2026-10-05T12:00:00Z');await a.clock(now)
  const id=await a.addSite({name:'synthetic-vane-1',origin,paths:[],goals:{purchase:'/thanks'},autoEvents:['outbound'],signalCounter:true,declinedCounter:true,experiments:[{name:'checkout',page:'/pricing',goal:'purchase',variants:['control','alternative']}]})
@@ -39,6 +39,11 @@ test('owner first-party proxy setup keeps every tracker door, regional consent, 
  assert.equal((await a.request(`/api/vane/proxy/${regionalProxy.connection.id}/declined/${regional}`,{method:'POST',headers:{...headers,origin:regionalOrigin,authorization:'Bearer '+regionalProxy.credential},body:''})).status,202)
  const query=`siteId=${id}&from=2026-10-05&to=2026-10-06`,report=await json(await a.request('/api/vane/summary?'+query,{headers:{cookie:a.owner}}))
  assert.deepEqual([report.transport.proxy,report.transport.direct,report.transport.unknown,report.transport.total],[1,1,0,2]);assert.equal(report.transport.proxyShare,50)
+ const statsKey=(await (await a.form({operation:'apikey.create',kind:'stats',label:'synthetic-vane-1',[`site_${id}`]:'on'},a.owner)).text()).match(/data-api-key>(vane_k_[0-9a-f]{64})</)[1],statsAuth={authorization:'Bearer '+statsKey}
+ const stats=await json(await a.request(`/api/v1/stats?site_id=${id}&from=2026-10-05&to=2026-10-06&metrics=pageviews`,{headers:statsAuth}))
+ assert.deepEqual(stats.transport,report.transport,'Stats API transport aggregates match the signed-in report')
+ const compatible=await json(await a.request('/api/v2/query',{method:'POST',headers:{...statsAuth,'content-type':'application/json'},body:JSON.stringify({site_id:id,metrics:['pageviews'],date_range:['2026-10-05','2026-10-05']})}))
+ assert.deepEqual(compatible.meta.transport,report.transport,'the compatible Stats API uses the same native denominator')
  const csv=await a.request('/api/vane/csv?'+query+'&table=transportCoverage',{headers:{cookie:a.owner}});assert.equal(csv.status,200);assert.match(await csv.text(),/First-party proxy,1,50/)
  const dump=await a.dump(),event=dump.vane_events.find(e=>e.id===id+':'+page.id)
  assert.equal(event.country,'United States');assert.equal(event.city,'San José');assert.equal(event.transport,'proxy')
@@ -62,6 +67,31 @@ test('owner first-party proxy setup keeps every tracker door, regional consent, 
  })
  const tab=await context.newPage(),accepted=tab.waitForResponse(r=>new URL(r.url()).pathname==='/insights/collect'&&r.status()===202);await tab.goto(origin+'/pricing');await accepted
  assert.ok(seen.includes('script.js')&&seen.includes('config/'+id)&&seen.includes('collect'));assert.ok(seen.every(s=>!s.startsWith('api/vane')))
+ const proxyScript=(src=origin+'/insights/script.js',api='/insights',siteId=id)=>`<script defer src="${src}" data-site="${siteId}"${api===null?'':` data-api="${api}"`}></script>`
+ const directScript=siteId=>`<script defer src="${a.origin}/vane.js" data-site="${siteId}"></script>`
+ let homepageScripts=directScript(regional)+proxyScript(),homepagePolicy="default-src 'self'"
+ a.fixtureSites[origin]=()=>new Response(`<!doctype html><title>synthetic-vane-1</title>${homepageScripts}`,{headers:{'content-type':'text/html','content-security-policy':homepagePolicy}})
+ const homepageAccepted=tab.waitForResponse(r=>new URL(r.url()).pathname==='/insights/collect'&&r.status()===202);await tab.goto(origin+'/');await homepageAccepted
+ const verify=async(cookie=a.owner)=>json(await a.post('/api/vane/install-check',{siteId:id},cookie))
+ assert.equal((await a.post('/api/vane/install-check',{siteId:id})).status,401)
+ assert.equal((await verify()).state,'verified','the matching proxy script verifies with a self-only CSP even when another site script appears first')
+ assert.equal((await verify(admin)).state,'verified','admins retain installation-check access without proxy-management access')
+ homepagePolicy=`script-src 'self'; connect-src ${a.origin}`
+ assert.equal((await verify()).cause,'csp_blocked','connect-src must permit the selected proxy origin')
+ homepagePolicy="default-src 'self'"
+ for(const api of [null,'/wrong']){
+  homepageScripts=proxyScript(undefined,api)
+  assert.equal((await verify()).cause,'proxy_api_mismatch','the tracker needs the registered data-api prefix')
+ }
+ for(const src of [origin+'/unregistered/script.js',regionalOrigin+'/regional/script.js']){
+  homepageScripts=proxyScript(src)
+  assert.equal((await verify()).cause,'script_missing','only this site’s registered hostname and prefix can verify')
+ }
+ homepageScripts=proxyScript(undefined,undefined,regional)
+ assert.equal((await verify()).cause,'wrong_site_id')
+ homepageScripts=directScript(id);homepagePolicy=`script-src ${a.origin}; connect-src ${a.origin}`
+ assert.equal((await verify()).state,'verified','the existing direct installation still verifies')
+ homepageScripts=directScript(regional)+proxyScript();homepagePolicy="default-src 'self'"
  for(const width of [1440,390]){
   await tab.setViewportSize({width,height:1000});await tab.goto(`${a.origin}/app/sites/${id}?section=settings&proxyId=${c.id}&proxyPlatform=nextjs`)
   await tab.getByRole('heading',{name:'First-party proxy',exact:true}).evaluate(el=>el.scrollIntoView({block:'start'}));await tab.evaluate(()=>scrollBy(0,-80))
@@ -69,8 +99,14 @@ test('owner first-party proxy setup keeps every tracker door, regional consent, 
   if(process.env.VANE_SCREEN_DIR){await mkdir(process.env.VANE_SCREEN_DIR,{recursive:true});await tab.screenshot({path:join(process.env.VANE_SCREEN_DIR,`proxy-settings-${width}.png`)})}
   await tab.goto(`${a.origin}/app/sites/${id}?from=2026-10-05&to=2026-10-06`);await tab.getByRole('heading',{name:'Coverage and collection limits',exact:true}).evaluate(el=>el.scrollIntoView({block:'start'}));await tab.evaluate(()=>scrollBy(0,-80))
   if(process.env.VANE_SCREEN_DIR)await tab.screenshot({path:join(process.env.VANE_SCREEN_DIR,`proxy-coverage-${width}.png`)})
+  await tab.locator('dt').filter({hasText:/^First-party proxy$/}).evaluate(el=>el.nextElementSibling.scrollIntoView({block:'center'}))
+  if(process.env.VANE_SCREEN_DIR)await tab.screenshot({path:join(process.env.VANE_SCREEN_DIR,`proxy-share-${width}.png`)})
  }
+ await tab.goto(a.origin+'/methodology#proxy-coverage')
+ assert.equal(await tab.locator('p#proxy-coverage').isVisible(),true,'the public methodology exposes the proxy-share definition anchor')
  const rotated=await json(await a.post(path,{operation:'proxy.rotate',siteId:id,connectionId:c.id},a.owner));assert.notEqual(rotated.credential,credential);assert.equal((await call('script.js')).status,401)
  assert.equal((await a.post(path,{operation:'proxy.revoke',siteId:id,connectionId:c.id},a.owner)).status,200)
  assert.equal((await call('script.js',undefined,{authorization:'Bearer '+rotated.credential})).status,401)
+ homepageScripts=proxyScript()
+ assert.equal((await verify()).cause,'script_missing','revoked proxy connections cannot verify')
 })

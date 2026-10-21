@@ -1,4 +1,4 @@
-import { role, site, type Actor, type Env, type Site } from './core'
+import { role, rows, site, type Actor, type Env, type Site } from './core'
 import { pathAllowed, storedPath } from './paths'
 // Verify installation (INSTALL-001): load the site's homepage server-side, find this
 // installation's script and name the exact cause of any failure, then wait up to
@@ -40,13 +40,25 @@ export async function verifyInstallation(env:Env,actor:Actor,siteId:string,waitM
  if(!loaded.response.ok)return fail('unreachable',`The homepage ${page.href} answered ${loaded.response.status}.`);
  if(![value.origin,...(value.config.origins??[])].includes(page.origin))return fail('origin_mismatch',`The homepage moved to ${page.origin}, but this site is registered for ${value.origin}. Events from ${page.origin} are refused; register that origin instead.`);
  const html=await loaded.response.text();
- const scripts=[...html.matchAll(/<script\b[^>]*>/gi)].map(m=>m[0]).flatMap(tag=>{const src=attribute(tag,'src');if(!src)return[];try{const url=new URL(src,page);return url.origin===installation&&url.pathname==='/vane.js'?[{tag,url}]:[]}catch{return[]}});
+ const connections=await rows<{hostname:string;public_prefix:string}>(env,'SELECT hostname,public_prefix FROM vane_proxy_connections WHERE site_id=? AND site_origin=? AND revoked_at IS NULL',value.id,page.origin);
+ const scripts=[...html.matchAll(/<script\b[^>]*>/gi)].map(m=>m[0]).flatMap(tag=>{
+  const src=attribute(tag,'src');if(!src)return[];
+  try {
+   const url=new URL(src,page),direct=url.origin===installation&&url.pathname==='/vane.js';
+   const proxy=connections.find(connection=>url.hostname===connection.hostname&&url.pathname===connection.public_prefix+'/script.js'&&/^https?:$/.test(url.protocol));
+   return direct||proxy?[{tag,url,proxy}]:[];
+  }catch{return[]}
+ });
  if(!scripts.length)return fail('script_missing',`No script from ${installation}/vane.js was found on ${page.href}. Add the snippet from these settings.`);
  const ids=scripts.map(script=>attribute(script.tag,'data-site')??'');
  if(!ids.includes(value.id))return fail('wrong_site_id',`The script on ${page.href} names site ID ${ids.map(id=>`"${id}"`).join(', ')}, not ${value.id}. Copy the snippet again from these settings.`);
+ const matching=scripts.filter(script=>attribute(script.tag,'data-site')===value.id);
+ const selected=matching.find(script=>!script.proxy||attribute(script.tag,'data-api')===script.proxy.public_prefix);
+ if(!selected)return fail('proxy_api_mismatch',`The proxy script on ${page.href} must set data-api to its registered public path prefix. Copy the snippet again from these settings.`);
+ const collection=selected.url.origin;
  for(const policy of policies(loaded.response,html)) {
-  if(!allows(policy,['script-src-elem','script-src','default-src'],scripts[0]!.url,page))return fail('csp_blocked',`The page's Content Security Policy does not allow scripts from ${installation}. Add it to script-src.`);
-  if(!allows(policy,['connect-src','default-src'],new URL(installation),page))return fail('csp_blocked',`The page's Content Security Policy does not allow connections to ${installation}. Add it to connect-src.`);
+  if(!allows(policy,['script-src-elem','script-src','default-src'],selected.url,page))return fail('csp_blocked',`The page's Content Security Policy does not allow scripts from ${collection}. Add it to script-src.`);
+  if(!allows(policy,['connect-src','default-src'],new URL(collection),page))return fail('csp_blocked',`The page's Content Security Policy does not allow connections to ${collection}. Add it to connect-src.`);
  }
  const path=storedPath(value.config,page.pathname);
  if(!pathAllowed(value.config,path))return fail('path_excluded',`The homepage path ${page.pathname} is left out by this site's include or exclude paths, so its page loads are not collected.`);
