@@ -5,7 +5,7 @@ import { readFile, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from '@playwright/test'
-import { extensionState, extensionInitialInstall } from './extension-state.mjs'
+import { extensionState, extensionStartup } from './extension-state.mjs'
 
 export async function chrome(t, scratch, hostname, trackerHostname) {
   assert.ok(process.env.CHROMIUM_EXECUTABLE_PATH, 'Set CHROMIUM_EXECUTABLE_PATH to the official Chrome 138 Linux executable')
@@ -19,7 +19,7 @@ export async function chrome(t, scratch, hostname, trackerHostname) {
     '--headless=new', '--enable-logging=stderr', '--log-level=0', '--vmodule=extension_registrar=2,unpacked_installer=2,manifest_v2_experiment_manager=2', '--remote-debugging-port=0', '--remote-debugging-address=127.0.0.1',
     '--user-data-dir=' + profile, '--load-extension=' + extension, '--disable-extensions-except=' + extension,
     '--enable-features=AllowLegacyMV2Extensions',
-    '--disable-features=ExtensionManifestV2Unsupported,ExtensionManifestV2Disabled,ExtensionManifestV2DeprecationWarning,DisableLoadExtensionCommandLineSwitch',
+    '--disable-features=ExtensionManifestV2Unsupported,ExtensionManifestV2Disabled,ExtensionManifestV2DeprecationWarning,DisableLoadExtensionCommandLineSwitch,ExtensionDisableUnsupportedDeveloper',
     '--password-store=basic', '--no-first-run', '--no-default-browser-check',
     '--no-sandbox', '--disable-dev-shm-usage', '--ignore-certificate-errors', '--no-proxy-server',
     '--host-resolver-rules=MAP ' + hostname + ' 127.0.0.1,MAP ' + trackerHostname + ' 127.0.0.1',
@@ -56,13 +56,10 @@ export async function chrome(t, scratch, hostname, trackerHostname) {
     }
     assert.fail('Chrome must expose its own ephemeral CDP port: '+stderr)
   }
-  let port=await launch()
-  // Install once into this journey's empty profile. The command-line unpacked
-  // extension unloads on its normal first-install reload; reopen the same owned
-  // profile after that observed phase. No preferences or filter lists are set.
-  await extensionInitialInstall(port)
-  await stop()
-  port=await launch()
+  const port=await launch()
+  // The developer-extension exemption permits uBlock’s normal unpacked reload
+  // within this process. Its default settings and lists remain unchanged.
+  await extensionStartup(port)
   browser = await chromium.connectOverCDP('http://127.0.0.1:' + port)
   const context = browser.contexts()[0]
   assert.ok(context, 'Use the fresh Chrome default context where the extension is installed')

@@ -39,13 +39,8 @@ export async function extensionState(port,context) {
  return {read,page,close:()=>page.close()};
 }
 
-// Observe the first-install extension unload without attaching its debugger.
-export async function extensionInitialInstall(port) {
- const first=await background(port),deadline=Date.now()+30000;
- while(Date.now()<deadline){
-  const targets=await(await fetch('http://127.0.0.1:'+port+'/json/list')).json();
-  if(!targets.some(target=>target.id===first.id))return;
-  await delay(100);
- }
- assert.fail('uBlock must finish its normal first-install reload');
+// Observe the fresh profile's normal first-install reload before autoattach.
+export async function extensionStartup(port) {
+ const first=await background(port);
+ await background(port,first.id);
 }
