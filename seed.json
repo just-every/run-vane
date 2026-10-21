@@ -26,9 +26,10 @@
     {
       "id": "cloudflare",
       "required": true,
-      "why": "Worker hosting",
+      "why": "Workers/D1 hosting and explicit owner-initiated first-party proxy route or dedicated-domain setup (INSTALL-006)",
       "data": [
-        "HTTP requests"
+        "HTTP requests",
+        "One-use owner token, account/zone IDs, existing Worker name and chosen hostname/path sent only to the fixed Cloudflare API; resource configuration returned, no visitor rows"
       ],
       "adapters": []
     },
