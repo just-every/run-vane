@@ -43,6 +43,10 @@ test('DASH-005 COLLECT-003 PRIVACY-003 US metro codes keyed on the code with unn
  assert.deepEqual(metroFigures(report.metros),expected,'US loads only, keyed on the code, with the selected goal and the compared period')
  assert.ok(report.metros.filter(r=>r.metro_code).every(r=>r.label.includes(r.metro_code)&&r.metro_name===null),'an unnamed code is labelled by its code, never by a guessed name')
  assert.match(report.metros[3].label,/unknown metro area/i);assert.equal(report.visitors,27)
+ const us=report.countries.find(r=>r.label==='United States')
+ assert.equal(report.metros.reduce((sum,r)=>sum+r.visits,0),us.visits,'DASH-005: coded and Unknown metro rows sum to all US visits before public folding')
+ assert.equal(report.metros.reduce((sum,r)=>sum+r.visitors,0),us.visitors,'DASH-005: no non-US or unknown-country visitor enters the US metro table')
+ assert.equal(report.metros.find(r=>r.metro_code===null).visits,2,'DASH-005: both US loads without a valid metro code remain in the explicit Unknown metro row')
  assert.equal(report.countries.find(r=>r.label==='Unknown location')?.visitors,3,'loads without geolocation stay in the Unknown location row')
  assert.equal(Object.hasOwn(report,'metroPlaces'),false,'the observed place never leaves through the summary door')
  // Filters, saved segments and movers key on the code.
