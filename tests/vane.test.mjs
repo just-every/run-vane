@@ -300,7 +300,7 @@ test('METRIC-001 unique visitors are distinct daily salted hashes summed over da
  await visit(id,'https://fern.example',people[0]);await visit(id,'https://fern.example',people[1]);await visit(other,'https://oak.example',people[0])
  const summary=async query=>(await a.request(`/api/vane/summary?siteId=${id}${query}`,owner)).json()
  for(const day of [first,second])assert.equal((await summary(`&from=${day}&to=${next(day)}`)).visitors,2,day)
- const range=await summary('');assert.deepEqual([range.to,range.visitors,range.pageviews],[next(second),4,5]);assert.match(range.explanation,/Unique visitors: 4, previously 0, each the sum of daily uniques/)
+ const range=await summary('');assert.deepEqual([range.to,range.visitors,range.previousVisitors,range.pageviews],[next(second),4,0,5])
  const hashes=day=>new Set(rows.filter(r=>r.site_id===id&&r.day===day&&r.kind==='pageview').map(r=>r.visitor)),rows=(await a.archive()).payload.tables.vane_events
  assert.deepEqual([hashes(first).size,hashes(second).size,new Set([...hashes(first),...hashes(second)]).size],[2,2,4],'a visitor cannot be followed across days')
  const elsewhere=rows.find(r=>r.site_id===other).visitor;assert.ok(rows.filter(r=>r.site_id===id).every(r=>r.visitor!==elsewhere),'the same visitor hashes differently on another site')
