@@ -14,7 +14,7 @@ interface Settings { bindings?:{type:string;name:string;text?:string}[] }
 async function provider<T>(token:string,path:string,method='GET',body?:unknown):Promise<T> {
  let response:Response
  try {
-  response=await fetch(API+path,{method,redirect:'error',signal:AbortSignal.timeout(15000),headers:{authorization:'Bearer '+token,'content-type':'application/json'},...(body===undefined?{}:{body:JSON.stringify(body)})})
+  response=await fetch(API+path,{method,redirect:'manual',signal:AbortSignal.timeout(15000),headers:{authorization:'Bearer '+token,'content-type':'application/json'},...(body===undefined?{}:{body:JSON.stringify(body)})})
  }catch{throw new VaneError('proxy_cloudflare','Cloudflare could not be reached. Check the account permissions and try again.',502)}
  let answer:any
  try{answer=await response.json()}catch{throw new VaneError('proxy_cloudflare','Cloudflare returned an unreadable response.',502)}
