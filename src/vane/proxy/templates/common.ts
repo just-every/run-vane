@@ -28,6 +28,6 @@ export function validateSetup(input: ProxySetupInput) {
  for (const id of [input.connectionId,input.siteId]) if (!/^[a-zA-Z0-9_-]+$/.test(id)) throw new Error('Invalid proxy identifier')
  for (const origin of [input.installationOrigin,input.siteOrigin,...(input.publicOrigin?[input.publicOrigin]:[])]) {
   const url = new URL(origin)
-  if (url.origin !== origin || url.protocol !== 'https:') throw new Error('Setup requires bare HTTPS origins')
+  if (url.origin !== origin || !(url.protocol==='https:'||url.protocol==='http:'&&['localhost','127.0.0.1','[::1]'].includes(url.hostname))) throw new Error('Setup requires bare HTTPS origins, or local development origins')
  }
 }

@@ -36,5 +36,5 @@ export function generateProxySetup(input: ProxySetupInput): ProxySetup {
   default: throw new Error('Unsupported proxy platform')
  }
  const base=(input.publicOrigin??'')+input.publicPrefix
- return {files:[adapterFile(),...files],instructions:instructions+' '+credential,scriptTag:`<script defer src="${base}/script.js" data-site="${input.siteId}" data-api="${base}"></script>`}
+ return {files:[adapterFile(),...files],instructions:instructions+' '+credential,scriptTag:`<script defer src="${base}/script.js" data-site="${input.siteId}" data-api="${input.publicPrefix}"></script>`}
 }

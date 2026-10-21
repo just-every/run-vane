@@ -18,5 +18,5 @@ export async function proxySetup(env:Env,actor:Actor,siteId:string,connectionId:
  insist(connection,'proxy_connection','Choose an active connection.',404)
  insist(connection.mode==='external','proxy_mode','A same-Worker connection uses the Cloudflare route or custom domain.')
  insist(['nextjs','vercel','netlify','cloudflare','nginx','apache'].includes(platform),'proxy_platform','Choose a supported server platform.')
- return generateProxySetup({installationOrigin:env.AUTH_ORIGIN,connectionId,siteId,siteOrigin:connection.siteOrigin,publicPrefix:connection.publicPrefix,platform:platform as any})
+ return generateProxySetup({installationOrigin:env.AUTH_ORIGIN,connectionId,siteId,siteOrigin:connection.siteOrigin,...(connection.hostname!==new URL(connection.siteOrigin).hostname?{publicOrigin:'https://'+connection.hostname}:{}),publicPrefix:connection.publicPrefix,platform:platform as any})
 }

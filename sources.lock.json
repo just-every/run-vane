@@ -3099,15 +3099,15 @@
       "executable": false
     },
     "src/vane/proxy/management.ts": {
-      "sha256": "c989e8063c2c76d5911e2c3e39afd9220b1804d68c163bff32ad407a826ae6e6",
+      "sha256": "74a9af5256403efcbe38b57af7993ac66e48d72c11785d56896af991c0aa410d",
       "executable": false
     },
     "src/vane/proxy/templates.ts": {
-      "sha256": "07e4b4757eab072da2b0982dcc065f20e25cfd23feffd9c22761e6f1af5e623b",
+      "sha256": "8d1f83814255ce626c804cea9d8b67b9c192480610ed60f16b8f0410ffee8652",
       "executable": false
     },
     "src/vane/proxy/templates/common.ts": {
-      "sha256": "a1069b855f351e36e740df5e4edd4367043ac113f0c64f18e5301c9b7598a9ca",
+      "sha256": "7fa393375492cbd3f319a72872e336c1dab7d6bf3794baa76619bdda77584036",
       "executable": false
     },
     "src/vane/proxy/templates/ingress.ts": {
@@ -3247,7 +3247,7 @@
       "executable": false
     },
     "src/vane/tracker.ts": {
-      "sha256": "d27f7d3e3732c61b6175c333ec578f110f93cf2b5769b0495e7e62cc7f593258",
+      "sha256": "5c78f06f9c8509b4ba9d0305db0423c1b2b0194e4066bd77738118e359a53434",
       "executable": false
     },
     "src/vane/tracking-health.ts": {
@@ -3611,7 +3611,7 @@
       "executable": false
     },
     "tests/proxy-adapters.test.mjs": {
-      "sha256": "0124d4d229823e2fac37430c6f866861ab95aeef070215cc0d4ccc92a661cce6",
+      "sha256": "110bae1d4e54600505cf3fd99aa81f2486656d175c4695ea60223a2fd37491c7",
       "executable": false
     },
     "tests/proxy.test.mjs": {

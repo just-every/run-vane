@@ -10,8 +10,8 @@ const bundled = await build({entryPoints:['src/vane/proxy/templates.ts','src/van
 const moduleFor = name => load(bundled.outputFiles.find(f=>f.path.endsWith('/'+name+'.js')).text)
 const { createVaneProxy } = await moduleFor('adapter')
 const { generateProxySetup } = await moduleFor('templates')
-const credential='synthetic-proxy-credential-only'
-const defaults={connectionId:'synthetic-connection-1',siteId:'synthetic-site-1',siteOrigin:'https://synthetic-site.example',publicPrefix:'/insights'}
+const credential='synthetic-vane-1'
+const defaults={connectionId:'synthetic-vane-2',siteId:'synthetic-vane-3',siteOrigin:'https://synthetic-vane-4.test',publicPrefix:'/insights'}
 const visitor={ip:'198.51.100.41',country:'AU',region:'QLD',city:'Brisbané東京'}
 const serve=async handler=>{
  const server=createServer(handler)
@@ -33,7 +33,7 @@ async function upstreamFixture(t) {
  t.after(server.close)
  return {...server,received,setMode:value=>{mode=value}}
 }
-const request = (suffix,method='GET',body,extra={}) => new Request('https://synthetic-site.example/insights/'+suffix,{method,headers:{origin:defaults.siteOrigin,'user-agent':'Synthetic visitor',...(body===undefined?{}:{'content-type':'application/json'}),...extra},body})
+const request = (suffix,method='GET',body,extra={}) => new Request('https://synthetic-vane-4.test/insights/'+suffix,{method,headers:{origin:defaults.siteOrigin,'user-agent':'Synthetic visitor',...(body===undefined?{}:{'content-type':'application/json'}),...extra},body})
 
 test('server proxy forwards every public tracker door over HTTP and strips untrusted identity and credentials',async t=>{
  const upstream=await upstreamFixture(t)
@@ -81,7 +81,7 @@ test('proxy refuses unsupported doors, untrusted visitors, oversized streaming b
  assert.equal((await proxy(request('collect','POST','{}',{'content-encoding':'gzip'}),visitor)).status,415)
  assert.equal((await proxy(request('collect','POST','x'.repeat(65537)),visitor)).status,413)
  const stream=new ReadableStream({start(controller){controller.enqueue(new Uint8Array(35000));controller.enqueue(new Uint8Array(35000));controller.close()}})
- assert.equal((await proxy(new Request('https://synthetic-site.example/insights/collect',{method:'POST',body:stream,duplex:'half'}),visitor)).status,413)
+ assert.equal((await proxy(new Request('https://synthetic-vane-4.test/insights/collect',{method:'POST',body:stream,duplex:'half'}),visitor)).status,413)
  assert.equal(upstream.received.length,0)
  for(const mode of ['redirect','echo','large']){upstream.setMode(mode);const response=await proxy(request('script.js'),visitor);assert.equal(response.status,502);assert.equal(response.headers.get('location'),null);assert.equal(await response.text(),'')}
  assert.equal(upstream.received.length,3,'upstream redirect target was never requested')
@@ -93,7 +93,7 @@ test('proxy refuses unsupported doors, untrusted visitors, oversized streaming b
 test('custom collection hosts answer only registered-origin preflights without upstream credentials or data',async t=>{
  const upstream=await upstreamFixture(t)
  const proxy=createVaneProxy({...defaults,installationOrigin:upstream.origin,serverCredential:credential})
- const preflight=(origin=defaults.siteOrigin,headers='content-type',suffix='collect')=>new Request('https://stats.synthetic-site.example/insights/'+suffix,{method:'OPTIONS',headers:{origin,'access-control-request-method':'POST','access-control-request-headers':headers}})
+ const preflight=(origin=defaults.siteOrigin,headers='content-type',suffix='collect')=>new Request('https://stats.synthetic-vane-4.test/insights/'+suffix,{method:'OPTIONS',headers:{origin,'access-control-request-method':'POST','access-control-request-headers':headers}})
  const response=await proxy(preflight(),{})
  assert.equal(response.status,204);assert.equal(response.headers.get('access-control-allow-origin'),defaults.siteOrigin)
  assert.equal(response.headers.get('access-control-allow-credentials'),null)
