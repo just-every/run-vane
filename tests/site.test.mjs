@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { readFile, readdir } from 'node:fs/promises'
-import { resolve, relative, dirname, extname } from 'node:path'
+import { mkdir, readFile, readdir } from 'node:fs/promises'
+import { join, resolve, relative, dirname, extname } from 'node:path'
 import { createServer } from 'node:http'
 
 const root = resolve('dist/site')
@@ -70,8 +70,14 @@ test('DOCS-001 each built guide renders its Markdown code blocks, tables and hea
     const context = await browser.newContext()
     await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: base })
     const page = await context.newPage()
-    for (const guide of ['commands', 'history']) {
+    for (const guide of ['commands', 'history', 'first-party-proxy']) {
       await page.goto(`${base}/docs/${guide}`)
+      if(guide==='first-party-proxy')for(const width of [1440,390]){
+        await page.setViewportSize({width,height:1000});
+        assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+        if(process.env.VANE_SCREEN_DIR){await mkdir(process.env.VANE_SCREEN_DIR,{recursive:true});await page.screenshot({path:join(process.env.VANE_SCREEN_DIR,`proxy-guide-${width}.png`)});}
+      }
+
       const block = page.locator('.docs-code').first()
       await block.getByRole('button', { name: 'Copy' }).click()
       await page.waitForFunction(() => document.querySelector('.docs-copy').textContent === 'Copied')

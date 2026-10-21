@@ -2619,7 +2619,7 @@
       "executable": false
     },
     "src/site/docs/manifest.ts": {
-      "sha256": "26331b06f418455c0f17cd1b969dab23d91ff3e9f42a8218768f25c2e5523c2b",
+      "sha256": "8bda3b4a58ac259f1d71b9acef7c5c4d557f3a1a9034aa38850394724705f376",
       "executable": false
     },
     "src/site/docs/pages.ts": {
@@ -3655,7 +3655,7 @@
       "executable": false
     },
     "tests/proxy.test.mjs": {
-      "sha256": "4919e9290190188b55844a1dc8167e03b70ea4a798512b93190a7b4ca319ee16",
+      "sha256": "899310e40a74afba32d2f45d9489ae96515991096b9fa39d1215690e8a98ac26",
       "executable": false
     },
     "tests/revenue-alert.test.mjs": {
@@ -3667,7 +3667,7 @@
       "executable": false
     },
     "tests/site.test.mjs": {
-      "sha256": "6c1b7d4cd23d490432ee3f207461aadb973171998b2a9ba98801b5366e425198",
+      "sha256": "b0951580f5586ce04178c1dff1a6f3411fe6b89d52a7aba29054e5ddbf0ebeee",
       "executable": false
     },
     "tests/sitemap-scan.test.mjs": {

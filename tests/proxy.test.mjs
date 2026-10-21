@@ -10,7 +10,7 @@ const json=async r=>{assert.equal(r.status,200);return r.json()}
 test('owner first-party proxy setup verifies installation and keeps every tracker door, regional consent, transport coverage, credential revocation and browser requests within the declared boundary',async t=>{
  const a=await installation();t.after(()=>a.close())
  const origin='https://synthetic-vane-1.test',now=Date.parse('2026-10-05T12:00:00Z');await a.clock(now)
- const id=await a.addSite({name:'synthetic-vane-1',origin,paths:[],goals:{purchase:'/thanks'},autoEvents:['outbound'],signalCounter:true,declinedCounter:true,experiments:[{name:'checkout',page:'/pricing',goal:'purchase',variants:['control','alternative']}]})
+ const id=await a.addSite({name:'synthetic-vane-1',origin,paths:[],goals:{purchase:'/thanks'},autoEvents:['outbound'],publicReports:['totals','pages'],signalCounter:true,declinedCounter:true,experiments:[{name:'checkout',page:'/pricing',goal:'purchase',variants:['control','alternative']}]})
  const admin=await a.invite('synthetic-vane-2@example.test','admin'),path='/api/vane/proxy-connections'
  assert.equal((await a.request(path+'?siteId='+id)).status,401)
  assert.equal((await a.post(path,{operation:'proxy.create',siteId:id,hostname:new URL(origin).hostname,mode:'external'},admin)).status,403)
@@ -96,6 +96,15 @@ test('owner first-party proxy setup verifies installation and keeps every tracke
  homepageScripts=directScript(id);homepagePolicy=`script-src ${a.origin}; connect-src ${a.origin}`
  assert.equal((await verify()).state,'verified','the existing direct installation still verifies')
  homepageScripts=directScript(regional)+proxyScript();homepagePolicy="default-src 'self'"
+ const shared=await a.form({operation:'share.create',siteId:id,label:'synthetic-vane-6',share_totals:'on'},a.owner);assert.equal(shared.status,200);
+ const sharePath=(await shared.text()).match(/data-share-url>[^<]*(\/share\/vane_s_[0-9a-f]{64})</)[1];
+ const publicContext=await browser.newContext();
+ await publicContext.route('**/*',async route=>{
+  const request=route.request(),url=new URL(request.url());assert.equal(url.origin,a.origin);
+  const response=await a.request(url.pathname+url.search,{method:request.method(),headers:request.headers(),body:request.postDataBuffer()??undefined});
+  await route.fulfill({status:response.status,headers:Object.fromEntries(response.headers),body:Buffer.from(await response.arrayBuffer())});
+ });
+ const publicTab=await publicContext.newPage();
  for(const width of [1440,390]){
   await tab.setViewportSize({width,height:1000});await tab.goto(`${a.origin}/app/sites/${id}?section=settings&proxyId=${c.id}&proxyPlatform=nextjs`)
   await tab.getByRole('heading',{name:'First-party proxy',exact:true}).evaluate(el=>el.scrollIntoView({block:'start'}));await tab.evaluate(()=>scrollBy(0,-80))
@@ -116,6 +125,17 @@ test('owner first-party proxy setup verifies installation and keeps every tracke
   if(process.env.VANE_SCREEN_DIR)await tab.screenshot({path:join(process.env.VANE_SCREEN_DIR,`proxy-methodology-${width}.png`)});
   await tab.goto(`${a.origin}/app/sites/${id}?section=settings`);await tab.getByRole('heading',{name:'Data inventory',exact:true}).evaluate(el=>el.scrollIntoView({block:'start'}));
   if(process.env.VANE_SCREEN_DIR)await tab.screenshot({path:join(process.env.VANE_SCREEN_DIR,`proxy-inventory-${width}.png`)});
+  const expectedPublic=await json(await a.request('/api/vane/summary?'+query,{headers:{cookie:a.owner}}));
+  for(const [kind,path] of [['public','/stats/'+id],['shared',sharePath]]){
+   await publicTab.setViewportSize({width,height:1000});const response=await publicTab.goto(a.origin+path+'?from=2026-10-05&to=2026-10-06');assert.equal(response.status(),200);
+   const coverage=publicTab.locator('dt').filter({hasText:/^First-party proxy$/});
+   const values=await coverage.evaluate(el=>el.nextElementSibling.textContent.match(/^(\d+) of (\d+)/).slice(1).map(Number));
+   assert.deepEqual(values,[expectedPublic.transport.proxy,expectedPublic.transport.total],'signed-out '+kind+' counts use the same native denominator');
+   const html=await publicTab.content();assert.ok(!html.includes(credential)&&!html.includes(c.id),'public coverage exposes no proxy configuration');
+   await coverage.evaluate(el=>el.scrollIntoView({block:'center'}));assert.equal(await publicTab.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+   if(process.env.VANE_SCREEN_DIR)await publicTab.screenshot({path:join(process.env.VANE_SCREEN_DIR,`proxy-${kind}-${width}.png`)});
+  }
+
 
  }
  await tab.goto(a.origin+'/methodology#proxy-coverage')
