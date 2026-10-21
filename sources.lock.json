@@ -38,6 +38,10 @@
       "sha256": "aac2bf742218154242ca53cfa77854ed550381d2e5da6970ad04f3273364dc18",
       "executable": false
     },
+    ".github/workflows/import-scale.yml": {
+      "sha256": "9e71027acf7f87abd8184ae22a85efd9da053af91efc35fabcde177ceb1f546d",
+      "executable": false
+    },
     ".github/workflows/run-demo.yml": {
       "sha256": "41365ec7c002e9451166313b085f9e64ed2e3ea002c27f3d5ead845bc9c302b2",
       "executable": false
@@ -59,7 +63,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "69e4096b6e07ab72c5207dcfb3b8cd1e74c72ae47808301415c1491da29253da",
+      "sha256": "5253bc313c7cacb4c979a886bc1f071a8ec184a6efad7995457843c686a9efb2",
       "executable": false
     },
     "AGENTS.md": {
@@ -91,7 +95,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "f6d4a647d49340e3488299c729b3b644b0900c7f73e1edec20d456eb9b47af7d",
+      "sha256": "c918d20aff39f51ccf7c16031b54bb61e45d769f00d612dc4d7cc1a37a9e7443",
       "executable": false
     },
     "DEMO.md": {
@@ -127,7 +131,7 @@
       "executable": false
     },
     "docs/history.md": {
-      "sha256": "fee78e031c0982f077bd23f4cf892aaa5d8cab34c9f0320a11ae932acba5482f",
+      "sha256": "106ed552213719102eabba04d4067a3e1d233181825e4b0e5dcf6af4098062f6",
       "executable": false
     },
     "docs/umami-import.md": {
@@ -3435,7 +3439,11 @@
       "executable": false
     },
     "tests/import-export.test.mjs": {
-      "sha256": "facdfa178a3d87d9e6972c7b8447f4c33b3b6a706be9f010da5f37cac5455f32",
+      "sha256": "eb444d8eb6b57c603783a4f4aba5d2d6dce98a0c5fbc9c44e7a7bb8ff124f69d",
+      "executable": false
+    },
+    "tests/import-scale.journey.mjs": {
+      "sha256": "67d42e8688ff65db49838619c3e78449a0563f7b38ab36526441fc7ad9e79421",
       "executable": false
     },
     "tests/incumbent-options.test.mjs": {

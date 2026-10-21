@@ -81,13 +81,29 @@ test('IMPORT-006 whole Umami and Simple Analytics CSV files preview in bounded p
  assert.notEqual((await command(preview)).code,0,'a changed source cannot resume an existing review')
  // A complete Simple Analytics file uses the same public workflow and checkpoints.
  const simple=join(privateDir,'simple.csv'),simpleReview=join(privateDir,'simple-review')
- await writeFile(simple,'added_iso,path,uuid,session_id,utm_source\n'+Array.from({length:503},(_,i)=>`2024-03-14T10:00:00Z,/,simple-raw-${i},private-simple-session,newsletter\n`).join(''))
- const simplePreview=await command(['preview','--origin',origin,'--site',site,'--format','simple','--input',simple,'--cookie-file',cookie,'--review-dir',simpleReview]);assert.equal(simplePreview.code,0,simplePreview.stderr)
- const simpleApply=await command(['apply','--review-dir',simpleReview,'--cookie-file',cookie,'--yes']);assert.equal(simpleApply.code,0,simpleApply.stderr)
- assert.equal((await a.dump()).vane_import_events.length,1506)
+ await writeFile(simple,'added_iso,path,uuid,session_id,utm_source\n'+Array.from({length:1003},(_,i)=>`2024-03-14T10:00:00Z,/,simple-raw-${i},private-simple-session,newsletter\n`).join(''))
+ const simplePreviewArgs=['preview','--origin',origin,'--site',site,'--format','simple','--input',simple,'--cookie-file',cookie,'--review-dir',simpleReview]
+ previewCalls=0;interruptPreview=true
+ const simpleInterrupted=await command(simplePreviewArgs);assert.notEqual(simpleInterrupted.code,0);assert.match(simpleInterrupted.stderr,/HTTP_503/)
+ const simpleCheckpoint=JSON.parse(await readFile(join(simpleReview,'manifest.json'),'utf8'))
+ assert.equal(simpleCheckpoint.complete,false);assert.equal(simpleCheckpoint.rows,500)
+ assert.equal((await a.dump()).vane_import_events.length,1003,'Simple Analytics preview publishes no rows')
+ interruptPreview=false
+ const simplePreview=await command(simplePreviewArgs);assert.equal(simplePreview.code,0,simplePreview.stderr)
+ const simpleApplyArgs=['apply','--review-dir',simpleReview,'--cookie-file',cookie,'--yes']
+ applyCalls=0;interruptApply=true
+ const simpleLost=await command(simpleApplyArgs);assert.notEqual(simpleLost.code,0);assert.match(simpleLost.stderr,/HTTP_REQUEST_FAILED/)
+ const simpleDuring=(await a.dump()).vane_import_events.length
+ assert.ok(simpleDuring>1003&&simpleDuring<2006,'Simple Analytics lost response follows committed work')
+ interruptApply=false
+ const simpleApply=await command(simpleApplyArgs);assert.equal(simpleApply.code,0,simpleApply.stderr)
+ assert.equal((await command(simpleApplyArgs)).code,0,'Simple Analytics completed application resumes without duplicates')
+ assert.equal((await a.dump()).vane_import_events.length,2006)
+ const simpleSummary=await a.request(`/api/vane/summary?siteId=${site}&from=2024-03-14&to=2024-03-15`,{headers:{cookie:a.owner}})
+ const simpleReport=await simpleSummary.json();assert.equal(simpleReport.pageviews,1003);assert.equal(simpleReport.unknownCoverage,1003)
  const simpleFiles=await files(simpleReview);assert.ok(!simpleFiles.includes('simple-raw-'));assert.ok(!simpleFiles.includes('private-simple-session'))
  assert.ok(![failed.stdout,failed.stderr,lost.stdout,lost.stderr,prepared.stdout,prepared.stderr].join('').includes(a.owner),'credentials never enter command output')
- const journals=(await a.dump()).vane_import_approvals;assert.equal(journals.length,5,'five reviewed page jobs keep ordinary custody and undo')
+ const journals=(await a.dump()).vane_import_approvals;assert.equal(journals.length,6,'six reviewed page jobs keep ordinary custody and undo')
  for(const entry of journals){let undone;do{const r=await a.post('/api/vane/import-undo',{siteId:site,jobId:entry.job_id},a.owner);assert.equal(r.status,200,await r.clone().text());undone=await r.json()}while(!undone.complete)}
  assert.equal((await a.dump()).vane_import_events.length,0,'ordinary undo removes every completed page')
 })

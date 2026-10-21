@@ -74,7 +74,16 @@ The public-door test exercises interrupted preview and application with complete
 multi-page Umami, Simple Analytics and PostHog files, matching totals, unknown
 coverage, identifier absence and ordinary undo. PostHog also exercises a lost
 apply response, repeated source IDs across pages, malformed and oversized rows.
-A two-million-row interrupted Umami run remains unproven `IMPORT-006` work.
+The separate `tests/import-scale.journey.mjs` exercises a two-million-row Umami
+preview, interrupted after one million rows, through the real CLI and Worker.
+It checks every anonymous record and the exact day totals with the CLI heap
+limited to 128 MiB. It publishes no analytics. The **Import scale** workflow
+runs it for relevant candidate changes and supports manual runs.
+
+`IMPORT-006` remains partial: interrupted publication of two million Umami rows
+and matching published totals are still unproven. The current apply path commits
+at most 20 entries per request, so two million distinct rows require at least
+100,000 apply requests. Preview scale is not publication scale.
 
 ## Google Analytics source documents
 

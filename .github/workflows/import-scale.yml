@@ -1,0 +1,36 @@
+name: Import scale
+
+# Full-scale source parsing/preview stays off the push wall. This can run on a
+# candidate branch; it is not a claim that full-scale publication is proven.
+on:
+  push:
+    paths:
+      - 'tests/import-scale.journey.mjs'
+      - 'scripts/history-import/**'
+      - 'scripts/import-export.mjs'
+      - 'src/vane/movein/**'
+      - '.github/workflows/import-scale.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  umami-preview:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CI: 'true'
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '22.20.0'
+          package-manager-cache: false
+      - run: npm install --global pnpm@10.12.4
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec vite build
+      - run: node --test tests/import-scale.journey.mjs
