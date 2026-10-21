@@ -70,10 +70,10 @@ export async function apply(env: MoveinEnvironment, actor: MoveinActor, input: D
   const base = reserveReturn(requestContext(context(env,actor,site)),32);
   const created = await createD1ImportJob(plan,{ ...base,reviewedFingerprint: input.fingerprint });
   // Approval must exist before native publication. The first owner's decision is immutable.
-  await env.DB.prepare(`INSERT INTO vane_import_approvals(job_id,site_id,owner_id,approved_at,fingerprint,discarded_json)
-    SELECT ?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND role='owner' AND status='active')
+  await env.DB.prepare(`INSERT INTO vane_import_approvals(job_id,site_id,owner_id,approved_at,fingerprint,discarded_json,policy_version,policy_json)
+    SELECT ?,?,?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND role='owner' AND status='active')
     AND EXISTS(SELECT 1 FROM vane_sites WHERE id=? AND version=? AND config_json=?)
-    ON CONFLICT(job_id) DO NOTHING`).bind(created.id,site.id,actor.id,new Date().toISOString(),plan.fingerprint,JSON.stringify('skipped' in normalized&&normalized.skipped.length?{heldDays:normalized.skipped}:normalized.discarded),actor.id,site.id,site.version,site.config_json).run();
+    ON CONFLICT(job_id) DO NOTHING`).bind(created.id,site.id,actor.id,new Date().toISOString(),plan.fingerprint,JSON.stringify('skipped' in normalized&&normalized.skipped.length?{heldDays:normalized.skipped}:normalized.discarded),site.version,site.config_json,actor.id,site.id,site.version,site.config_json).run();
   const approval = await env.DB.prepare('SELECT fingerprint,owner_id FROM vane_import_approvals WHERE job_id=? AND site_id=?').bind(created.id,site.id).first<{ fingerprint: string; owner_id: string }>();
   if (approval?.fingerprint !== input.fingerprint || approval.owner_id !== actor.id) throw new MoveinError('OWNER_APPROVAL_REQUIRED',403);
   if(cutover)await env.DB.prepare('INSERT INTO vane_import_cutovers(site_id,job_id,day) VALUES(?,?,?) ON CONFLICT(site_id,job_id) DO NOTHING').bind(site.id,created.id,cutover).run();
