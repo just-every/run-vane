@@ -1,0 +1,45 @@
+name: Proxy blocker acceptance
+
+# Real extension evidence is independent of push Verify. A passing first-party
+# request is insufficient: the actual unproxied Vane script must first be blocked.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  default-easyprivacy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      CI: 'true'
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '22.20.0'
+          package-manager-cache: false
+      - run: npm install --global pnpm@10.12.4
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install-deps chromium
+      - name: Install official Chrome 138 and uBlock Origin MV2 into runner scratch
+        shell: bash
+        run: |
+          set -euo pipefail
+          scratch="$RUNNER_TEMP/vane-blocker"
+          mkdir -p "$scratch"
+          curl --fail --location --silent --show-error 'https://storage.googleapis.com/chrome-for-testing-public/138.0.7204.183/linux64/chrome-linux64.zip' --output "$scratch/chrome.zip"
+          curl --fail --location --silent --show-error 'https://github.com/gorhill/uBlock/releases/download/1.75.0/uBlock0_1.75.0.chromium.zip' --output "$scratch/ublock.zip"
+          unzip -q "$scratch/chrome.zip" -d "$scratch"
+          unzip -q "$scratch/ublock.zip" -d "$scratch"
+          test -x "$scratch/chrome-linux64/chrome"
+          test -f "$scratch/uBlock0.chromium/manifest.json"
+          echo "CHROMIUM_EXECUTABLE_PATH=$scratch/chrome-linux64/chrome" >> "$GITHUB_ENV"
+          echo "UBLOCK_EXTENSION_PATH=$scratch/uBlock0.chromium" >> "$GITHUB_ENV"
+      - run: pnpm exec vite build
+      - name: Prove actual Vane blocking before first-party collection
+        run: node --test tests/proxy-blocker.journey.mjs
