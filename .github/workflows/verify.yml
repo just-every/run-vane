@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [foundation, product, integrations-1, integrations-2]
+        shard: [foundation, product-1, product-2, product-3, integrations-1, integrations-2]
     env:
       VANE_VERIFY_SHARD: ${{ matrix.shard }}
       CI: 'true'
