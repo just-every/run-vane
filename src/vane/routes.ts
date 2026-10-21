@@ -1,3 +1,5 @@
+import { listConnections } from './proxy/connections'
+import { proxyCommand, proxySetup } from './proxy/management'
 import { parallelRun } from './movein/parallel'
 import { scan, scans } from './cutover/scan'
 import * as chat from './chat/connections'
@@ -77,7 +79,8 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
   const report=selected&&!live?await createInsightsService(env,selected,clock(),range).list():undefined;
   const bingReport=selected&&!live?await bing.report(env,actor!,selected.id,report!.from,report!.to):undefined;
   const search=selected&&!live?await searchConsole.report(env,actor!,selected.id,report!.from,report!.to):undefined;
-  return renderApp({metroTable,cutoverScans:settings?await scans(env,actor!,selected.id):undefined,actor:actor as ViewData['actor'],origin:env.AUTH_ORIGIN,store:await storeUse(env),sites:all,overview:list,rollups:(await rollups(env)).filter(r=>r.sites.every((s:any)=>open(s.id))),site:selected,hook,github,...hooks,...reports,warehouse:warehouse?{endpoint:warehouse.endpoint,bucket:warehouse.bucket,region:warehouse.region,prefix:warehouse.prefix,accessKeyId:warehouse.access_key_id,lastDay:warehouse.last_day,lastResult:warehouse.last_result,createdAt:warehouse.created_at}:warehouse,shares:settings?await shareLinks(env,selected.id):undefined,segments:selected&&!live?await segments(env,selected.id):undefined,live:live?await realtime(env,selected,clock()):undefined,liveVisitors:selected?await currentVisitors(env,selected,clock()):undefined,report,chat:chatData,bing:bingReport,bingKeywordPage:url.searchParams.get('bingKeywordPage'),searchConsole:search,googleKeywordPage:url.searchParams.get('googleKeywordPage'),proposals,imports,importDefinitions:recovered,audit,people,apiKeys:keys,...push,section:url.searchParams.get('section')??undefined,notice:url.searchParams.get('notice')??undefined,...extra});
+  const proxyConnections=settings&&actor!.role==='owner'?await listConnections(env,actor!,selected.id):undefined,proxyPlatform=url.searchParams.get('proxyPlatform')??'nextjs',setup=settings&&actor!.role==='owner'&&url.searchParams.get('proxyId')?await proxySetup(env,actor!,selected.id,url.searchParams.get('proxyId')!,proxyPlatform):undefined;
+  return renderApp({proxyConnections,proxyPlatform,proxySetup:setup,metroTable,cutoverScans:settings?await scans(env,actor!,selected.id):undefined,actor:actor as ViewData['actor'],origin:env.AUTH_ORIGIN,store:await storeUse(env),sites:all,overview:list,rollups:(await rollups(env)).filter(r=>r.sites.every((s:any)=>open(s.id))),site:selected,hook,github,...hooks,...reports,warehouse:warehouse?{endpoint:warehouse.endpoint,bucket:warehouse.bucket,region:warehouse.region,prefix:warehouse.prefix,accessKeyId:warehouse.access_key_id,lastDay:warehouse.last_day,lastResult:warehouse.last_result,createdAt:warehouse.created_at}:warehouse,shares:settings?await shareLinks(env,selected.id):undefined,segments:selected&&!live?await segments(env,selected.id):undefined,live:live?await realtime(env,selected,clock()):undefined,liveVisitors:selected?await currentVisitors(env,selected,clock()):undefined,report,chat:chatData,bing:bingReport,bingKeywordPage:url.searchParams.get('bingKeywordPage'),searchConsole:search,googleKeywordPage:url.searchParams.get('googleKeywordPage'),proposals,imports,importDefinitions:recovered,audit,people,apiKeys:keys,...push,section:url.searchParams.get('section')??undefined,notice:url.searchParams.get('notice')??undefined,...extra});
  }
  try {
   const session=await operatorAuth(env).getSession(request);
@@ -87,6 +90,8 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
   // TEAM-001: every door that names a site, by query, path or form, answers only for a site the person may open.
   const named=url.searchParams.get('siteId')??path.match(/^\/app\/sites\/([\w-]+)$/)?.[1];if(named)inScope(actor,named);
   if(request.method==='GET') {
+   if(path==='/api/vane/proxy-connections')return json(await listConnections(env,actor,url.searchParams.get('siteId')??''));
+   if(path==='/api/vane/proxy-setup')return json(await proxySetup(env,actor,url.searchParams.get('siteId')??'',url.searchParams.get('connectionId')??'',url.searchParams.get('platform')??'nextjs'));
    if(path===chat.CALLBACK)return await chat.callback(request,env,actor);
    if(path===searchConsole.CALLBACK_PATH)return await searchConsole.callback(request,env,actor);
    if(path==='/api/vane/bing/report'){
@@ -124,6 +129,7 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
    const p=await input(request);
    for(const id of [p.siteId,p.input?.siteId])if(id!==undefined&&id!=='')inScope(actor,String(id));
    if(path==='/api/vane/commands')return json(await prepare(env,actor,p.command,p.input??{},'command API'),201);
+   if(path==='/api/vane/proxy-connections')return json(await proxyCommand(env,actor,p));
    if(path==='/api/vane/parallel-run')return json(await parallelRun(env,actor,p));
    if(path==='/api/vane/import-preview')return json(await preview(env,actor,{siteId:p.siteId,cutover:p.cutover,preferNew:p.preferNew,document:p.plausible?await (p.plausible.history?readPlausibleHistory:readPlausible)(env,actor,{...p.plausible,siteId:p.siteId}):p.matomo?await readMatomo(env,actor,{siteId:p.siteId,...p.matomo}):p.document}));
    if(path==='/api/vane/import-apply')return json(await apply(env,actor,{siteId:p.siteId,cutover:p.cutover,preferNew:p.preferNew,document:p.document,fingerprint:p.fingerprint}));
@@ -199,6 +205,7 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
     if(p.operation==='export.delete'){const id=await deleteExport(env,actor,String(p.siteId??''));return redirect(`/app/sites/${encodeURIComponent(id)}?${new URLSearchParams({section:'settings',notice:'Scheduled export stopped and its key erased.'})}`)}
     if(p.operation==='export.run'){const sent=await runExportNow(env,actor,String(p.siteId??''));return redirect(`/app/sites/${encodeURIComponent(String(p.siteId))}?${new URLSearchParams({section:'settings',notice:sent.length?`Exported ${sent.join(', ')}.`:'Nothing new to export, or the bucket refused it: see the last result.'})}`)}
     if(p.operation==='rollup.create')return redirect('/app/rollups/'+encodeURIComponent(await createRollup(env,actor,p))+'?'+new URLSearchParams({notice:'Roll-up created.'}));
+    if(p.operation?.startsWith('proxy.')){const made=await proxyCommand(env,actor,p);return view(p.siteId,{section:'settings',notice:'Proxy connection updated. Server credentials are shown only once.',proxyCredential:made?.credential??undefined});}
     const result=await action(env,actor,p),query=new URLSearchParams({notice:result.notice,...(result.section?{section:result.section}:{})});
     if(result.continueImport){const reviewed=await preview(env,actor,{siteId:p.siteId,cutover:p.cutover,preferNew:p.preferNew,document:JSON.parse(p.document)});return view(p.siteId,{section:'history',notice:result.notice,importPreview:{fingerprint:reviewed.fingerprint,count:reviewed.aggregates.length+reviewed.normalized.length,aggregates:reviewed.aggregates,cutover:reviewed.cutover,overlap:reviewed.overlap},importCarry:JSON.stringify(reviewed.carry)});}
     // DASH-009: a new annotation secret is rendered once in this response, never put in a redirect URL.

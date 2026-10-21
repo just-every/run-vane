@@ -1,3 +1,4 @@
+import { resolveProxy } from './vane/proxy/ingress'
 import { runChatReports } from './vane/chat/delivery'
 import { sync as syncBing } from './vane/bing'
 import { withDemo } from './modules/demo/index.mjs'
@@ -50,6 +51,9 @@ function noTransform(response: Response): Response {
 
 export default withDemo({
   async fetch(request, env, execution) {
+    const proxied = await resolveProxy(request, runtimeBindings(env))
+    if (proxied instanceof Response) return proxied
+    if (proxied) request = proxied.request as typeof request
     const clocked = await clockResponse(request, runtimeBindings(env))
     if (clocked) return clocked
     const asset = await staticAssetResponse(request, env)
@@ -64,6 +68,7 @@ export default withDemo({
     if (measured) return measured
     const collected = await collector(request, env)
     if (collected) return collected
+    if (proxied) return new Response(null, {status:404})
     const annotated = await annotationDoor(request, runtimeBindings(env))
     if (annotated) return annotated
     const released = await githubReleaseDoor(request, runtimeBindings(env))

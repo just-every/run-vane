@@ -1,3 +1,4 @@
+import { proxyCoverage } from './proxy-coverage'
 import { consentedPanel } from './consented'
 import { searchKeywords } from './search-keywords'
 import { importedReportsPanel } from './imported-reports'
@@ -141,5 +142,5 @@ function coverageShares(report: any): string {
   const rows = (report.exclusions ?? []).map((row: any) => `<dt>${escape(reasons[row.reason] ?? row.reason)}</dt><dd>${row.reason === 'dropped-property' ? `${count(row.count)} property values that looked like a phone or account number or a web address were dropped; their events were kept.` : `${share(Number(row.count))}, not collected.`}</dd>`).join('')
   const deleted = (report.deletedHistory ?? []).map((row: any) => `<dt>Deleted history</dt><dd>Events before ${escape(row.beforeDay)} were erased (${escape(row.reason)}), so earlier days in this range are incomplete.</dd>`).join('')
   const imported = Number(report.imported) || 0
-  return `${rows}${imported ? `<dt>Imported share</dt><dd>${count(imported)} of ${count(seen + Number(report.goals || 0))} counted events are imported, ${count(report.unknownCoverage)} of them with unknown consent and sampling.</dd>` : ''}${deleted}<dt>Totals</dt><dd>Partial. Blocked scripts are not measured until a Cloudflare zone comparison is connected.</dd>`
+  return `${proxyCoverage(report.transport)}${rows}${imported ? `<dt>Imported share</dt><dd>${count(imported)} of ${count(seen + Number(report.goals || 0))} counted events are imported, ${count(report.unknownCoverage)} of them with unknown consent and sampling.</dd>` : ''}${deleted}<dt>Totals</dt><dd>Partial. Blocked scripts are not measured until a Cloudflare zone comparison is connected.</dd>`
 }
