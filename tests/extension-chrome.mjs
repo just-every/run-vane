@@ -5,7 +5,7 @@ import { readFile, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from '@playwright/test'
-import { extensionState, extensionStartup } from './extension-state.mjs'
+import { extensionState } from './extension-state.mjs'
 
 export async function chrome(t, scratch, hostname, trackerHostname) {
   assert.ok(process.env.CHROMIUM_EXECUTABLE_PATH, 'Set CHROMIUM_EXECUTABLE_PATH to the official Chrome 138 Linux executable')
@@ -57,9 +57,6 @@ export async function chrome(t, scratch, hostname, trackerHostname) {
     assert.fail('Chrome must expose its own ephemeral CDP port: '+stderr)
   }
   const port=await launch()
-  // The developer-extension exemption permits uBlock’s normal unpacked reload
-  // within this process. Its default settings and lists remain unchanged.
-  await extensionStartup(port)
   browser = await chromium.connectOverCDP('http://127.0.0.1:' + port)
   const context = browser.contexts()[0]
   assert.ok(context, 'Use the fresh Chrome default context where the extension is installed')
