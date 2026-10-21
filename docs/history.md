@@ -74,20 +74,17 @@ The public-door test exercises interrupted preview and application with complete
 multi-page Umami, Simple Analytics and PostHog files, matching totals, unknown
 coverage, identifier absence and ordinary undo. PostHog also exercises a lost
 apply response, repeated source IDs across pages, malformed and oversized rows.
-The separate `tests/import-scale.journey.mjs` exercises a two-million-row Umami
-preview, interrupted after one million rows, through the real CLI and Worker.
-It checks every anonymous record and the exact day totals with the CLI heap
-limited to 128 MiB. It publishes no analytics. The **Import scale** workflow
-runs it for relevant candidate changes and supports manual runs.
+The separate `tests/import-scale.journey.mjs` exercises two million distinct
+Umami rows through the real CLI and Worker, interrupting both preview and
+publication after one million rows, including a lost committed response. It
+checks exact published day and page totals, unknown coverage and identifier
+absence throughout custody, with the CLI heap limited to 128 MiB. The manual
+**Import scale** workflow runs independently of push Verify; a full-scale claim
+requires a passing run on the exact committed candidate, cited in its landing
+report. Small fixtures do not substitute for this publication proof.
 
-`IMPORT-006` remains partial: interrupted publication of two million Umami rows
-and matching published totals are still unproven. Publication now lets the import engine gather up to 100 entries per batch,
-ending earlier when its measured D1 request budget requires it. Planning,
-reviewed fingerprints, authority fences, journal and undo are unchanged. The
-public-door fixture publishes 1,003 distinct Umami rows in 13 apply requests,
-including an interrupted response and a completed repeat; the former 20-entry
-cap required at least 51 requests for those rows. This fixture is not a
-two-million-row publication proof. Preview scale is not publication scale.
+Publication uses bounded batches under the measured D1 request budget. Reviewed
+fingerprints, authority fences, ordinary journals and per-job undo still apply.
 
 ## Google Analytics source documents
 
@@ -108,7 +105,7 @@ For GA4, wrap complete [Data API `runReport` responses](https://developers.googl
 
 Replace `reports` with your actual source responses, each including a `date` dimension, its headers, all rows and `rowCount`. Dates use the source property's local calendar and the inclusive range above. Each report grouping stays separate; preserve `metadata.currencyCode` for money and `metadata.timeZone` when provided. Incomplete report pagination is refused. Upload at most 500 sanitized report rows in one document; split larger exports into separately reviewed documents. Empty documents are refused.
 
-GA4 users can span days and devices; they differ from Vane's daily cookie-free visitor estimates. Session and engagement rules remain GA4's, with bounce and engagement rates retained as fractions between 0 and 1. Source sampling, thresholding, restrictions and data-loss flags stay on the rows. The reports retain their source dimensions and metrics, never become invented visits, and do not add to native Vane totals. Any viewer can leave imported data out of a view with `imported=off` (the dashboard, a shared link, CSV tables, `/api/v1/stats` and `include.imports: false` on `/api/v2/query`), and an import by another source skips the days an earlier source's import already holds, listing them in its preview and journal. A declared cut-over date, live data winning on overlap days, chart labels and the parallel-run report remain `IMPORT-007` work.
+GA4 users can span days and devices; they differ from Vane's daily cookie-free visitor estimates. Session and engagement rules remain GA4's, with bounce and engagement rates retained as fractions between 0 and 1. Source sampling, thresholding, restrictions and data-loss flags stay on the rows. The reports retain their source dimensions and metrics, never become invented visits, and do not add to native Vane totals. Any viewer can leave imported data out of a view with `imported=off` (the dashboard, a shared link, CSV tables, `/api/v1/stats` and `include.imports: false` on `/api/v2/query`), and an import by another source skips the days an earlier source's import already holds, listing them in its preview and journal. The reviewed cut-over date, live-data precedence, imported source labels and owner-only parallel comparison follow the rules under [Declaring a cut-over date](#declaring-a-cut-over-date).
 
 Admin key events retain their event name, source property and counting method. They appear under **Recovered definitions**, awaiting a matching accepted native event or an explicit completion. A definition still needs the owner's ordinary proposal approval before it changes live counting. A source count never establishes a trigger.
 
