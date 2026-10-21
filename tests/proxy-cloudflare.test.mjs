@@ -12,7 +12,7 @@ function cloudflareEdge(a) {
  const state={zone:{id:zoneId,name:hostname,account:{id:accountId},status:'active'},settings:{bindings:[{type:'plain_text',name:'AUTH_ORIGIN',text:a.origin}]},routes:[],domains:[],dns:[],failure:null}
  const requests=[]
  a.fixtureSites['https://api.cloudflare.com']=async request=>{
-  const url=new URL(request.url()),body=request.body?await request.json():undefined
+  const url=new URL(request.url),body=request.body?await request.json():undefined
   assert.equal(request.headers.get('authorization'),'Bearer '+token)
   requests.push({method:request.method,path:url.pathname+url.search,body})
   if(state.failure==='throw')throw new Error('synthetic-vane-27')
