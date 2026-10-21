@@ -8,6 +8,58 @@ Open a site's **History**, choose an **Analytics document**, and select **Previe
 
 The **Import journal** records approval, checkpoints and committed records. **Undo import** removes that import's unchanged contributions. Repeat apply or undo while processing remains. Imported consent and sampling stay unknown.
 
+## Whole CSV exports
+
+For a complete Umami `website_event` CSV or Simple Analytics data-point CSV,
+use the checkout's streaming command instead of splitting the file by hand.
+It reads RFC 4180 CSV, including quoted commas and multiline fields, in bounded
+pages and uses the same owner-only preview, fingerprint, apply and journal doors
+as the History page. No new provider credentials or API keys are used.
+
+Save the `Cookie` request-header value from your signed-in installation in a
+private file readable only by you. Treat it as a sign-in credential. Keep the
+source export, session file and review directory outside the checkout.
+
+```sh
+node scripts/import-export.mjs preview \
+  --origin http://127.0.0.1:8787 \
+  --site YOUR_SITE_ID --format umami \
+  --input /private/website_event.csv \
+  --cookie-file /private/vane-session.txt \
+  --review-dir /private/vane-review
+```
+
+Use `--format simple` for a Simple Analytics export. Its header must include
+`added_iso`, `path` and `uuid`. Umami requires `event_id`, `created_at`,
+`url_path` and `event_type`; custom events must already have approved native goals.
+Both formats use the same field rules as the document importer. PostHog remains
+a separately reviewed JSON page import.
+
+Preview publishes no analytics. The review directory holds only sanitized
+records, discard counts, fingerprints and checkpoints, with private file
+permissions. Inspect its manifest and page documents before applying. Raw event
+IDs, session IDs, page titles and original upload bytes are never copied there.
+The source file's hash binds a resumed preview to the same bytes, format, site
+and installation; changing any of those requires a new review directory.
+
+```sh
+node scripts/import-export.mjs apply \
+  --review-dir /private/vane-review \
+  --cookie-file /private/vane-session.txt --yes
+```
+
+Repeat the same command after an interruption. Each reviewed page keeps its
+ordinary import job; a lost response resumes that job and cannot count its events
+twice. Errors stop the command without automatically retrying. If the site's
+settings change, the server refuses stale fingerprints: preview again into a new
+review directory. Jobs remain visible in History and use the ordinary journal
+and Undo import action. The command does not provide a single whole-file undo.
+
+The public-door test exercises interrupted preview and application with complete
+multi-page Umami and Simple Analytics files, matching totals, unknown coverage,
+identifier absence and ordinary undo. A two-million-row interrupted run and
+whole-export PostHog ingestion remain unproven `IMPORT-006` work.
+
 ## Google Analytics source documents
 
 `IMPORT-002` currently supports owner-uploaded daily source reports, with preview, exact-fingerprint approval, resumable application, journal and undo. Google OAuth and automatic Data/Admin API reads are not available yet. Export the source responses yourself; do not put OAuth codes or tokens in the document.

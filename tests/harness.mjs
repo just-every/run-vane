@@ -5,8 +5,7 @@ import { createRequire } from 'node:module'
 import { randomBytes } from 'node:crypto'
 import assert from 'node:assert/strict'
 const require=createRequire(import.meta.url),{unstable_splitSqlQuery:split}=require('wrangler')
-const origin='http://127.0.0.1:8787'
-export async function installation({setup=true,vars:extra={}}={}) {
+export async function installation({setup=true,vars:extra={},origin='http://127.0.0.1:8787'}={}) {
  const root=resolve('dist/server'),config=JSON.parse(await readFile(join(root,'wrangler.json'),'utf8'))
  const paths=await readdir(root,{recursive:true})
  const entry=join(root,config.main)

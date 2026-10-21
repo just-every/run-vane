@@ -1,3 +1,4 @@
+import './import-export.test.mjs'
 import './locations.journey.mjs'
 import './revenue-alert.test.mjs'
 import './tracking-health.test.mjs'
