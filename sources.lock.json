@@ -3291,7 +3291,7 @@
       "executable": false
     },
     "src/vane/views/parallel.ts": {
-      "sha256": "a129e274ced56a3036761b1aaac3529987d66219123ed6be8641d999ada5415c",
+      "sha256": "3292a188a945c903dfae8f72fe93ab08dbe621daf4cf65f5ced7c88df84fb3b9",
       "executable": false
     },
     "src/vane/views/public.ts": {
@@ -3491,7 +3491,7 @@
       "executable": false
     },
     "tests/import-merge.test.mjs": {
-      "sha256": "d569d20e871d078705d37158c446c944675d1f06f1c3487b014466ea27c6db93",
+      "sha256": "b3be298f2843747f5d4f60b0e3ea7a5f72d0e910db42f3473cdf880060159b97",
       "executable": false
     },
     "tests/import-parallel.test.mjs": {

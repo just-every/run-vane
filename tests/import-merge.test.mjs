@@ -21,11 +21,20 @@ test('IMPORT-007 later sources name and skip held days; the owner can replace th
  const page=await a.form({operation:'import.preview',siteId,document:JSON.stringify(document)},a.owner);assert.equal(page.status,200);const html=await page.text();assert.match(html,/2024-06-03: held by Google Analytics 4/);assert.match(html,/2024-06-04: held by Google Analytics 4/)
  const done=await apply(a,siteId,p),journal=await json(await a.request(`/api/vane/import-journal?siteId=${siteId}&jobId=${done.job.id}`,{headers:{cookie:a.owner}}));assert.deepEqual(journal.skipped,p.skipped)
  const totals=async()=> (await json(await a.request(`/api/vane/summary?siteId=${siteId}&from=2024-06-01&to=2024-06-06`,{headers:{cookie:a.owner}}))).importedReports
- assert.ok((await totals()).filter(r=>r.day<='2024-06-04').every(r=>r.provider==='ga4'))
+ assert.deepEqual((await totals()).filter(r=>r.day<='2024-06-04').map(r=>[r.day,r.provider,r.metrics.screenPageViews]),days.map(d=>[d,'ga4',76]))
  assert.equal((await preview(a,siteId,ga4('2024-06-05','2024-06-05',['2024-06-05']))).status,409)
  const replacement=await json(await a.post('/api/vane/import-preview',{siteId,document,preferNew:true},a.owner));assert.equal(replacement.preferNew,true)
  const tampered={...replacement.carry,preferNew:false};assert.equal((await a.post('/api/vane/import-apply',{siteId,document:tampered,fingerprint:replacement.fingerprint},a.owner)).status,409)
  const replaced=await apply(a,siteId,replacement);assert.ok((await totals()).filter(r=>r.day>='2024-06-03').every(r=>r.provider==='plausible'))
+ // A later owner choice wins, repeating the earlier completed job cannot change it,
+ // and undo walks back through active source choices without summing them.
+ const newest={data:['2024-06-03','2024-06-04'].map((day,n)=>({id:'synthetic-vane-'+(30+n),createdAt:day+'T12:00:00Z',urlPath:'/',eventType:1})),count:2,page:1,pageSize:2}
+ const c=await apply(a,siteId,await json(await a.post('/api/vane/import-preview',{siteId,document:newest,preferNew:true},a.owner)))
+ await apply(a,siteId,replacement)
+ assert.deepEqual((await totals()).filter(r=>r.day==='2024-06-03'||r.day==='2024-06-04'),[])
+ assert.equal((await json(await a.request(`/api/vane/summary?siteId=${siteId}&from=2024-06-03&to=2024-06-05`,{headers:{cookie:a.owner}}))).pageviews,2)
+ assert.equal((await json(await a.post('/api/vane/import-undo',{siteId,jobId:c.job.id},a.owner))).complete,true)
+ assert.deepEqual((await totals()).filter(r=>r.day==='2024-06-03'||r.day==='2024-06-04').map(r=>[r.day,r.provider,r.metrics.pageviews]),[['2024-06-03','plausible',40],['2024-06-04','plausible',40]])
  const undo=await json(await a.post('/api/vane/import-undo',{siteId,jobId:replaced.job.id},a.owner));assert.equal(undo.complete,true);assert.ok((await totals()).filter(r=>r.day<='2024-06-04').every(r=>r.provider==='ga4'),'undo reveals the earlier source')
  // Event exports participate in exactly the same held-day rule.
  const events={data:['2024-06-02','2024-06-06'].map((day,n)=>({id:'synthetic-vane-'+n,createdAt:day+'T12:00:00Z',urlPath:'/',eventType:1})),count:2,page:1,pageSize:2}
