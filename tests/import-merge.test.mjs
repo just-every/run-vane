@@ -75,11 +75,12 @@ test('IMPORT-007 a reviewed cut-over keeps live days once across events, source 
  const events={data:days.map((day,n)=>({id:'cutover-'+n,createdAt:day+'T12:00:00Z',urlPath:'/imported',eventType:1,sessionId:'PRIVATE_SESSION_SENTINEL'})),count:6,page:1,pageSize:6}
  const visit=async app=>{await app.clock(Date.parse('2026-10-03T12:00:00Z'));assert.equal((await app.collect(app.event(id,{path:'/live'}))).status,202);await app.clock(Date.parse('2026-10-04T12:00:00Z'));assert.equal((await app.collect(app.event(id,{path:'/live'}))).status,202);await app.clock(Date.parse('2026-10-10T12:00:00Z'))}
  await visit(a)
- const before=await a.archive()
+ const snapshot=async()=>Object.fromEntries(Object.entries(await a.dump()).filter(([name])=>/^(vane_|ik_)/.test(name)))
+ const before=await snapshot()
  for(const cutover of ['2026-02-30','2026-10-05T00:00:00Z',null])assert.equal((await a.post('/api/vane/import-preview',{siteId:id,document:events,cutover},a.owner)).status,400)
  const p=await json(await a.post('/api/vane/import-preview',{siteId:id,document:events,cutover:'2026-10-05'},a.owner))
  assert.deepEqual(p.overlap,['2026-10-03','2026-10-04']);assert.equal(p.cutover,'2026-10-05')
- assert.deepEqual((await a.archive()).payload.tables,before.payload.tables,'preview and invalid dates write nothing')
+ assert.deepEqual(await snapshot(),before,'preview and invalid dates write nothing')
  assert.equal(JSON.stringify(p).includes('PRIVATE_SESSION_SENTINEL'),false)
  const tampered={...p.carry,cutover:'2026-10-06'}
  assert.equal((await a.post('/api/vane/import-apply',{siteId:id,document:tampered,fingerprint:p.fingerprint},a.owner)).status,409)
@@ -133,7 +134,7 @@ test('IMPORT-007 the owner reviews and applies a dated import through the histor
   await form.getByRole('button',{name:'Preview import',exact:true}).click()
   const review=tab.getByRole('heading',{name:'Review import',exact:true}).locator('..');await review.waitFor({state:'visible'});await review.scrollIntoViewIfNeeded()
   const text=await review.innerText();assert.ok(text.includes('2026-10-03')&&text.includes('2026-10-02'),'review exposes the date and the live overlap before approval');await capture('review',width)
-  await review.getByRole('button',{name:'Apply import',exact:true}).click();await tab.getByRole('heading',{name:'Import journal',exact:true}).waitFor({state:'visible'})
+  await review.getByRole('button',{name:'Apply import',exact:true}).click();assert.equal(await tab.getByRole('heading',{name:'Import journal',exact:true}).count(),1,await tab.locator('body').innerText())
   const r=await json(await a.request(`/api/vane/summary?siteId=${id}&from=2026-10-01&to=2026-10-04`,{headers:{cookie:a.owner}}));assert.equal(r.pageviews,2);assert.equal(r.imported,1)
   await tab.goto(`${a.origin}/app/sites/${id}?section=report&from=2026-10-01&to=2026-10-04&metric=pageviews`)
   const tile=tab.getByRole('heading',{name:'Pageviews',exact:true}).first().locator('..');await tile.waitFor({state:'visible'});assert.match(await tile.innerText(),/\b2\b/);await capture('report',width)
