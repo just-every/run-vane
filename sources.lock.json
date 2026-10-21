@@ -3643,7 +3643,7 @@
       "executable": false
     },
     "tests/proxy-blocker.journey.mjs": {
-      "sha256": "44aca26017788fedd221e2c9982d291fae0742374a948ca94dffb9af54976d62",
+      "sha256": "99c260732a3249f70e87c1f5c67612a0a6f5cbe7f1f23d73b9b2e44579ec4fef",
       "executable": false
     },
     "tests/proxy-cloudflare.test.mjs": {
