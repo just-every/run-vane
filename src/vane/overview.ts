@@ -1,3 +1,4 @@
+import { visitorKey } from './visitor-key'
 import { insist, rows, type Env, type Site } from './core'
 import { bucketKey, comparisonRange, intervalOf, PERIODS, presetRange, runningCut, upTo, type Period } from './periods'
 import { annotationsFor } from './annotations'
@@ -12,7 +13,7 @@ export const SORTS={added:'Date added',name:'Name',visitors:'Visitors',change:'C
 export async function overview(env:Env,list:Site[],now:number,query:{period?:string|null,sort?:string|null,q?:string|null}) {
  const period=(query.period||'7d') as Period,sort=(query.sort||'added') as keyof typeof SORTS,q=String(query.q??'').trim().toLowerCase()
  insist(Object.hasOwn(PERIODS,period),'period','Choose one of the preset ranges.');insist(Object.hasOwn(SORTS,sort),'sort','Sort by date added, name, visitors or change.')
- const uniques=async(id:string,from:string,to:string,events='vane_events')=>Number((await rows(env,`SELECT COUNT(*) AS n FROM (SELECT DISTINCT day,visitor FROM ${events} WHERE site_id=? AND day>=? AND day<? AND kind='pageview' AND visitor IS NOT NULL)`,id,from,to))[0]!.n)
+ const uniques=async(id:string,from:string,to:string,events='vane_events')=>Number((await rows(env,`SELECT COUNT(*) AS n FROM (SELECT DISTINCT ${visitorKey()} AS identity FROM ${events} WHERE site_id=? AND day>=? AND day<? AND kind='pageview' AND visitor IS NOT NULL)`,id,from,to))[0]!.n)
  const shown=list.filter(s=>!q||s.name.toLowerCase().includes(q)||s.origin.toLowerCase().includes(q))
  const rowsOf=await Promise.all(shown.map(async site=>{
   const timeZone=site.config.timeZone??'UTC',earliest=period==='all'?(await rows<{d:string|null}>(env,'SELECT MIN(day) AS d FROM (SELECT day FROM vane_events WHERE site_id=?1 UNION ALL SELECT day FROM vane_import_events WHERE site_id=?1)',site.id))[0]?.d??null:null

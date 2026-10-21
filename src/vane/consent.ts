@@ -11,7 +11,7 @@ export function cleanConsent(input:any,consent:string) {
  insist(regions.length<=50&&regions.every(r=>Object.hasOwn(REGION_GROUPS,r)||/^[A-Z]{2}(?:-[A-Z0-9]{1,3})?$/.test(r)),'consent_regions','List up to 50 regions that require consent: EU, EEA, UK, a country code such as CH, or a subdivision such as US-CA.')
  const adapter=String(input.consentAdapter??'').trim()
  insist(adapter===''||Object.hasOwn(CONSENT_ADAPTERS,adapter),'consent_adapter','Choose a listed consent manager, or none.')
- insist(consent==='required'||(!regions.length&&!adapter),'consent_regions','Consent regions and a consent manager apply when consent is required.')
+ insist(consent==='required'||(!regions.length&&(!adapter||input.consentedVisitors===true||input.consentedVisitors==='on')),'consent_regions','Consent regions and a consent manager apply when consent is required.')
  return {...(regions.length?{consentRegions:regions}:{}),...(adapter?{consentAdapter:adapter as keyof typeof CONSENT_ADAPTERS}:{})}
 }
 export function consentRequired(config:Config,request:Request):boolean {

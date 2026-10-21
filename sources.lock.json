@@ -63,7 +63,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "c51372420295ee1db35bad75a686d8ab070f7bd22da1b580ce5e916df401ec47",
+      "sha256": "68079bab7f48404bf0cd83f7e775421d06824abd93e81f06ddc1de0d42a8a277",
       "executable": false
     },
     "AGENTS.md": {
@@ -95,7 +95,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "699b14f6fad590ef8c16ef52700ea9e46de4a10439ba86e94636aeaf9511688f",
+      "sha256": "67ac80c0a79d2436d354492842c0a686b0b4e2a46f0b0b5f116e5d41ba9f9095",
       "executable": false
     },
     "DEMO.md": {
@@ -404,6 +404,10 @@
     },
     "migrations/core/0064_vane_import_sources.sql": {
       "sha256": "4965f464980f23e21128670717148570d1b398b929819b660e5367054deabd6b",
+      "executable": false
+    },
+    "migrations/core/0065_vane_consented.sql": {
+      "sha256": "cf04889f44617ade0e8a59343b37b9b6930b8b0e6dc3eec09e36f341058cf0ab",
       "executable": false
     },
     "ONBOARDING.md": {
@@ -2767,7 +2771,7 @@
       "executable": false
     },
     "src/vane/collect.ts": {
-      "sha256": "4d221924844bda7d2440e06f61f4e876e7e7423f05efa4518fa09e38b2933338",
+      "sha256": "3755828b154127f042fac08404922d27cc7ccc51b27eb1649a829c926675bbf3",
       "executable": false
     },
     "src/vane/commands.ts": {
@@ -2775,11 +2779,15 @@
       "executable": false
     },
     "src/vane/consent.ts": {
-      "sha256": "ffc7dc80419b905a292b4b0080387f0da054a59db8babefb8ef5ccc296618ad2",
+      "sha256": "6491bcec108197dea3aa4f97a865735523aa9aa004459e036094ea5d810efd80",
+      "executable": false
+    },
+    "src/vane/consented.ts": {
+      "sha256": "ce0c14f52dcfe639c7d6b921e30181f0a9cfbe26b8912ec6b51a8e53bf25a32e",
       "executable": false
     },
     "src/vane/core.ts": {
-      "sha256": "500f37257c0dc17924be32ea7a60364986e3be576260e471d23b0b67bcabf604",
+      "sha256": "3793d80c8f906f5568b996559a4d4f10ef45d253e5d7113b3c489a059e0d91db",
       "executable": false
     },
     "src/vane/csv.ts": {
@@ -2787,11 +2795,11 @@
       "executable": false
     },
     "src/vane/custom-events.ts": {
-      "sha256": "3b520985c1ae782842bfc70434a7b6da15edf3b1db23b77de4165c15d8be68c3",
+      "sha256": "ff2900c66154a7c1ebdfdf52cecdae2918c67695899e985c719bddea7f0e4f10",
       "executable": false
     },
     "src/vane/custom-reports.ts": {
-      "sha256": "eeab3ce2a795446c184130b0004daae7cd8fc9e37929fadde9a02f13a9c8ef37",
+      "sha256": "326d996ea6476ce37ad7099c81d07bc0ba3c6dd95530b7c974512ae7f0c72992",
       "executable": false
     },
     "src/vane/cutover/findings.ts": {
@@ -2843,11 +2851,11 @@
       "executable": false
     },
     "src/vane/experiment-stats.ts": {
-      "sha256": "b0171609339c387fc213d29552d8318e787d7a5108d8f6e30b070480d0445714",
+      "sha256": "5fc3fcb8c660dfe49db168ce588ad919915dd4816ec51008835fc6a47cc57b8f",
       "executable": false
     },
     "src/vane/experiments.ts": {
-      "sha256": "7bef05181d36f667010b7362927d086955da6e034256806c5780ce0e2a9b8922",
+      "sha256": "6dccf787e1993a86f5c3829bef7e0e22c35b066ec20d5075fdfd3558020227f1",
       "executable": false
     },
     "src/vane/explain.ts": {
@@ -2859,11 +2867,11 @@
       "executable": false
     },
     "src/vane/funnel-loads.ts": {
-      "sha256": "130eda7259ca0fa152d15a58901f2abbc1a50baa882df3b2e092651555efa7f4",
+      "sha256": "9fe0644eff236532d494c951dc6fd610e9056eef543e248fdad9865d759158ad",
       "executable": false
     },
     "src/vane/funnels.ts": {
-      "sha256": "68e49eeaef3403893d951cc82e37d2b0ec9b80468dac68fb4d2593fd6b022128",
+      "sha256": "7124a831afa0e801437cfd6415c90f96801a7311d4102278a09bf22347faa55c",
       "executable": false
     },
     "src/vane/github-releases.ts": {
@@ -2887,7 +2895,7 @@
       "executable": false
     },
     "src/vane/inventory.ts": {
-      "sha256": "403600a714c77678e3aea18f2d45c2ba52b9aea465a82d3ff4eadaa871ef758c",
+      "sha256": "3df996da67f071d6371a86bb63e5a9f5a2f18ca92d54904ef8091d312493651a",
       "executable": false
     },
     "src/vane/journeys.ts": {
@@ -2895,7 +2903,7 @@
       "executable": false
     },
     "src/vane/locations.ts": {
-      "sha256": "2257cb9a6330b8e8c2ac64cdcf18a5ac67eb5a3ed6d7e2879308ff9be419f0a3",
+      "sha256": "e1f5a5c0ca9d6bb29519034510019f831b9c3b1004f8912ea1e5f3a639d737f6",
       "executable": false
     },
     "src/vane/mail-events.ts": {
@@ -2907,7 +2915,7 @@
       "executable": false
     },
     "src/vane/methodology.ts": {
-      "sha256": "a9591fbd85a5e54e83e2c15d8ca57134fe0c8b65f16a222c1f64d03484ba76e0",
+      "sha256": "30034596a96495d43a911c85e7cbca5e21bd55d45f2b5c072d2a6c21b758698c",
       "executable": false
     },
     "src/vane/metro-names.ts": {
@@ -3027,7 +3035,7 @@
       "executable": false
     },
     "src/vane/overview.ts": {
-      "sha256": "a0052391723ddd71cfba04e4af896b2cf243c1a775d559a1d633cf3e66f343a7",
+      "sha256": "9766a48029c2203e01f6f7cb40f14f9e0db6584fd7f874af86a3ee490f555c4e",
       "executable": false
     },
     "src/vane/paths.ts": {
@@ -3035,7 +3043,7 @@
       "executable": false
     },
     "src/vane/performance.ts": {
-      "sha256": "af4855fb3e681be60054c3ef1aff0b9d71c7d0118c054023d7616deba7744f8c",
+      "sha256": "14f71ab8112911b239b8ac44e9f0ca66ac709b14997425e6c100711fd9433b5d",
       "executable": false
     },
     "src/vane/periods.ts": {
@@ -3043,11 +3051,11 @@
       "executable": false
     },
     "src/vane/privacy-signals.ts": {
-      "sha256": "038a504fcaf3df005290dee688a1873638fd3f5df0ac58a696992b6cd5b5c016",
+      "sha256": "95fd7f73f7a9bdd275a2753c92d99dfdfeb228b94de496f1f596101171eb9b4e",
       "executable": false
     },
     "src/vane/privacy.ts": {
-      "sha256": "4f8e9e5db0fb4047a5c88c2912ef90800ea05d064e772e7ade1d5f5902d3fdbf",
+      "sha256": "d3e38c8c689911c484407efb6d67816094cca48d269c89cc57ac91ffe4f16afb",
       "executable": false
     },
     "src/vane/properties.ts": {
@@ -3075,7 +3083,7 @@
       "executable": false
     },
     "src/vane/reports.ts": {
-      "sha256": "48c50c66b6e6ee15880d53f1aad8885d745eedbf735c9bbecc4037d6325358c6",
+      "sha256": "b2c54da4ac60a22c014c895c08b6e81587b3b0c569bb9a132e4c42a045cfc2e0",
       "executable": false
     },
     "src/vane/retention.ts": {
@@ -3139,7 +3147,7 @@
       "executable": false
     },
     "src/vane/search.ts": {
-      "sha256": "55399bb70854314047633d2e3da939c21920c3a1760434c24b02835be5a527b5",
+      "sha256": "e4a45581f93cb0fa8474a6d5c2f7944f95fdc5e884e24dbd748e7ef8dac4aabf",
       "executable": false
     },
     "src/vane/segments.ts": {
@@ -3147,7 +3155,7 @@
       "executable": false
     },
     "src/vane/series.ts": {
-      "sha256": "401ff7d600bfb9a34f12edf29ded47a14e8c1b0018e338f8026028121295fbea",
+      "sha256": "db657402db34aec580ea18430beb804aba0148a6b5ae580883f1d98eecfa3f92",
       "executable": false
     },
     "src/vane/share.ts": {
@@ -3178,8 +3186,12 @@
       "sha256": "c58d1d41991bb7dc9f8547ce82292e92b7fb9f9abb7d6a61830f6b18af39c8a6",
       "executable": false
     },
+    "src/vane/tracker-consented.ts": {
+      "sha256": "98cfecd7f0595261bc582d15a705bc96b6c7ef92096b02ae54002a29ce8b79e7",
+      "executable": false
+    },
     "src/vane/tracker.ts": {
-      "sha256": "4d274bea10e99fc43b030ed37f10546467932ca06f72d1bab456b852b0e07322",
+      "sha256": "40100ee780b5b80e1ce2d4eaad5b676f76cbc50d16391f9fd48dad34cfaef181",
       "executable": false
     },
     "src/vane/tracking-health.ts": {
@@ -3222,6 +3234,10 @@
       "sha256": "bf31bf518c21b8b95f21d5e4d17fbf2348f776de42ae64205631633c0dc24a37",
       "executable": false
     },
+    "src/vane/views/consented.ts": {
+      "sha256": "4bb3bb4c6005431bcc5f1acff3a5072de4ab031a21e04c09ce6cd79cdb877e4b",
+      "executable": false
+    },
     "src/vane/views/cutover.ts": {
       "sha256": "f2116da698b37526bd0d002a7f7e663b32bb76b5ce840104dcbb3fd238bf184f",
       "executable": false
@@ -3235,7 +3251,7 @@
       "executable": false
     },
     "src/vane/views/experiments.ts": {
-      "sha256": "3630c8749c09bac99e48f3178c62f84978d45b1834b795273d711dd2bb9ad3bf",
+      "sha256": "1a4cef30f97525a2f3939f6905ba87d3aaab55aee1558685cd2894d53c3b1b75",
       "executable": false
     },
     "src/vane/views/export-settings.ts": {
@@ -3311,7 +3327,7 @@
       "executable": false
     },
     "src/vane/views/report.ts": {
-      "sha256": "45ef745d1788a4952af0eb755cbe56310bea4f9a9865fd52276587c7f3150e6b",
+      "sha256": "fbffcf06012f4978f53fb7443cc32a5550b272822132f8a5605e81ff3a058cc8",
       "executable": false
     },
     "src/vane/views/revenue.ts": {
@@ -3335,7 +3351,7 @@
       "executable": false
     },
     "src/vane/views/settings.ts": {
-      "sha256": "3db2231f9edc79b7eac380a13938d947a4003fff3d7db35723534f4a1c068b2b",
+      "sha256": "f8f8e1d74882a160a7a8751f067d3736eeefb924f7883909b04f53a3d46e383b",
       "executable": false
     },
     "src/vane/views/share-settings.ts": {
@@ -3370,12 +3386,16 @@
       "sha256": "1f267d44b540adba3e9f9cb6ef309cbb0c49170352f4bf2cae5fe5e62ef444a3",
       "executable": false
     },
+    "src/vane/visitor-key.ts": {
+      "sha256": "006a1cb17d58a0396c4da968af22c7c00b1328bc180870f2b70bce532f9fe2c3",
+      "executable": false
+    },
     "src/vane/visitors.ts": {
       "sha256": "6bbe135b8783149f366dea2e11530d71ce4df6bb49a8e13c9c2017ed784eff5e",
       "executable": false
     },
     "src/vane/visits.ts": {
-      "sha256": "e377cdc2c5de3d898bd4ec693fde4843d96f733583a967ef7bd74a832737832d",
+      "sha256": "4a446b6653fcfcc13b9ae0b9a3ad3930b32e341619bbdedd7111368b86e4d90f",
       "executable": false
     },
     "src/vane/warehouse.ts": {
@@ -3404,6 +3424,10 @@
     },
     "tests/chat.test.mjs": {
       "sha256": "b308d566c540b66524b999e8c43079ef08e872e49dfc4260f2efcc2e493ee10d",
+      "executable": false
+    },
+    "tests/consented.test.mjs": {
+      "sha256": "f68ba861ba8840411fe2e9a60188865b7e54f022adb393ef4fc789313d71c782",
       "executable": false
     },
     "tests/demo.journey.mjs": {

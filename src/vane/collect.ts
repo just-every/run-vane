@@ -1,7 +1,8 @@
+import { consentedIdentity, consentedPage } from './consented'
 import { paymentReferrer } from './revenue'
 import { consentAccepted, consentRequired } from './consent'
 import { assignments } from './experiments'
-import { day, insist, site, siteOrigin, statement, VaneError, type Env, type Site } from './core'
+import { day, digest, insist, site, siteOrigin, statement, VaneError, type Env, type Site } from './core'
 import { tracker } from './tracker'
 import { signalResponse } from './privacy-signals'
 import { localDay, visitorHash } from './visitors'
@@ -39,23 +40,24 @@ export async function collector(request:Request,env:Env):Promise<Response|null> 
   // The script's configuration door serves only what the script uses (PRIVACY-003: whether this visitor's region
   // requires consent, never the region itself, and the consent manager to read); the owner's excluded addresses and countries
   // (COLLECT-003), goals, funnels and other settings stay in the installation.
-  if(match) { insist(request.method==='GET','method','GET required.',405); const c=value.config; return Response.json({consent:consentRequired(c,request)?'required':'not-required',...(c.consentAdapter?{consentAdapter:c.consentAdapter}:{}),sampleRate:c.sampleRate,...(c.declinedCounter?{declinedCounter:true}:{}),autoEvents:c.autoEvents??[],queryKeys:c.queryKeys??[],...(c.searchParam?{searchParam:c.searchParam}:{}),...(c.incumbentCompatibility?{incumbentCompatibility:true,currency:c.currency??'USD'}:{}),eventDefinitions:c.eventDefinitions??[]},{headers:cors}); }
+  if(match) { insist(request.method==='GET','method','GET required.',405); const c=value.config; return Response.json({consent:consentRequired(c,request)?'required':'not-required',...(c.consentAdapter?{consentAdapter:c.consentAdapter}:{}),sampleRate:c.sampleRate,...(c.consentedVisitors?{consentedVisitors:true,consentLifetimeMonths:c.consentLifetimeMonths??13}:{}),...(c.declinedCounter?{declinedCounter:true}:{}),autoEvents:c.autoEvents??[],queryKeys:c.queryKeys??[],...(c.searchParam?{searchParam:c.searchParam}:{}),...(c.incumbentCompatibility?{incumbentCompatibility:true,currency:c.currency??'USD'}:{}),eventDefinitions:c.eventDefinitions??[]},{headers:cors}); }
   if(engage) {
    // METRIC-003: a ping names only the site and its own page load, at least 10 seconds and at most
    // 30 minutes after that load; the latest ping marks the page engaged and ends its time.
    // METRIC-006: it carries the deepest scroll reached, and scroll-depth goals count against it.
    insist(Object.keys(payload??{}).every(key=>['id','siteId','scroll'].includes(key))&&/^[a-f0-9-]{36}$/.test(payload.id),'fields','An engagement ping carries only the site and page-load IDs and the scroll depth.');
    insist(Number.isInteger(payload.scroll)&&payload.scroll>=0&&payload.scroll<=100,'scroll','Scroll depth is a whole percentage from 0 to 100.');
-   const at=clock(),eventId=value.id+':'+payload.id,load=await env.DB.prepare("SELECT at,path,hostname FROM vane_events WHERE id=? AND kind='pageview'").bind(eventId).first<{at:number|null,path:string,hostname:string|null}>();
+   const at=clock(),eventId=value.id+':'+payload.id,load=await env.DB.prepare("SELECT at,path,hostname,consented_visitor,consented_created_at,consented_expires_at FROM vane_events WHERE id=? AND kind='pageview'").bind(eventId).first<{at:number|null,path:string,hostname:string|null;consented_visitor:string|null;consented_created_at:number|null;consented_expires_at:number|null}>();
    insist(typeof load?.at==='number','page_load','No timed page load has this ID.',404);
+   consentedPage(value.config,request,load,at);
    insist(at-load.at>=ENGAGED_AFTER_MS,'engagement','Engagement counts after 10 seconds on the page.',409);
    insist(at-load.at<=ENGAGEMENT_WINDOW_MS,'expired','Engagement more than 30 minutes after its page load is not counted.',409);
    const recovered=Object.entries(value.config.customGoals??{}).filter(([,g])=>g.depth!==undefined),pageProps=recovered.some(([,g])=>g.props)?(await env.DB.prepare('SELECT key,value FROM vane_event_props WHERE event_id=?').bind(eventId).all<{key:string,value:string}>()).results.map(p=>[p.key,p.value] as [string,string]):[];
    const goals=[...Object.entries(value.config.scrollGoals??{}),...recovered.filter(([,g])=>propertiesMatch(g.props,pageProps)).map(([name,g])=>[name,{path:g.path!,depth:g.depth!}] as [string,{path:string;depth:number}])].filter(([,goal])=>goalApplies(goal.path,load.hostname,load.path));
-   await env.DB.batch([statement(env,'UPDATE vane_events SET engaged_at=MAX(COALESCE(engaged_at,0),?),scroll=MAX(COALESCE(scroll,0),?) WHERE id=?',at,payload.scroll,eventId),...goals.map(([name,goal])=>statement(env,'INSERT OR IGNORE INTO vane_events(id,site_id,day,kind,path,source,campaign,consent,sample_rate,visitor,at,hostname) SELECT id||?,site_id,day,?,path,source,campaign,consent,sample_rate,visitor,at,hostname FROM vane_events WHERE id=? AND scroll>=?',':'+name,name,eventId,goal.depth))]);
+   await env.DB.batch([statement(env,'UPDATE vane_events SET engaged_at=MAX(COALESCE(engaged_at,0),?),scroll=MAX(COALESCE(scroll,0),?) WHERE id=?',at,payload.scroll,eventId),...goals.map(([name,goal])=>statement(env,'INSERT OR IGNORE INTO vane_events(id,site_id,day,kind,path,source,campaign,consent,sample_rate,visitor,at,hostname,consented_visitor,consented_created_at,consented_expires_at) SELECT id||?,site_id,day,?,path,source,campaign,consent,sample_rate,visitor,at,hostname,consented_visitor,consented_created_at,consented_expires_at FROM vane_events WHERE id=? AND scroll>=?',':'+name,name,eventId,goal.depth))]);
    return Response.json({accepted:true},{status:202,headers:cors});
   }
-  insist(payload&&Object.keys(payload).every(key=>['id','siteId','path','source','referrer','campaign','utm','ref','click','query','consent','width','search','props'].includes(key)),'fields','Only the declared anonymous fields are accepted.');
+  insist(payload&&Object.keys(payload).every(key=>['id','siteId','path','source','referrer','campaign','utm','ref','click','query','consent','width','search','props','consented'].includes(key)),'fields','Only the declared anonymous fields are accepted.');
   // COLLECT-002: the page's hostname comes from its verified origin; the path is redacted and rewritten before
   // storage; UTM fields, ref/source and the owner's kept query keys arrive as values, and click IDs only as a flag.
   const utm=payload.utm??{},query=payload.query??{};
@@ -85,16 +87,17 @@ export async function collector(request:Request,env:Env):Promise<Response|null> 
   const payment=!utmSource&&!keptValue(payload.ref)&&paymentReferrer(refHost);
   const prior=await env.DB.prepare('SELECT * FROM vane_events WHERE id=?').bind(eventId).first<any>();
   if(prior) { insist(prior.path===e.path&&(payment||prior.source===e.source)&&prior.campaign===e.campaign,'conflict','Event ID already has different data.',409); return Response.json({accepted:true,duplicate:true},{headers:cors}); }
-  const visitor=await visitorHash(env,value,request,today,now),d=deviceOf(request.headers.get('user-agent')??'',payload.width),geo=locationOf(request),search=payload.search===undefined?null:searchTerm(payload.search);
+  const identity=await consentedIdentity(value,request,payload,now);
+  const visitor=identity?await digest(today+'\0'+identity.hash):await visitorHash(env,value,request,today,now),d=deviceOf(request.headers.get('user-agent')??'',payload.width),geo=locationOf(request),search=payload.search===undefined?null:searchTerm(payload.search);
   if(payment){const before=await env.DB.prepare("SELECT source,referrer,campaign,utm_source,utm_medium,utm_term,utm_content,paid_click,channel FROM vane_events WHERE site_id=? AND day=? AND visitor=? AND kind='pageview' ORDER BY at DESC,id DESC LIMIT 1").bind(value.id,today,visitor).first<any>();Object.assign(e,{source:before?.source??'direct',referrer:before?.referrer??null,campaign:before?.campaign??'none',utmSource:before?.utm_source??null,utmMedium:before?.utm_medium??null,utmTerm:before?.utm_term??null,utmContent:before?.utm_content??null,paidClick:before?.paid_click??0});channel=before?.channel??channelOf('direct',null,false)}
   const kinds=['pageview',...[...Object.entries(value.config.goals),...Object.entries(value.config.customGoals??{}).filter(([,g])=>g.path&&g.depth===undefined&&propertiesMatch(g.props,props.kept)).map(([name,g])=>[name,g.path!] as [string,string])].filter(([,goal])=>goalApplies(goal,e.hostname,e.path)).map(([name])=>name)];
   const statements=[statement(env,'DELETE FROM vane_guard'),statement(env,'INSERT INTO vane_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM vane_sites WHERE id=? AND version=?) THEN 1 ELSE 0 END',value.id,value.version),statement(env,'INSERT INTO vane_admission(site_id,day,count) VALUES(?,?,1) ON CONFLICT(site_id,day) DO UPDATE SET count=count+1',value.id,today),statement(env,'INSERT INTO vane_guard(value) SELECT CASE WHEN count<=10000 THEN 1 ELSE 0 END FROM vane_admission WHERE site_id=? AND day=?',value.id,today)];
-  for(const kind of kinds)statements.push(statement(env,'INSERT INTO vane_events(id,site_id,day,kind,path,source,campaign,consent,sample_rate,visitor,at,device,browser,browser_version,os,os_version,screen,search,hostname,utm_source,utm_medium,utm_term,utm_content,paid_click,query,channel,referrer,country,region,city,metro_code) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',kind==='pageview'?eventId:eventId+':'+kind,value.id,today,kind,e.path,e.source,e.campaign,payload.consent,value.config.sampleRate,visitor,now,d.device,d.browser,d.browserVersion,d.os,d.osVersion,d.screen,kind==='pageview'?search:null,e.hostname,e.utmSource,e.utmMedium,e.utmTerm,e.utmContent,e.paidClick,e.query,channel,e.referrer,geo.country,geo.region,geo.city,geo.metro_code));
+  for(const kind of kinds)statements.push(statement(env,'INSERT INTO vane_events(id,site_id,day,kind,path,source,campaign,consent,sample_rate,visitor,at,device,browser,browser_version,os,os_version,screen,search,hostname,utm_source,utm_medium,utm_term,utm_content,paid_click,query,channel,referrer,country,region,city,metro_code,consented_visitor,consented_created_at,consented_expires_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',kind==='pageview'?eventId:eventId+':'+kind,value.id,today,kind,e.path,e.source,e.campaign,payload.consent,value.config.sampleRate,visitor,now,d.device,d.browser,d.browserVersion,d.os,d.osVersion,d.screen,kind==='pageview'?search:null,e.hostname,e.utmSource,e.utmMedium,e.utmTerm,e.utmContent,e.paidClick,e.query,channel,e.referrer,geo.country,geo.region,geo.city,geo.metro_code,identity?.hash??null,identity?.createdAt??null,identity?.expiresAt??null));
   // CONV-002: a pageview's properties (INSTALL-007) are stored beside it.
   statements.push(...propStatements(env,eventId,value.id,today,props),...droppedStatement(env,value.id,today,props),statement(env,'DELETE FROM vane_guard'));
   try{await env.DB.batch(statements)}catch { throw new VaneError('admission','Collection changed, the daily limit was reached, or this event was already admitted. Refresh before sending another page load.',409) }
   // EXPERIMENT-001: the page load's variant in each split test running on its page, from its visitor hash.
-  const experiments=await assignments(value.config.experiments,visitor,e.hostname,e.path);
+  const experiments=await assignments(value.config.experiments,identity?.hash??visitor,e.hostname,e.path);
   return Response.json({accepted:true,...(experiments?{experiments}:{})},{status:202,headers:cors});
  } catch(error) {
   const e=error instanceof VaneError?error:new VaneError('invalid_event','Event could not be accepted.');

@@ -1,3 +1,4 @@
+import { visitorKey } from './visitor-key'
 import type { Env } from './core'
 import type { Experiment } from './experiments'
 // EXPERIMENT-001 results over the report's (possibly filtered) page loads. A variant's visitors are the distinct daily
@@ -30,8 +31,8 @@ export function results(experiment:Experiment,counts:Map<string,{visitors:number
 }
 export async function experimentReport(env:Env,siteId:string,from:string,to:string,events:string,experiments:Experiment[]=[]) {
  return Promise.all(experiments.map(async x=>{
-  const result=await env.DB.prepare(`WITH f AS (SELECT p.day,p.visitor,e.variant,MIN(e.at) AS first FROM vane_exposures e JOIN ${events} p ON p.id=e.page_id WHERE e.site_id=?1 AND e.experiment=?2 AND e.day>=?3 AND e.day<?4 AND p.visitor IS NOT NULL GROUP BY p.day,p.visitor,e.variant)
-SELECT variant,COUNT(*) AS visitors,SUM(EXISTS(SELECT 1 FROM ${events} g WHERE g.site_id=?1 AND g.day=f.day AND g.visitor=f.visitor AND g.kind=?5 AND g.at>=f.first)) AS conversions FROM f GROUP BY variant`).bind(siteId,x.name,from,to,x.goal).all<any>()
+  const result=await env.DB.prepare(`WITH f AS (SELECT ${visitorKey('p.')} AS identity,e.variant,MIN(e.at) AS first FROM vane_exposures e JOIN ${events} p ON p.id=e.page_id WHERE e.site_id=?1 AND e.experiment=?2 AND e.day>=?3 AND e.day<?4 AND p.visitor IS NOT NULL GROUP BY identity,e.variant)
+SELECT variant,COUNT(*) AS visitors,SUM(EXISTS(SELECT 1 FROM ${events} g WHERE g.site_id=?1 AND g.day>=?3 AND g.day<?4 AND ${visitorKey('g.')}=f.identity AND g.kind=?5 AND g.at>=f.first)) AS conversions FROM f GROUP BY variant`).bind(siteId,x.name,from,to,x.goal).all<any>()
   return results(x,new Map(result.results.map(r=>[r.variant,{visitors:Number(r.visitors),conversions:Number(r.conversions)}])))
  }))
 }

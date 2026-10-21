@@ -1,3 +1,4 @@
+import { consentedPage } from './consented'
 import { insist, site, siteOrigin, statement, VaneError, type Env } from './core'
 import { consentAccepted } from './consent'
 import { clock } from './clock'
@@ -7,7 +8,8 @@ import { goalApplies } from './goals'
 // pricing = /pricing > signup : control, cheaper (a page path or pattern with the goals' wildcards, an existing goal,
 // then the variants, the first being the control); at most 10. In the cookie-free mode a visitor's variant is
 // SHA-256(daily visitor hash + ":" + experiment name), its first four bytes modulo the number of variants, so it is
-// stable within the visitor's day and equal across variants in expectation; nothing new is stored for it.
+// stable within the visitor's day and equal across variants in expectation. Consented mode substitutes the
+// site-scoped identifier digest, so assignment stays stable across days without a separate experiment identifier.
 export interface Experiment { name:string; page:string; goal:string; variants:string[] }
 const LINE=/^([a-z][a-z0-9-]{0,39})\s*=\s*(\S+)\s*>\s*([a-z][a-z0-9-]{0,39})\s*:\s*(.+)$/
 export function cleanExperiments(input:unknown,goals:string[]):Experiment[] {
@@ -39,9 +41,10 @@ export async function exposureResponse(request:Request,env:Env):Promise<Response
   insist(consentAccepted(value.config,request,payload.consent),'consent','Consent is required for collection.',403);
   const excluded=excludedTraffic(request,value.config,null);insist(!excluded,'excluded',`This traffic is excluded from collection (${excluded}).`,403);
   const experiment=(value.config.experiments??[]).find(x=>x.name===payload.experiment);insist(experiment,'experiment','This site runs no such experiment.',404);
-  const pageId=value.id+':'+payload.page,load=await env.DB.prepare("SELECT day,visitor,path,hostname FROM vane_events WHERE id=? AND kind='pageview' AND site_id=?").bind(pageId,value.id).first<any>();
+  const pageId=value.id+':'+payload.page,load=await env.DB.prepare("SELECT day,visitor,consented_visitor,consented_created_at,consented_expires_at,path,hostname FROM vane_events WHERE id=? AND kind='pageview' AND site_id=?").bind(pageId,value.id).first<any>();
   insist(load&&load.visitor&&goalApplies(experiment!.page,load.hostname,load.path),'page_load','No page load of this experiment’s page has this ID.',404);
-  const variant=await variantOf(load.visitor,experiment!);
+  consentedPage(value.config,request,load,clock(),payload.consent);
+  const variant=await variantOf(load.consented_visitor??load.visitor,experiment!);
   await env.DB.batch([statement(env,'INSERT OR IGNORE INTO vane_exposures(page_id,site_id,day,experiment,variant,at) VALUES(?,?,?,?,?,?)',pageId,value.id,load.day,experiment!.name,variant,clock())]);
   return Response.json({accepted:true,variant},{status:202,headers:cors});
  } catch(error) { const e=error instanceof VaneError?error:new VaneError('invalid_exposure','Exposure could not be accepted.'); return Response.json({error:e.code,message:e.message},{status:e.status,headers:cors}); }

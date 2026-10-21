@@ -13,7 +13,7 @@ export const stance = [
 export const storage = [
  'In the default mode a visitor gets no cookie and no storage entry. Vane allows exactly two declared exceptions.',
  'Own-browser exclusion: opening any page of the site with #vane-ignore=on writes a single vane_ignore localStorage flag that holds no identifier, and that browser is no longer collected, only counted with one empty count per page load; #vane-ignore=off removes it.',
- 'Consented identifier: only a consented visitor mode would store a first-party identifier, and only after consent is granted. This release has no consented mode, so it writes none.',
+ 'Consented identifier: only after the owner enables consented mode and the visitor explicitly grants analytics consent, vane_consent_<site ID> in first-party localStorage holds a random UUID and its issue time. Its fixed lifetime is the owner’s choice of 1 to 13 months. Revoking consent deletes it and stops linking; DNT/GPC and disabling the mode also remove it. The server stores only a site-scoped digest, never the raw identifier.',
 ]
 
 export async function signalResponse(request:Request,env:Env):Promise<Response|null> {

@@ -3,8 +3,8 @@ import { timedFrom } from './visits'
 export interface FunnelLoad {key:string;at:number;path:string;hostname:string|null;goals:string[];custom:{name:string,props:Record<string,string>}[];event:boolean}
 // Page steps consume actual page loads. A custom event, including a recovered custom-event
 // goal, is a separate ordered step on its page; a source display name is never parsed from an ID.
-export async function funnelLoads(env:Env,scope:string,from:string,to:string,events:string):Promise<FunnelLoad[][]> {
- const result=await env.DB.prepare(`${timedFrom(events)} SELECT q.day||' '||q.visitor||' '||q.visit AS key,q.at,q.path,q.hostname,
+export async function funnelLoads(env:Env,scope:string,from:string,to:string,events:string,crossVisit=false):Promise<FunnelLoad[][]> {
+ const result=await env.DB.prepare(`${timedFrom(events)} SELECT CASE WHEN ${crossVisit?'1':'0'}=1 AND q.consented_visitor IS NOT NULL THEN q.site_id||' c '||q.consented_visitor ELSE q.site_id||' d '||q.day||' '||q.visitor||' '||q.visit END AS key,q.at,q.path,q.hostname,
  (SELECT group_concat(c.kind,char(31)) FROM ${events} c WHERE c.id>q.id||':' AND c.id<q.id||';' AND c.id=q.id||':'||c.kind) AS goals,
  (SELECT json_group_array(json_object('name',ce.name,'at',ce.at,'props',json(ce.props),'goals',ce.goals)) FROM (
   SELECT ce.name,ce.at,
