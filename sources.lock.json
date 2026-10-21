@@ -127,7 +127,7 @@
       "executable": false
     },
     "docs/first-party-proxy.md": {
-      "sha256": "cef6a2d5dfe4263376794f0420000539f2054d544f7f75c58cfeb0b4ae03137e",
+      "sha256": "b1ba47a4ea6a3612710a9073e706b75edc447a74a2dcb1c43de5abf1b0424c40",
       "executable": false
     },
     "docs/getting-started.md": {
@@ -3095,7 +3095,7 @@
       "executable": false
     },
     "src/vane/proxy/ingress.ts": {
-      "sha256": "b7a646245f6ae611cb735116ce32499c91b056d45504a92bf8f3216f23437d79",
+      "sha256": "a64cbba4808dc8c927987acd62de7b90fea67da928da644867cb92affa353f76",
       "executable": false
     },
     "src/vane/proxy/management.ts": {

@@ -43,8 +43,9 @@ function externalMetadata(request:Request):{ip:string;cf:Record<string,string>} 
  insist(isIP(ip)!==0,'proxy_metadata','Invalid visitor metadata.')
  const country=request.headers.get('x-vane-proxy-country'),region=place(request.headers.get('x-vane-proxy-region')),city=place(request.headers.get('x-vane-proxy-city'))
  insist(country===null||/^[A-Z]{2}$/.test(country),'proxy_metadata','Invalid visitor metadata.')
+ insist(region===undefined||/^[A-Z0-9]{1,3}$/.test(region),'proxy_metadata','Invalid visitor subdivision code.')
  // No ASN, bot score, server geography or server IP may stand in for the visitor.
- return {ip,cf:{...(country&&country!=='XX'&&country!=='T1'?{country}:{}),...(region?{region}:{}),...(city?{city}:{})}}
+ return {ip,cf:{...(country&&country!=='XX'&&country!=='T1'?{country}:{}),...(region?{regionCode:region}:{}),...(city?{city}:{})}}
 }
 function preflight(request:Request,origin:string,door:Door):Response {
  insist(request.headers.get('access-control-request-method')===door.method,'proxy_method','Invalid proxy method.',405)
@@ -84,6 +85,7 @@ export async function resolveProxy(request:Request,env:Env):Promise<ProxyResolut
   const origin=request.headers.get('origin')
   insist(door.script&&!origin||origin===connection.site_origin,'proxy_origin','Invalid proxy origin.',403)
   if(request.method==='OPTIONS')return preflight(request,origin!,door)
+  if(door.method==='POST'&&(request.headers.get('dnt')==='1'||request.headers.get('sec-gpc')==='1')&&!door.path.startsWith('/api/vane/signal/'))return refusal(403)
   let body:string|undefined
   if(door.method==='POST'){
    body=await boundedBody(request)
