@@ -3439,7 +3439,7 @@
       "executable": false
     },
     "tests/import-export.test.mjs": {
-      "sha256": "d0c5a911b756a6813c03f1499fa744fd2c3b1962d6f3b5b477b7d0e3b32d5a09",
+      "sha256": "ae455c62ed0e1366aab4b951e93ae22e53b40e587390cbafa7de00cda8a06168",
       "executable": false
     },
     "tests/import-scale.journey.mjs": {
