@@ -43,6 +43,10 @@ test('ALERT-002 the daily tracking-health check names a silent site, a goal sile
  // Only the owner moves the daily check, and the change is audited.
  const admin=await a.invite('admin@example.test','admin')
  assert.equal((await a.form({operation:'health.time',siteId:fern,time:'07:30'},admin)).status,403)
+ assert.equal((await a.form({operation:'health.time',siteId:fern,time:'07:30'},'')).status,401)
+ assert.equal((await a.post('/app/action',{operation:'health.time',siteId:fern,time:'07:30'},a.owner,{origin:'https://foreign.example'})).status,403)
+ for(const time of ['24:00','07:60','7:30','-1:00'])assert.equal((await a.form({operation:'health.time',siteId:fern,time},a.owner)).status,400,'ALERT-002 rejects invalid local time '+time)
+ assert.equal((await a.dump()).vane_audit.filter(r=>r.action==='health.time').length,0,'refused time changes write no audit or setting')
  for(const siteId of [fern,oak,pine])assert.equal((await a.form({operation:'health.time',siteId,time:'07:30'},a.owner)).status,303)
  assert.ok((await a.dump()).vane_audit.some(r=>r.action==='health.time'&&r.subject===fern&&r.detail==='07:30'))
  assert.ok((await settings(fern,admin)).includes('The check runs daily at 07:30 (America/Chicago); the owner sets the time.'))
@@ -122,4 +126,17 @@ test('ALERT-002 the daily tracking-health check names a silent site, a goal sile
   if(process.env.VANE_SCREEN_DIR)await view.screenshot({path:join(process.env.VANE_SCREEN_DIR,`tracking-health-settings-${width}.png`)})
  }
  await browser.close()
+ // ALERT-002 / ERASURE-001: derived findings leave with the erased history, while the owner's schedule stays.
+ const snapshot=await a.archive()
+ assert.deepEqual(snapshot.payload.tables.vane_health,(await a.dump()).vane_health,'ALERT-002 health custody is part of the installation archive')
+ const erasure=await a.post('/api/vane/commands',{command:'history.erase',input:{siteId:fern}},a.owner)
+ assert.equal(erasure.status,201);const prepared=await erasure.json()
+ assert.equal((await a.form({operation:'proposal.approve',id:prepared.id},a.owner)).status,303)
+ const cleared=(await a.dump()).vane_health.find(r=>r.site_id===fern)
+ assert.deepEqual([cleared.check_minute,cleared.checked_day,cleared.checked_at,cleared.result_json],[450,null,null,null],'ALERT-002 keeps only the approved check time after erasure')
+ assert.ok((await overview()).includes('Tracking health: first check at 07:30 (America/Chicago)'))
+ const deletion=await a.post('/api/vane/commands',{command:'site.delete',input:{siteId:fern}},a.owner)
+ assert.equal(deletion.status,201);const remove=await deletion.json()
+ assert.equal((await a.form({operation:'proposal.approve',id:remove.id},a.owner)).status,303)
+ assert.equal((await a.dump()).vane_health.some(r=>r.site_id===fern),false,'ALERT-002 site deletion removes its health schedule too')
 })
