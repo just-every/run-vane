@@ -71,4 +71,4 @@ export function bucketText(interval: string, label: string): string {
   return calendar(`${label}-01`).toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' })
 }
 
-export const cutoverField='<label>Cut-over date (optional)<input type="date" name="cutover"></label><p class="vane-help">Import dates before this date. Any day with live collection uses live data alone. Leave blank to keep the earlier import behavior.</p>'
+export const cutoverField='<label>Cut-over date (optional)<input type="date" name="cutover"></label><p class="vane-help">Import dates before this date. Any day with live collection uses live data alone. Leave blank to review a cut-over immediately after the final source day.</p><label><input type="checkbox" name="preferNew"> Use this source instead on days held by earlier imports</label><p class="vane-help">Only the owner applies this reviewed choice. Earlier imports remain available for undo.</p>'

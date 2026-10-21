@@ -9,9 +9,11 @@ const exact = (value, keys) => value && typeof value === 'object' && !Array.isAr
   Object.keys(value).length === keys.length && keys.every(key => Object.hasOwn(value, key));
 
 export function reviewedPage(result) {
-  const carry = result?.carry;
+  const envelope = result?.carry;
+  const carry = envelope?.format==='vane-cutover-preview/1'?envelope.document:envelope;
+  if(carry!==envelope)requireValue(exact(envelope,['format','cutover','preferNew','document'])&&typeof envelope.cutover==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(envelope.cutover)&&envelope.preferNew===false,'INVALID_PREVIEW_RESPONSE');
   requireValue(/^[a-f0-9]{64}$/.test(result?.fingerprint) &&
-    exact(carry, ['format', 'events', 'discarded']) && carry.format === 'vane-umami-preview/1' &&
+    exact(carry, ['format', 'events', 'discarded', ...(carry?.provider!==undefined?['provider']:[]), ...(carry?.skipped!==undefined?['skipped']:[])]) && carry.format === 'vane-umami-preview/1' &&
     Array.isArray(carry.events) && carry.events.length > 0 && carry.events.length <= 500,
   'INVALID_PREVIEW_RESPONSE');
   requireValue(exact(carry.discarded, discardedKeys) && discardedKeys.every(key => nonnegative(carry.discarded[key])),
@@ -26,7 +28,7 @@ export function reviewedPage(result) {
     result.counts.unmapped === 0 && result.counts.rejected === 0, 'INVALID_PREVIEW_RESPONSE');
   requireValue(exact(result.discarded, discardedKeys) &&
     discardedKeys.every(key => result.discarded[key] === carry.discarded[key]), 'INVALID_PREVIEW_RESPONSE');
-  return { carry, fingerprint: result.fingerprint, counts: result.counts, discarded: result.discarded };
+  return { carry:envelope, fingerprint: result.fingerprint, counts: result.counts, discarded: result.discarded };
 }
 
 export function checkHeader(header, format) {

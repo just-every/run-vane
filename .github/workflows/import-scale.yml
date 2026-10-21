@@ -1,7 +1,7 @@
 name: Import scale
 
-# Full-scale source parsing/preview stays off the push wall. This can run on a
-# candidate branch; it is not a claim that full-scale publication is proven.
+# Full-scale parsing, interrupted publication and exact anonymous totals run
+# separately from the ordinary verification shards, including on candidate branches.
 on:
   push:
     paths:
@@ -9,6 +9,8 @@ on:
       - 'scripts/history-import/**'
       - 'scripts/import-export.mjs'
       - 'src/vane/movein/**'
+      - 'src/modules/import-kit/**'
+      - 'tests/harness.mjs'
       - '.github/workflows/import-scale.yml'
   workflow_dispatch:
 
@@ -16,9 +18,9 @@ permissions:
   contents: read
 
 jobs:
-  umami-preview:
+  umami-publication:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 240
     env:
       CI: 'true'
       WRANGLER_SEND_METRICS: 'false'

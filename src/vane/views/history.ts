@@ -1,3 +1,4 @@
+import { parallelPanel } from './parallel'
 import { plausibleImportPanel, importedDefinitionsPanel } from './import-definitions'
 import { MATOMO_METHODS } from '../movein/matomo-reader'
 import { importedReportsPanel } from './imported-reports'
@@ -10,6 +11,7 @@ import { storePanel } from './store'
 export interface ImportPreview {
   aggregates?:AggregateRecord[]
   skipped?:{ day: string; provider: string }[]
+  preferNew?: boolean
   cutover?: string | null
   overlap?: string[]
   fingerprint: string
@@ -29,11 +31,12 @@ function preview(data: ViewData): string {
   // IMPORT-007: the days another source already holds, left out of this import.
   const sources: Record<string, string> = { ga4: 'Google Analytics 4', plausible: 'Plausible', matomo: 'Matomo' }
   const held = item.skipped?.length ? `<p data-overlap-skipped>These days are already held by another import and are skipped, so nothing counts twice:</p><ul data-overlap-days>${item.skipped.map(s => `<li>${escape(s.day)}: held by ${escape(sources[s.provider] ?? s.provider)}</li>`).join('')}</ul>` : ''
+  const preference=item.preferNew?'<p>Owner choice: this import replaces earlier sources on its dates in reports. Earlier history and undo remain intact.</p>':'';
   const cutover=item.cutover?`<p data-import-cutover>Cut-over: ${escape(item.cutover)}. Only earlier imported dates appear in reports; any earlier date with live data uses live data alone. Source reports retain their own definitions and remain separate from native totals. Full imported history remains available for undo and installation archives.</p>${item.overlap?.length?`<p>Live data wins on: ${item.overlap.map(escape).join(', ')}.</p>`:''}`:''
   const apply = data.actor.role === 'owner' && !errors.length && item.fingerprint && data.importCarry
     ? `<form method="post" action="/app/action">${operation('import.apply', data.site.id)}${hidden('document', data.importCarry)}${hidden('fingerprint', item.fingerprint)}<p>Apply the reviewed document to this site. You can undo this import from its journal below.</p><button type="submit">Apply import</button></form>`
     : '<p class="vane-help">Only the owner can apply a validated import.</p>'
-  return panel('Review import', details + held + cutover + apply)+importedReportsPanel(item.aggregates??[])
+  return panel('Review import', details + held + cutover + preference + apply)+importedReportsPanel(item.aggregates??[])
 }
 
 function journals(data: ViewData): string {
@@ -64,5 +67,5 @@ export function historyPage(data: ViewData): string {
   const retention = owner ? panel('Apply retention', `<p>Remove analytics older than the configured retention periods. If imported rows remain beyond those periods, repeat Apply retention until they have all been processed.</p><form method="post" action="/app/action">${operation('history.retention', data.site.id)}<button type="submit">Apply retention</button></form>`) : ''
   const erase = owner ? panel('Erase this site’s history', `<p>Erasure removes analytics for ${escape(data.site.name)}. It records an erasure fence so an older archive cannot resurrect that history. Prepare the request here, then review and approve it in Approvals.</p><form method="post" action="/app/action">${operation('history.erase.prepare', data.site.id)}<button type="submit" class="vane-danger">Prepare history erasure</button></form>`) : ''
   const transfer = owner ? panel('Transfer or delete this site', `<p>Download ${escape(data.site.name)} with its settings and history to transfer it to another Vane installation. Imported rows travel as settled history; their import journal stays in the installation archive.</p><a class="vane-button vane-secondary" href="/api/vane/export?siteId=${encodeURIComponent(data.site.id)}" download>Download site archive</a><p>Deleting the site removes it with all of its history. Prepare the request here; the owner reviews and approves it in Approvals.</p><form method="post" action="/app/action">${operation('site.delete.prepare', data.site.id)}<button type="submit" class="vane-danger">Prepare site deletion</button></form>`) : ''
-  return (owner ? exportPanel() : '') + imported + (owner?plausibleImportPanel(data.site.id,data.site.config.currency??'USD'):'') + matomo + matomoCsv + preview(data) + importedDefinitionsPanel(data.importDefinitions??[],data.site.id,owner||data.actor.access==='analyst'||data.actor.role==='admin') + importedReportsPanel(data.report?.importedReports??[],data.site.id,owner) + journals(data) + retention + storePanel(data) + erase + transfer
+  return (owner ? exportPanel() : '') + imported + (owner?plausibleImportPanel(data.site.id,data.site.config.currency??'USD'):'') + matomo + matomoCsv + preview(data) + importedDefinitionsPanel(data.importDefinitions??[],data.site.id,owner||data.actor.access==='analyst'||data.actor.role==='admin') + importedReportsPanel(data.report?.importedReports??[],data.site.id,owner) + parallelPanel(data) + journals(data) + retention + storePanel(data) + erase + transfer
 }

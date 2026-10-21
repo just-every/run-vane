@@ -4,7 +4,7 @@ import type { DiscardedCounts, ImportSite, SafeEvent, SitePolicy } from './types
 import { MoveinError } from './types.ts';
 import { aggregateSource } from './aggregates'
 import type { AggregateRecord } from './aggregate-types'
-import type { HeldDay } from './overlap'
+import { carriedSkips, type HeldDay } from './overlap'
 import { goalApplies } from '../goals';
 import { hostOf, keptValue, pathAllowed, storedPath, visitSource } from '../paths';
 import { mappingVersion, namespace } from './policy.ts';
@@ -20,17 +20,17 @@ const text = (value: unknown) => typeof value === 'string' ? value : '';
 export function normalize(document: unknown, site: ImportSite, policy: SitePolicy, skipped: HeldDay[] = []) {
   const aggregate=aggregateSource(document,site,policy,skipped); if(aggregate)return aggregate;
   let input: any = document;
-  if (isSimpleCsv(document)) { if (new TextEncoder().encode(document as string).length > 2_000_000) throw new MoveinError('DOCUMENT_TOO_LARGE'); const page = simpleEvents(document as string, site, policy); return normalizedSource(page.events, page.discarded, site); }
-  if (isUmamiCsv(document)) { if (new TextEncoder().encode(document as string).length > 2_000_000) throw new MoveinError('DOCUMENT_TOO_LARGE'); const page = umamiCsvEvents(document as string, site, policy); return normalizedSource(page.events, page.discarded, site); }
+  if (isSimpleCsv(document)) { if (new TextEncoder().encode(document as string).length > 2_000_000) throw new MoveinError('DOCUMENT_TOO_LARGE'); const page = simpleEvents(document as string, site, policy); return normalizedSource(page.events, page.discarded, site, 'simple', skipped); }
+  if (isUmamiCsv(document)) { if (new TextEncoder().encode(document as string).length > 2_000_000) throw new MoveinError('DOCUMENT_TOO_LARGE'); const page = umamiCsvEvents(document as string, site, policy); return normalizedSource(page.events, page.discarded, site, 'umami', skipped); }
   if (typeof document === 'string') {
     if (new TextEncoder().encode(document).length > 2_000_000) throw new MoveinError('DOCUMENT_TOO_LARGE');
     try { input = JSON.parse(document); } catch { throw new MoveinError('INVALID_JSON'); }
   }
   if (input?.format === 'vane-umami-preview/1') {
     const carry = validateCarry(input,policy);
-    return normalizedSource(carry.events,carry.discarded,site);
+    return normalizedSource(carry.events,carry.discarded,site,input.provider??'umami',skipped,carriedSkips(input));
   }
-  if (isPosthogPage(input)) { const page = posthogEvents(input, site, policy); return normalizedSource(page.events, page.discarded, site); }
+  if (isPosthogPage(input)) { const page = posthogEvents(input, site, policy); return normalizedSource(page.events, page.discarded, site, 'posthog', skipped); }
   if (!input || typeof input !== 'object' || !Array.isArray(input.data) || !Number.isSafeInteger(input.count) || input.count < input.data.length || !Number.isSafeInteger(input.page) || input.page < 1 || !Number.isSafeInteger(input.pageSize) || input.pageSize < input.data.length || input.pageSize < 1) throw new MoveinError('UMAMI_EVENTS_PAGE_REQUIRED');
   if (!input.data.length || input.data.length > 500) throw new MoveinError('IMPORT_PAGE_REQUIRES_1_TO_500_EVENTS');
   const discarded: DiscardedCounts = { sessionIds: 0, pageTitles: 0, websiteIds: 0, sourceEventIds: 0, rawQueries: 0, referrerPaths: 0, referrerQueries: 0, excludedPaths: 0, extraFields: 0 };
@@ -68,13 +68,15 @@ export function normalize(document: unknown, site: ImportSite, policy: SitePolic
     discarded.extraFields += Object.keys(raw).filter(key => !known.has(key)).length;
     return { id: sha256(canonicalJson(['vane-umami-event', site.id, raw.id])), day, kind, path, source, campaign, consent: null, sample_rate: null };
   });
-  return normalizedSource(events,discarded,site);
+  return normalizedSource(events,discarded,site,'umami',skipped);
 }
 
-function normalizedSource(events: SafeEvent[], discarded: DiscardedCounts, site: ImportSite) {
+function normalizedSource(events: SafeEvent[], discarded: DiscardedCounts, site: ImportSite, provider:string, skipped:HeldDay[], declared:string[]=[]) {
+  const days=[...new Set([...events.map(e=>e.day),...declared])],held=new Set(skipped.map(s=>s.day));events=events.filter(e=>!held.has(e.day));
+  if(!events.length)throw new MoveinError('EVERY_DAY_ALREADY_HELD',409);
   events.sort((a, b) => a.id.localeCompare(b.id));
   // Only this sanitized, deterministic artifact enters Base's custody boundary.
-  const content = canonicalJson({ events, discarded, policyHash: sha256(site.config_json), policyVersion: site.version });
+  const content = canonicalJson({ events, discarded, provider, policyHash: sha256(site.config_json), policyVersion: site.version });
   const artifactHash = sha256(content), name = 'normalized-umami-events.json';
   const source: SourceBundle = {
     artifacts: [{ name, sha256: artifactHash, size: new TextEncoder().encode(content).length }], diagnostics: [],
@@ -82,7 +84,7 @@ function normalizedSource(events: SafeEvent[], discarded: DiscardedCounts, site:
       payload: event as unknown as Json, payloadHash: sha256(canonicalJson(event)), artifactHash,
       location: { artifact: name, row: index + 1 } })),
   };
-  return { source, events, discarded };
+  return { source, events, discarded, candidates:{days,provider}, skipped, carry:{format:'vane-umami-preview/1' as const,events,discarded,provider,skipped} };
 }
 export const mapping: ImportMapping = {
   version: mappingVersion,

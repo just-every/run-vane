@@ -10,7 +10,7 @@ import { ImportError, requireValue, originOf } from './history-import/common.mjs
 export async function main(args = process.argv.slice(2)) {
   const [command, ...flags] = args;
   requireValue(['preview', 'apply'].includes(command), 'COMMAND_REQUIRED');
-  const allowed = command === 'preview' ? ['origin', 'site', 'format', 'input', 'cookie-file', 'review-dir'] :
+  const allowed = command === 'preview' ? ['origin', 'site', 'format', 'input', 'cookie-file', 'review-dir', 'cutover'] :
     ['review-dir', 'cookie-file', 'yes'];
   const options = {};
   for (let index = 0; index < flags.length; index++) {
@@ -25,7 +25,7 @@ export async function main(args = process.argv.slice(2)) {
       options[key] = value;
     }
   }
-  requireValue(allowed.every(key => key === 'yes' || Object.hasOwn(options, key)), 'MISSING_ARGUMENT');
+  requireValue(allowed.every(key => key === 'yes' || key === 'cutover' || Object.hasOwn(options, key)), 'MISSING_ARGUMENT');
   if (command === 'preview') {
     options.origin = originOf(options.origin);
     requireValue(['umami', 'simple', 'posthog'].includes(options.format), 'INVALID_FORMAT');

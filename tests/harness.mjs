@@ -52,6 +52,6 @@ export async function installation({setup=true,vars:extra={},origin='http://127.
  // The product clock, moved through the local dev-key door so tests can prove gaps of minutes without waiting.
  const clock=async at=>{const r=await request('/__dev/clock',{method:'POST',headers:{'x-rer-dev-key':vars.RER_DEV_KEY,'content-type':'application/json'},body:JSON.stringify({at})});assert.equal(r.status,200,await r.clone().text())}
  const archive=async()=>{const r=await request('/api/vane/export',{headers:{cookie:owner}});assert.equal(r.status,200);return r.json()}
- return {dump,scheduled,clock,origin,cookieOf,request,post,form,owner,invite,accept,sentMail,egress,fixtureSites,addSite,event,collect,archive,close:()=>mf.dispose()}
+ return {inspectDb:db,dump,scheduled,clock,origin,cookieOf,request,post,form,owner,invite,accept,sentMail,egress,fixtureSites,addSite,event,collect,archive,close:()=>mf.dispose()}
  } catch(error) {await mf.dispose();throw error}
 }

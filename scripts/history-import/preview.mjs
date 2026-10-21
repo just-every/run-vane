@@ -30,13 +30,13 @@ export async function preview(options) {
       requireValue(existing.sourceSha256 === sourceSha256 && existing.rows === page.rows, 'REVIEW_PAGE_SOURCE_MISMATCH');
       reviewedPage(await readPage(dir, existing));
     } else {
-      const reviewed = reviewedPage(await post('/api/vane/import-preview', { siteId: options.site, document: page.document }));
-      requireValue(reviewed.carry.events.length <= page.rows, 'INVALID_PREVIEW_RESPONSE');
+      const reviewed = reviewedPage(await post('/api/vane/import-preview', { siteId: options.site, document: page.document, ...(options.cutover?{cutover:options.cutover}:{}) }));
+      requireValue((reviewed.carry.document??reviewed.carry).events.length <= page.rows, 'INVALID_PREVIEW_RESPONSE');
       const file = pageName(index);
       await atomicJson(dir, file, reviewed);
       manifest.pages.push({ file, sha256: pageDigest(reviewed), sourceSha256, rows: page.rows,
-        normalizedRows: reviewed.carry.events.length, complete: false, jobId: null });
-      manifest.rows += page.rows; manifest.normalizedRows += reviewed.carry.events.length;
+        normalizedRows: (reviewed.carry.document??reviewed.carry).events.length, complete: false, jobId: null });
+      manifest.rows += page.rows; manifest.normalizedRows += (reviewed.carry.document??reviewed.carry).events.length;
       await atomicJson(dir, 'manifest.json', manifest);
     }
     index++; rows += page.rows;

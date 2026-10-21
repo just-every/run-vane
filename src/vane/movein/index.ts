@@ -16,39 +16,40 @@ export type { MoveinActor, MoveinEnvironment } from './types.ts';
 export { MoveinError } from './types.ts';
 export { importTables as archiveTables } from './tables.ts';
 
-interface DocumentInput { siteId: string; document: unknown; cutover?: unknown }
+interface DocumentInput { siteId: string; document: unknown; cutover?: unknown; preferNew?: unknown }
 interface JobInput { siteId: string; jobId: string }
 
 async function planned(env: MoveinEnvironment, actor: MoveinActor, input: DocumentInput) {
   const { site, policy } = await loadSite(env, actor, input.siteId);
-  const { document, cutover } = cutoverInput(input.document,input.cutover);
+  let { document, cutover, preferNew } = cutoverInput(input.document,input.cutover,input.preferNew);
   let normalized = normalize(document, site, policy);
   // IMPORT-007: days another source's import already holds are skipped, never counted twice.
   if ('candidates' in normalized) {
     const held = await heldByOthers(env,site.id,normalized.candidates.provider,normalized.candidates.days);
-    if (held.length) normalized = normalize(document, site, policy, held);
+    if (held.length && !preferNew) normalized = normalize(document, site, policy, held);
   }
+  if(!cutover){const last=normalized.candidates.days.slice().sort().at(-1)!;cutover=new Date(Date.parse(last)+86400000).toISOString().slice(0,10);}
   // A date cannot silently change the policy of records already held by a prior job.
   if(cutover){
     const ids=JSON.stringify(normalized.source.records.map(r=>r.sourceId));
     const conflict=await env.DB.prepare(`SELECT 1 FROM (SELECT id,site_id,import_job FROM vane_import_events UNION ALL SELECT id,site_id,import_job FROM vane_import_reports) i LEFT JOIN vane_import_cutovers c ON c.site_id=i.site_id AND c.job_id=i.import_job WHERE i.site_id=? AND i.id IN (SELECT value FROM json_each(?)) AND c.day IS NOT ? LIMIT 1`).bind(site.id,ids,cutover).first();
     if(conflict)throw new MoveinError('CUTOVER_CHANGE_REQUIRES_UNDO',409);
   }
-  const plan = await planD1Import(cutoverSource(normalized.source,cutover),mapping,context(env,actor,site));
+  const plan = await planD1Import(cutoverSource(normalized.source,cutover,preferNew),mapping,context(env,actor,site));
   if (plan.counts.rejected || plan.counts.unmapped) throw new MoveinError('UNMAPPED_EVENTS');
-  return { site, normalized, plan, cutover };
+  return { site, normalized, plan, cutover, preferNew };
 }
 
 /** Private owner operation. HTTP integration must also enforce native session + CSRF. */
 export async function preview(env: MoveinEnvironment, actor: MoveinActor, input: DocumentInput) {
   requireOwner(actor);
-  const { normalized, plan, cutover } = await planned(env,actor,input);
-  const document='carry' in normalized?normalized.carry:{format:'vane-umami-preview/1' as const,events:normalized.events,discarded:normalized.discarded};
+  const { normalized, plan, cutover, preferNew } = await planned(env,actor,input);
+  const document=normalized.carry;
   const days='aggregates' in normalized?normalized.aggregates.map(r=>r.day):normalized.events.map(r=>r.day);
   const overlap=cutover?await liveOverlap(env,input.siteId,days):[];
   return { fingerprint: plan.fingerprint, normalized: normalized.events, discarded: normalized.discarded,
     aggregates:'aggregates' in normalized?normalized.aggregates:[],skipped:'skipped' in normalized?normalized.skipped:[],
-    cutover, overlap, carry:cutover?{format:'vane-cutover-preview/1' as const,cutover,document}:document,
+    cutover, overlap, preferNew, carry:cutover||preferNew?{format:'vane-cutover-preview/1' as const,cutover:cutover??'',preferNew,document}:document,
     counts: plan.counts, consent: null, sampleRate: null,
     originalRetention: 'discarded-before-custody' as const };
 }
@@ -56,7 +57,7 @@ export async function preview(env: MoveinEnvironment, actor: MoveinActor, input:
 /** Repeating the same reviewed page resumes its existing job without double counting. */
 export async function apply(env: MoveinEnvironment, actor: MoveinActor, input: DocumentInput & { fingerprint: string }) {
   requireOwner(actor);
-  const { site, normalized, plan, cutover } = await planned(env,actor,input);
+  const { site, normalized, plan, cutover, preferNew } = await planned(env,actor,input);
   if (typeof input.fingerprint !== 'string' || input.fingerprint !== plan.fingerprint) throw new MoveinError('REVIEW_FINGERPRINT_MISMATCH',409);
   // Creation and publication run in the same Worker invocation. Share their
   // measured statement budget, reserving room for the surrounding session,
@@ -71,6 +72,8 @@ export async function apply(env: MoveinEnvironment, actor: MoveinActor, input: D
   const approval = await env.DB.prepare('SELECT fingerprint,owner_id FROM vane_import_approvals WHERE job_id=? AND site_id=?').bind(created.id,site.id).first<{ fingerprint: string; owner_id: string }>();
   if (approval?.fingerprint !== input.fingerprint || approval.owner_id !== actor.id) throw new MoveinError('OWNER_APPROVAL_REQUIRED',403);
   if(cutover)await env.DB.prepare('INSERT INTO vane_import_cutovers(site_id,job_id,day) VALUES(?,?,?) ON CONFLICT(site_id,job_id) DO NOTHING').bind(site.id,created.id,cutover).run();
+  await env.DB.prepare('INSERT INTO vane_import_sources(site_id,job_id,provider) VALUES(?,?,?) ON CONFLICT(site_id,job_id) DO NOTHING').bind(site.id,created.id,normalized.candidates.provider).run();
+  if(preferNew)await env.DB.prepare(`INSERT INTO vane_import_day_choices(site_id,day,job_id) SELECT ?,value,? FROM json_each(?) ON CONFLICT(site_id,day) DO UPDATE SET job_id=excluded.job_id`).bind(site.id,created.id,JSON.stringify(normalized.candidates.days)).run();
   // Let the kit fill a publication batch up to its measured D1 request budget,
   // rather than ending every request after only 20 entries. Planning and undo
   // keep their existing bounds; the kit retains all authority and custody fences.
@@ -109,6 +112,8 @@ export async function eraseSite(env: MoveinEnvironment, actor: MoveinActor, site
     { sql:'DELETE FROM vane_import_reports WHERE site_id=?',params:[siteId] },
     { sql:'DELETE FROM vane_import_events WHERE site_id=?',params:[siteId] },
     { sql:'DELETE FROM vane_import_approvals WHERE site_id=?',params:[siteId] },
+    { sql:'DELETE FROM vane_import_sources WHERE site_id=?',params:[siteId] },
+    { sql:'DELETE FROM vane_import_day_choices WHERE site_id=?',params:[siteId] },
     { sql:'DELETE FROM vane_import_cutovers WHERE site_id=?',params:[siteId] },
     ...nativeStatements,
   ];

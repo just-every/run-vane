@@ -1,3 +1,4 @@
+import { importRangeLabels } from './import-ranges'
 import { bucketText, count, escape, hourText, money, shortDay, usDay, usRange, zoneName } from './html'
 import { duration, percent } from './tables'
 import { METRICS, type Bucket, type Metric } from '../series'
@@ -76,5 +77,5 @@ export function chartPanel(report: any, companions = ''): string {
   const firstFlag = buckets.findIndex(b => flagged.has(b.key)), flagValue = firstFlag < 0 ? null : values[firstFlag], flagThen = firstFlag < 0 ? null : then[firstFlag]
   const callout = firstFlag < 0 || flagValue === null ? '' : `<p class="vane-chart-callout" data-flag-day="${escape(buckets[firstFlag]!.key)}"><strong>${escape(shortDay(buckets[firstFlag]!.key))}</strong> ${escape(shown(metric, flagValue, currency))}${flagThen ? ` <span>${flagValue < flagThen ? '↓' : '↑'} ${escape(Math.abs(Math.round(((flagValue - flagThen) / flagThen) * 100)))}% against the compared day</span>` : ''} · outside normal variation</p>`
   const key = `<p class="vane-chart-legend" aria-hidden="true"><span class="vane-legend-now">This period</span><span class="vane-legend-then">Compared period</span></p>`
-  return `<section class="vane-panel vane-chart-panel"><div class="vane-chart-head"><h2>${escape(METRICS[metric])}</h2>${key}</div>${callout}<figure class="vane-chart-figure"><div class="vane-plot">${yAxis}<div class="vane-plot-area">${svg}${xAxis}</div></div>${annotations ? `<figcaption>${annotations}</figcaption>` : ''}</figure><div class="vane-chart-foot">${companions}${table}</div></section>`
+  return `<section class="vane-panel vane-chart-panel"><div class="vane-chart-head"><h2>${escape(METRICS[metric])}</h2>${key}</div>${callout}<figure class="vane-chart-figure"><div class="vane-plot">${yAxis}<div class="vane-plot-area">${svg}${xAxis}</div></div>${annotations||report.importedRanges?.length ? `<figcaption>${annotations}${importRangeLabels(report)}</figcaption>` : ''}</figure><div class="vane-chart-foot">${companions}${table}</div></section>`
 }

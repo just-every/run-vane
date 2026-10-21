@@ -9,8 +9,9 @@ const exactKeys = (value: unknown, keys: string[]) => value !== null && typeof v
 
 /** Accept only the sanitized carry that an owner reviewed; never raw private fields. */
 export function validateCarry(input: any, policy: SitePolicy): { events: SafeEvent[]; discarded: DiscardedCounts } {
-  if (!exactKeys(input,['format','events','discarded']) || input.format !== 'vane-umami-preview/1' || !Array.isArray(input.events) || input.events.length < 1 || input.events.length > 500) throw new MoveinError('INVALID_PREVIEW_CARRY');
+  if (!exactKeys(input,['format','events','discarded',...(input.provider!==undefined?['provider']:[]),...(input.skipped!==undefined?['skipped']:[])]) || input.format !== 'vane-umami-preview/1' || !Array.isArray(input.events) || input.events.length < 1 || input.events.length > 500) throw new MoveinError('INVALID_PREVIEW_CARRY');
   if (!exactKeys(input.discarded,discardKeys) || discardKeys.some(key => !Number.isSafeInteger(input.discarded[key]) || input.discarded[key] < 0)) throw new MoveinError('INVALID_DISCARD_COUNTS');
+  if(input.provider!==undefined&&!['umami','simple','posthog'].includes(input.provider))throw new MoveinError('INVALID_PROVIDER');
   const discarded = Object.fromEntries(discardKeys.map(key => [key,input.discarded[key]])) as unknown as DiscardedCounts;
   const events = input.events.map((event: any,index: number): SafeEvent => {
     const fail = (code: string): never => { throw new MoveinError(`ROW_${index + 1}_${code}`); };

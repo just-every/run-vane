@@ -49,6 +49,7 @@ export interface ViewData {
   notice?: string
   error?: string
   importDefinitions?:import('../movein/plausible-types').RecoveredDefinition[]
+  parallelReport?:import('../movein/parallel').ParallelReport
   importPreview?: any
   eventPreview?: any
   importCarry?: string

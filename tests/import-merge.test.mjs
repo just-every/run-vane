@@ -11,26 +11,26 @@ async function apply(a,siteId,p){for(let n=0;n<100;n++){const r=await json(await
 const preview=(a,siteId,document)=>a.post('/api/vane/import-preview',{siteId,document},a.owner)
 const csvTotal=(text,column)=>{const [head,...lines]=text.trim().split('\r\n'),at=head.split(',').indexOf(column);assert.ok(at>=0,column);return lines.reduce((sum,line)=>sum+Number(line.split(',')[at]),0)}
 
-test('IMPORT-007 a later source skips the days an earlier import holds, names them in its preview and journal, and leaves those days with the first source alone',async t=>{
+test('IMPORT-007 later sources name and skip held days; the owner can replace them without losing undo or custody',async t=>{
  const a=await installation();t.after(()=>a.close())
- const siteId=await a.addSite({paths:[],goals:{},retainForever:true})
- const held=await json(await preview(a,siteId,dated('2024-06-04')));assert.ok(held.aggregates.length);assert.deepEqual(held.skipped,[]);await apply(a,siteId,held)
- const days=['2024-06-01','2024-06-02','2024-06-03','2024-06-04'],document=ga4('2024-06-01','2024-06-04',days)
+ const siteId=await a.addSite({paths:[],goals:{},retainForever:true}),days=['2024-06-01','2024-06-02','2024-06-03','2024-06-04']
+ await apply(a,siteId,await json(await preview(a,siteId,ga4(days[0],days.at(-1),days))))
+ const document={format:'vane-plausible-history-normalized/1',records:['2024-06-03','2024-06-04','2024-06-05'].map(day=>({day,provider:'plausible',report:'Plausible.visitors',dimensions:{date:day},metrics:{visitors:20,visits:25,pageviews:40},definitions:[]}))}
  const p=await json(await preview(a,siteId,document))
- assert.deepEqual(p.skipped,[{day:'2024-06-04',provider:'plausible'}])
- assert.deepEqual([...new Set(p.aggregates.map(r=>r.day))].sort(),days.slice(0,3));assert.ok(p.aggregates.every(r=>r.provider==='ga4'))
- // The owner's review page names each skipped day and its holder before anything is applied.
- const page=await a.form({operation:'import.preview',siteId,document:JSON.stringify(document)},a.owner);assert.equal(page.status,200);const html=await page.text()
- assert.match(html,/data-overlap-days[^>]*>[\s\S]*2024-06-04: held by Plausible/)
- const done=await apply(a,siteId,p)
- const journal=await json(await a.request(`/api/vane/import-journal?siteId=${siteId}&jobId=${done.job.id}`,{headers:{cookie:a.owner}}))
- assert.deepEqual(journal.skipped,[{day:'2024-06-04',provider:'plausible'}]);assert.equal(journal.provenance.length,p.aggregates.length)
- const totals=async(from,to)=>(await json(await a.request(`/api/vane/summary?siteId=${siteId}&from=${from}&to=${to}`,{headers:{cookie:a.owner}}))).importedReports
- const overlap=await totals('2024-06-04','2024-06-05');assert.ok(overlap.length);assert.ok(overlap.every(r=>r.provider==='plausible'),'the held day shows only the first source')
- assert.ok((await totals('2024-06-01','2024-06-04')).every(r=>r.provider==='ga4'))
- // Nothing new to import is refused, and the first source stays as it was.
- assert.equal((await preview(a,siteId,ga4('2024-06-04','2024-06-04',['2024-06-04']))).status,409)
- assert.equal((await totals('2024-06-04','2024-06-05')).length,overlap.length)
+ assert.deepEqual(p.skipped,[{day:'2024-06-03',provider:'ga4'},{day:'2024-06-04',provider:'ga4'}]);assert.deepEqual(p.aggregates.map(r=>r.day),['2024-06-05'])
+ const page=await a.form({operation:'import.preview',siteId,document:JSON.stringify(document)},a.owner);assert.equal(page.status,200);const html=await page.text();assert.match(html,/2024-06-03: held by Google Analytics 4/);assert.match(html,/2024-06-04: held by Google Analytics 4/)
+ const done=await apply(a,siteId,p),journal=await json(await a.request(`/api/vane/import-journal?siteId=${siteId}&jobId=${done.job.id}`,{headers:{cookie:a.owner}}));assert.deepEqual(journal.skipped,p.skipped)
+ const totals=async()=> (await json(await a.request(`/api/vane/summary?siteId=${siteId}&from=2024-06-01&to=2024-06-06`,{headers:{cookie:a.owner}}))).importedReports
+ assert.ok((await totals()).filter(r=>r.day<='2024-06-04').every(r=>r.provider==='ga4'))
+ assert.equal((await preview(a,siteId,ga4('2024-06-05','2024-06-05',['2024-06-05']))).status,409)
+ const replacement=await json(await a.post('/api/vane/import-preview',{siteId,document,preferNew:true},a.owner));assert.equal(replacement.preferNew,true)
+ const tampered={...replacement.carry,preferNew:false};assert.equal((await a.post('/api/vane/import-apply',{siteId,document:tampered,fingerprint:replacement.fingerprint},a.owner)).status,409)
+ const replaced=await apply(a,siteId,replacement);assert.ok((await totals()).filter(r=>r.day>='2024-06-03').every(r=>r.provider==='plausible'))
+ const undo=await json(await a.post('/api/vane/import-undo',{siteId,jobId:replaced.job.id},a.owner));assert.equal(undo.complete,true);assert.ok((await totals()).filter(r=>r.day<='2024-06-04').every(r=>r.provider==='ga4'),'undo reveals the earlier source')
+ // Event exports participate in exactly the same held-day rule.
+ const events={data:['2024-06-02','2024-06-06'].map((day,n)=>({id:'synthetic-vane-'+n,createdAt:day+'T12:00:00Z',urlPath:'/',eventType:1})),count:2,page:1,pageSize:2}
+ const eventPreview=await json(await preview(a,siteId,events));assert.deepEqual(eventPreview.skipped,[{day:'2024-06-02',provider:'ga4'}]);assert.deepEqual(eventPreview.normalized.map(e=>e.day),['2024-06-06']);await apply(a,siteId,eventPreview)
+ const next={...document,records:[{...document.records[0],day:'2024-06-06',dimensions:{date:'2024-06-06'}}]};assert.equal((await preview(a,siteId,next)).status,409)
 })
 
 test('IMPORT-007 any viewer switches imported data off and on for the dashboard, its comparison, CSV tables, shared link and both Stats API doors',async t=>{
@@ -38,7 +38,7 @@ test('IMPORT-007 any viewer switches imported data off and on for the dashboard,
  const id=await a.addSite(),range='from=2026-10-01&to=2026-10-06'
  await a.clock(Date.parse('2026-10-05T12:00:00Z'));assert.equal((await a.collect(a.event(id))).status,202)
  const imported=await json(await preview(a,id,umami));await apply(a,id,imported)
- await apply(a,id,await json(await preview(a,id,ga4('2026-10-01','2026-10-02',['2026-10-01','2026-10-02']))))
+ await apply(a,id,await json(await preview(a,id,ga4('2026-10-03','2026-10-03',['2026-10-03']))))
  const summary=async (extra='')=>json(await a.request(`/api/vane/summary?siteId=${id}&${range}${extra}`,{headers:{cookie:a.owner}}))
  const on=await summary(),off=await summary('&imported=off')
  assert.equal(on.pageviews,3);assert.ok(on.imported>0&&on.unknownCoverage>0&&on.importedReports.length>0)
@@ -94,15 +94,18 @@ test('IMPORT-007 a reviewed cut-over keeps live days once across events, source 
  const compared=await json(await a.request(`/api/vane/summary?siteId=${id}&from=2026-10-07&to=2026-10-13`,{headers:{cookie:a.owner}}));assert.equal(compared.previousPageviews,4)
  const csv=await a.request(`/api/vane/csv?siteId=${id}&${range}&table=pages`,{headers:{cookie:a.owner}});assert.equal(csvTotal(await csv.text(),'count'),4)
  // Source aggregates remain separately labelled, and obey the same live-day and date boundary.
- const g=await json(await a.post('/api/vane/import-preview',{siteId:id,document:ga4(days[0],days.at(-1),days),cutover:'2026-10-05'},a.owner));await apply(a,id,g)
- assert.deepEqual((await report()).importedReports.map(r=>r.day),days.slice(0,2))
+ const aggregateId=await a.addSite({name:'Source report example',origin:'https://source.example',paths:[],goals:{},retainForever:true});
+ for(const d of ['2026-10-03','2026-10-04']){await a.clock(Date.parse(d+'T12:00:00Z'));assert.equal((await a.collect(a.event(aggregateId),'https://source.example')).status,202)}await a.clock(Date.parse('2026-10-10T12:00:00Z'));
+ const g=await json(await a.post('/api/vane/import-preview',{siteId:aggregateId,document:ga4(days[0],days.at(-1),days),cutover:'2026-10-05'},a.owner));await apply(a,aggregateId,g)
+ const aggregateReport=async()=>json(await a.request(`/api/vane/summary?siteId=${aggregateId}&${range}`,{headers:{cookie:a.owner}}));
+ assert.deepEqual((await aggregateReport()).importedReports.map(r=>r.day),days.slice(0,2))
  const zip=async(app,off=false)=>{const response=await app.request(`/api/vane/site-zip?siteId=${id}${off?'&imported=off':''}`,{headers:{cookie:app.owner}});assert.equal(response.status,200);return unzipStored(await response.arrayBuffer())}
  const zipped=await zip(a),off=await zip(a,true)
  const totals=files=>csvTotal(files[Object.keys(files).find(name=>name.startsWith('imported_visitors_'))],'pageviews')
- assert.equal(totals(zipped),4);assert.equal(totals(off),2);assert.ok(Object.keys(zipped).some(n=>n.startsWith('ga4_')));assert.equal(Object.keys(off).some(n=>n.startsWith('ga4_')),false)
+ assert.equal(totals(zipped),4);assert.equal(totals(off),2);assert.equal(Object.keys(zipped).some(n=>n.startsWith('ga4_')),false);assert.equal(Object.keys(off).some(n=>n.startsWith('ga4_')),false)
  // Live collection arriving after the import also wins; there is never a double-counted day.
  await a.clock(Date.parse('2026-10-02T12:00:00Z'));assert.equal((await a.collect(a.event(id,{path:'/live'}))).status,202);await a.clock(Date.parse('2026-10-10T12:00:00Z'))
- current=await report();assert.equal(current.pageviews,4);assert.equal(current.imported,1);assert.deepEqual(current.importedReports.map(r=>r.day),[days[0]])
+ current=await report();assert.equal(current.pageviews,4);assert.equal(current.imported,1);assert.deepEqual(current.importedReports,[])
  const archive=await a.archive();assert.equal(archive.payload.tables.vane_import_events.length,6,'suppression never erases history or its undo custody')
  assert.equal(JSON.stringify(archive).includes('PRIVATE_SESSION_SENTINEL'),false)
  const siteArchive=await json(await a.request(`/api/vane/export?siteId=${id}`,{headers:{cookie:a.owner}}))
