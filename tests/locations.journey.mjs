@@ -140,6 +140,8 @@ test('DASH-005 COLLECT-003 PRIVACY-003 US metro codes keyed on the code with unn
  await context.clearCookies()
  for(const [path,label] of [[sharedPath,'shared'],[publicPath,'public']])await capture(path,label,metroTable,async()=>{
   const text=await metroTable().innerText();assert.ok(text.includes('635')&&text.includes('Austin, Texas'));assert.ok(text.includes('Other metro areas'));assert.equal(text.includes('999'),false)
+  const totals=await metroTable().locator('tbody tr').evaluateAll(rows=>rows.reduce((sum,row)=>{const cells=row.querySelectorAll('td');return [sum[0]+Number(cells[0].textContent),sum[1]+Number(cells[1].textContent)]},[0,0]))
+  assert.deepEqual(totals,[us.visitors,us.visits],'DASH-005: public folding preserves all US totals, including the Unknown metro row')
   assert.equal(/Marfa|Fixture Town/.test(await tab.locator('body').innerText()),false)
  })
  await capture('/methodology','methodology',()=>tab.getByRole('heading',{name:'Location',exact:true}),async()=>{
