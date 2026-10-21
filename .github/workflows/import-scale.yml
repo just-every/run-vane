@@ -23,6 +23,8 @@ jobs:
         with:
           node-version: '22.20.0'
           package-manager-cache: false
+      - name: Reclaim unused hosted-runner SDKs
+        run: sudo rm -rf -- /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec vite build
