@@ -71,7 +71,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "a8a06c774bdcbbbd7ef020c6b849c59fba48529d5cff1b6479ea5fdcb06f1829",
+      "sha256": "3a6b3ddf7260514c4d89316c20d74ace42961003bbae8c2e17da55cf17b6c9b9",
       "executable": false
     },
     "AGENTS.md": {
@@ -103,7 +103,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "3a45a77b37da0fdc2009efb7c5ef847f85344593ffe308108fc9850aaff7338f",
+      "sha256": "229f6e433c86a70c248f9a9d07999855855489d414b219b7c0b0c99bd0fcdd29",
       "executable": false
     },
     "DEMO.md": {
@@ -3522,8 +3522,12 @@
       "sha256": "20e37680b5208f2cf27e06ba0ed64f9831287d3a41c0fe89a8cf16b2e6c2e18a",
       "executable": false
     },
+    "tests/extension-chrome.mjs": {
+      "sha256": "d2db858789918b7fd81b4bb160819a09774c40d6db6ede2b0264cc6d130f5cd4",
+      "executable": false
+    },
     "tests/extension-state.mjs": {
-      "sha256": "f89a45dd83c24753ebe2247d1c8314bd014cacfd804e83e8bd8a87cead74c3c2",
+      "sha256": "2219dfa54a163446fcc4f3f170a903fa0a8ed8efbd8a0ec413de3ec5bd5d47df",
       "executable": false
     },
     "tests/fixtures/matomo-reports.json": {
@@ -3639,7 +3643,7 @@
       "executable": false
     },
     "tests/proxy-blocker.journey.mjs": {
-      "sha256": "63150e1cb8cca4c948760501fbc7a24557702e0aa171605a479e7b573aa522f5",
+      "sha256": "44aca26017788fedd221e2c9982d291fae0742374a948ca94dffb9af54976d62",
       "executable": false
     },
     "tests/proxy-cloudflare.test.mjs": {
