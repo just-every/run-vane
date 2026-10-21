@@ -46,6 +46,10 @@
       "sha256": "baa4d00cab30cfd1ddd0d5dedb86d4f1741687c7942a69271ca3bbc257a948d4",
       "executable": false
     },
+    ".github/workflows/proxy-next.yml": {
+      "sha256": "c2ecaed8a876ea16a0f60458be02b493a6fc9a473365b866cf20353e2c6d22ee",
+      "executable": false
+    },
     ".github/workflows/run-demo.yml": {
       "sha256": "41365ec7c002e9451166313b085f9e64ed2e3ea002c27f3d5ead845bc9c302b2",
       "executable": false
@@ -67,7 +71,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "1d0a7c6cb8f37d6f1c0061134b7f812177cc025b9b2258916f3b0fd04d535190",
+      "sha256": "a8a06c774bdcbbbd7ef020c6b849c59fba48529d5cff1b6479ea5fdcb06f1829",
       "executable": false
     },
     "AGENTS.md": {
@@ -99,7 +103,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "9e91682c66fcc3cc577a933481d5f6b04c5049eaf4c61ba822fee5431a80fd82",
+      "sha256": "3a45a77b37da0fdc2009efb7c5ef847f85344593ffe308108fc9850aaff7338f",
       "executable": false
     },
     "DEMO.md": {
@@ -131,7 +135,7 @@
       "executable": false
     },
     "docs/first-party-proxy.md": {
-      "sha256": "b1ba47a4ea6a3612710a9073e706b75edc447a74a2dcb1c43de5abf1b0424c40",
+      "sha256": "c36905aa1723d3d1696cbeac520be3ddfef41a04612ac17b542102b3d70a49f5",
       "executable": false
     },
     "docs/getting-started.md": {
@@ -139,7 +143,7 @@
       "executable": false
     },
     "docs/history.md": {
-      "sha256": "3570c5af28780e55d69e33e633ba287e02fadbfc59dcde493cff50c4b931895d",
+      "sha256": "05bac276e29c1f37e048e45ef3edd7469ed63a890a3ceb3933a7ac3620a09033",
       "executable": false
     },
     "docs/umami-import.md": {
@@ -2783,7 +2787,7 @@
       "executable": false
     },
     "src/vane/chat/delivery.ts": {
-      "sha256": "51c117e80178435dcb0c3e41776284316067d7d1e9397f4bcccabc50deda0e2e",
+      "sha256": "6c413ecf8e52d059e5a6ff68b89daeaeac30599dea5561bdad1ed8171a4c7b5a",
       "executable": false
     },
     "src/vane/clock.ts": {
@@ -2855,7 +2859,7 @@
       "executable": false
     },
     "src/vane/email-reports.ts": {
-      "sha256": "d7ae92266405f7848c53633f180915c454db993bf920f560a81d87d4f25a3c25",
+      "sha256": "5b8867d923ac23e9952544427ffe84d0a369bf2aead1fbefcc1a04f55ef6da4c",
       "executable": false
     },
     "src/vane/event-definitions.ts": {
@@ -3059,7 +3063,7 @@
       "executable": false
     },
     "src/vane/overview.ts": {
-      "sha256": "9766a48029c2203e01f6f7cb40f14f9e0db6584fd7f874af86a3ee490f555c4e",
+      "sha256": "f6cdfb9cf1efabf3b8d5dd556acfeaabff9dbe95ff473272d8f8d25140ddd351",
       "executable": false
     },
     "src/vane/paths.ts": {
@@ -3095,7 +3099,7 @@
       "executable": false
     },
     "src/vane/proxy/cloudflare.ts": {
-      "sha256": "26ae9b5fb55cb7934f86cb19c9e2f0f8285ec308aa3cf8567048d3195b81b341",
+      "sha256": "28dd40aed438dfd8bbddf8591b680e90fd58c78da8606cdc478a4a41a1ee31a4",
       "executable": false
     },
     "src/vane/proxy/connections.ts": {
@@ -3107,11 +3111,15 @@
       "executable": false
     },
     "src/vane/proxy/ingress.ts": {
-      "sha256": "a64cbba4808dc8c927987acd62de7b90fea67da928da644867cb92affa353f76",
+      "sha256": "659fe8218be471fdf9ba14dd729fe1540533853b65d5b6c820656ed02141e5ff",
       "executable": false
     },
     "src/vane/proxy/management.ts": {
       "sha256": "74a9af5256403efcbe38b57af7993ac66e48d72c11785d56896af991c0aa410d",
+      "executable": false
+    },
+    "src/vane/proxy/summary.ts": {
+      "sha256": "541e5816e8b786c62a9b840aea9028ef909e14e08aa49a9a9008f021928da868",
       "executable": false
     },
     "src/vane/proxy/templates.ts": {
@@ -3427,7 +3435,7 @@
       "executable": false
     },
     "src/vane/views/settings.ts": {
-      "sha256": "03e7b7f2cdc89e71e03432159018a2616f73e638ed9ae0e4fe59eb148d583158",
+      "sha256": "179ef54a722a32a53065280782e05f791976af2fb72753e363186ba9b76243ad",
       "executable": false
     },
     "src/vane/views/share-settings.ts": {
@@ -3514,6 +3522,10 @@
       "sha256": "20e37680b5208f2cf27e06ba0ed64f9831287d3a41c0fe89a8cf16b2e6c2e18a",
       "executable": false
     },
+    "tests/extension-state.mjs": {
+      "sha256": "f89a45dd83c24753ebe2247d1c8314bd014cacfd804e83e8bd8a87cead74c3c2",
+      "executable": false
+    },
     "tests/fixtures/matomo-reports.json": {
       "sha256": "e70c39ef51619000725df0adcc041aa76e15bcd7238e9ea966a443df577cef86",
       "executable": false
@@ -3579,7 +3591,7 @@
       "executable": false
     },
     "tests/harness.mjs": {
-      "sha256": "ba8b0404d3f91325561191111c1c79c41eddc8744a2c951032847c3fac26740e",
+      "sha256": "8728b7fb25118b9b47e307c4579350ef72affb59fd132ece297fbed47534d9b2",
       "executable": false
     },
     "tests/host-local.journey.mjs": {
@@ -3627,11 +3639,19 @@
       "executable": false
     },
     "tests/proxy-blocker.journey.mjs": {
-      "sha256": "322da0114e1b38c4dac4ebdc8aab1667c9b38603ce66815aac2ae967633ac0c9",
+      "sha256": "63150e1cb8cca4c948760501fbc7a24557702e0aa171605a479e7b573aa522f5",
+      "executable": false
+    },
+    "tests/proxy-cloudflare.test.mjs": {
+      "sha256": "c31412ec744341c02455ea26ab71fd3187a3ae2848e6c4867140f1642b148fff",
+      "executable": false
+    },
+    "tests/proxy-next.journey.mjs": {
+      "sha256": "a7ad413daa04267216fc760fdb2d45d3ddc4b48b308a8a592bd714497a947037",
       "executable": false
     },
     "tests/proxy.test.mjs": {
-      "sha256": "9482d320dece5621be5604a34620c1ce7ba978efbef04a418b38a8e17a2d5e87",
+      "sha256": "4919e9290190188b55844a1dc8167e03b70ea4a798512b93190a7b4ca319ee16",
       "executable": false
     },
     "tests/revenue-alert.test.mjs": {
