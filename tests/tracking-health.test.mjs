@@ -113,7 +113,7 @@ test('ALERT-002 the daily tracking-health check names a silent site, a goal sile
  const report=plain(await (await a.request(`/app/sites/${fern}?from=2026-11-17&to=2026-11-18`,{headers:{cookie:a.owner}})).text())
  assert.ok(report.includes('Collection errors'),'COVERAGE-001 states the page loads refused as collection errors')
  const summary=await(await a.request(`/api/vane/summary?siteId=${fern}&from=2026-11-17&to=2026-11-18`,{headers:{cookie:a.owner}})).json()
- assert.ok(JSON.stringify(summary).includes('collection-error'),'COVERAGE-001 includes collection errors through the report API too')
+ assert.deepEqual(summary.exclusions,[{reason:'collection-error',count:refused.length*3}],'COVERAGE-001 reports every refused load through the report API too')
  // The overview line and the settings section at both review widths, without sideways scrolling.
  const browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']});t.after(()=>browser.close())
  const context=await browser.newContext();await context.addCookies(a.owner.split('; ').map(pair=>{const at=pair.indexOf('=');return {name:pair.slice(0,at),value:pair.slice(at+1),url:a.origin}}))
