@@ -18,7 +18,8 @@ export async function apply(options) {
     const page = reviewedPage(await readPage(dir, entry));
     while (!entry.complete) {
       const result = await post('/api/vane/import-apply', {
-        siteId: manifest.siteId, document: page.carry, fingerprint: page.fingerprint,
+        siteId: manifest.siteId, fingerprint: page.fingerprint,
+        ...(entry.jobId ? {jobId:entry.jobId} : {document:page.carry}),
       });
       requireValue(typeof result?.complete === 'boolean' && typeof result?.job?.id === 'string' &&
         result.job.id.length > 0 && result.fingerprint === page.fingerprint &&

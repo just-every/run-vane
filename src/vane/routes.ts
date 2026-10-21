@@ -1,5 +1,6 @@
 import { listConnections } from './proxy/connections'
 import { proxyCommand, proxySetup } from './proxy/management'
+import { resume } from './movein/resume'
 import { parallelRun } from './movein/parallel'
 import { scan, scans } from './cutover/scan'
 import * as chat from './chat/connections'
@@ -132,7 +133,10 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
    if(path==='/api/vane/proxy-connections')return json(await proxyCommand(env,actor,p));
    if(path==='/api/vane/parallel-run')return json(await parallelRun(env,actor,p));
    if(path==='/api/vane/import-preview')return json(await preview(env,actor,{siteId:p.siteId,cutover:p.cutover,preferNew:p.preferNew,document:p.plausible?await (p.plausible.history?readPlausibleHistory:readPlausible)(env,actor,{...p.plausible,siteId:p.siteId}):p.matomo?await readMatomo(env,actor,{siteId:p.siteId,...p.matomo}):p.document}));
-   if(path==='/api/vane/import-apply')return json(await apply(env,actor,{siteId:p.siteId,cutover:p.cutover,preferNew:p.preferNew,document:p.document,fingerprint:p.fingerprint}));
+   if(path==='/api/vane/import-apply'){
+    if(p.jobId!==undefined){if(p.document!==undefined||p.cutover!==undefined||p.preferNew!==undefined)throw new MoveinError('AMBIGUOUS_IMPORT_RESUME');return json(await resume(env,actor,{siteId:p.siteId,jobId:p.jobId,fingerprint:p.fingerprint}));}
+    return json(await apply(env,actor,{siteId:p.siteId,cutover:p.cutover,preferNew:p.preferNew,document:p.document,fingerprint:p.fingerprint}));
+   }
    if(path==='/api/vane/import-undo')return json(await undo(env,actor,{siteId:p.siteId,jobId:p.jobId}));
    if(path==='/api/vane/cutover-scan')return json(await scan(env,actor,{siteId:String(p.siteId),pageLimit:p.pageLimit}));
    if(path==='/api/vane/install-check')return json(await verifyInstallation(env,actor,p.siteId));

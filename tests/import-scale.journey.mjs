@@ -161,6 +161,7 @@ test('IMPORT-006 two-million-row Umami CSV preview and publication resume after 
  assert.equal((await a.inspectDb.prepare('SELECT COUNT(*) AS n FROM vane_import_approvals').first()).n, 0)
  const apply = ['apply', '--review-dir', review, '--cookie-file', cookie, '--yes']
  interruptPublication = true
+ process.stdout.write('# Umami publication starting\n')
  const started = Date.now(), lost = await command(apply)
  assert.notEqual(lost.code, 0); assert.match(lost.stderr, /IMPORT_ERROR HTTP_REQUEST_FAILED/)
  assert.ok(lostJob, 'the transport interruption follows the midpoint commit')

@@ -80,6 +80,13 @@ test('IMPORT-006 whole Umami and Simple Analytics CSV files preview in bounded p
  assert.equal((await command(apply)).code,0,'completed application is resumable')
  assert.equal((await a.dump()).vane_import_events.length,1003,'a lost response never duplicates a committed record')
  t.diagnostic(`Umami publication: 1003 distinct rows, ${publicationRequests} apply requests including a lost response and a completed repeat`)
+ // Job continuation is still a reviewed owner operation, not an arbitrary job runner.
+ const checkpoint=JSON.parse(await readFile(join(review,'manifest.json'),'utf8')),completed=checkpoint.pages[0];
+ const resume={siteId:site,jobId:completed.jobId,fingerprint:JSON.parse(await readFile(join(review,completed.file),'utf8')).fingerprint};
+ assert.equal((await a.post('/api/vane/import-apply',{...resume,fingerprint:'synthetic-vane-1'},a.owner)).status,409);
+ assert.equal((await a.post('/api/vane/import-apply',resume,await a.invite('member@example.test','member'))).status,403);
+ assert.equal((await a.post('/api/vane/import-apply',{...resume,siteId:await a.addSite({origin:'https://oak.example'})},a.owner)).status,403);
+ assert.equal((await a.post('/api/vane/import-apply',{...resume,document:{}},a.owner)).status,400);
  const response=await a.request(`/api/vane/summary?siteId=${site}&from=2024-03-13&to=2024-03-14`,{headers:{cookie:a.owner}})
  const report=await response.json();assert.equal(report.pageviews,1003);assert.equal(report.unknownCoverage,1003)
  await browserProof(a,origin,site,'csv')
@@ -114,6 +121,10 @@ test('IMPORT-006 whole Umami and Simple Analytics CSV files preview in bounded p
  const simpleStored=JSON.stringify(await a.dump());assert.ok(!simpleStored.includes('simple-raw-'));assert.ok(!simpleStored.includes('private-simple-session'))
  assert.ok(![failed.stdout,failed.stderr,lost.stdout,lost.stderr,prepared.stdout,prepared.stderr].join('').includes(a.owner),'credentials never enter command output')
  const journals=(await a.dump()).vane_import_approvals;assert.equal(journals.length,6,'six reviewed page jobs keep ordinary custody and undo')
+ const priorSite=(await a.dump()).vane_sites.find(row=>row.id===site),policy=JSON.parse(priorSite.config_json);
+ const proposal=await a.post('/api/vane/commands',{command:'site.configure',input:{...policy,siteId:site,name:priorSite.name,origin:priorSite.origin,sampleRate:50}},a.owner);
+ assert.equal(proposal.status,201,await proposal.clone().text());assert.equal((await a.form({operation:'proposal.approve',id:(await proposal.json()).id},a.owner)).status,303);
+ assert.equal((await a.post('/api/vane/import-apply',resume,a.owner)).status,409,'changed site policy needs another source review');
  for(const entry of journals){let undone;do{const r=await a.post('/api/vane/import-undo',{siteId:site,jobId:entry.job_id},a.owner);assert.equal(r.status,200,await r.clone().text());undone=await r.json()}while(!undone.complete)}
  assert.equal((await a.dump()).vane_import_events.length,0,'ordinary undo removes every completed page')
 })

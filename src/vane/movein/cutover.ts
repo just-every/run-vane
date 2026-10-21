@@ -4,7 +4,7 @@ import type { SourceBundle } from '../../modules/import-kit/src/types.ts'
 import type { MoveinEnvironment } from './types'
 import { MoveinError } from './types'
 
-/** A carry holds sanitized data only. The date is reviewed again on every continuation. */
+/** A carry holds sanitized data only. A document continuation rechecks the date; job continuation uses its immutable reviewed policy. */
 export function cutoverInput(document:unknown, date?:unknown, prefer?:unknown) {
  let parsed:any=document
  if(typeof parsed==='string'){try{parsed=JSON.parse(parsed)}catch{/* CSV is handled by its source reader. */}}

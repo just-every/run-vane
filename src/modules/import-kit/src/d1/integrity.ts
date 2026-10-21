@@ -89,12 +89,15 @@ export async function inventoryGuards(job: ImportJob, plan: ImportPlan, context:
   // A source-only claim may still be present immediately after reversal intent;
   // the first reversing batch releases it atomically.
   const zeroClaims = new Set(entries.filter(r => r.owner_job_id === job.id && !plan.entries[r.ordinal].effects.length).map(r => r.source_identity));
+  const entriesByIdentity = new Map<string, typeof plan.entries[number]>();
+  for (const entry of plan.entries) if (!entriesByIdentity.has(entry.identity)) entriesByIdentity.set(entry.identity,entry);
+  const ownedIdentities = new Set(ownedClaims.map(claim=>claim.identity));
   for (const claim of ownedClaims) {
     if (!expectedClaims.has(claim.identity) && !(zeroClaims.has(claim.identity) && ['undoing', 'rolling_back'].includes(job.state))) throw new Error('PROVENANCE_SOURCE_CLAIM_MISMATCH');
-    const entry = plan.entries.find(e => e.identity === claim.identity);
+    const entry = entriesByIdentity.get(claim.identity);
     if (!entry || claim.source_hash !== entry.source.payloadHash || claim.mapping_version !== plan.mappingVersion || claim.effects_hash !== sha256(canonicalJson(entry.effects))) throw new Error('PROVENANCE_SOURCE_CLAIM_MISMATCH');
   }
-  for (const identity of expectedClaims) if (!ownedClaims.some(c => c.identity === identity)) throw new Error('PROVENANCE_SOURCE_CLAIM_MISMATCH');
+  for (const identity of expectedClaims) if (!ownedIdentities.has(identity)) throw new Error('PROVENANCE_SOURCE_CLAIM_MISMATCH');
   guards.push(...exactRows('ik_sources', ['identity','source_hash','mapping_version','effects_hash','job_id'], ownedClaims, sql('job_id=?', job.id)));
   guards.push(...exactRows('ik_d1_entries', ['job_id','ordinal','source_identity','owner_job_id','effects_hash'], entries, sql('job_id=?', job.id)));
   // Row comparisons are supplied by provenanceSet; cardinalities close each set.

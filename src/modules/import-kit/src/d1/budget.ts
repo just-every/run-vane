@@ -12,7 +12,12 @@ export class D1RequestLimitError extends Error {
 export const valueBytes = (v: any): number => typeof v === 'string' ? Buffer.byteLength(v) : v instanceof ArrayBuffer || ArrayBuffer.isView(v) ? v.byteLength : 8;
 export function checkSql(s: D1Sql): void {
   if (Buffer.byteLength(s.sql) > 100000 || (s.params?.length ?? 0) > 100) throw new Error('IMPORT_D1_STATEMENT_LIMIT');
-  if ((s.params ?? []).some(p => valueBytes(p) > 2000000) || (s.params ?? []).reduce((n, p) => n + valueBytes(p), 0) > 2000000) throw new Error('IMPORT_D1_VALUE_LIMIT');
+  let bytes = 0;
+  for (const parameter of s.params ?? []) {
+    const size = valueBytes(parameter);
+    bytes += size;
+    if (size > 2000000 || bytes > 2000000) throw new Error('IMPORT_D1_VALUE_LIMIT');
+  }
 }
 export function remaining(context: D1ImportContext): number { const budget=budgets.get(context.storage.database);return (budget?.limit??1000)-(budget?.used??0)-((context as ReservedContext)[reservedTail]??0); }
 /** A smaller public-operation budget also stops reads, before execution. Nested
@@ -60,7 +65,7 @@ function conjunction(predicates: string[], start = 0, end = predicates.length): 
 export function packGuards(statements: D1Sql[], readOnly = false): D1Sql[] {
   const prefix = readOnly ? 'SELECT CASE WHEN (' : 'INSERT INTO ik_d1_assertions(ok) SELECT CASE WHEN (';
   const suffix = readOnly ? ') THEN 1 ELSE 0 END AS ok' : ') THEN 1 ELSE 0 END';
-  const result: D1Sql[] = []; const seen = new Map<string, D1Sql[]>(); let predicates: string[] = [], params: any[] = [], bytes = 0;
+  const result: D1Sql[] = []; const seen = new Map<string, D1Sql[]>(); let predicates: string[] = [], params: any[] = [], bytes = 0, boundBytes = 0;
   const flush = () => {
     if (predicates.length) {
       // A flat AND list becomes a left-deep SQLite expression tree. Keep the
@@ -68,7 +73,7 @@ export function packGuards(statements: D1Sql[], readOnly = false): D1Sql[] {
       const text=conjunction(predicates),packed = readOnly ? { sql: `${prefix}${text}${suffix}`, params } : guard({sql:text,params});
       checkSql(packed); result.push(packed);
     }
-    predicates = []; params = []; bytes = 0;
+    predicates = []; params = []; bytes = 0; boundBytes = 0;
   };
   for (const statement of statements) {
     checkSql(statement);
@@ -81,9 +86,9 @@ export function packGuards(statements: D1Sql[], readOnly = false): D1Sql[] {
     if (prior.some(s => (s.params?.length ?? 0) === (statement.params?.length ?? 0) && (s.params ?? []).every((p, i) => p === statement.params![i]))) continue;
     prior.push(statement); seen.set(statement.sql, prior);
     const p = predicate.params ?? [], text = `(${predicate.sql})`;
-    const nextBytes = Buffer.byteLength(text);
-    if (predicates.length && (params.length + p.length > 100 || bytes + nextBytes > 90000 || params.reduce((n, p) => n + valueBytes(p), 0) + p.reduce((n, p) => n + valueBytes(p), 0) > 1500000 || predicates.length >= 50)) flush();
-    predicates.push(text); params.push(...p); bytes += nextBytes;
+    const nextBytes = Buffer.byteLength(text), nextBoundBytes = p.reduce((n, value) => n + valueBytes(value), 0);
+    if (predicates.length && (params.length + p.length > 100 || bytes + nextBytes > 90000 || boundBytes + nextBoundBytes > 1500000 || predicates.length >= 50)) flush();
+    predicates.push(text); params.push(...p); bytes += nextBytes; boundBytes += nextBoundBytes;
   }
   flush(); return result;
 }

@@ -32,7 +32,12 @@ async function planned(env: MoveinEnvironment, actor: MoveinActor, input: Docume
   // A date cannot silently change the policy of records already held by a prior job.
   if(cutover){
     const ids=JSON.stringify(normalized.source.records.map(r=>r.sourceId));
-    const conflict=await env.DB.prepare(`SELECT 1 FROM (SELECT id,site_id,import_job FROM vane_import_events UNION ALL SELECT id,site_id,import_job FROM vane_import_reports) i LEFT JOIN vane_import_cutovers c ON c.site_id=i.site_id AND c.job_id=i.import_job WHERE i.site_id=? AND i.id IN (SELECT value FROM json_each(?)) AND c.day IS NOT ? LIMIT 1`).bind(site.id,ids,cutover).first();
+    // Drive both lookups from this page, rather than scanning all destination history.
+    const conflict=await env.DB.prepare(`SELECT 1 FROM json_each(?2) wanted CROSS JOIN vane_import_events i ON i.id=wanted.value AND i.site_id=?1
+      LEFT JOIN vane_import_cutovers c ON c.site_id=i.site_id AND c.job_id=i.import_job WHERE c.day IS NOT ?3
+      UNION ALL
+      SELECT 1 FROM json_each(?2) wanted CROSS JOIN vane_import_reports i ON i.id=wanted.value AND i.site_id=?1
+      LEFT JOIN vane_import_cutovers c ON c.site_id=i.site_id AND c.job_id=i.import_job WHERE c.day IS NOT ?3 LIMIT 1`).bind(site.id,ids,cutover).first();
     if(conflict)throw new MoveinError('CUTOVER_CHANGE_REQUIRES_UNDO',409);
   }
   const plan = await planD1Import(cutoverSource(normalized.source,cutover,preferNew),mapping,context(env,actor,site));
@@ -65,10 +70,10 @@ export async function apply(env: MoveinEnvironment, actor: MoveinActor, input: D
   const base = reserveReturn(requestContext(context(env,actor,site)),32);
   const created = await createD1ImportJob(plan,{ ...base,reviewedFingerprint: input.fingerprint });
   // Approval must exist before native publication. The first owner's decision is immutable.
-  await env.DB.prepare(`INSERT INTO vane_import_approvals(job_id,site_id,owner_id,approved_at,fingerprint,discarded_json)
-    SELECT ?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND role='owner' AND status='active')
+  await env.DB.prepare(`INSERT INTO vane_import_approvals(job_id,site_id,owner_id,approved_at,fingerprint,discarded_json,policy_version,policy_json)
+    SELECT ?,?,?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND role='owner' AND status='active')
     AND EXISTS(SELECT 1 FROM vane_sites WHERE id=? AND version=? AND config_json=?)
-    ON CONFLICT(job_id) DO NOTHING`).bind(created.id,site.id,actor.id,new Date().toISOString(),plan.fingerprint,JSON.stringify('skipped' in normalized&&normalized.skipped.length?{heldDays:normalized.skipped}:normalized.discarded),actor.id,site.id,site.version,site.config_json).run();
+    ON CONFLICT(job_id) DO NOTHING`).bind(created.id,site.id,actor.id,new Date().toISOString(),plan.fingerprint,JSON.stringify('skipped' in normalized&&normalized.skipped.length?{heldDays:normalized.skipped}:normalized.discarded),site.version,site.config_json,actor.id,site.id,site.version,site.config_json).run();
   const approval = await env.DB.prepare('SELECT fingerprint,owner_id FROM vane_import_approvals WHERE job_id=? AND site_id=?').bind(created.id,site.id).first<{ fingerprint: string; owner_id: string }>();
   if (approval?.fingerprint !== input.fingerprint || approval.owner_id !== actor.id) throw new MoveinError('OWNER_APPROVAL_REQUIRED',403);
   if(cutover)await env.DB.prepare('INSERT INTO vane_import_cutovers(site_id,job_id,day) VALUES(?,?,?) ON CONFLICT(site_id,job_id) DO NOTHING').bind(site.id,created.id,cutover).run();
