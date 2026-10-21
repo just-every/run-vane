@@ -117,13 +117,17 @@ test('IMPORT-007 a reviewed cut-over keeps live days once across events, source 
 function unzipStored(buffer){const bytes=Buffer.from(buffer),files={};let at=0;while(bytes.readUInt32LE(at)===0x04034b50){const size=bytes.readUInt32LE(at+18),n=bytes.readUInt16LE(at+26),extra=bytes.readUInt16LE(at+28),start=at+30+n+extra;files[bytes.subarray(at+30,at+30+n).toString()]=bytes.subarray(start,start+size).toString();at=start+size}return files}
 
 test('IMPORT-007 the owner reviews and applies a dated import through the history form at 1440 and 390',async t=>{
- const a=await installation();t.after(()=>a.close());const id=await a.addSite({paths:[],goals:{},retainForever:true})
+ // A real loopback HTTP listener lets Chromium perform the form's native 303 navigation.
+ const {createServer}=await import('node:http');let a,browser
+ const server=createServer(async(req,res)=>{try{const chunks=[];for await(const chunk of req)chunks.push(chunk);const response=await a.request(req.url,{method:req.method,headers:req.headers,...(!['GET','HEAD'].includes(req.method)?{body:Buffer.concat(chunks)}:{})});res.writeHead(response.status,{...Object.fromEntries(response.headers),'set-cookie':response.headers.getSetCookie()});res.end(Buffer.from(await response.arrayBuffer()))}catch(error){res.writeHead(500);res.end(String(error))}})
+ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));t.after(async()=>{await browser?.close();await a?.close();const closed=new Promise(resolve=>server.close(resolve));server.closeAllConnections();await closed})
+ a=await installation({origin:`http://127.0.0.1:${server.address().port}`});const id=await a.addSite({paths:[],goals:{},retainForever:true})
  await a.clock(Date.parse('2026-10-02T12:00:00Z'));assert.equal((await a.collect(a.event(id))).status,202);await a.clock(Date.parse('2026-10-10T12:00:00Z'))
  const document={data:['2026-10-01','2026-10-02','2026-10-03'].map((day,n)=>({id:'browser-cutover-'+n,createdAt:day+'T12:00:00Z',urlPath:'/imported',eventType:1})),count:3,page:1,pageSize:3}
  const {chromium}=await import('@playwright/test'),{mkdir}=await import('node:fs/promises')
- const browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']});t.after(()=>browser.close());const context=await browser.newContext()
+ browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']});const context=await browser.newContext()
  await context.addCookies(a.owner.split('; ').map(pair=>{const [name,...value]=pair.split('=');return {name,value:value.join('='),url:a.origin}}))
- await context.route('**/*',async route=>{const req=route.request(),url=new URL(req.url());if(url.origin!==a.origin)return route.abort();const response=await a.request(url.pathname+url.search,{method:req.method(),headers:req.headers(),body:['GET','HEAD'].includes(req.method())?undefined:req.postDataBuffer()??undefined});return route.fulfill({status:response.status,headers:Object.fromEntries(response.headers),body:Buffer.from(await response.arrayBuffer())})})
+
  const tab=await context.newPage(),screens=process.env.VANE_SCREEN_DIR;if(screens)await mkdir(screens,{recursive:true})
  const capture=async(label,width)=>{assert.equal(await tab.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,'history fits '+width);if(screens)await tab.screenshot({path:`${screens}/cutover-${label}-${width}.png`})}
  for(const width of [1440,390]){
@@ -134,7 +138,7 @@ test('IMPORT-007 the owner reviews and applies a dated import through the histor
   await form.getByRole('button',{name:'Preview import',exact:true}).click()
   const review=tab.getByRole('heading',{name:'Review import',exact:true}).locator('..');await review.waitFor({state:'visible'});await review.scrollIntoViewIfNeeded()
   const text=await review.innerText();assert.ok(text.includes('2026-10-03')&&text.includes('2026-10-02'),'review exposes the date and the live overlap before approval');await capture('review',width)
-  const [applied]=await Promise.all([tab.waitForResponse(r=>r.url().endsWith('/app/action')&&r.request().method()==='POST'),review.getByRole('button',{name:'Apply import',exact:true}).click()]);assert.equal(applied.status(),303);await tab.waitForLoadState('domcontentloaded');assert.equal(await tab.getByRole('heading',{name:'Import journal',exact:true}).count(),1,JSON.stringify({url:tab.url(),location:applied.headers().location,body:await tab.locator('body').innerText()}))
+  const [applied]=await Promise.all([tab.waitForResponse(r=>r.url().endsWith('/app/action')&&r.request().method()==='POST'),review.getByRole('button',{name:'Apply import',exact:true}).click()]);assert.equal(applied.status(),303);await tab.getByRole('heading',{name:'Import journal',exact:true}).waitFor({state:'visible'})
   const r=await json(await a.request(`/api/vane/summary?siteId=${id}&from=2026-10-01&to=2026-10-04`,{headers:{cookie:a.owner}}));assert.equal(r.pageviews,2);assert.equal(r.imported,1)
   await tab.goto(`${a.origin}/app/sites/${id}?section=report&from=2026-10-01&to=2026-10-04&metric=pageviews`)
   const tile=tab.getByRole('heading',{name:'Pageviews',exact:true}).first().locator('..');await tile.waitFor({state:'visible'});assert.match(await tile.innerText(),/\b2\b/);await capture('report',width)

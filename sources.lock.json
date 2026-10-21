@@ -3455,7 +3455,7 @@
       "executable": false
     },
     "tests/import-merge.test.mjs": {
-      "sha256": "b93e51b9d1a35744285ccfd81268657c5f5f6db1c8bddf61d16516b86b428340",
+      "sha256": "fdb66273a4bdf586ab7da5f3d81d4b036c3e81b2fdcc655560f7c04d51159d96",
       "executable": false
     },
     "tests/import-scale.journey.mjs": {
