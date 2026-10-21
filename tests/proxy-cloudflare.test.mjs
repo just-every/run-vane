@@ -146,7 +146,7 @@ test('owner connects an existing installation Worker with narrow idempotent Clou
  await row().locator('summary').click();
  const capture=async(state)=>{
   for(const width of [1440,390]){
-   await page.setViewportSize({width,height:1000});await row().evaluate(el=>el.scrollIntoView({block:'start'}));
+   await page.setViewportSize({width,height:1000});await row().evaluate(el=>el.scrollIntoView({block:'start'}));await page.evaluate(()=>scrollBy(0,-80));
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
    if(process.env.VANE_SCREEN_DIR){await mkdir(process.env.VANE_SCREEN_DIR,{recursive:true});await page.screenshot({path:join(process.env.VANE_SCREEN_DIR,`proxy-cloudflare-${state}-${width}.png`)});}
   }
