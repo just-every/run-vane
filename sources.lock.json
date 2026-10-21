@@ -3475,7 +3475,7 @@
       "executable": false
     },
     "tests/ga4.test.mjs": {
-      "sha256": "4c877fd525f3f2139caee31baa09b4161be3c283bc54a6605b6437b5e7c0e2e0",
+      "sha256": "3c99a3e6085ec2a8772304f21fe58ca9b191f921ea7fefeb77c39dd45f56ae0c",
       "executable": false
     },
     "tests/harness.mjs": {
@@ -3511,7 +3511,7 @@
       "executable": false
     },
     "tests/matomo.test.mjs": {
-      "sha256": "1e397d925739b6039b0d80a6d22509db0a9dad3f613c225e3a742978e9f38105",
+      "sha256": "7d083941625d4dc6b066fbd8cbef4c020dea192234ce2b6ee3b251c3ea018bd3",
       "executable": false
     },
     "tests/plausible-definitions.test.mjs": {
@@ -3519,7 +3519,7 @@
       "executable": false
     },
     "tests/plausible-history.test.mjs": {
-      "sha256": "6785681711ab1067b2a4663b5f84cbaacf097149a2b864c6e68d51d7f72f73f9",
+      "sha256": "9ac7eb539624a9ca935efbe86759e885986af8a9b58571103efd0b91ddda5b08",
       "executable": false
     },
     "tests/revenue-alert.test.mjs": {
@@ -3543,7 +3543,7 @@
       "executable": false
     },
     "tests/vane.test.mjs": {
-      "sha256": "6ce0bea5534d1aadda14c1577a4b1ed151ef123d40d4c3734ff1f5ab1d0fb206",
+      "sha256": "1c23baec0330062084934e30db5bdc6b94a8cce2878266062addb21023db30d4",
       "executable": false
     },
     "tsconfig.json": {

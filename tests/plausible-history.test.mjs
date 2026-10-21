@@ -43,7 +43,7 @@ test('IMPORT-003 dashboard ZIP imports every published history table with exact 
  const journal=await json(await a.request(`/api/vane/import-journal?siteId=${siteId}&jobId=${first.job.id}`,{headers:{cookie:a.owner}}))
  assert.equal(journal.job.state,'completed');assert.ok(journal.approval.ownerId);assert.equal(journal.provenance.length,p.aggregates.length)
  const csv=await a.request(`/api/vane/csv?siteId=${siteId}&from=${day}&to=2026-10-02&table=importedSourceRows`,{headers:{cookie:a.owner}});assert.equal(csv.status,200);const exported=await csv.text();assert.ok(exported.includes('metric_unique_entrances')&&exported.includes('Plausible.utm_terms')&&exported.includes('Plausible.propertyHistory'))
- const carry=structuredClone(p.carry);carry.records.find(r=>r.report==='Plausible.pages').metrics.visitorId=12
+ const carry=structuredClone(p.carry);carry.document.records.find(r=>r.report==='Plausible.pages').metrics.visitorId=12
  assert.equal((await a.post('/api/vane/import-preview',{siteId,document:carry},a.owner)).status,400)
  const unsafe=structuredClone(dashboard);unsafe.files['pages.csv']=unsafe.files['pages.csv'].replace('/pricing','/pricing?email=private%40example.test')
  assert.equal((await a.post('/api/vane/import-preview',{siteId,document:unsafe},a.owner)).status,400)

@@ -43,7 +43,7 @@ test('IMPORT-002 UA CSV retains daily source aggregates; rejects partial GA4 exp
  const first=await finish(a,siteId,p);assert.equal((await summary(a,siteId)).pageviews,0)
  const cases=[{...document,csv:'Page,Users\n/pricing,3\n'},{...document,csv:'Date,Client ID,Users\n20261001,12345,3\n'},{...document,csv:'Date,Page,Users\n20261001,/pricing?email=person%40example.test,3\n'}]
  const partial={format:'vane-ga4-history/1',property:'properties/1234',from:'2026-10-01',to:'2026-10-01',reports:[{...report(['date'],['sessions'],[[['20261001'],[3]]]),rowCount:2}]};cases.push(partial)
- const forged=structuredClone(p.carry);forged.records[0].metrics.visitorId=42;cases.push(forged)
+ const forged=structuredClone(p.carry);forged.document.records[0].metrics.visitorId=42;cases.push(forged)
  const fractional=structuredClone(partial);fractional.reports[0].rowCount=1;fractional.reports[0].rows[0].metricValues[0].value='1.5';fractional.reports[0].metricHeaders[0].type='TYPE_FLOAT';cases.push(fractional)
  const badRate={...partial,reports:[report(['date'],['bounceRate'],[[['20261001'],[75]]])]};cases.push(badRate)
  for(const value of cases)assert.equal((await a.post('/api/vane/import-preview',{siteId,document:value},a.owner)).status,400)
