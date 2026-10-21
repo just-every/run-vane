@@ -103,7 +103,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "229f6e433c86a70c248f9a9d07999855855489d414b219b7c0b0c99bd0fcdd29",
+      "sha256": "e7f064ddf42017c14bcdbb209c0b58fa7350d69c07fc5f6917f25806f2cf7f6e",
       "executable": false
     },
     "DEMO.md": {
@@ -3647,7 +3647,7 @@
       "executable": false
     },
     "tests/proxy-cloudflare.test.mjs": {
-      "sha256": "b3f189e70641df6c5053c900e480fe4af4f828095c319329a6bddcf6dd29d11f",
+      "sha256": "c8567813277df69f4483f0bde1677d55f8a77f1b6292850c8f9fa80263a0b82c",
       "executable": false
     },
     "tests/proxy-next.journey.mjs": {
