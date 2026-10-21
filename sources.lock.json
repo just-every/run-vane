@@ -59,7 +59,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "de90200e61e77d0434f27dd5da999433e3ba982a98b1c9fe9a89608a3b8acf18",
+      "sha256": "fe01f01f162e723c99cac7bde3805e4a7a76aece0076c8788ca2f2042dbcb705",
       "executable": false
     },
     "AGENTS.md": {
@@ -91,7 +91,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "e7214146fbec4811c46c98ffae885f48a3e0c848acb006afa856470b02aef87c",
+      "sha256": "5f1dfe0362ccc8f963d1751c53b22c22d14c5ea3da19d5f24e4be0044ac1580c",
       "executable": false
     },
     "DEMO.md": {
@@ -2739,7 +2739,7 @@
       "executable": false
     },
     "src/vane/collect.ts": {
-      "sha256": "82d0aadb999dd2fdf9d5963a21f47a24bc444511e734c812ae9ee717ab8889bf",
+      "sha256": "4d221924844bda7d2440e06f61f4e876e7e7423f05efa4518fa09e38b2933338",
       "executable": false
     },
     "src/vane/commands.ts": {
@@ -3471,7 +3471,7 @@
       "executable": false
     },
     "tests/tracking-health.test.mjs": {
-      "sha256": "56f4c464a4fe9a4ad9f5f95b2607ac90aa230efe9e5a1fa6f85e4dee4a314ef7",
+      "sha256": "c6aec278559bd14375182bd3845a3f4d4e20bdef9fe986e5908dfd6b5cdfe0a9",
       "executable": false
     },
     "tests/vane.test.mjs": {
