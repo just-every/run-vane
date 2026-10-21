@@ -13,7 +13,7 @@ import { promisify } from 'node:util'
 import { chromium } from '@playwright/test'
 import { build } from 'esbuild'
 import { installation } from './harness.mjs'
-import { extensionState } from './extension-state.mjs'
+import { extensionState, extensionStartup } from './extension-state.mjs'
 
 // Explicit Linux journey, outside push Verify. Supply the official Chrome 138
 // executable and unpacked uBlock Origin MV2 release (see proxy-blocker.yml).
@@ -72,7 +72,7 @@ async function chrome(t, scratch) {
   assert.ok(manifest.permissions.includes('webRequestBlocking'))
   const profile = join(scratch, 'chrome-profile')
   const child = spawn(process.env.CHROMIUM_EXECUTABLE_PATH, [
-    '--headless=new', '--enable-logging=stderr', '--log-level=0', '--v=1', '--remote-debugging-port=0', '--remote-debugging-address=127.0.0.1',
+    '--headless=new', '--enable-logging=stderr', '--log-level=0', '--remote-debugging-port=0', '--remote-debugging-address=127.0.0.1',
     '--user-data-dir=' + profile, '--load-extension=' + extension, '--disable-extensions-except=' + extension,
     '--enable-features=AllowLegacyMV2Extensions',
     '--disable-features=ExtensionManifestV2Unsupported,ExtensionManifestV2Disabled,ExtensionManifestV2DeprecationWarning,DisableLoadExtensionCommandLineSwitch',
@@ -113,6 +113,7 @@ async function chrome(t, scratch) {
     await delay(100)
   }
   assert.ok(port, 'Chrome must expose its own ephemeral CDP port: ' + stderr)
+  await extensionStartup(port)
   browser = await chromium.connectOverCDP('http://127.0.0.1:' + port)
   const context = browser.contexts()[0]
   assert.ok(context, 'Use the fresh Chrome default context where the extension is installed')
