@@ -2,6 +2,7 @@ import { planD1Import, createD1ImportJob, readD1ImportJob } from '../../modules/
 import { applyD1ImportBatches } from '../../modules/import-kit/src/d1/apply.ts';
 import { undoD1Import } from '../../modules/import-kit/src/d1/reverse.ts';
 import { atomic } from '../../modules/import-kit/src/d1/database.ts';
+import { requestContext, reserveReturn } from '../../modules/import-kit/src/d1/budget.ts';
 import { retirementScope, headerAbsence } from '../../modules/import-kit/src/d1/retirement-scope.ts';
 import { retireD1ImportCustody } from '../../modules/import-kit/src/d1/retirement.ts';
 import type { D1Sql } from '../../modules/import-kit/src/d1/types.ts';
@@ -40,7 +41,10 @@ export async function apply(env: MoveinEnvironment, actor: MoveinActor, input: D
   requireOwner(actor);
   const { site, normalized, plan } = await planned(env,actor,input);
   if (typeof input.fingerprint !== 'string' || input.fingerprint !== plan.fingerprint) throw new MoveinError('REVIEW_FINGERPRINT_MISMATCH',409);
-  const base = context(env,actor,site);
+  // Creation and publication run in the same Worker invocation. Share their
+  // measured statement budget, reserving room for the surrounding session,
+  // policy, approval and audit queries outside the kit.
+  const base = reserveReturn(requestContext(context(env,actor,site)),32);
   const created = await createD1ImportJob(plan,{ ...base,reviewedFingerprint: input.fingerprint });
   // Approval must exist before native publication. The first owner's decision is immutable.
   await env.DB.prepare(`INSERT INTO vane_import_approvals(job_id,site_id,owner_id,approved_at,fingerprint,discarded_json)
@@ -52,7 +56,10 @@ export async function apply(env: MoveinEnvironment, actor: MoveinActor, input: D
   // Let the kit fill a publication batch up to its measured D1 request budget,
   // rather than ending every request after only 20 entries. Planning and undo
   // keep their existing bounds; the kit retains all authority and custody fences.
-  const current = await applyD1ImportBatches(created.id,{ ...context(env,actor,site,created.id),batchSize:100,reviewedFingerprint: input.fingerprint });
+  const publication = context(env,actor,site,created.id);
+  const current = await applyD1ImportBatches(created.id,{ ...base,
+    storage:{...publication.storage,database:base.storage.database},
+    batchSize:100,reviewedFingerprint: input.fingerprint });
   return { job: current, complete: current.state === 'completed', fingerprint: plan.fingerprint };
 }
 
