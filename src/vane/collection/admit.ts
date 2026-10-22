@@ -1,6 +1,8 @@
 import { site, statement, uid, VaneError, type Env } from '../core'
 import { encodeRawId, rawInsertManyStatement, rawNormalizeStatements, type RawRecord } from '../raw'
 import { RAW_DIMENSIONS } from '../raw/schema'
+import { bulkOccurrences } from '../analytics/bulk'
+import { beginBulkVisits, finishBulkVisits } from '../analytics/visits/bulk'
 import { collectionContext, type PreparedPageview } from './context'
 import { existingPageviews } from './existing'
 import { IndexedCollectionError } from './error'
@@ -77,11 +79,13 @@ export async function admitPageviews(request: Request, env: Env, validated: Vali
   SELECT ?,MIN(CAST(row.key AS INTEGER)),json_extract(row.value,'$.id') FROM json_each(?) row
   WHERE NOT EXISTS(SELECT 1 FROM vane_raw_events WHERE site=${physicalSite} AND token=${tokenSql})
   GROUP BY json_extract(row.value,'$.site'),${tokenSql}`, batchId, checks))
+ statements.push(...beginBulkVisits(env))
  statements.push(rawInsertManyStatement(env, pages, {
   sql: 'EXISTS(SELECT 1 FROM vane_collection_batch_admitted WHERE batch_id=? AND record_index=CAST(row.key AS INTEGER))', values: [batchId],
  }))
  statements.push(statement(env, `INSERT INTO vane_guard(value)
   SELECT CASE WHEN changes()=(SELECT COUNT(*) FROM vane_collection_batch_admitted WHERE batch_id=?) THEN 1 ELSE 0 END`, batchId))
+ statements.push(...bulkOccurrences(env), ...finishBulkVisits(env))
  const goals = prepared.flatMap((plan, index) => goalRecords(pages[index]!, plan).map(record => ({ index, record })))
  if (goals.length) {
   const columns = Object.keys(goals[0]!.record), values = goals.map(({ index, record }) => [...columns.map(column => record[column as keyof RawRecord] ?? null), index])
