@@ -3,7 +3,7 @@ import { clock } from '../clock'
 import { auditStatement } from '../audit'
 import { findings, type Finding } from './findings'
 import { robots } from './robots'
-export interface ScanPage {url:string;at:number;findings:Finding[]}
+export interface ScanPage {url:string;at:number;findings:Finding[];native?:import('../instrumentation/page').NativePage}
 export interface Scan {id:string;site_id:string;actor_id:string;at:number;page_limit:number;fetched:number;refused:number;state:string;pages:ScanPage[]}
 export async function scans(env:Env,actor:Actor,siteId:string):Promise<Scan[]> {
  allow(actor,'viewer');inScope(actor,siteId);
@@ -15,7 +15,7 @@ async function body(response:Response) {
  try{for(;;){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>2_000_000)throw Error('Response exceeds scan capacity');parts.push(value)}}finally{await reader.cancel()}
  const bytes=new Uint8Array(size);let offset=0;for(const part of parts){bytes.set(part,offset);offset+=part.length}return new TextDecoder().decode(bytes);
 }
-export async function scan(env:Env,actor:Actor,input:{siteId:string,pageLimit:unknown}):Promise<Scan> {
+export async function scan(env:Env,actor:Actor,input:{siteId:string,pageLimit:unknown},inspect?:(html:string)=>Promise<import('../instrumentation/page').NativePage>):Promise<Scan> {
  allow(actor,'admin');inScope(actor,input.siteId);const current=await site(env,input.siteId),limit=Number(input.pageLimit);
  insist(Number.isInteger(limit)&&limit>=1&&limit<=500,'scan_limit','Choose a page limit from 1 to 500.');
  const result:Scan={id:uid(),site_id:current.id,actor_id:actor.id,at:clock(),page_limit:limit,fetched:0,refused:0,state:'running',pages:[]};
@@ -44,7 +44,7 @@ export async function scan(env:Env,actor:Actor,input:{siteId:string,pageLimit:un
     const url=valid(raw,map.href);if(!url){result.refused++;continue}url.hash='';if(seenPages.has(url.href))continue;seenPages.add(url.href);
     if(result.fetched>=limit||!policy.allows(url)){result.refused++;continue}
     result.fetched++;
-    try{const r=await load(url);if(!r.ok){await r.body?.cancel();result.refused++;continue}const html=await body(r);result.pages.push({url:url.href,at:clock(),findings:findings(html,script,current.config.currency??'USD')})}catch{result.refused++}
+    try{const r=await load(url);if(!r.ok){await r.body?.cancel();result.refused++;continue}const html=await body(r);result.pages.push({url:url.href,at:clock(),findings:findings(html,script,current.config.currency??'USD'),...(inspect?{native:await inspect(html)}:{})})}catch{result.refused++}
    }
   }
   result.state='complete';

@@ -1,4 +1,5 @@
 export interface ViewData {
+  instrumentation?:Awaited<ReturnType<typeof import('../instrumentation').instrumentationHistory>>
   ask?:{setting:import('../ask/settings').AskSetting;result?:import('../ask').AskResult}
   heat?:import('../heat/report').HeatReport
   reportOrigin?:string
