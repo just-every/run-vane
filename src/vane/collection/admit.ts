@@ -1,5 +1,5 @@
 import { site, statement, uid, VaneError, type Env } from '../core'
-import { prepareRawBatch, rawInsertManyStatements, rawNormalizeStatements } from '../raw'
+import { prepareRawBatch, rawInsertManyStatements, rawNormalizeStatements, type RawRecord } from '../raw'
 import { bulkOccurrences } from '../analytics/bulk'
 import { beginBulkVisits, finishBulkVisits } from '../analytics/visits/bulk'
 import { collectionContext, type PreparedPageview } from './context'
