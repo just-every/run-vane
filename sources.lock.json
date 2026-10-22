@@ -498,6 +498,14 @@
       "sha256": "3e29c7e47134bccbb03d83eeb8fef1d1643513612bb8bd7f89230ae589c16187",
       "executable": false
     },
+    "migrations/core/0096_raw_group_reassignment.sql": {
+      "sha256": "bf9fba980800205d609640dfc9baf87db3f519e4832bca035f8e23fd3d68711e",
+      "executable": false
+    },
+    "migrations/core/0097_bulk_visit_membership.sql": {
+      "sha256": "1d0c4b35ac23e1252de30fce7d7b1bdcad45241b3854c805be357bad139c0328",
+      "executable": false
+    },
     "ONBOARDING.md": {
       "sha256": "b28a79254e2278d81d877ffd5987972aaf135d85683ae285b52fd98cc44e608e",
       "executable": false
@@ -2827,7 +2835,7 @@
       "executable": false
     },
     "src/vane/analytics/visits/bulk/apply.ts": {
-      "sha256": "d256d6ede4381eccc72b6954a8feaed5baf7067b8d0f50b5840c7ea6d27f2ab4",
+      "sha256": "1f425d6a940882a33614952682c5bef89afc787fc3ff8a5df7b89bc39d1b2989",
       "executable": false
     },
     "src/vane/analytics/visits/bulk/components.ts": {
@@ -2839,7 +2847,7 @@
       "executable": false
     },
     "src/vane/analytics/visits/bulk/index.ts": {
-      "sha256": "ea3c9249813aecfe4ad4039710bdf37a9e6bf8d8dc1d4481d73fac5c41b1d8ff",
+      "sha256": "a594840e2d5d4cc235af836bb70e8b0ed8fbc1aa32939046aa425843e46c999a",
       "executable": false
     },
     "src/vane/analytics/visits/bulk/neighbors.ts": {
@@ -2871,7 +2879,7 @@
       "executable": false
     },
     "src/vane/analytics/visits/inventory.ts": {
-      "sha256": "7ff46cfe8d165e2d1675f448565fcc66aaafd3e80b5426409452107fa669e322",
+      "sha256": "1b39abe81ca553335674e3b222394b32ad6d5bdb6588d497dd27cc17b5911649",
       "executable": false
     },
     "src/vane/analytics/visits/locations.ts": {
@@ -2987,7 +2995,7 @@
       "executable": false
     },
     "src/vane/collection/admit.ts": {
-      "sha256": "24321fc8ac1f46f1c8747ff367cbae4e9e5f6252900d1f477c599e12398dfb8f",
+      "sha256": "863790c7d9c92a7b1a78e86684f005daff9ed1184f00c16fe24ddd212d03ade7",
       "executable": false
     },
     "src/vane/collection/batch.ts": {
@@ -3414,12 +3422,16 @@
       "sha256": "dbb9d55b5afd290664c74bab6b6d58aeb32b5844359041b0dd685bba731e96d5",
       "executable": false
     },
+    "src/vane/raw/generate-group-reassignment.py": {
+      "sha256": "42166c6742d4b0b68946e52e90d327656506b495cd4e4fd508fd8a9626196d83",
+      "executable": false
+    },
     "src/vane/raw/generate-groups.py": {
       "sha256": "a60abe96e6036d7149c46b7b8aa0e2f0a39c94a3d03c221984adc06ac400bcbe",
       "executable": false
     },
     "src/vane/raw/index.ts": {
-      "sha256": "a4f228d7798e5ec178b19bbcecb5cc0d348c7f343539ce6c0db7ff257298ff11",
+      "sha256": "0a295788d4e16c61aff6e69649fc9d2eb1c6d5e110dfb6d112250c3f9368ac2c",
       "executable": false
     },
     "src/vane/raw/inventory.ts": {
@@ -3435,7 +3447,7 @@
       "executable": false
     },
     "src/vane/raw/store.ts": {
-      "sha256": "fedea8db4c68a26a1eb65a734193a8ecf019bd39c10d7d34e0510dacaecdef2d",
+      "sha256": "80b79b2120a5d3d1a9633065133e014c12782cbf5c621d1d472f2d8df1d88a52",
       "executable": false
     },
     "src/vane/raw/triggers.ts": {
@@ -3771,7 +3783,7 @@
       "executable": false
     },
     "src/vane/visitors.ts": {
-      "sha256": "6bbe135b8783149f366dea2e11530d71ce4df6bb49a8e13c9c2017ed784eff5e",
+      "sha256": "b004047284d62f6ce84bb36a929243a14b36753ff4af076b41b05e037b3c68a4",
       "executable": false
     },
     "src/vane/visits.ts": {
