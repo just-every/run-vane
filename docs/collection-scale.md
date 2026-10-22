@@ -18,10 +18,12 @@ to sampling, identity scope or retention.
   their exact text.
 - `vane_raw_contexts` shares exact combinations of site, local date, event kind,
   declared dimensions, visitor references and consent issue/expiry times.
-- `vane_raw_events` keeps one physical row per occurrence. Canonical UUIDs use
+- `vane_raw_groups` shares only identical context, exact timestamp offset and derived visit tuples.
+- `vane_raw_occurrences` keeps one physical row per occurrence. Canonical UUIDs use
   their exact 16 bytes with any goal suffix preserved; historical noncanonical
   IDs retain exact text. Each event retains its timestamp as an exact offset
-  from its context date and a derived visit reference.
+  from its context date and a derived visit reference through its exact metadata group.
+  The writable `vane_raw_events` compatibility view exposes those fields for each occurrence.
 - `vane_raw_details` holds optional engagement, scroll and performance values
   for the individual occurrence.
 
@@ -90,8 +92,8 @@ owner-only controls.
 ## Native batch admission
 
 `POST /api/vane/collect-batch` accepts exactly `{"events":[PAGEVIEW,...]}` with
-1–100 ordinary collector records, each with its normal `siteId` and event UUID.
-The complete UTF-8 body is limited to 65,536 bytes (64 KiB); each serialized record
+1–1000 ordinary collector records, each with its normal `siteId` and event UUID.
+The complete UTF-8 body is limited to 524,288 bytes (512 KiB); each serialized record
 has the ordinary 8,192-character bound. Registered origins, collection settings,
 consent and anonymous field rules apply to every record. The HTTP request supplies
 the actual shared visitor metadata; payloads cannot supply trusted IP, user-agent

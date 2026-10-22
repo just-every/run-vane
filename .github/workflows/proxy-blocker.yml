@@ -44,4 +44,4 @@ jobs:
           echo "UBLOCK_EXTENSION_PATH=$scratch/uBlock0.chromium" >> "$GITHUB_ENV"
       - run: pnpm exec vite build
       - name: Prove live lists and record direct and first-party collection
-        run: node --test tests/proxy-blocker.journey.mjs
+        run: perl -e 'setpgrp(0,0); exec @ARGV' -- node --test tests/proxy-blocker.journey.mjs

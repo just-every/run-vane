@@ -13,6 +13,7 @@ const BURST_SECONDS = Number(process.env.VANE_COLLECTION_SCALE_BURST_SECONDS ?? 
 for (const [name, value, min, max] of [['monthly', MONTHLY, 1, 100_000_000], ['months', MONTHS, 1, 12], ['concurrency', CONCURRENCY, 1, 500], ['burst seconds', BURST_SECONDS, 2, 120]]) {
  assert.ok(Number.isSafeInteger(value) && value >= min && value <= max, `${name} is outside the journey's documented bounds`)
 }
+const BATCH_SIZE = 1000
 const fullVolume = MONTHLY >= 10_000_000 && MONTHS === 12
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
 const isoDay = time => new Date(time).toISOString().slice(0, 10)
@@ -51,8 +52,8 @@ test('COLLECT-004 genuine monthly pageviews, a paced 500/second burst, concurren
  // ordinary single-event door for the event that crosses it. Both are actual
  // admissions; no DB seeding or weighted record substitutes for the 10,001 IDs.
  const admissionAt=performance.now()
- for (let first = 0; first < 10_000; first += CONCURRENCY*100) {
-  await Promise.all(Array.from({length:Math.min(CONCURRENCY,Math.ceil((10_000-first)/100))},(_,index)=>sendBatch(0,first+index*100,Math.min(100,10_000-first-index*100))))
+ for (let first = 0; first < 10_000; first += CONCURRENCY*BATCH_SIZE) {
+  await Promise.all(Array.from({length:Math.min(CONCURRENCY,Math.ceil((10_000-first)/BATCH_SIZE))},(_,index)=>sendBatch(0,first+index*BATCH_SIZE,Math.min(BATCH_SIZE,10_000-first-index*BATCH_SIZE))))
  }
  await send(0,10_000)
  measurements.initialAdmission={events:10_001,elapsedMs:performance.now()-admissionAt}
@@ -94,8 +95,8 @@ test('COLLECT-004 genuine monthly pageviews, a paced 500/second burst, concurren
   for (let day = 1; day <= 28; day++) {
    await a.clock(Date.UTC(2025, month, day, 12))
    const firstOfDay = Math.floor(MONTHLY * (day - 1) / 28), endOfDay = Math.floor(MONTHLY * day / 28)
-   for (let first = firstOfDay; first < endOfDay; first += CONCURRENCY*100) {
-    await Promise.all(Array.from({length:Math.min(CONCURRENCY,Math.ceil((endOfDay-first)/100))},(_,index)=>{const batchStart=first+index*100;return sendBatch(index%2,batchStart,Math.min(100,endOfDay-batchStart))}))
+   for (let first = firstOfDay; first < endOfDay; first += CONCURRENCY*BATCH_SIZE) {
+    await Promise.all(Array.from({length:Math.min(CONCURRENCY,Math.ceil((endOfDay-first)/BATCH_SIZE))},(_,index)=>{const batchStart=first+index*BATCH_SIZE;return sendBatch(index%2,batchStart,Math.min(BATCH_SIZE,endOfDay-batchStart))}))
    }
   }
   monthExpected.set(label, (monthExpected.get(label) ?? 0) + MONTHLY)

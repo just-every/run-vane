@@ -43,7 +43,7 @@ export async function admitPageviews(request: Request, env: Env, validated: Vali
    return typeof token === 'string' ? ['text', token] : ['blob', Array.from(new Uint8Array(token), byte => byte.toString(16).padStart(2, '0')).join('')]
   })
   // Bind the actual IDs as one bounded JSON set, keeping D1's parameter count
-  // small even for 100 members. Every lookup uses the physical (site,token)
+  // small even for 1000 members. Every lookup uses the physical (site,token)
   // index. A first member that won a race cannot suppress another new member's
   // required context, and an entirely duplicated group interns nothing.
   const when = { sql: `EXISTS(SELECT 1 FROM json_each(?) wanted WHERE NOT EXISTS(

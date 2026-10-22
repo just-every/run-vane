@@ -1,11 +1,11 @@
 # Native pageview batching
 
 `POST /api/vane/collect-batch` takes exactly `{"events":[PAGEVIEW,...]}` with
-1–100 ordinary collector records. Each includes its normal `siteId`; each site's
+1–1000 ordinary collector records. Each includes its normal `siteId`; each site's
 registered origin, collection configuration, consent and anonymous field rules
 apply. The HTTP request supplies the actual shared visitor metadata. Payloads
 cannot supply client IP, user agent or trusted Cloudflare fields. The entire
-UTF-8 body is at most 65,536 bytes; each serialized record is at most 8,192
+UTF-8 body is at most 524,288 bytes; each serialized record is at most 8,192
 characters, matching the ordinary record bound.
 
 Validation is all-or-nothing. A malformed or refused record rejects the entire
@@ -16,8 +16,9 @@ their fields into a count. The existing enabled signal/declined/ignored doors
 remain separate field-free requests, preventing a second implicit count.
 
 After validation, one D1 batch atomically rechecks site versions and ID
-compatibility and commits the admitted records. Each actual new physical row
-sets a purpose-specific transient admission marker immediately after its insert.
+compatibility and commits the admitted records. It reserves transient markers
+only for absent exact IDs, then checks that the physical insert admitted every
+reserved row before dependent writes proceed.
 Goals, properties and counters are gated by that record's marker. Replays,
 including concurrent or repeated IDs within the batch, therefore admit one raw
 pageview and acknowledge every compatible repeat. Scratch rows are removed

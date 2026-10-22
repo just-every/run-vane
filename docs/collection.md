@@ -15,8 +15,8 @@ Each page load also gets a channel (Direct, Organic Search, Paid Search, Organic
 ## Batch collection and raw history
 
 `POST /api/vane/collect-batch` accepts `{"events":[PAGEVIEW,...]}` containing
-1–100 normal collector records, each with its own event UUID and `siteId`. The
-whole UTF-8 body may be at most 64 KiB (65,536 bytes); each serialized record has
+1–1000 normal collector records, each with its own event UUID and `siteId`. The
+whole UTF-8 body may be at most 512 KiB (524,288 bytes); each serialized record has
 the ordinary 8,192-character limit. Each record follows the same origin,
 collection, consent and privacy rules as `/api/vane/collect`. The request supplies
 shared visitor metadata; payloads cannot supply trusted IP, user-agent or
