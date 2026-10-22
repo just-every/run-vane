@@ -13,11 +13,12 @@ const privateDoors=[
  '/auth/session','/auth/operators','/auth/sessions','/auth/providers','/auth/domain-rules','/auth/settings/identity','/auth/dependencies/status','/setup',
 ]
 const privateWrites=[
- '/app/action','/app/agency/logo',
+ '/setup','/app/action','/app/agency/logo',
  ...['agency','heat-settings','commands','proxy-connections','parallel-run','import-preview','import-apply','import-undo','cutover-scan','install-check','site-import','restore','push/subscribe','push/unsubscribe'].map(path=>'/api/vane/'+path),
  ...['bootstrap','invite','invite/cancel','operator/status','operator/role','session/revoke','step-up','domain-rules','providers/unlink','providers/relink','settings/identity','setup-complete','email','display-name','dependencies/relink','dependencies/setup','dependencies/unlink'].map(path=>'/auth/'+path),
 ]
 async function held(a,cookie,mode,extra=[]) {
+ const settings=await a.request('/auth/security',{headers:{cookie}});assert.equal(settings.status,mode==='sso'?403:303);if(mode!=='sso')assert.equal(settings.headers.get('location'),'/auth/security/'+mode)
  for(const path of [...privateDoors,...extra]) {
   const r=await a.request(path,{headers:{cookie}})
   if(path.startsWith('/api/')){assert.equal(r.status,403,path);assert.equal((await r.json()).error,mode==='sso'?'sso_required':'second_step_required',path)}
@@ -98,9 +99,10 @@ test('owner enforcement holds every account without a factor at enrollment, refu
  const a=await installation();t.after(()=>a.close());const member=await a.invite('member@example.test','member'),other=await a.invite('other@example.test','admin')
  const site=await a.addSite({name:'Fern Studio',paths:[]}),keyPage=await(await a.form({operation:'apikey.create',kind:'stats',label:'Team reporting',[`site_${site}`]:'on'},other)).text(),key=keyPage.match(/data-api-key>(vane_k_[0-9a-f]{64})</)[1]
  const stats=()=>a.request(`/api/v1/stats?site_id=${site}`,{headers:{authorization:'Bearer '+key}});assert.equal((await stats()).status,200)
+ const createdRollup=await a.form({operation:'rollup.create',name:'Fern combined report',[`site_${site}`]:'on'},a.owner);assert.equal(createdRollup.status,303);const rollupPath=createdRollup.headers.get('location');assert.match(rollupPath,/^\/app\/rollups\//)
  assert.equal((await a.post('/auth/security/policy',{requireSecond:true},a.owner)).status,409)
  await enroll(a,a.owner);assert.equal((await a.post('/auth/security/policy',{requireSecond:true},a.owner)).status,303)
- for(const cookie of [member,other])await held(a,cookie,'enroll',[`/app/sites/${site}`, ...['settings','realtime','heat','history','approvals'].map(section=>`/app/sites/${site}?section=${section}`)])
+ for(const cookie of [member,other])await held(a,cookie,'enroll',[rollupPath,`/app/sites/${site}`, ...['settings','realtime','heat','history','approvals'].map(section=>`/app/sites/${site}?section=${section}`)])
  for(const [method,path] of [['GET',`/api/v1/stats?site_id=${site}`],...['/api/v1/events','/api/v1/mcp','/api/v2/query','/api/v1/sites',`/api/v1/sites/${site}/goals`,`/api/v1/sites/${site}/shared-links`].map(path=>['POST',path])]){const r=await a.request(path,{method,headers:{authorization:'Bearer '+key,'content-type':'application/json'},...(method==='POST'?{body:'{}'}:{})});assert.equal(r.status,403,path);assert.equal((await r.json()).error,'second_step_required',path)}
  await enroll(a,other);assert.equal((await stats()).status,200)
  assert.equal((await a.post('/app/action',{operation:'site.create'},member)).status,403)
