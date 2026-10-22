@@ -5,6 +5,7 @@ import { batchBody } from './body'
 import { IndexedCollectionError } from './error'
 import { countCollectionRefusal } from './refusal'
 import { validatePageview, type ValidatedPageview } from './validation'
+import { validationContext } from './validation-context'
 
 export async function collectionBatchResponse(request: Request, env: Env): Promise<Response | null> {
  if (new URL(request.url).pathname !== '/api/vane/collect-batch') return null
@@ -14,7 +15,7 @@ export async function collectionBatchResponse(request: Request, env: Env): Promi
  let counted = false
  try {
   insist(request.method === 'POST', 'method', 'POST required.', 405)
-  const records = await batchBody(request), now = clock(), plans: ValidatedPageview[] = []
+  const records = await batchBody(request), now = clock(), context = validationContext(request, now), plans: ValidatedPageview[] = []
   for (let index = 0; index < records.length; index++) {
    let value: Site | undefined
    try {
@@ -26,7 +27,7 @@ export async function collectionBatchResponse(request: Request, env: Env): Promi
     if (!value) { value = await site(env, id); known.set(id, value) }
     recordSites[index] = value
     const origin = siteOrigin(value, request); headers = { ...headers, 'access-control-allow-origin': origin }
-    plans.push(await validatePageview(request, value, origin, payload, now))
+    plans.push(await validatePageview(request, value, origin, payload, now, context))
    } catch (error) {
     if (!(error instanceof VaneError)) throw error
     if (value) { await countCollectionRefusal(env, value, error); counted = true }

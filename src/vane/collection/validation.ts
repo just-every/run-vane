@@ -1,15 +1,12 @@
-import { consentAccepted } from '../consent'
 import { consentedIdentity } from '../consented'
 import { insist, VaneError, type Site } from '../core'
-import { excludedTraffic, type TrafficReason } from '../traffic'
+import type { TrafficReason } from '../traffic'
 import { cleanProps } from '../properties'
 import { channelOf, webmail } from '../channels'
 import { hostOf, keptValue, pathAllowed, redactPath, storedPath, visitSource } from '../paths'
 import { paymentReferrer } from '../revenue'
-import { deviceOf } from '../devices'
-import { locationOf } from '../locations'
 import { searchTerm } from '../search'
-import { localDay } from '../visitors'
+import { validationContext } from './validation-context'
 
 export class CollectionRefusal extends VaneError {
  constructor(code: string, message: string, status: number, public reason: 'excluded-path' | TrafficReason) { super(code, message, status) }
@@ -17,7 +14,7 @@ export class CollectionRefusal extends VaneError {
 
 // Validation has no storage side effects. A batch completes this for every
 // record before creating salts or preparing any admission writes.
-export async function validatePageview(request: Request, value: Site, origin: string, payload: any, now: number) {
+export async function validatePageview(request: Request, value: Site, origin: string, payload: any, now: number, context = validationContext(request, now)) {
  insist(payload && typeof payload === 'object' && !Array.isArray(payload) && Object.keys(payload).every(key => ['id','siteId','path','source','referrer','campaign','utm','ref','click','query','consent','width','search','props','consented'].includes(key)), 'fields', 'Only the declared anonymous fields are accepted.')
  insist(request.headers.get('dnt') !== '1' && request.headers.get('sec-gpc') !== '1', 'privacy_signal', 'Privacy signals stop pageview collection; an enabled counter accepts only its separate field-free request.', 403)
  const utm = payload.utm ?? {}, query = payload.query ?? {}
@@ -35,16 +32,16 @@ export async function validatePageview(request: Request, value: Site, origin: st
   try { referrer = new URL(String(payload.referrer)) } catch { /* A malformed address is refused below. */ }
   insist(referrer && ['http:','https:','android-app:'].includes(referrer.protocol) && !referrer.username && !referrer.password && String(payload.referrer).length <= 1100, 'referrer', 'Send the referring page as a web address without credentials.')
  }
- const own = [value.origin, ...(value.config.origins ?? [])].map(hostOf)
+ const own = context.ownHosts(value)
  const refHost = referrer ? (referrer.protocol === 'android-app:' ? 'android-app://' : '') + referrer.hostname.toLowerCase() : payload.source
  const mail = typeof refHost === 'string' && webmail(refHost), kept = Object.keys(query).sort().flatMap(key => { const v = keptValue(query[key]); return v === null ? [] : [key + '=' + v] })
- const excluded = excludedTraffic(request, value.config, typeof refHost === 'string' && !refHost.startsWith('android-app://') ? refHost : null)
+ const excluded = context.excluded(value, typeof refHost === 'string' && !refHost.startsWith('android-app://') ? refHost : null)
  if (excluded) throw new CollectionRefusal('excluded', `This traffic is excluded from collection (${excluded}).`, 403, excluded)
- insist(consentAccepted(value.config, request, payload.consent), 'consent', 'Consent is required for collection.', 403)
+ insist(context.consent(value, payload.consent), 'consent', 'Consent is required for collection.', 403)
  const event = { hostname: hostOf(origin), path, source: mail && !utmSource && !keptValue(payload.ref) ? 'webmail' : visitSource(utmSource, keptValue(payload.ref), refHost, own), referrer: referrer && referrer.protocol !== 'android-app:' && !mail && !own.includes(referrer.hostname.toLowerCase()) ? referrer.hostname.toLowerCase() + redactPath(referrer.pathname || '/') : null, campaign: keptValue(payload.campaign) ?? 'none', utmSource, utmMedium: keptValue(utm.medium), utmTerm: keptValue(utm.term), utmContent: keptValue(utm.content), paidClick: payload.click ? 1 : 0, query: kept.length ? kept.join('&') : null }
  const identity = await consentedIdentity(value, request, payload, now)
- return { value, payload, event, identity, now, today: localDay(now, value.config.timeZone ?? 'UTC'), eventId: value.id + ':' + payload.id,
-  props: cleanProps(payload.props), device: deviceOf(request.headers.get('user-agent') ?? '', payload.width), geo: locationOf(request), search: payload.search === undefined ? null : searchTerm(payload.search),
+ return { value, payload, event, identity, now, today: context.today(value), eventId: value.id + ':' + payload.id,
+  props: cleanProps(payload.props), device: context.device(payload.width), geo: context.location(), search: payload.search === undefined ? null : searchTerm(payload.search),
   payment: !utmSource && !keptValue(payload.ref) && paymentReferrer(refHost), channel: channelOf(event.source, event.utmMedium, event.paidClick === 1) }
 }
 export type ValidatedPageview = Awaited<ReturnType<typeof validatePageview>>
