@@ -2794,6 +2794,10 @@
       "sha256": "a5eb0cdc509bf4fb4d686742cacbf1b9ad0d0bc77db3e4c6fbf29f28d714ec7e",
       "executable": false
     },
+    "src/vane/analytics/visits/consented.ts": {
+      "sha256": "74c4ce4556b80d345311ff1bc109fb973cdd4151fca3722ba80c71a5ee09c371",
+      "executable": false
+    },
     "src/vane/analytics/visits/generate-migration.py": {
       "sha256": "d7d5f7459cd46968a8c0fb3bf0dce5bb6d7f6206a08b34d4eacf7d376f0cb126",
       "executable": false
@@ -2967,7 +2971,7 @@
       "executable": false
     },
     "src/vane/consented.ts": {
-      "sha256": "c6d9734e0ec161334d42a42fc0a8278ca49d8499f6f79e0d2a26172b740591c5",
+      "sha256": "291b13098e5f7f3ff47a4d0cb1b5063f2ecd45c0f60aa4a8a2ecc958ab63f11a",
       "executable": false
     },
     "src/vane/core.ts": {
