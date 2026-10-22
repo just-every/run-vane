@@ -88,7 +88,7 @@ async function live() {
     throw new Error(`public response ${response.status}, ${code}`)
    }
    const answer=await response.json()
-   assert.equal(answer.kind,expected.kind,'The live model must distinguish answers, ambiguity and refusals.')
+   assert.equal(answer.kind,expected.kind==='query'?'answer':expected.kind,'The live model must distinguish answers, ambiguity and refusals.')
    if(answer.kind==='answer') {
     await parity(answer)
     for(const metric of requiredMetrics[question]??expected.query.metrics)assert.ok(answer.query.metrics.includes(metric),'The translated plan includes each requested metric.')
