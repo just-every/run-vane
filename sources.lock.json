@@ -506,6 +506,10 @@
       "sha256": "1d0c4b35ac23e1252de30fce7d7b1bdcad45241b3854c805be357bad139c0328",
       "executable": false
     },
+    "migrations/core/0098_raw_batch_contexts.sql": {
+      "sha256": "3f414284d99a663a0994f9b354e05023ccc206104bc2f5b4ab22a64602cbf5c7",
+      "executable": false
+    },
     "ONBOARDING.md": {
       "sha256": "b28a79254e2278d81d877ffd5987972aaf135d85683ae285b52fd98cc44e608e",
       "executable": false
@@ -927,7 +931,7 @@
       "executable": false
     },
     "scripts/installer/local.mjs": {
-      "sha256": "aa0f5a81f2ab277665cd7bb0ff2c8aadc01893e4d4489bad2e8713a0d298f39e",
+      "sha256": "4219a8a61371fdf8945d1ec302fab9b5bfdd138b69fa16b64faf4258066fa783",
       "executable": false
     },
     "scripts/installer/seed.mjs": {
@@ -2931,7 +2935,7 @@
       "executable": false
     },
     "src/vane/archive.ts": {
-      "sha256": "7def39dc171ab668dde18af05d2eb7b921ec4718092ee14016e66d07ce11a8df",
+      "sha256": "3f089ea836a69ae2dadbd9db3bf11e27fd903c8d7b230435640b5105af9014fb",
       "executable": false
     },
     "src/vane/audit.ts": {
@@ -2995,7 +2999,7 @@
       "executable": false
     },
     "src/vane/collection/admit.ts": {
-      "sha256": "863790c7d9c92a7b1a78e86684f005daff9ed1184f00c16fe24ddd212d03ade7",
+      "sha256": "250eaf7d13da537ea9669f74413a375de8d553b3c0e52f3d10aa40b25975a7c6",
       "executable": false
     },
     "src/vane/collection/batch.ts": {
@@ -3435,7 +3439,7 @@
       "executable": false
     },
     "src/vane/raw/inventory.ts": {
-      "sha256": "43f71fa438dc8ed75998b334234aa360cbe2cd331f936d6990a9a7959f980920",
+      "sha256": "bf9ccc83e437cd23802ab723e30d74f3ccc610039c5fb86b2179f7938d9826be",
       "executable": false
     },
     "src/vane/raw/migration.ts": {
@@ -3447,7 +3451,7 @@
       "executable": false
     },
     "src/vane/raw/store.ts": {
-      "sha256": "80b79b2120a5d3d1a9633065133e014c12782cbf5c621d1d472f2d8df1d88a52",
+      "sha256": "ec1e2a2c22b9a16d579c3ea1b63fb8d512bf395f38a508efcb5bbf771f16f3f9",
       "executable": false
     },
     "src/vane/raw/triggers.ts": {
@@ -3823,7 +3827,7 @@
       "executable": false
     },
     "tests/collection-batch.test.mjs": {
-      "sha256": "809e9ebe5d0e433a12e02ee846e0565c28a41e13999feac0ab02eb40fd3a1af6",
+      "sha256": "f4ae71ca1130aa4ffa939fcdc2c3de548baca50993417b1029696e018d554a32",
       "executable": false
     },
     "tests/collection-scale.journey.mjs": {
