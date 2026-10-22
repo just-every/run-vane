@@ -20,7 +20,7 @@ test('native visit facts keep reverse arrivals, tied IDs, a late bridge, engagem
  await load('a','10:00:00','eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee','direct')
  assert.deepEqual([(await summary()).visits,(await summary()).bounces],[2,2])
  await a.clock(Date.parse(date+'T10:25:00Z'))
- loads.b=a.event(siteId,{id:'dddddddd-dddd-4ddd-8ddd-dddddddddddd',path:'/b',source:'synthetic-vane-1.example'})
+ loads.b=a.event(siteId,{id:'00000000-0000-4000-8000-000000000002',path:'/b',source:'synthetic-vane-1.example'})
  loads.tie=a.event(siteId,{id:'00000000-0000-4000-8000-000000000001',path:'/tie',source:'synthetic-vane-1.example'})
  const tied=await a.post('/api/vane/collect-batch',{events:[loads.b,loads.tie]},'',{origin,'cf-connecting-ip':'203.0.113.17','user-agent':'Synthetic Vane Browser 1'})
  assert.equal(tied.status,202,await tied.clone().text())
