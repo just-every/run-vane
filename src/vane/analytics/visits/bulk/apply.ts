@@ -20,7 +20,7 @@ export const applyBulkVisitSql = [
   SELECT g.group_id,b.visit FROM vane_visit_bulk_nodes b JOIN vane_raw_groups g ON g.visit_id=b.node_id
   WHERE b.kind=0 AND b.node_id!=b.visit
   UNION
-  SELECT e.group_id,b.visit FROM vane_visit_bulk_nodes b JOIN vane_raw_occurrences e ON e.raw_id=b.node_id
+  SELECT b.node_id,b.visit FROM vane_visit_bulk_nodes b
   WHERE b.kind=1`,
  // Usually the group itself can acquire its final visit in one write. A unique
  // collision means the exact context/time/visit group already exists; only
@@ -40,5 +40,14 @@ export const applyBulkVisitSql = [
  `INSERT INTO vane_visit_page_frequencies(visit,context,on_page,scroll,n)
   SELECT e.visit_id,p.context,p.on_page,p.scroll,COUNT(*) FROM vane_visit_bulk_pages p JOIN vane_raw_events e USING(raw_id)
   WHERE e.visit_id IS NOT NULL GROUP BY e.visit_id,p.context,p.on_page,p.scroll
+  ON CONFLICT(visit,context,on_page,scroll) DO UPDATE SET n=n+excluded.n`,
+ // Endpoint rows above account for one or two actual pages per new group.
+ // Every remaining queued page has a later token at that exact time, so its
+ // on-page duration is zero; native insertion supplied no scroll detail.
+ `INSERT INTO vane_visit_page_frequencies(visit,context,on_page,scroll,n)
+  SELECT b.visit,g.context,0,-1,SUM(g.pages-CASE WHEN g.first_raw=g.last_raw THEN 1 ELSE 2 END)
+  FROM vane_visit_bulk_new_groups g JOIN vane_visit_bulk_nodes b ON b.kind=1 AND b.node_id=g.group_id
+  WHERE g.pages>CASE WHEN g.first_raw=g.last_raw THEN 1 ELSE 2 END
+  GROUP BY b.visit,g.context
   ON CONFLICT(visit,context,on_page,scroll) DO UPDATE SET n=n+excluded.n`,
 ]

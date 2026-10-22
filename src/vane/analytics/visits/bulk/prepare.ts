@@ -1,4 +1,5 @@
 import { neighborhoodSql } from './neighbors'
+import { newGroupSql } from './new-groups'
 
 // The occurrence aggregates consume the same queue before these statements.
 // Legacy IDs and already-invalidated chains retain the ordinary rebuild path.
@@ -19,5 +20,6 @@ export const prepareBulkVisitSql = [
   FROM vane_visit_work w WHERE action='bulk' AND at IS NOT NULL AND visitor IS NOT NULL
    AND NOT EXISTS(SELECT 1 FROM vane_visit_dirty d WHERE d.site=w.site AND d.day=w.day AND d.visitor=w.visitor)
   GROUP BY site,day,visitor`,
+ newGroupSql,
  ...neighborhoodSql,
 ]

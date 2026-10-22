@@ -11,9 +11,9 @@ export const componentSql = [
    FROM incoming_times p JOIN vane_visit_facts f ON f.site=p.site AND f.day=p.day AND f.visitor=p.visitor
     AND f.started<=p.at+p.gap AND f.last_at>=p.at-p.gap
    UNION ALL
-   SELECT 1,p.raw_id,p.site,p.day,p.visitor,p.at,p.at,MAX(p.at,COALESCE(p.engaged,p.at)),p.raw_id,p.raw_id,
-    1,p.engaged IS NOT NULL,w.identity,p.on_page,p.gap
-   FROM vane_visit_bulk_pages p JOIN vane_visit_work w USING(raw_id) WHERE p.old_visit IS NULL
+   SELECT 1,g.group_id,g.site,g.day,g.visitor,g.at,g.at,g.at,g.first_raw,g.last_raw,
+    g.pages,0,g.identity,p.on_page,p.gap
+   FROM vane_visit_bulk_new_groups g JOIN vane_visit_bulk_pages p ON p.raw_id=g.first_raw
   ), prior AS (
    SELECT *,MAX(last_at) OVER (PARTITION BY site,day,visitor ORDER BY started,kind,node_id
     ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING) AS prior_end FROM points

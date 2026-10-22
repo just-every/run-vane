@@ -1,12 +1,12 @@
 // Select timestamp boundaries once per distinct new time and existing context.
 // Clean canonical chains have visit IDs on every old timed page; newly queued
 // pages have none. Each old tied-time group contributes only its first and
-// last token; all new occurrences remain individually represented below.
+// last token. New groups likewise retain both exact endpoints; their actual
+// queued multiplicities are carried separately into visit facts/frequencies.
 export const neighborhoodSql = [
  `INSERT INTO vane_visit_bulk_buckets(context,at_offset)
   WITH points AS (
-   SELECT DISTINCT w.site,w.day,w.visitor,w.at_offset FROM vane_visit_work w
-   JOIN vane_visit_bulk_chains c USING(site,day,visitor) WHERE w.action='bulk' AND w.at IS NOT NULL
+   SELECT DISTINCT site,day,visitor,at_offset FROM vane_visit_bulk_new_groups
   ), contexts AS (
    SELECT DISTINCT cx.context,p.at_offset FROM points p JOIN vane_raw_contexts cx
     ON cx.site=p.site AND cx.day=p.day AND cx.visitor=p.visitor AND cx.kind='pageview'
@@ -26,8 +26,8 @@ export const neighborhoodSql = [
   WITH source AS (
    SELECT w.raw_id,w.site,w.day,w.visitor,w.context,w.at_offset,w.token,w.at,
     w.new_engaged AS engaged,COALESCE(w.new_scroll,-1) AS scroll,c.gap,NULL AS old_visit
-   FROM vane_visit_work w JOIN vane_visit_bulk_chains c USING(site,day,visitor)
-   WHERE w.action='bulk' AND w.at IS NOT NULL
+   FROM vane_visit_bulk_new_groups g CROSS JOIN vane_visit_work w ON w.raw_id IN (g.first_raw,g.last_raw)
+   JOIN vane_visit_bulk_chains c ON c.site=g.site AND c.day=g.day AND c.visitor=g.visitor
    UNION ALL
    SELECT e.raw_id,c.site,c.day,c.visitor,g.context,g.at_offset,e.token,g.at_offset+unixepoch(c.day)*1000,
     d.engaged_at,COALESCE(d.scroll,-1),chain.gap,g.visit_id
