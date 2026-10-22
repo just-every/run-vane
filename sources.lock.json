@@ -135,11 +135,11 @@
       "executable": false
     },
     "docs/collection-scale.md": {
-      "sha256": "b28b16e128d43ab3fbc8079dcb48c483faaf957583bcc0af323283938ae5686d",
+      "sha256": "4de6904d8d41aeafebfc4f49e75a8782056e60e48c090626ea2c834693ca619a",
       "executable": false
     },
     "docs/collection.md": {
-      "sha256": "c0af0a070d6ad052024d0764ef73b107bec224147898c13a01cf99db74318ba2",
+      "sha256": "a4c4576f475b602189719f66263ef12a22a63c3b7b283e70e48dbdfd7abc3cc0",
       "executable": false
     },
     "docs/commands.md": {
@@ -3823,7 +3823,7 @@
       "executable": false
     },
     "tests/heat.test.mjs": {
-      "sha256": "5aba25a8179c3e0d5b879b75563fc77ca762518e4ca9c67f7b6ce8e7d3d9c29f",
+      "sha256": "dd8ce784d1470304d9942cbfe9b0929fe4ff21cb5ef6b5705e9743acdbee7548",
       "executable": false
     },
     "tests/host-local.journey.mjs": {
@@ -3923,7 +3923,7 @@
       "executable": false
     },
     "tests/vane-helpers.mjs": {
-      "sha256": "9c55d04de9b6880513c4c563665a5a7bf707b2feb8fbfe9b2fe0390208c3cb18",
+      "sha256": "214a9f022d0e73a2aaf02089e4a65ea77e98dad2bbc3717cc5a42018c68223c2",
       "executable": false
     },
     "tests/vane-metrics.mjs": {
