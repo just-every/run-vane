@@ -474,6 +474,10 @@
       "sha256": "2ff09b942547528309694a7735a1d1c6b7af7b7f90fec234b1f11c887650d356",
       "executable": false
     },
+    "migrations/core/0090_compact_event_indexes.sql": {
+      "sha256": "8a904eb71803150bee85ba62d2bd502b08278c6f94545ebceec2ef1d16a5c958",
+      "executable": false
+    },
     "ONBOARDING.md": {
       "sha256": "b28a79254e2278d81d877ffd5987972aaf135d85683ae285b52fd98cc44e608e",
       "executable": false
@@ -2799,7 +2803,11 @@
       "executable": false
     },
     "src/vane/analytics/visits/consented.ts": {
-      "sha256": "74c4ce4556b80d345311ff1bc109fb973cdd4151fca3722ba80c71a5ee09c371",
+      "sha256": "5fc314913e9b3afd60157778f32ffb4d8539232a4d9e4855e0175a3359a76c2f",
+      "executable": false
+    },
+    "src/vane/analytics/visits/generate-compact-indexes.py": {
+      "sha256": "3c78ef15e5e753f2ba3d3d8a81239f11e068bf9f6097e7ce0a381831b0105e35",
       "executable": false
     },
     "src/vane/analytics/visits/generate-migration.py": {
