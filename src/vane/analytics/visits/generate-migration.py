@@ -1,5 +1,6 @@
 """Regenerate the additive 0087 SQL after changing this materialization schema."""
 from pathlib import Path
+import re
 
 parts = []
 def emit(sql): parts.append(sql.strip())
@@ -249,4 +250,4 @@ for col,metric in fields.items():
  emit(f"INSERT INTO vane_visit_performance(context,metric,value,n) SELECT e.context,'{metric}',d.{col},COUNT(*) FROM vane_raw_details d JOIN vane_raw_events e ON e.raw_id=d.raw_id JOIN vane_raw_contexts c ON c.context=e.context WHERE c.kind='pageview' AND d.{col} IS NOT NULL GROUP BY e.context,d.{col};")
 emit("INSERT INTO vane_visit_measured(context,n) SELECT e.context,COUNT(*) FROM vane_raw_details d JOIN vane_raw_events e ON e.raw_id=d.raw_id JOIN vane_raw_contexts c ON c.context=e.context WHERE c.kind='pageview' AND (d.lcp IS NOT NULL OR d.inp IS NOT NULL OR d.cls IS NOT NULL OR d.load_ms IS NOT NULL) GROUP BY e.context;")
 root=Path(__file__).resolve().parents[4]
-(root/'migrations/core/0087_visit_facts.sql').write_text('\n\n'.join(parts)+'\n')
+(root/'migrations/core/0087_visit_facts.sql').write_text(re.sub(r'\b(CASE|END)\b',r' \1 ','\n\n'.join(parts))+'\n')

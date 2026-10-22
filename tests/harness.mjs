@@ -19,7 +19,7 @@ export async function installation({setup=true,vars:extra={},origin='http://127.
  try {
  await mf.ready
  const db=await mf.getD1Database('DB','app')
- for(const file of (await readdir('migrations/core')).filter(p=>p.endsWith('.sql')).sort())for(const sql of split(await readFile(join('migrations/core',file),'utf8')))await db.prepare(sql).run()
+ for(const file of (await readdir('migrations/core')).filter(p=>p.endsWith('.sql')).sort())for(const [index,sql] of split(await readFile(join('migrations/core',file),'utf8')).entries())try{await db.prepare(sql).run()}catch(error){throw new Error(`Migration ${file}, statement ${index+1}: ${error.message}`,{cause:error})}
  // Workerd reads its CF blob header as UTF-8. Keep the fixture wire ASCII so
  // Node's Latin-1 HTTP headers cannot corrupt non-ASCII platform place names.
  const request=(path,options={})=>{const {cf,...init}=options;return mf.dispatchFetch(origin+path,{redirect:'manual',...init,headers:{'x-original-url':origin+path,...options.headers,...(cf===undefined?{}:{'MF-CF-Blob':JSON.stringify(cf).replace(/[^\x00-\x7f]/g,c=>'\\u'+c.charCodeAt(0).toString(16).padStart(4,'0'))})}})}

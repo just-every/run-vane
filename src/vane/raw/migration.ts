@@ -72,4 +72,4 @@ CREATE TRIGGER vane_raw_context_gc AFTER DELETE ON vane_raw_contexts BEGIN
  AND NOT EXISTS(SELECT 1 FROM vane_raw_contexts WHERE visitor=identity OR consented_visitor=identity);
  DELETE FROM vane_raw_sites WHERE site=OLD.site AND NOT EXISTS(SELECT 1 FROM vane_raw_contexts WHERE site=OLD.site) AND NOT EXISTS(SELECT 1 FROM vane_raw_events WHERE site=OLD.site);
 END;
-`
+`.replace(/\b(CASE|END)\b/g,' $1 ')
