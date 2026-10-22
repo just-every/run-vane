@@ -9,7 +9,7 @@ import { inspectPage } from './page'
 import { redactPath } from '../paths'
 export interface Problem {kind:'missing-script'|'duplicate-script'|'missing-selector'|'invalid-selector'|'silent-event'|'possible-duplicate'|'misnamed-event'|'missing-funnel-step';page?:string;name?:string;detail:string;evidence:string;replacement?:string;target?:string}
 export interface InstrumentationReport {
- id:string;siteId:string;at:number;scanId:string;from:string;to:string;problems:Problem[];unknown:string[]
+ id:string;siteId:string;at:number;scanId:string;inspectedPages:number;from:string;to:string;problems:Problem[];unknown:string[]
  draft:{title:string;body:string;changes:{page:string;before:string;after:string}[];state:'draft-only'}
 }
 const owner=async(env:Env,actor:Actor,siteId:string)=>{allow(actor,'owner');inScope(actor,siteId);return site(env,siteId)}
@@ -53,7 +53,7 @@ export async function investigateInstrumentation(env:Env,actor:Actor,p:any):Prom
  for(const f of value.config.funnels??[])for(const step of f.steps)if(step.startsWith('event:')&&!declared.includes(step.slice(6).split('[')[0]!))problems.push({kind:'missing-funnel-step',name:f.name,detail:`${f.name} refers to ${step}, which has no declared event definition or goal. It may be supplied by code; its existence is unverified.`,evidence:reportLink})
  const changes=problems.flatMap(p=>p.kind==='missing-script'?[{page:p.page!,before:'No matching native script',after:`<script defer src="${new URL('/vane.js',env.AUTH_ORIGIN).href}" data-site="${value.id}"></script>`}]:p.kind==='missing-selector'&&p.replacement?[{page:p.page!,before:`${p.name}: ${p.target}`,after:`${p.name}: ${p.replacement}`}]:[])
  const unknown=[...(current.state!=='complete'?['The crawl failed; no clean-site conclusion is possible.']:[]),...(current.refused?[`${current.refused} sitemap/page requests were refused or exceeded the selected limit; those pages are unverified.`]:[]),'Static HTML cannot prove consent, script execution, blockers or a real user action.','GitHub/Pane deploy diffs and PR submission are not connected; this is a reviewable PR draft, not an opened pull request.','Server-confirmed outcomes from Stripe, Shopify and CRM are unavailable until CONV-008 is connected.','GTM and Pane fix hand-off are unavailable until INSTALL-005 and AGENT-003 ship.']
- const result:InstrumentationReport={id:uid(),siteId:value.id,at:clock(),scanId:current.id,from,to,problems,unknown,draft:{title:'Repair analytics instrumentation',state:'draft-only',changes,body:`Review these structural observations against the deployed source. Preserve consent, event names, properties and the collection field set. ${changes.length} suggested changes; no repository or website has been edited.`}}
+ const result:InstrumentationReport={id:uid(),siteId:value.id,at:clock(),scanId:current.id,inspectedPages:current.pages.length,from,to,problems,unknown,draft:{title:'Repair analytics instrumentation',state:'draft-only',changes,body:`Review these structural observations against the deployed source. Preserve consent, event names, properties and the collection field set. ${changes.length} suggested changes; no repository or website has been edited.`}}
  await atomic(env,actor,[statement(env,'INSERT INTO vane_instrumentation_runs(id,site_id,actor_id,at,scan_id,from_day,to_day,report_json) VALUES(?,?,?,?,?,?,?,?)',result.id,value.id,actor.id,result.at,current.id,from,to,JSON.stringify(result)),auditStatement(env,actor.id,'agent.instrumentation',value.id,result.id)])
  return result
 }

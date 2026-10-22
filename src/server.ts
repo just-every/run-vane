@@ -1,3 +1,4 @@
+import { evidenceDoor } from './vane/movement/evidence'
 import { securityFence } from './vane/security/routes'
 import { rawOperatorAuth } from './auth.server'
 import { resolveProxy } from './vane/proxy/ingress'
@@ -74,6 +75,8 @@ export default withDemo({
     const collected = await collector(request, env)
     if (collected) return collected
     if (proxied) return new Response(null, {status:404})
+    const evidence = await evidenceDoor(request, runtimeBindings(env))
+    if (evidence) return evidence
     const annotated = await annotationDoor(request, runtimeBindings(env))
     if (annotated) return annotated
     const released = await githubReleaseDoor(request, runtimeBindings(env))

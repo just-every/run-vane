@@ -1,4 +1,7 @@
 export interface ViewData {
+  movement?:import('../movement').MovementInvestigation[]
+  agentEvidence?:Awaited<ReturnType<typeof import('../movement/evidence').evidenceSetting>>
+  agentEvidenceToken?:string
   instrumentation?:Awaited<ReturnType<typeof import('../instrumentation').instrumentationHistory>>
   ask?:{setting:import('../ask/settings').AskSetting;result?:import('../ask').AskResult}
   heat?:import('../heat/report').HeatReport
