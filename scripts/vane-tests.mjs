@@ -11,8 +11,9 @@ export const vaneTests = {
   'product-1': ['tests/vane-access.mjs', 'tests/vane-metrics.mjs', 'tests/vane-reports.mjs'],
   'product-2': ['tests/vane-report-settings.mjs', 'tests/vane-conversions.mjs'],
   'product-3': ['tests/vane-team-and-exports.mjs', 'tests/vane-mobile-and-api.mjs', 'tests/vane-alerts.mjs'],
-  'integrations-1': integrations.filter((_, index) => index % 2 === 0),
-  'integrations-2': integrations.filter((_, index) => index % 2 === 1),
+  ...Object.fromEntries(Array.from({length:4},(_,shard)=>[
+    `integrations-${shard+1}`, integrations.filter((_,index)=>index%4===shard),
+  ])),
 }
 
 if (process.argv[1]?.endsWith('/vane-tests.mjs')) {

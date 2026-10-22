@@ -63,7 +63,7 @@
       "executable": false
     },
     ".github/workflows/verify.yml": {
-      "sha256": "6f23bc11b98d82dc2d73f9aed4bae06a31a4c7716c834949a59a8c91a62c850e",
+      "sha256": "29b5433c1b244d9bd751faf5acb341f20f46106965f29df2ef898733ce3ad98f",
       "executable": false
     },
     ".gitignore": {
@@ -967,7 +967,7 @@
       "executable": false
     },
     "scripts/vane-tests.mjs": {
-      "sha256": "d7fdeae87808523ae5eb656d14154ea8ff5b00e0028dab00c5d4f69a0232fd3f",
+      "sha256": "d6243b81a0aff5b1ca6bea043ca9dbb807681994baa8b5cd2d2cd3eb482eed2c",
       "executable": false
     },
     "scripts/verify-app.mjs": {

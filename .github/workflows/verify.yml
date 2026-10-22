@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [foundation, product-1, product-2, product-3, integrations-1, integrations-2]
+        shard: [foundation, product-1, product-2, product-3, integrations-1, integrations-2, integrations-3, integrations-4]
     env:
       VANE_VERIFY_SHARD: ${{ matrix.shard }}
       CI: 'true'
@@ -38,6 +38,12 @@ jobs:
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec rer check --profile first-party
+      - name: Use the Ubuntu archive for browser packages
+        # Azure's package mirror stalled until both integration jobs timed out.
+        # Keep acquisition bounded as runner-images/configure-apt.sh now does.
+        run: |
+          printf 'https://archive.ubuntu.com/ubuntu\n' | sudo tee /etc/apt/apt-mirrors.txt >/dev/null
+          printf 'Acquire::Retries "1";\nAcquire::http::Timeout "15";\nAcquire::https::Timeout "15";\n' | sudo tee /etc/apt/apt.conf.d/zz-vane-acquire >/dev/null
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm run verify
 
@@ -59,6 +65,12 @@ jobs:
           package-manager-cache: false
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile
+      - name: Use the Ubuntu archive for browser packages
+        # Azure's package mirror stalled until both integration jobs timed out.
+        # Keep acquisition bounded as runner-images/configure-apt.sh now does.
+        run: |
+          printf 'https://archive.ubuntu.com/ubuntu\n' | sudo tee /etc/apt/apt-mirrors.txt >/dev/null
+          printf 'Acquire::Retries "1";\nAcquire::http::Timeout "15";\nAcquire::https::Timeout "15";\n' | sudo tee /etc/apt/apt.conf.d/zz-vane-acquire >/dev/null
       - run: pnpm exec playwright install --with-deps chromium
       - name: Set up the checkout's own owner and data
         run: |
