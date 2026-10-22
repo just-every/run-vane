@@ -107,7 +107,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "622063ef8b2302dbc4b336b597c34dcf9dc892de4aa7339ff1dd7192db7b7d2a",
+      "sha256": "336aed5bcd0c0f08e4cfa7b41995e2e7e43f519a23a8ba566bc92a670200d8aa",
       "executable": false
     },
     "DEMO.md": {
@@ -2755,7 +2755,7 @@
       "executable": false
     },
     "src/site/docs/manifest.ts": {
-      "sha256": "c2fc282a97f60d2a5b02faac5742804d4f216549842c8e4f8a3765ef81603748",
+      "sha256": "e81798a8a4e0f12bcafe3e3c6c78649ab53ac90157a3423619eac965fe77e237",
       "executable": false
     },
     "src/site/docs/pages.ts": {
