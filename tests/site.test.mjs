@@ -83,7 +83,7 @@ test('DOCS-001 each built guide renders its Markdown code blocks, tables and hea
       await page.waitForFunction(() => document.querySelector('.docs-copy').textContent === 'Copied')
       assert.equal(await page.evaluate(() => navigator.clipboard.readText()), await block.locator('code').textContent(), `${guide} copy control copies its block`)
     }
-    for (const guide of ['agency', 'collection', 'collection-scale', 'sign-in-security']) {
+    for (const guide of ['agency', 'collection', 'collection-scale', 'sign-in-security', 'instrumentation', 'movement']) {
       await page.goto(`${base}/docs/${guide}`)
       await page.locator('h1').waitFor()
       for (const width of [1440, 390]) {

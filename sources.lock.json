@@ -4127,7 +4127,7 @@
       "executable": false
     },
     "tests/instrumentation.test.mjs": {
-      "sha256": "76053303240625d9f2de69feec717a4a846a2722215012f3f32400a50aa4f059",
+      "sha256": "a7448448b31ee9f12d839c16041b6c7bc76d46c40c1fc31707eac6badb603200",
       "executable": false
     },
     "tests/locations.journey.mjs": {
@@ -4139,7 +4139,7 @@
       "executable": false
     },
     "tests/movement.test.mjs": {
-      "sha256": "992753e92390dfac70115521b43b5e7aba1b2ee5e4a145d7b7a5d91f3adb9523",
+      "sha256": "0785571aedf0a81f4e5388f940da29f9f99f01c1ca5f10aedaf39880553b8a94",
       "executable": false
     },
     "tests/plausible-definitions.test.mjs": {
@@ -4195,7 +4195,7 @@
       "executable": false
     },
     "tests/site.test.mjs": {
-      "sha256": "f1fe8667af99f313732c34a887417cee76d941add84e85ad37ccc4c0a544e9c2",
+      "sha256": "cfe8a508f35f738e203aa0d98b222c30dd1239b1ca6eb8825b2e4ab592201184",
       "executable": false
     },
     "tests/sitemap-scan.test.mjs": {

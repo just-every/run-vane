@@ -1,10 +1,26 @@
 import test from 'node:test'
-import { mkdir, writeFile } from 'node:fs/promises'
+import { mkdir } from 'node:fs/promises'
+import { createServer } from 'node:http'
 import { join } from 'node:path'
 import { assert, installation, browse } from './vane-helpers.mjs'
 const DAY=86400000,BASE='2026-09-07',BASE_END='2026-09-14',NOW=Date.parse('2026-10-10T12:00:00Z')
 const dates=(from,to)=>Array.from({length:(Date.parse(to)-Date.parse(from))/DAY},(_,i)=>new Date(Date.parse(from)+i*DAY).toISOString().slice(0,10))
 async function result(r,status=200){assert.equal(r.status,status,await r.clone().text());return r.json()}
+// Serve the actual Worker over HTTP for browser form redirects, rather than fulfilling a redirect back to an
+// intercepted URL (Chromium leaves that as an empty document). Native auth, route dispatch and response status stay real.
+async function httpInstallation(t,options={}) {
+ let app
+ const server=createServer(async(req,res)=>{try{
+  const chunks=[];for await(const chunk of req)chunks.push(chunk)
+  const headers=Object.fromEntries(Object.entries(req.headers).filter(([k])=>!['host','content-length','transfer-encoding','connection'].includes(k)))
+  const response=await app.request(req.url,{method:req.method,headers,...(['GET','HEAD'].includes(req.method)?{}:{body:Buffer.concat(chunks)})})
+  const responseHeaders=Object.fromEntries(response.headers);delete responseHeaders['content-length'];delete responseHeaders['content-encoding'];responseHeaders['set-cookie']=response.headers.getSetCookie()
+  res.writeHead(response.status,responseHeaders);res.end(Buffer.from(await response.arrayBuffer()))
+ }catch{res.writeHead(500);res.end('Fixture HTTP bridge failed')}})
+ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));t.after(()=>{server.close();server.closeAllConnections()})
+ app=await installation({...options,origin:`http://127.0.0.1:${server.address().port}`});app.servesHttp=true;t.after(()=>app.close());return app
+}
+
 const input=(siteId,from,to)=>({siteId,from,to,comparedFrom:BASE,comparedTo:BASE_END})
 async function sender(a,siteId){const r=await result(await a.post('/api/vane/movement-evidence/settings',{siteId,enabled:'on',confirm:'on'},a.owner));assert.ok(r.token);return r.token}
 async function send(a,token,body){return a.request('/api/vane/agent-evidence',{method:'POST',headers:{authorization:'Bearer '+token,'content-type':'application/json'},body:JSON.stringify(body)})}
@@ -40,7 +56,7 @@ async function annotation(a,id,{day,title,kind='note'}){
 }
 
 test('Movement investigations rank a tracking break, organic ranking drop and corroborated checkout failure first in three fixture weeks, cite denominators, preserve unknowns and list every window annotation at 1440 and 390',async t=>{
- const a=await installation({vars:{GOOGLE_CLIENT_ID:'synthetic-vane-1',GOOGLE_CLIENT_SECRET:'synthetic-vane-2'}});t.after(()=>a.close());await a.clock(Date.parse('2026-09-01T12:00:00Z'))
+ const a=await httpInstallation(t,{vars:{GOOGLE_CLIENT_ID:'synthetic-vane-1',GOOGLE_CLIENT_SECRET:'synthetic-vane-2'}});await a.clock(Date.parse('2026-09-01T12:00:00Z'))
  const cases=[{name:'tracking',from:'2026-09-14',to:'2026-09-21',category:'tracking-coverage'},{name:'organic',from:'2026-09-21',to:'2026-09-28',category:'channel-mix'},{name:'checkout',from:'2026-09-28',to:'2026-10-05',category:'page-behavior'}]
  for(const c of cases){
   c.origin=`https://${c.name}.example`;c.id=await a.addSite({origin:c.origin,name:c.name,paths:[],goals:{signup:'/thanks'},retainForever:true,funnels:[{name:'checkout',steps:['/checkout','goal:signup']}],eventDefinitions:[{name:'Signup',kind:'click',target:'#signup'}]})
@@ -78,7 +94,7 @@ test('Movement investigations rank a tracking break, organic ranking drop and co
   await page.setViewportSize({width,height:1000});await page.goto(`${a.origin}/app/sites/${c.id}?${new URLSearchParams({from:c.from,to:c.to,compare:'custom',compareFrom:BASE,compareTo:BASE_END})}#movement`)
   assert.equal(await page.locator('[data-movement-result]').count(),1,'the saved exact-window investigation is rendered before submit')
   const submitted=page.waitForResponse(r=>new URL(r.url()).pathname==='/app/action'&&r.request().method()==='POST');await page.getByRole('button',{name:'Investigate why numbers moved',exact:true}).click();const response=await submitted;assert.equal(response.status(),303,'movement form returns its normal redirect');const posted=Object.fromEntries(new URLSearchParams(response.request().postData()));assert.deepEqual([posted.from,posted.to,posted.comparedFrom,posted.comparedTo],[c.from,c.to,BASE,BASE_END]);await page.waitForURL(url=>url.hash==='#movement'&&url.searchParams.get('compareFrom')===BASE&&url.searchParams.get('compareTo')===BASE_END)
-  await page.waitForLoadState('domcontentloaded');if(dir)await writeFile(join(dir,'movement-debug.json'),JSON.stringify({url:page.url(),text:await page.locator('body').innerText(),history:await result(await a.request('/api/vane/movement?siteId='+c.id,{headers:{cookie:a.owner}}))},null,2));const view=page.locator('[data-movement-result]');await view.locator('li[data-movement-category]').first().scrollIntoViewIfNeeded();assert.equal(await view.locator('li[data-movement-category]').first().getAttribute('data-movement-category'),c.category)
+  await page.waitForLoadState('domcontentloaded');const view=page.locator('[data-movement-result]');await view.locator('li[data-movement-category]').first().scrollIntoViewIfNeeded();assert.equal(await view.locator('li[data-movement-category]').first().getAttribute('data-movement-category'),c.category)
   assert.match(await view.textContent(),/What would disprove it/);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true)
   if(dir)await page.screenshot({path:join(dir,`movement-${c.name}-${width}.png`)})
   await view.locator('[data-movement-unknown]').scrollIntoViewIfNeeded();if(dir)await page.screenshot({path:join(dir,`movement-unknown-${c.name}-${width}.png`)})

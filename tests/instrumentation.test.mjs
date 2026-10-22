@@ -5,11 +5,11 @@ import { assert, installation, browse } from './vane-helpers.mjs'
 const origin='http://127.0.0.1:9137',DAY=86400000
 const windowOf=at=>({from:new Date(at-DAY).toISOString().slice(0,10),to:new Date(at+DAY).toISOString().slice(0,10)})
 function website(a,id,state) {
- const html=path=>`<!doctype html><title>Fixture</title><h1>Fixture</h1><p>synthetic-vane-private-body</p><input id="account123456" value="synthetic-vane-private-input"><button id="${state.broken?'join-now':'signup'}">Join</button>${state.broken&&path==='/pricing'?'':`<script>window.plausible=function(){};plausible.init=o=>plausible.o=o;plausible.init({captureOnLocalhost:true});</script><script defer src="${a.origin}/vane.js" data-site="${id}"></script>`}`
+ const html=path=>`<!doctype html><title>Fixture</title><h1>Fixture</h1><p>synthetic-vane-private-body</p><input id="account123456" value="synthetic-vane-private-input"><button id="${state.broken&&path!=='/unchanged'?'join-now':'signup'}">Join</button>${state.broken&&path==='/pricing'?'':`<script>window.plausible=function(){};plausible.init=o=>plausible.o=o;plausible.init({captureOnLocalhost:true});</script><script defer src="${a.origin}/vane.js" data-site="${id}"></script>`}`
  const requests=[]
  a.fixtureSites[origin]=request=>{requests.push({url:request.url,headers:Object.fromEntries(request.headers)});const u=new URL(request.url)
   if(u.pathname==='/robots.txt')return new Response('User-agent: *\nDisallow: /private')
-  if(u.pathname==='/sitemap.xml')return new Response(`<urlset><url><loc>${origin}/</loc></url><url><loc>${origin}/pricing</loc></url></urlset>`)
+  if(u.pathname==='/sitemap.xml')return new Response(`<urlset><url><loc>${origin}/</loc></url><url><loc>${origin}/pricing</loc></url><url><loc>${origin}/unchanged</loc></url></urlset>`)
   return new Response(html(u.pathname),{headers:{'content-type':'text/html'}})
  }
  return {html,requests}
@@ -49,13 +49,15 @@ test('Instrumentation investigation compares a renamed signup control and missin
  unverified=await result(await verify());assert.equal(unverified.state,'unverified');assert.ok(unverified.missing.some(m=>m.includes('matching script')))
  // The renamed control remains renamed; only the missing script is restored in the shipped HTML.
  const fixed=path=>site.html(path).replace(path==='/pricing'?'</button>':'SENTINEL_NEVER_MATCH',`</button><script>window.plausible=function(){};plausible.init=o=>plausible.o=o;plausible.init({captureOnLocalhost:true});</script><script defer src="${a.origin}/vane.js" data-site="${id}"></script>`)
- a.fixtureSites[origin]=request=>{const p=new URL(request.url).pathname;return p==='/robots.txt'?new Response('User-agent: *'):p==='/sitemap.xml'?new Response(`<urlset><url><loc>${origin}/</loc></url><url><loc>${origin}/pricing</loc></url></urlset>`):new Response(fixed(p),{headers:{'content-type':'text/html'}})}
+ a.fixtureSites[origin]=request=>{const p=new URL(request.url).pathname;return p==='/robots.txt'?new Response('User-agent: *'):p==='/sitemap.xml'?new Response(`<urlset><url><loc>${origin}/</loc></url><url><loc>${origin}/pricing</loc></url><url><loc>${origin}/unchanged</loc></url></urlset>`):new Response(fixed(p),{headers:{'content-type':'text/html'}})}
  await a.clock(now+4000)
- const pages={[origin+'/']:fixed('/'),[origin+'/pricing']:fixed('/pricing')},{context}=await browse(t,a,pages),page=await context.newPage()
+ const pages={[origin+'/']:fixed('/'),[origin+'/pricing']:fixed('/pricing'),[origin+'/unchanged']:fixed('/unchanged')},{context}=await browse(t,a,pages),page=await context.newPage()
  await page.goto(origin+'/');await page.waitForFunction(()=>typeof window.vane==='function')
  const clicked=page.waitForResponse(r=>new URL(r.url()).pathname==='/api/vane/custom'&&r.request().postDataJSON().name==='Signup');await page.getByRole('button',{name:'Join',exact:true}).click();assert.equal((await clicked).status(),202)
  await a.clock(now+5000);const pricing=page.waitForResponse(r=>new URL(r.url()).pathname==='/api/vane/collect');await page.goto(origin+'/pricing');assert.equal((await pricing).status(),202)
  const pricingEvent=page.waitForResponse(r=>new URL(r.url()).pathname==='/api/vane/custom');await page.getByRole('button',{name:'Join',exact:true}).click();assert.equal((await pricingEvent).status(),202)
+ await a.clock(now+6000);const unchangedLoad=page.waitForResponse(r=>new URL(r.url()).pathname==='/api/vane/collect');await page.goto(origin+'/unchanged');assert.equal((await unchangedLoad).status(),202)
+ const unchangedEvent=page.waitForResponse(r=>new URL(r.url()).pathname==='/api/vane/custom');await page.getByRole('button',{name:'Join',exact:true}).click();assert.equal((await unchangedEvent).status(),202,'the original selector keeps working on an unchanged template')
  const verified=await result(await verify());assert.equal(verified.state,'verified');assert.ok(verified.annotationId)
  assert.deepEqual(await result(await verify()),{state:'verified',at:verified.at})
  const dump=await a.dump();assert.equal(dump.vane_annotations.filter(r=>r.id===verified.annotationId).length,1)
@@ -105,4 +107,19 @@ test('Instrumentation authority is owner-only and scoped, same-origin, read-only
  const dump=await a.dump();assert.equal(dump.vane_annotations.filter(r=>r.id.startsWith('instrumentation:')).length,0)
  const archive=await a.archive();assert.ok(archive.payload.tables.vane_instrumentation_runs.length);assert.ok(archive.payload.tables.vane_instrumentation_fixes.length)
  const zip=await result(await a.request('/api/vane/export?siteId='+id,{headers:{cookie:a.owner}}));assert.equal(zip.payload.tables.vane_instrumentation_fixes,undefined,'a pending approval never travels to another installation')
+})
+
+
+test('Instrumentation recognizes active approved proxy script tags, ignores cache queries and refuses stale investigation drafts after settings change',async t=>{
+ const a=await installation();t.after(()=>a.close());const now=Date.now()+60000;await a.clock(now)
+ const siteOrigin='https://proxy.example',id=await a.addSite({origin:siteOrigin,paths:[],goals:{}})
+ const connection=await result(await a.post('/api/vane/proxy-connections',{operation:'proxy.create',siteId:id,hostname:'proxy.example',mode:'external',publicPrefix:'/insights'},a.owner))
+ a.fixtureSites[siteOrigin]=request=>{const path=new URL(request.url).pathname;return path==='/robots.txt'?new Response('User-agent: *'):path==='/sitemap.xml'?new Response(`<urlset><url><loc>${siteOrigin}/pricing</loc></url></urlset>`):new Response(`<script defer src='/insights/script.js?cache=synthetic-vane-1' data-site='${id}' data-api='/insights'></script>`)}
+ const input={siteId:id,...windowOf(now),pageLimit:10},run=await result(await a.post('/api/vane/instrumentation/run',input,a.owner))
+ assert.equal(run.problems.some(p=>p.kind==='missing-script'),false,'a currently approved proxy script is native instrumentation')
+ assert.equal((await a.post('/api/vane/proxy-connections',{operation:'proxy.revoke',siteId:id,connectionId:connection.connection.id},a.owner)).status,200)
+ const revoked=await result(await a.post('/api/vane/instrumentation/run',input,a.owner));assert.ok(revoked.problems.some(p=>p.kind==='missing-script'),'revoked proxy scripts are not treated as active')
+ const sites=await result(await a.request('/api/vane/sites',{headers:{cookie:a.owner}})),site=sites.find(s=>s.id===id),change=await result(await a.post('/api/vane/commands',{command:'site.configure',input:{siteId:id,name:site.name,origin:site.origin,config:site.config}},a.owner),201)
+ assert.equal((await a.form({operation:'proposal.approve',id:change.id},a.owner)).status,303)
+ assert.equal((await a.post('/api/vane/instrumentation/prepare',{siteId:id,runId:revoked.id,confirm:'on'},a.owner)).status,409,'a stale investigation cannot propose changes against a newer configuration')
 })
