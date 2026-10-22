@@ -139,6 +139,17 @@
         "No figures, visitor fields, page values or identifiers"
       ],
       "adapters": []
+    },
+    {
+      "id": "github",
+      "required": false,
+      "why": "AGENT-001 owner-connected fixed-host deploy-diff reads and separately approved script-only draft PRs in explicitly mapped templates",
+      "data": [
+        "Repository-scoped credential sent only to api.github.com; source/diff bodies read in memory and discarded",
+        "Owner-approved script-only HTML edit returned to that same repository on a new vane/instrumentation branch and a draft PR; never merges, deploys or writes the base branch",
+        "No analytics figures, visitor fields or new collection fields are sent; credential and pending outbound authority are excluded from archives"
+      ],
+      "adapters": []
     }
   ],
   "env": [],

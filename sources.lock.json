@@ -75,7 +75,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "0a8aafb12be0aae389f1c2dd9d522f41292e99d73b58f69a6a59f20fe6321853",
+      "sha256": "eb921bacd6720a0727b172d2140c66b49b5355cc18d728ad88b2686901da00a2",
       "executable": false
     },
     "AGENTS.md": {
@@ -107,7 +107,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "0bbb6ec99ab203d87b4d759e00788b05ccad6d411f1b7f8f560e16624d4395ed",
+      "sha256": "cb23c04f837d1d50c924d385a58a28eae32b0a40b333c86e3fa0b80637c515a6",
       "executable": false
     },
     "DEMO.md": {
@@ -163,7 +163,7 @@
       "executable": false
     },
     "docs/instrumentation.md": {
-      "sha256": "26aeb4975f52e31509749aef9acfff4939914518fa0f246c56047d28add660b5",
+      "sha256": "4e6114cc2dca20cb87534d5d4c9c35e2037fb05472ee9118fa564d8553297b0b",
       "executable": false
     },
     "docs/movement.md": {
@@ -576,6 +576,10 @@
     },
     "migrations/core/0111_vane_movement_evidence.sql": {
       "sha256": "fdeb5e34fc8beb5e2c06271823b7840cdc294da4949cd0def0246fb50d8c2cba",
+      "executable": false
+    },
+    "migrations/core/0112_vane_instrumentation_github.sql": {
+      "sha256": "4fa86cbd5b6b0acdca2a7b0784a68b6282111a7facc34566bcde3914e7f0d1f9",
       "executable": false
     },
     "ONBOARDING.md": {
@@ -1027,7 +1031,7 @@
       "executable": false
     },
     "seed.json": {
-      "sha256": "05fe8ac147d8c3b6c058f956a178beb8c38db8759604e7febd8b7b12109031d6",
+      "sha256": "6ba269da8ac88f13d6bb5e4ec6050738c6b4ae1a980412066023eb7b15e7c86e",
       "executable": false
     },
     "SOURCES.md": {
@@ -2851,7 +2855,7 @@
       "executable": false
     },
     "src/vane/actions.ts": {
-      "sha256": "5eb9788de4300a0bc8c1aabc20d60d70216581553d722143f9db4d4ae3d9f3be",
+      "sha256": "283b454566a2c4b5bd7de08d4801ce0ba4a7ef0a72e10d82e63cfd0aed865db1",
       "executable": false
     },
     "src/vane/agency/access.ts": {
@@ -3019,7 +3023,7 @@
       "executable": false
     },
     "src/vane/archive.ts": {
-      "sha256": "a9035a464ffe93071c9fcfcdfce14958a1eab50a340c342c0aac0d2fe0378798",
+      "sha256": "254039ba5852c7e585584fc5355df35e332f22e7ea70f347388530123eaf1dae",
       "executable": false
     },
     "src/vane/ask/answer.ts": {
@@ -3147,7 +3151,7 @@
       "executable": false
     },
     "src/vane/commands.ts": {
-      "sha256": "b8c834c7d3de313d9bbbdb7d9a26b90e9a846f6aa284d16fba66e43e316104bf",
+      "sha256": "b9c57b401c0e157201f311526884db121e5a5fd3f7e0583aec51c21074d59e38",
       "executable": false
     },
     "src/vane/consent.ts": {
@@ -3290,8 +3294,12 @@
       "sha256": "9e03fd660814b7918459cfec838c4d76a73e52b697210badc18e058a950ca3e8",
       "executable": false
     },
+    "src/vane/instrumentation/github.ts": {
+      "sha256": "c16cad7a94ee28541b3975a13eaa1bf64746aa508c8a2d2e327e82798f2974db",
+      "executable": false
+    },
     "src/vane/instrumentation/index.ts": {
-      "sha256": "6ce9a12efe57cce5158332493a321276fea71d45bb4687963c3d0bbbc1ad0e12",
+      "sha256": "565b112ec809a40149bbe5b1299c05d348c2f3c49c8bebab94142b8710e3a3a8",
       "executable": false
     },
     "src/vane/instrumentation/page.ts": {
@@ -3299,7 +3307,7 @@
       "executable": false
     },
     "src/vane/inventory.ts": {
-      "sha256": "33d6a69a6d144cfa32234207a5052c833f798557d5af1b9d29049352d4b1bbae",
+      "sha256": "982b3c0c73e501c0e34078b109daf68fad0b593aa5861fcbaf7538922c184735",
       "executable": false
     },
     "src/vane/journeys.ts": {
@@ -3607,7 +3615,7 @@
       "executable": false
     },
     "src/vane/routes.ts": {
-      "sha256": "71a5214479612a4846488b3aa02dec6413c31b9698bb8046b7f75217dbced407",
+      "sha256": "00d05dcbf89e03b01f426122864186be76c8a65175e1e057c562feca9b061cd0",
       "executable": false
     },
     "src/vane/sealed.ts": {
@@ -3851,7 +3859,7 @@
       "executable": false
     },
     "src/vane/views/instrumentation.ts": {
-      "sha256": "1b135995ecfe96a1a968edc8007f3f86d1385d770e3b796ae35880180ba5989a",
+      "sha256": "057a094da5c7f4d95745ca1806505822899a2e7c888e47e6efe3bc4996eac293",
       "executable": false
     },
     "src/vane/views/locations.ts": {
@@ -4130,8 +4138,12 @@
       "sha256": "c38021dc5d9b94609de4d7fcd7d4d304d62c8b42b57a1b6bbe839bc342447392",
       "executable": false
     },
+    "tests/instrumentation-github-fixture.mjs": {
+      "sha256": "ba3c2c2e1838c49b09d159ce42d1b704c72c885f0fe3fe356856c917441516cd",
+      "executable": false
+    },
     "tests/instrumentation.test.mjs": {
-      "sha256": "2890b440337a8bf053be2e92529c1bd568c24239370120469851c26542a7e1dd",
+      "sha256": "6f9380242241a6312f301ee341c8d4e776c77a9f52527247c29259d6bd369c98",
       "executable": false
     },
     "tests/locations.journey.mjs": {

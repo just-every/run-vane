@@ -1,3 +1,4 @@
+import { configureGitHub, publishGitHubDraft } from './instrumentation/github'
 import { investigateMovement, movementHistory } from './movement'
 import { configureEvidence, evidenceSetting, sourceEvidence } from './movement/evidence'
 import { localDate } from './annotations'
@@ -161,6 +162,8 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
    if(path==='/api/vane/import-undo')return json(await undo(env,actor,{siteId:p.siteId,jobId:p.jobId}));
    if(path==='/api/vane/movement')return json(await investigateMovement(env,actor,p));
    if(path==='/api/vane/movement-evidence/settings')return json(await configureEvidence(env,actor,p));
+   if(path==='/api/vane/instrumentation/github')return json(await configureGitHub(env,actor,p)??{connected:p.enabled==='on'});
+   if(path==='/api/vane/instrumentation/github-pr')return json(await publishGitHubDraft(env,actor,p));
    if(path==='/api/vane/instrumentation/run')return json(await investigateInstrumentation(env,actor,p));
    if(path==='/api/vane/instrumentation/prepare')return json(await prepareInstrumentationFix(env,actor,p),201);
    if(path==='/api/vane/instrumentation/verify')return json(await verifyInstrumentationFix(env,actor,p));
@@ -187,6 +190,8 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
     if(p.operation==='ask.configure'){await configureAsk(env,actor,{siteId:p.siteId,enabled:p.enabled});return redirect(`/app/sites/${encodeURIComponent(p.siteId)}?${new URLSearchParams({section:'ask',notice:'Question setting saved.'})}`)}
     if(p.operation==='ask.question'||p.operation==='ask.run'){const result=await ask(env,{siteId:p.siteId,actor:actor.id,...(p.operation==='ask.run'?{query:JSON.parse(String(p.query??'null'))}:{question:p.question})});return view(p.siteId,{section:'ask',ask:{setting:undefined as never,result}})}
     if(p.operation==='heat.configure'){await configureHeat(env,actor,{siteId:p.siteId,path:p.path,enabled:p.enabled});return redirect(`/app/sites/${encodeURIComponent(p.siteId)}?${new URLSearchParams({section:'heat',heatPath:p.path,notice:'Page choice saved.'})}`)}
+    if(p.operation==='instrumentation.github.configure'){await configureGitHub(env,actor,p);return redirect(`/app/sites/${encodeURIComponent(p.siteId)}?section=settings&notice=GitHub+source+connection+updated.#instrumentation`)}
+    if(p.operation==='instrumentation.github.publish'){const result=await publishGitHubDraft(env,actor,p);return redirect(`/app/sites/${encodeURIComponent(p.siteId)}?${new URLSearchParams({section:'settings',notice:result.state==='published'?'Draft PR confirmed. Review and deploy it through your own repository workflow.':'The provider outcome remains uncertain; inspect the source repository. No write was replayed.'})}#instrumentation`)}
     if(p.operation==='movement.explain'){const {operation,...input}=p;const result=await investigateMovement(env,actor,input);return redirect(`/app/sites/${encodeURIComponent(result.siteId)}?${new URLSearchParams({from:result.from,to:result.to,compare:'custom',compareFrom:result.comparedFrom,compareTo:result.comparedTo})}#movement`)}
     if(p.operation==='movement.evidence.configure'){const result=await configureEvidence(env,actor,p);return view(result.siteId,{section:'settings',agentEvidenceToken:result.token,notice:result.token?'Aggregate evidence enabled. Copy the credential now.':'Aggregate evidence credential revoked.'});}
     if(p.operation==='instrumentation.run'||p.operation==='instrumentation.prepare'||p.operation==='instrumentation.verify'){const result:any=await (p.operation==='instrumentation.run'?investigateInstrumentation:p.operation==='instrumentation.prepare'?prepareInstrumentationFix:verifyInstrumentationFix)(env,actor,p);return redirect(`/app/sites/${encodeURIComponent(p.siteId)}?${new URLSearchParams({section:'settings',notice:result.state==='unverified'?result.missing.join(' '):result.state==='verified'?'Instrumentation fix verified.':p.operation==='instrumentation.run'?'Investigation complete; review the evidence and unknowns.':'Fix prepared for owner approval.'})}#instrumentation`)}

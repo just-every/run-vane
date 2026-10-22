@@ -2,6 +2,7 @@ import test from 'node:test'
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { assert, installation, browse } from './vane-helpers.mjs'
+import { githubFixture } from './instrumentation-github-fixture.mjs'
 const origin='http://127.0.0.1:9137',DAY=86400000
 const windowOf=at=>({from:new Date(at-DAY).toISOString().slice(0,10),to:new Date(at+DAY).toISOString().slice(0,10)})
 function website(a,id,state) {
@@ -26,11 +27,13 @@ async function newLoad(a,id,path,at,name){await a.clock(at);const p=a.event(id,{
 test('Instrumentation investigation compares a renamed signup control and missing template script, prepares a reviewed no-code fix and PR draft, then verifies deployed pages and real payloads once',async t=>{
  const a=await installation();t.after(()=>a.close());const now=Date.now()+60000;await a.clock(now)
  const id=await a.addSite({origin,paths:[],goals:{},customGoals:{signup:{event:'Signup',revenue:false,currency:'USD'}},eventDefinitions:[{name:'Signup',kind:'click',target:'#signup'}],incumbentCompatibility:true})
- const state={broken:false},site=website(a,id,state),input={siteId:id,...windowOf(now),pageLimit:10}
+ const state={broken:false},site=website(a,id,state),github=githubFixture(a),input={siteId:id,...windowOf(now),pageLimit:10}
+ assert.equal((await a.post('/api/vane/instrumentation/github',{siteId:id,enabled:'on',confirm:'on',repository:'just-every/run-vane',branch:'main',token:github.state.token,mappings:'/pricing = public/pricing.html'},a.owner)).status,200)
  const run=()=>a.post('/api/vane/instrumentation/run',input,a.owner)
  const baseline=await result(await run());assert.equal(baseline.problems.some(p=>p.kind==='missing-script'||p.kind==='missing-selector'),false)
- state.broken=true;await newLoad(a,id,'/',now+1000,'SignUp')
+ state.broken=true;github.state.head=github.changed;await newLoad(a,id,'/',now+1000,'SignUp')
  const broken=await result(await run())
+ assert.ok(broken.github.files.some(f=>f.file==='public/pricing.html'&&f.scriptRemoved));assert.equal(broken.github.files.some(f=>f.file==='private/unmapped.html'),false)
  assert.ok(broken.problems.some(p=>p.kind==='missing-script'&&p.page==='/pricing'))
  assert.ok(broken.problems.some(p=>p.kind==='missing-selector'&&p.name==='Signup'&&p.target==='#signup'&&p.replacement==='#join-now'))
  assert.ok(broken.problems.some(p=>p.kind==='misnamed-event'&&p.name==='SignUp'))
@@ -40,9 +43,13 @@ test('Instrumentation investigation compares a renamed signup control and missin
  const prepared=await result(await a.post('/api/vane/instrumentation/prepare',{siteId:id,runId:broken.id,confirm:'on'},a.owner),201)
  const proposals=await result(await a.request('/api/vane/proposals',{headers:{cookie:a.owner}})),proposal=proposals.find(p=>p.id===prepared.proposalId),payload=JSON.parse(proposal.payload_json)
  assert.deepEqual(payload.config.eventDefinitions,[{name:'Signup',kind:'click',target:'#signup, #join-now'}]);assert.deepEqual(payload.config.customGoals,{signup:{event:'Signup',revenue:false,currency:'USD'}})
+ const publish=()=>a.post('/api/vane/instrumentation/github-pr',{siteId:id,fixId:prepared.id,confirm:'on'},a.owner)
+ assert.equal((await publish()).status,409);assert.equal(github.state.requests.some(r=>r.method==='POST'),false,'no source write before the normal owner approval')
  const verify=()=>a.post('/api/vane/instrumentation/verify',{siteId:id,fixId:prepared.id},a.owner)
  assert.equal((await verify()).status,409,'verification cannot bypass owner approval')
  assert.equal((await a.form({operation:'proposal.approve',id:prepared.proposalId},a.owner)).status,303)
+ const published=await result(await publish());assert.equal(published.url,'https://github.com/just-every/run-vane/pull/17');assert.equal(published.head,github.candidate)
+ const writes=github.state.requests.filter(r=>r.method==='POST').length;assert.deepEqual(await result(await publish()),published);assert.equal(github.state.requests.filter(r=>r.method==='POST').length,writes,'a confirmed PR is never created twice')
  let unverified=await result(await verify());assert.equal(unverified.state,'unverified');assert.ok(unverified.missing.some(m=>m.includes('deploy or release')))
  // A new payload before deployment cannot prove the deployed fix.
  await newLoad(a,id,'/',now+2000,'Signup');const key=await deploy(a,id,now+3000)
@@ -60,18 +67,18 @@ test('Instrumentation investigation compares a renamed signup control and missin
  const unchangedEvent=page.waitForResponse(r=>new URL(r.url()).pathname==='/api/vane/custom');await page.getByRole('button',{name:'Join',exact:true}).click();assert.equal((await unchangedEvent).status(),202,'the original selector keeps working on an unchanged template')
  const verified=await result(await verify());assert.equal(verified.state,'verified');assert.ok(verified.annotationId)
  assert.deepEqual(await result(await verify()),{state:'verified',at:verified.at})
- const dump=await a.dump();assert.equal(dump.vane_annotations.filter(r=>r.id===verified.annotationId).length,1)
+ const dump=await a.dump();assert.equal(dump.vane_annotations.filter(r=>r.id===verified.annotationId).length,1);assert.equal(dump.vane_annotations.find(r=>r.id===verified.annotationId).url,published.url)
  assert.ok(dump.vane_audit.some(r=>r.action==='agent.instrumentation'));assert.ok(dump.vane_audit.some(r=>r.action==='agent.fix.prepare'));assert.ok(dump.vane_audit.some(r=>r.action==='agent.fix.verify'))
  const custody=JSON.stringify({runs:dump.vane_instrumentation_runs,fixes:dump.vane_instrumentation_fixes,scans:dump.vane_cutover_scans})
- for(const sentinel of ['synthetic-vane-private-body','synthetic-vane-private-input','account123456','<h1>'])assert.equal(custody.includes(sentinel),false,sentinel+' is not retained')
+ for(const sentinel of ['synthetic-vane-private-body','synthetic-vane-private-input','account123456','<h1>','synthetic-vane-source-body','synthetic-vane-private-unmapped',github.state.token])assert.equal(custody.includes(sentinel),false,sentinel+' is not retained')
  assert.ok(site.requests.every(r=>!r.headers.cookie&&!r.headers.authorization),'the site never receives native authentication')
  // Review the evidence and verified fix through the unchanged Settings/Approvals components at both required widths.
  await context.addCookies(a.owner.split('; ').map(pair=>{const i=pair.indexOf('=');return {name:pair.slice(0,i),value:pair.slice(i+1),url:a.origin}}))
  const dir=process.env.VANE_SCREEN_DIR;if(dir)await mkdir(dir,{recursive:true})
  for(const width of [1440,390]){
   await page.setViewportSize({width,height:1000});await page.goto(`${a.origin}/app/sites/${id}?section=settings`)
-  await page.locator('#instrumentation').scrollIntoViewIfNeeded();assert.ok(await page.getByRole('button',{name:'Investigate instrumentation',exact:true}).isVisible())
-  const card=page.locator(`[data-instrumentation-run="${broken.id}"]`);await card.getByText('Review PR draft',{exact:true}).click();await card.scrollIntoViewIfNeeded();assert.match(await card.textContent(),/Draft only/)
+  await page.locator('#instrumentation').scrollIntoViewIfNeeded();const source=page.getByText('GitHub source and draft PR authority',{exact:true});await source.click();assert.equal(await page.getByLabel('Repository-scoped GitHub token',{exact:true}).inputValue(),'');if(dir)await page.screenshot({path:join(dir,`instrumentation-source-${width}.png`)});await source.click();assert.ok(await page.getByRole('button',{name:'Investigate instrumentation',exact:true}).isVisible())
+  const card=page.locator(`[data-instrumentation-run="${broken.id}"]`);await card.getByText('Review PR draft',{exact:true}).click();await card.scrollIntoViewIfNeeded();assert.match(await card.textContent(),/Draft only/);assert.ok(await page.getByRole('link',{name:'Open draft PR 17',exact:true}).count())
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);if(dir)await page.screenshot({path:join(dir,`instrumentation-draft-${width}.png`)})
   await page.locator(`[data-instrumentation-fix="${prepared.id}"]`).scrollIntoViewIfNeeded();assert.match(await page.locator(`[data-instrumentation-fix="${prepared.id}"]`).textContent(),/Verified fix/)
   if(dir)await page.screenshot({path:join(dir,`instrumentation-verified-${width}.png`)})
@@ -81,7 +88,7 @@ test('Instrumentation investigation compares a renamed signup control and missin
  // History erasure discards investigations, snapshots and fixes, while the audit remains.
  const erase=await result(await a.post('/api/vane/commands',{command:'history.erase',input:{siteId:id}},a.owner),201)
  assert.equal((await a.form({operation:'proposal.approve',id:erase.id},a.owner)).status,303)
- const erased=await a.dump();assert.equal(erased.vane_instrumentation_runs.length,0);assert.equal(erased.vane_instrumentation_fixes.length,0);assert.equal(erased.vane_cutover_scans.length,0);assert.ok(erased.vane_audit.some(r=>r.action==='agent.fix.verify'))
+ const erased=await a.dump();assert.equal(erased.vane_instrumentation_runs.length,0);assert.equal(erased.vane_instrumentation_fixes.length,0);assert.equal(erased.vane_instrumentation_prs.length,0);assert.equal(erased.vane_cutover_scans.length,0);assert.ok(erased.vane_audit.some(r=>r.action==='agent.fix.verify'))
 })
 
 test('Instrumentation authority is owner-only and scoped, same-origin, read-only until a reviewed version-bound approval, and incomplete scans never claim recovery',async t=>{
@@ -130,4 +137,32 @@ test('Instrumentation recognizes active approved proxy script tags, ignores cach
  release();assert.equal((await pending).status,400,'the in-flight investigation cannot publish stale pre-erasure evidence')
  assert.equal((await a.dump()).vane_instrumentation_runs.length,0)
 
+})
+
+
+test('GitHub hand-off is off-default, owner-approved, sealed and revocable; source drift and an uncertain provider reply never replay a mutation or touch a default branch',async t=>{
+ const a=await installation();t.after(()=>a.close());const now=Date.now()+60000;await a.clock(now)
+ const id=await a.addSite({origin,paths:[],goals:{}}),web={broken:true};website(a,id,web)
+ const github=githubFixture(a),settings={siteId:id,enabled:'on',confirm:'on',repository:'just-every/run-vane',branch:'main',token:github.state.token,mappings:'/pricing = public/pricing.html'},endpoint='/api/vane/instrumentation/github'
+ const admin=await a.invite('synthetic-vane-github-admin@example.test','admin')
+ assert.equal((await a.post(endpoint,settings,admin)).status,403);assert.equal((await a.post(endpoint,settings,'')).status,401)
+ assert.equal((await a.post(endpoint,{...settings,confirm:''},a.owner)).status,400);assert.equal(github.state.requests.length,0)
+ for(const mappings of ['/pricing = ../private.html','/orders/1234567 = public/pricing.html','/pricing = /absolute.html'])assert.equal((await a.post(endpoint,{...settings,mappings},a.owner)).status,400)
+ assert.equal((await a.post(endpoint,settings,a.owner)).status,200)
+ const archive=await a.archive();assert.equal(archive.payload.tables.vane_instrumentation_github,undefined);assert.equal(archive.payload.tables.vane_instrumentation_prs,undefined);assert.equal(JSON.stringify(await a.dump()).includes(github.state.token),false)
+ github.state.head=github.changed
+ const investigate=()=>a.post('/api/vane/instrumentation/run',{siteId:id,...windowOf(now),pageLimit:10},a.owner)
+ const prepare=async()=>{const run=await result(await investigate()),fix=await result(await a.post('/api/vane/instrumentation/prepare',{siteId:id,runId:run.id,confirm:'on'},a.owner),201);assert.equal((await a.form({operation:'proposal.approve',id:fix.proposalId},a.owner)).status,303);return fix}
+ const moved=await prepare();github.state.head='e'.repeat(40)
+ assert.equal((await a.post('/api/vane/instrumentation/github-pr',{siteId:id,fixId:moved.id,confirm:'on'},a.owner)).status,409)
+ assert.equal(github.state.requests.filter(r=>r.method==='POST').length,0,'a moved source branch causes no outbound write')
+ github.state.head=github.changed;const uncertain=await prepare();github.state.loseReply=true
+ const publish=()=>a.post('/api/vane/instrumentation/github-pr',{siteId:id,fixId:uncertain.id,confirm:'on'},a.owner)
+ const lost=await publish();assert.equal(lost.status,502);assert.equal((await lost.text()).includes('synthetic-vane-provider-detail'),false)
+ const mutations=github.state.requests.filter(r=>r.method==='POST').length,reconciled=await result(await publish());assert.equal(reconciled.state,'published');assert.equal(github.state.requests.filter(r=>r.method==='POST').length,mutations,'reconciliation performs reads only')
+ const fresh=await prepare();assert.equal((await a.post(endpoint,{siteId:id,enabled:'off'},a.owner)).status,200)
+ assert.equal((await a.post('/api/vane/instrumentation/github-pr',{siteId:id,fixId:fresh.id,confirm:'on'},a.owner)).status,409)
+ assert.equal(github.state.requests.filter(r=>r.method==='POST').length,mutations,'disconnect blocks the next external change')
+ assert.ok(github.state.requests.filter(r=>r.method==='POST'&&r.path.endsWith('/git/refs')).every(r=>r.body.ref.startsWith('refs/heads/vane/instrumentation-')))
+ assert.ok((await a.dump()).vane_audit.some(r=>r.action==='agent.github.pr'))
 })
