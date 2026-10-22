@@ -24,7 +24,6 @@ export interface Bindings {
  VANE_OIDC_PROVIDERS?: string
  OIDC_TRANSACTION_SECRET?: string
  VANE_SAML_CONFIG?: string
- VANE_SCIM_TOKEN?: string
  DB: D1Database
  /** Built browser files; hosted deploys run the Worker first (staticAssetResponse). */
  ASSETS?: Fetcher

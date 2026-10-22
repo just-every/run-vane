@@ -36,9 +36,6 @@ secret entry door, never in source, URLs or browser configuration:
   response and assertion must be signed by that certificate. Only solicited,
   browser-bound, one-use responses with the exact audience, recipient,
   destination, issuer, request id and live time bounds are admitted.
-- `VANE_SCIM_TOKEN`: a separately generated high-entropy bearer credential held
-  by the provisioning service. The service URL is `/scim/v2`. The token has no
-  browser endpoint and is never included in an analytics archive.
 
 Enable the configured providers in Sign-in security before trying sign-in.
 The existing linked Auth dependency remains available and uses Base's OIDC client.
@@ -48,15 +45,49 @@ uses Base's existing accounts, invitations, versions and sessions. No sign-in
 creates an uninvited account. SAML accepts no email attribute as an association;
 the installation owner supplies the NameID map. Sign-in attempts never modify it.
 
-SCIM `POST /Users` creates a native Viewer with no site access. Only the owner
-can grant analytics access afterwards through Team. The person still proves
-identity on sign-in. Existing accounts cannot be taken over or associated by SCIM; a duplicate
-address is refused. `GET /Users` requires an exact
-`userName eq "…"` filter; unfiltered directory enumeration is refused. `PATCH
+In the owner’s **Sign-in security** page, issue a SCIM credential for a configured
+issuer. Copy it into the provisioning service once: Vane stores only a SHA-256
+hash. Its service URL is `/scim/v2`; the credential opens only SCIM, never the
+Stats API, event API, browser settings or owner recovery. Rotate it by issuing a
+replacement for the same issuer, or revoke it. Both take effect on the next
+request and are audited. Credentials are never included in analytics archives.
+
+SCIM `POST /Users` requires `externalId` to be the provider’s stable OIDC subject
+or SAML NameID. It creates a native Viewer with no site access and binds that
+issuer and subject to the new person. It never finds or merges a person by email;
+an address already in use or a subject belonging to someone else is refused.
+Only the owner can grant site access afterwards through Team. Replaying the
+same create returns the same resource and changes nothing. A changed subject or
+email is not an update: resolve it through owner administration. Native accounts
+created by an older unbound SCIM implementation are preserved without inferring
+a federation binding from their email; an owner must review their identity.
+
+`GET /Users` requires an exact `userName eq "…"` filter; it sees only this
+credential’s issuer, and unfiltered directory enumeration is refused. `PATCH
 /Users/<id>` with `replace active: false` (including the pathless object form),
-or `DELETE /Users/<id>`, deactivates a non-owner immediately and revokes their
-sessions, links, custodial API keys and native credentials. SCIM cannot reactivate
-people, grant sites, alter roles or remove an owner. Its changes are audited without credentials.
+or `DELETE /Users/<id>`, deactivates a provisioned non-owner and ends their
+sessions, outstanding sign-in links, custodial API keys and push tokens by the
+next request. Repeated deactivation does not produce another mutation or audit
+event. A deactivated or owner-removed identity stays deactivated even if an old
+create arrives later. SCIM never reactivates a person, raises a role, grants a
+site, touches an owner or sends an invitation email.
+
+## Owner recovery during an identity-provider outage
+
+Use `rer signin --environment <name>` with the credentials that deployed this
+installation. This deployment-custody door creates a fifteen-minute, one-use
+owner sign-in link; it stores only its hash and audits its consumption. Open the
+link, confirm sign-in, then open `/auth/security/break-glass` (also linked from
+the SSO hold page). Ordinary owner email links, existing sessions, members and
+SCIM credentials cannot open this recovery door.
+
+Confirm **Disable SSO for outage recovery**. An enrolled authenticator or recovery
+code is still required for that session; the authenticator requirement is
+preserved. This explicitly disables the installation’s SSO requirement and
+records `security.break-glass` in the audit. Repair the provider, sign in through
+it and explicitly require SSO again. A recovery link does not grant SCIM access
+or change anybody’s site access. The deployment credential is the authority;
+never send the link or credential to another person.
 
 Authenticator secrets are sealed under the installation secret; recovery codes
 are stored only as keyed hashes. Pending enrollment expires after ten minutes.
@@ -65,6 +96,8 @@ authenticator credentials, factor proofs and installation security policy; they
 preserve analytics without importing sign-in authority. Full installation custody
 continues to use the installation's existing private archive controls.
 
-The conservative identity association, SCIM authority, enrollment and enforcement
-semantics above are adopted for TEAM-002 pending ct approval. Fixture-issuer proof
-is the contract's provider boundary; no paid account or live sandbox is required.
+TEAM-002 follows ct’s 22 October 12:30Z identity and recovery ruling. Fixture
+issuers prove the implemented protocol and access behavior. Provider acceptance
+remains PARTIAL until a real Auth, Okta or Entra IdP tenant exercises SCIM; that
+tenant and its administrator credentials are an external dependency, not
+replaced by the fixtures.

@@ -5,6 +5,8 @@ import { audit } from '../audit'
 import { pendingSecurity, saveSecurityPolicy, securityPolicy } from './policy'
 import { beginTotp, confirmTotp, totpState, verifyTotp } from './totp'
 import { securityPage } from './page'
+import { ownerBreakGlass } from './break-glass'
+import { configuredScimIssuers, issueScimCredential, listScimCredentials, revokeScimCredential } from './scim-credentials'
 
 const json=(value:unknown,status=200)=>Response.json(value,{status,headers:{'cache-control':'no-store'}})
 const redirect=(path:string)=>new Response(null,{status:303,headers:{location:path,'cache-control':'no-store'}})
@@ -29,6 +31,7 @@ export async function securityResponse(request:Request,env:Env,auth:OperatorAuth
  try {
   session=await auth.getSession(request)
   if(!session)return json({error:'authentication_required'},401)
+  if(path==='/auth/security/break-glass')return await ownerBreakGlass(request,env,session)
   const pending=await pendingSecurity(env,session)
   if(pending==='sso')return securityPage({mode:'sso',status:path==='/auth/security/sso'?200:403})
   if(path==='/auth/security/sso')return redirect('/app')
@@ -39,12 +42,17 @@ export async function securityResponse(request:Request,env:Env,auth:OperatorAuth
    if(path==='/auth/security/enroll')return securityPage({mode:'enroll'})
    if(path==='/auth/security/challenge')return securityPage({mode:'challenge'})
    if(path!=='/auth/security')return json({error:'not_found'},404)
-   return securityPage({mode:'settings',owner:session.operator.role==='owner',enrolled:state.enrolled,policy:await securityPolicy(env),providers:session.operator.role==='owner'?(await auth.identitySettings(request)).idpSignIn:undefined,saml:Boolean(env.VANE_SAML_CONFIG)})
+   return securityPage({mode:'settings',owner:session.operator.role==='owner',enrolled:state.enrolled,policy:await securityPolicy(env),providers:session.operator.role==='owner'?(await auth.identitySettings(request)).idpSignIn:undefined,saml:Boolean(env.VANE_SAML_CONFIG),issuers:session.operator.role==='owner'?configuredScimIssuers(env):undefined,scim:session.operator.role==='owner'?await listScimCredentials(env):undefined})
   }
   insist(request.method==='POST','method','Use POST.',405)
   insist(request.headers.get('origin')===env.AUTH_ORIGIN&&request.headers.get('sec-fetch-site')!=='cross-site','origin','Same-origin approval is required.',403)
   const text=await request.text();insist(new TextEncoder().encode(text).length<=4096,'size','The request is too large.',413)
   const input:Record<string,unknown>=(request.headers.get('content-type')??'').startsWith('application/json')?JSON.parse(text):Object.fromEntries(new URLSearchParams(text))
+  if(path==='/auth/security/scim/issue') {
+   const issued=await issueScimCredential(env,session,input)
+   return (request.headers.get('content-type')??'').startsWith('application/json')?json(issued):securityPage({mode:'scim-credential',credential:issued.credential})
+  }
+  if(path==='/auth/security/scim/revoke') {const revoked=await revokeScimCredential(env,session,input);return (request.headers.get('content-type')??'').startsWith('application/json')?json(revoked):redirect('/auth/security')}
   if(path==='/auth/security/enroll/start')return securityPage({mode:'enroll',...await beginTotp(env,session.operator.id,session.id)})
   if(path==='/auth/security/enroll/confirm') {
    const codes=await confirmTotp(env,session.operator.id,session.id,String(input.code??''))

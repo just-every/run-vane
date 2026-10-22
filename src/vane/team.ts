@@ -50,6 +50,7 @@ async function person(env:Env,actor:Actor,operatorId:string) {
 // A member's Vane role and sites change at once; an admin's sites change at once (the Base role stays as it is).
 export async function regrant(env:Env,actor:Actor,input:any) {
  const found=await person(env,actor,String(input.operatorId??'')),role=found.role==='admin'?'admin':String(input.role??'');
+ insist(actor.access==='owner'||!(await rows(env,'SELECT 1 FROM vane_scim_users WHERE operator_id=?',found.id)).length,'forbidden','Only the owner grants site access to a SCIM-provisioned person.',403);
  insist(await clientScope(env,found.id)===null,'client_access','Manage client membership in Agency clients; client users remain Viewers of their client’s sites.');
  insist(found.role==='admin'||role!=='admin','role','Make a member an admin through an invitation by the owner.');grantable(actor,role);
  const ids=await chosenSites(env,actor,input);

@@ -75,7 +75,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "c8cccaeae1f232e5c261b8e3b8d3cbbe43fd858d6f0aa177b455aa2de65f626d",
+      "sha256": "ef34c7ba91129d4cc61a4f52672ebac96e7cd36b2d6207bbfd9d03385f29b3fd",
       "executable": false
     },
     "AGENTS.md": {
@@ -107,7 +107,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "3121595b59d10c3c6e26013c7af0245fd4505819b3a3a8044ed49ca8f2bb12ab",
+      "sha256": "a88c53d316b9ce908d17e161339bb4315e0743cf927839187f97e7c7eb0a7b93",
       "executable": false
     },
     "DEMO.md": {
@@ -159,7 +159,7 @@
       "executable": false
     },
     "docs/sign-in-security.md": {
-      "sha256": "737224c6b9d0014a37e0a1dc1da5dd93d36b8ce62be48e298a8c6ad69fa3cceb",
+      "sha256": "1c6f997e891c1196f14fe722508ecc78f2a657da50dee874c0598993a87d2c52",
       "executable": false
     },
     "docs/umami-import.md": {
@@ -544,6 +544,10 @@
     },
     "migrations/core/0106_vane_federation.sql": {
       "sha256": "40a9e0a39177b317098d81403671d016779a70fa14fd267f0d27389d1de6ae45",
+      "executable": false
+    },
+    "migrations/core/0107_vane_scim_authority.sql": {
+      "sha256": "ac36f3923b1f83f6804bfdefef5832e13db60cd72723920b64f6959eb49bc482",
       "executable": false
     },
     "ONBOARDING.md": {
@@ -1003,7 +1007,7 @@
       "executable": false
     },
     "src/auth.server.ts": {
-      "sha256": "aaf6cab4ccaf50f389802c954e541a47ca35f242378c0f51d1c904ac029de12a",
+      "sha256": "fc1547de0765f730aca72ab61357b45265b9b9a9c17262e547022c2c2733db25",
       "executable": false
     },
     "src/base/contract-filter.ts": {
@@ -2731,7 +2735,7 @@
       "executable": false
     },
     "src/site/docs/manifest.ts": {
-      "sha256": "ffd741a4fea3dfbed3aa72253bdbf7b5b181068ea2362544449f074e49e0f39f",
+      "sha256": "2dd8752a979b713bf04e87d88e3d8ca54b4f558e9e6c127928cbee1355cb2ad7",
       "executable": false
     },
     "src/site/docs/pages.ts": {
@@ -3139,7 +3143,7 @@
       "executable": false
     },
     "src/vane/deletion-fence.ts": {
-      "sha256": "de2162b44556f1d7b6ca9486cf19e54ba78412c8b4d40bb4c3ce6736c82e3d8b",
+      "sha256": "2e9a24fe4fe0ed12e4db53da074b6c99ed9e6e2db91bed8e7639e311393e8d5b",
       "executable": false
     },
     "src/vane/devices.ts": {
@@ -3586,12 +3590,16 @@
       "sha256": "9141beeb561141d78fb11fa8d240acb1dcd657de6051927af29b6ae44587d9bc",
       "executable": false
     },
+    "src/vane/security/break-glass.ts": {
+      "sha256": "c2043644cbfad267597bc7a9437773863abc221ce57ff4b84261a3f5a31fad1e",
+      "executable": false
+    },
     "src/vane/security/frame.d.ts": {
       "sha256": "9d067bdf3a4d275aecd32a963cb0193634a04c85fdb83f1695910affc3b87031",
       "executable": false
     },
     "src/vane/security/page.ts": {
-      "sha256": "2960630961b6acc84be1923eae07545bd8c8ce33933b04e5509cc770fa7f8467",
+      "sha256": "76dea64d96dfde359530d6afcebbfa2229e1f74345a8ba0f060a2d83a72144f9",
       "executable": false
     },
     "src/vane/security/policy.ts": {
@@ -3599,15 +3607,19 @@
       "executable": false
     },
     "src/vane/security/routes.ts": {
-      "sha256": "c2ef140b1118bae6a96b269a343eaa6205105862210c2c32594d85b7a91d59a0",
+      "sha256": "6c1acb1925c5dec617cea3f21c62fec4d986d95d135b2ae64c4a9aabcdbee107",
       "executable": false
     },
     "src/vane/security/saml.ts": {
       "sha256": "83290bc0ea535f7fff5e98e531fd13a82a536e0fe29dfc027605778651bc7af3",
       "executable": false
     },
+    "src/vane/security/scim-credentials.ts": {
+      "sha256": "df0f8fffc65ef3850ad25d9d727b29cbf43c6ef7beea3c5905bee0a10cc450e5",
+      "executable": false
+    },
     "src/vane/security/scim.ts": {
-      "sha256": "1b12841df8c9c4d0375305c18867c3a08ac77fe753d78a8aa41c5edde9d6786c",
+      "sha256": "dc0a3b51dcdbdddff01e57490b8af04cec11f7e9bebc7be8878c42f4496592b6",
       "executable": false
     },
     "src/vane/security/totp.ts": {
@@ -3639,7 +3651,7 @@
       "executable": false
     },
     "src/vane/team.ts": {
-      "sha256": "5a19a99c4457bc8c86aadc8a5b16ba10dc04e7ea7e91dc5b656e444bbef0ae3e",
+      "sha256": "19306df26b8f2c1e2dfb543581a2ccbddc696804bc900d2b077760a53ff78c22",
       "executable": false
     },
     "src/vane/tracker-compat-options.ts": {
@@ -4083,15 +4095,15 @@
       "executable": false
     },
     "tests/security-browser.test.mjs": {
-      "sha256": "3cbf57a223286babe67cc68fa8a649e35aa6e12ae7e0da1f64c641e2c4e6acb0",
+      "sha256": "9274490ce146ff3555e5d5a69cc2c463a75a8a119f38dc8928d89749c23e3618",
       "executable": false
     },
     "tests/security-fixtures.mjs": {
-      "sha256": "82af1e6878eead07859a96d694cf7f0a2ba0e69fede81204d55f81fcce6db942",
+      "sha256": "cddf4ab7fdae67acd3cfe6f73a17ac8427e99d1f69a44cc49b32b4b5a6d86fec",
       "executable": false
     },
     "tests/security.test.mjs": {
-      "sha256": "be93c72a27199b765bf0579158fe3c9e1b95638b51ea54f37899c35caa67d78d",
+      "sha256": "171a3160e030f414de7865f874c666b7934c4bf3f75b6b8c1ca8afe21b3c5f37",
       "executable": false
     },
     "tests/site.test.mjs": {
