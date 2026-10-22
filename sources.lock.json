@@ -75,7 +75,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "b1548ab7288a8274ff8b94d997e0e3f4de3a3191344cdacfbab3fedc9a8aadd6",
+      "sha256": "bf7eb4f9d9460fd00ecba6349397d1f2f720d7ea94795037a4aaa542184d7640",
       "executable": false
     },
     "AGENTS.md": {
@@ -107,7 +107,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "437324c80f1b1830c41d28b701700472cf9e5da6a2c8b96c7201e2a7068ec674",
+      "sha256": "2c27abbc3b63faee87e94bc582d11e0b9ee24b0912a4c6f0d0b4fb88ea135dc2",
       "executable": false
     },
     "DEMO.md": {
@@ -135,7 +135,7 @@
       "executable": false
     },
     "docs/ask.md": {
-      "sha256": "6997121d6af79a0cb6169f09da980380f2fcce9a808804b0b1e65fee03127e1d",
+      "sha256": "891fd814271668303f651a036ce84186b5960f9843384cc0d39a50a8b7d1fd31",
       "executable": false
     },
     "docs/collection-scale.md": {

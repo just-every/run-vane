@@ -425,13 +425,13 @@ The approved homepage (page-s1, 17 Oct 2026, `HOME-001`) follows one launch week
 
 ## Status
 
-Judged from the code and tests at commit `82fa36438e8ce8bd4e6b3a0829b1e81830bfb978` (22 October 2026).
+Judged from the code and tests at commit `c0271cc7262225ab077ea7e8387ed47eeed89d96` (22 October 2026).
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 17 | 0 | 0 | 17 |
-| Target and push further | 68 | 11 | 13 | 92 |
-| All | 85 | 11 | 13 | 109 |
+| Target and push further | 69 | 10 | 13 | 92 |
+| All | 86 | 10 | 13 | 109 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -543,4 +543,4 @@ Judged from the code and tests at commit `82fa36438e8ce8bd4e6b3a0829b1e81830bfb9
 | `AGENT-004` | Measure the result against coverage gaps | push-further | missing |  | No result measurement. |
 | `AGENT-005` | Pursue anomalies to resolution | push-further | missing |  | No anomaly pursuit. |
 | `AGENT-006` | Weekly growth brief with opportunities | push-further | missing |  | No growth brief. |
-| `AGENT-007` | Answer questions in plain English, with the query shown | push-further | partial | `tests/ask.test.mjs` — “AGENT-007 ten fixture questions answer with the shown Stats API query, a clarifying choice and honest refusals, and the model sees only the question and the vocabulary” covers ten questions, numeric equality with Stats API results; choice and refusal paths, question-only egress, no stored text and chart/table pages at 1440/390; “AGENT-007 questions are off until the owner enables them, owner-only to change, scoped, limited, and a bad model reply runs nothing” covers audited owner-only enablement, app/MCP scope and site switch, all refusal attempts in the shared budget, and no repair. `tests/ask-journey.mjs` — real-model sandbox journey. | Ct approved as landed with riders 22 Oct. Refusal-budget/MCP-switch/notice assertions pass. Real-model live sandbox receipt pending. Named input Gap: typed personal data beyond email is not automatically removed; the ask box discloses provider egress. Named external Gap: deployment-provider retention/training terms are not established or claimed. Slack/Teams question doors remain future REPORT-002/AGENT-007 carriers of the same switch and controls. Coverage refusal is the closed Stats API validation path, without repair. |
+| `AGENT-007` | Answer questions in plain English, with the query shown | push-further | done | `tests/ask.test.mjs` — “AGENT-007 ten fixture questions answer with the shown Stats API query, a clarifying choice and honest refusals, and the model sees only the question and the vocabulary” covers ten questions, numeric equality with Stats API results; choice and refusal paths, question-only egress, no stored text and chart/table pages at 1440/390; “AGENT-007 questions are off until the owner enables them, owner-only to change, scoped, limited, and a bad model reply runs nothing” covers audited owner-only enablement, app/MCP scope and site switch, all refusal attempts in the shared budget, and no repair. `tests/ask-journey.mjs` — real-model sandbox passed 2026-10-22T22:50:41.860Z on c0271cc7262225ab077ea7e8387ed47eeed89d96 through deployment Base ai with gpt-4.1: seven numeric answers independently equal the shown Stats API result; one clarifying choice runs without a further model call; people and causes are refused; exactly ten provider calls and text-free audit custody pass. | Ct approved as landed with riders 22 Oct. Named input Gap: typed personal data beyond email is not automatically removed; the ask box discloses provider egress. Named external Gap: deployment-provider retention/training terms are not established or claimed. Slack/Teams question doors remain future REPORT-002/AGENT-007 carriers of the same switch and controls. Coverage refusal is the closed Stats API validation path, without repair. |
