@@ -46,14 +46,16 @@ test('native visit facts keep reverse arrivals, tied IDs, a late bridge, engagem
  // A historical opaque ID sorts before the packed UUIDs at the same instant.
  // Introducing it invalidates and rebuilds the chain; journeys still follow
  // logical IDs, including the three distinct pages after this first match.
- await load('legacy','10:25:00','-'.repeat(36))
+ await a.clock(Date.parse(date+'T10:30:00Z'))
+ const legacyBatch=[a.event(siteId,{id:'-'.repeat(36),path:'/legacy'}),a.event(siteId,{id:'00000000-0000-4000-8000-000000000003',path:'/late-tie'}),a.event(siteId,{id:'00000000-0000-4000-8000-000000000004',path:'/late'})]
+ assert.equal((await a.post('/api/vane/collect-batch',{events:legacyBatch},'',{origin,'cf-connecting-ip':'203.0.113.17','user-agent':'Synthetic Vane Browser 1'})).status,202)
  const legacyJourney=(await summary(a,'&journey=/legacy')).journey
- assert.deepEqual(legacyJourney.next.map(r=>[r.steps,r.visits]),[[['/tie','/b','/c'],1]])
- assert.deepEqual(legacyJourney.previous.map(r=>[r.steps,r.visits]),[[['/a','(entrance)'],1]])
+ assert.deepEqual(legacyJourney.next.map(r=>[r.steps,r.visits]),[[['/late-tie','/late','/c'],1]])
+ assert.deepEqual(legacyJourney.previous.map(r=>[r.steps,r.visits]),[[['/b','/tie','/a'],1]])
  report=await summary()
  // A retry neither adds a raw page nor duplicates any frequency population.
  assert.equal((await a.post('/api/vane/collect',loads.c,'',{origin,'cf-connecting-ip':'203.0.113.17','user-agent':'Synthetic Vane Browser 1'})).status,200)
- assert.equal((await summary()).pageviews,5)
+ assert.equal((await summary()).pageviews,7)
  const archive=await a.archive(),b=await withApp(t)
  const restored=await b.post('/api/vane/restore',{archive},b.owner)
  assert.equal(restored.status,200,await restored.clone().text())
