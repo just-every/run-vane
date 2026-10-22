@@ -1,5 +1,6 @@
 import { digest, insist, type Config, type Env, type Site } from './core'
 import { timedFrom } from './visits'
+import { readConsentedReport } from './analytics/visits/consented'
 
 // Fixed calendar-month expiry from issuance, never refreshed by a later visit.
 export function consentExpiry(createdAt:number,months:number):number {
@@ -29,7 +30,7 @@ export function consentedPage(config:Config,request:Request,page:{consented_visi
 }
 interface Cohort {week:string;visitors:number;weeks:{week:number;returning:number;retention:number|null;complete?:boolean}[]}
 export async function consentedReport(env:Env,scope:string,from:string,to:string,events:string,goal:string|null) {
- const [totals,cohorts,attribution]=await env.DB.batch<any>([
+ const [totals,cohorts,attribution]=events==='vane_events'?await readConsentedReport(env,scope,from,to,goal):await env.DB.batch<any>([
   env.DB.prepare(`${timedFrom(events)}, firsts AS (SELECT site_id,consented_visitor,MIN(at) AS first_at,MIN(day) AS first_day FROM vane_events WHERE kind='pageview' AND consented_visitor IS NOT NULL AND site_id IN (SELECT value FROM json_each(?1)) GROUP BY site_id,consented_visitor), seen AS (SELECT e.*,f.first_day,f.first_at,COALESCE(q.starts,0) AS starts FROM ${events} e LEFT JOIN firsts f USING(site_id,consented_visitor) LEFT JOIN q ON q.id=e.id WHERE e.site_id IN (SELECT value FROM json_each(?1)) AND e.day>=?2 AND e.day<?3 AND e.kind='pageview') SELECT COUNT(*) AS pageviews,SUM(consented_visitor IS NOT NULL) AS consentedPageviews,COUNT(DISTINCT CASE WHEN consented_visitor IS NOT NULL THEN site_id||consented_visitor END) AS visitors,COUNT(DISTINCT CASE WHEN first_day>=?2 THEN site_id||consented_visitor END) AS newVisitors,COUNT(DISTINCT CASE WHEN starts=1 AND at>first_at THEN site_id||consented_visitor END) AS returningVisitors FROM seen`).bind(scope,from,to,null),
   env.DB.prepare(`WITH firsts AS (SELECT site_id,consented_visitor,MIN(day) AS first_day FROM vane_events WHERE kind='pageview' AND consented_visitor IS NOT NULL AND site_id IN (SELECT value FROM json_each(?1)) GROUP BY site_id,consented_visitor), members AS (SELECT *,date(first_day,'weekday 0','-6 days') AS cohort FROM firsts f WHERE first_day>=?2 AND first_day<?3 AND EXISTS(SELECT 1 FROM ${events} e WHERE e.site_id=f.site_id AND e.consented_visitor=f.consented_visitor AND e.kind='pageview' AND e.day>=?2 AND e.day<?3)), activity AS (SELECT DISTINCT e.site_id,e.consented_visitor,date(e.day,'weekday 0','-6 days') AS week FROM ${events} e WHERE e.site_id IN (SELECT value FROM json_each(?1)) AND e.day>=?2 AND e.day<?3 AND e.kind='pageview' AND e.consented_visitor IS NOT NULL) SELECT m.cohort,CAST((julianday(a.week)-julianday(m.cohort))/7 AS INTEGER) AS week,COUNT(*) AS visitors,(SELECT COUNT(*) FROM members n WHERE n.cohort=m.cohort) AS size FROM members m JOIN activity a USING(site_id,consented_visitor) GROUP BY m.cohort,a.week ORDER BY m.cohort,week`).bind(scope,from,to),
   // Both models count converting visits. Acquisition can precede the report range, within retained history.
