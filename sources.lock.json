@@ -2806,6 +2806,10 @@
       "sha256": "3d2260cc41891200eea9bed7d6f4c752ce003f0adb3007d2f4d73ed92c8b9f57",
       "executable": false
     },
+    "src/vane/analytics/visits/locations.ts": {
+      "sha256": "060c647f08c5cbd1d79bd8953d953f70a95d28f0f7b37fc3f5be2382dc746cd8",
+      "executable": false
+    },
     "src/vane/analytics/visits/maintenance.ts": {
       "sha256": "96dbc3f03287649d2e34584ba28dd2b7341b1cbd49e2601c469db6fce319573e",
       "executable": false
@@ -2820,6 +2824,10 @@
     },
     "src/vane/analytics/visits/schema_notes.md": {
       "sha256": "8404782f6163122d11d8afd2525888967ce3159393b78917a2072fab4272b98d",
+      "executable": false
+    },
+    "src/vane/analytics/visits/search.ts": {
+      "sha256": "2f4bf9f4cab96bdeaf08e97063188b48953c7a4a56d39eafafe1cd39acf55648",
       "executable": false
     },
     "src/vane/analytics/visits/series.ts": {
@@ -3427,7 +3435,7 @@
       "executable": false
     },
     "src/vane/search.ts": {
-      "sha256": "e4a45581f93cb0fa8474a6d5c2f7944f95fdc5e884e24dbd748e7ef8dac4aabf",
+      "sha256": "9141beeb561141d78fb11fa8d240acb1dcd657de6051927af29b6ae44587d9bc",
       "executable": false
     },
     "src/vane/segments.ts": {
@@ -3711,7 +3719,7 @@
       "executable": false
     },
     "tests/agency.test.mjs": {
-      "sha256": "abff0d1c84a8a65c1ce761c38bf036bfef0c64a9e8ba95f01652ffdd2df441f9",
+      "sha256": "d15d3ab15d036dbcf5af8170e8b2e3c20a978097303320bba9e848b0a702cf07",
       "executable": false
     },
     "tests/apps-script.mjs": {
