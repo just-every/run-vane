@@ -4067,7 +4067,7 @@
       "executable": false
     },
     "tests/visit-analytics.test.mjs": {
-      "sha256": "d423165a1d88660b286dcb0178560e35b605da4698860cfb97494c6365340e28",
+      "sha256": "bf88d5b1258d4be92f9070b44eedfcf1b3a36e91858de5e6016081979c5c0994",
       "executable": false
     },
     "tsconfig.json": {
