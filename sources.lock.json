@@ -135,7 +135,7 @@
       "executable": false
     },
     "docs/collection-scale.md": {
-      "sha256": "4de6904d8d41aeafebfc4f49e75a8782056e60e48c090626ea2c834693ca619a",
+      "sha256": "2f7aec3028706a88d68784401df0cc0f3dccbc503c9eb97da619821dded88137",
       "executable": false
     },
     "docs/collection.md": {
@@ -3743,7 +3743,7 @@
       "executable": false
     },
     "tests/collection-scale.journey.mjs": {
-      "sha256": "0de28774807dac806605c4fd2561e6b1c090af01d77a256039875f86179a52ac",
+      "sha256": "89117f111d0def805a353ac94948b577846a21df0ea2e9c4ec375e890d4d9a04",
       "executable": false
     },
     "tests/consented.test.mjs": {
