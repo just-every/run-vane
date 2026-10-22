@@ -3859,7 +3859,7 @@
       "executable": false
     },
     "tests/collection-scale.journey.mjs": {
-      "sha256": "e14fcd4a8a071606a382be91420898b63361e92ef09114b72b4568fd23eb1491",
+      "sha256": "356389ce0423d589985f0fd49aed03b887018752fc920c0390308142789d6e92",
       "executable": false
     },
     "tests/consented.test.mjs": {
