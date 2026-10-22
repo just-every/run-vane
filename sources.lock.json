@@ -3655,7 +3655,7 @@
       "executable": false
     },
     "src/vane/team.ts": {
-      "sha256": "19306df26b8f2c1e2dfb543581a2ccbddc696804bc900d2b077760a53ff78c22",
+      "sha256": "d8e354a1210874f35e4b7428f7dee768f76e8f3a9181eb0bd02bf40d8bdeaffa",
       "executable": false
     },
     "src/vane/tracker-compat-options.ts": {
@@ -4107,7 +4107,7 @@
       "executable": false
     },
     "tests/security.test.mjs": {
-      "sha256": "5765327f23f02008fdf5d106f95602e5508405c9e4209e58b083a0c05f568580",
+      "sha256": "892a3fb56a89414958752494d6a04a5d71cae09c4f2091b1fc6f8a6997ea6989",
       "executable": false
     },
     "tests/site.test.mjs": {

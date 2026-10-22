@@ -12,7 +12,10 @@ export async function teamActor(env:Env,operator:{id:string;role:string;displayN
  const clientSites=await clientScope(env,operator.id);
  if(clientSites!==null)return {...operator,access:'viewer',sites:clientSites};
  const grant=(await rows<Grant>(env,'SELECT * FROM vane_grants WHERE operator_id=?',operator.id))[0];
- const sites=grant?.site_ids?JSON.parse(grant.site_ids) as string[]:null;
+ // A removed SCIM person's empty grant must never fall through to the legacy
+ // all-sites default when an owner later reactivates the native account.
+ const provisioned=!grant&&(await rows(env,'SELECT 1 FROM vane_scim_users WHERE operator_id=?',operator.id)).length>0;
+ const sites=grant?.site_ids?JSON.parse(grant.site_ids) as string[]:provisioned?[]:null;
  return {...operator,access:operator.role==='admin'?'admin':grant?.role==='analyst'?'analyst':'viewer',sites};
 }
 const ROLES:Record<string,{base:'admin'|'member',access:Access}>={admin:{base:'admin',access:'admin'},analyst:{base:'member',access:'analyst'},viewer:{base:'member',access:'viewer'}};

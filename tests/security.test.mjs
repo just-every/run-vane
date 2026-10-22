@@ -148,6 +148,8 @@ test('SCIM deactivation ends native and federated sessions, API keys and push to
   const removal=await a.dump(),late=await send('Users','POST',removed);assert.equal(late.status,200);assert.equal((await late.json()).active,false)
   assert.equal((await send('Users/'+secondPerson.id,'DELETE')).status,204)
   dump=await a.dump();for(const table of ['oa_operators','vane_scim_users','vane_grants','vane_audit'])assert.deepEqual(dump[table],removal[table],table)
+  assert.equal((await a.post('/auth/operator/status',{operatorId:secondPerson.id,status:'active'},a.owner)).status,200)
+  const restored=await login(a,removed.userName);assert.deepEqual(await(await a.request('/api/vane/sites',{headers:{cookie:restored}})).json(),[],'native reactivation cannot invent a site grant for a SCIM person')
  }
 })
 
