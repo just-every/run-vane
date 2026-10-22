@@ -73,6 +73,6 @@ export function demoTraffic(t: Traffic, now: number): Row[] {
 // limit) and json_each spreads it into columns.
 export function insertRows(db: D1Database, rows: Row[]): D1PreparedStatement[] {
   const columns = COLUMNS.split(','), statements: D1PreparedStatement[] = []
-  for (let i = 0; i < rows.length; i += 4000) statements.push(db.prepare(`INSERT INTO vane_events(${COLUMNS}) SELECT ${columns.map((_, c) => `json_extract(value,'$[${c}]')`).join(',')} FROM json_each(?) WHERE true ON CONFLICT(id) DO NOTHING`).bind(JSON.stringify(rows.slice(i, i + 4000))))
+  for (let i = 0; i < rows.length; i += 4000) statements.push(db.prepare(`INSERT OR IGNORE INTO vane_events(${COLUMNS}) SELECT ${columns.map((_, c) => `json_extract(value,'$[${c}]')`).join(',')} FROM json_each(?)`).bind(JSON.stringify(rows.slice(i, i + 4000))))
   return statements
 }

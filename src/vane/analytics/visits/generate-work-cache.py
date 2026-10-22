@@ -1,0 +1,99 @@
+"""Generate additive 0089 from the published 0087 trigger definitions.
+
+Only transaction-local work projections change. Keep the original mutation
+sequence, indexed neighbor search, and dirty/legacy reconstruction intact.
+"""
+from pathlib import Path
+import re
+
+ROOT = Path(__file__).resolve().parents[4]
+SOURCE = (ROOT / 'migrations/core/0087_visit_facts.sql').read_text()
+COLUMNS = [
+    ('site', 'INTEGER'), ('context', 'INTEGER'), ('day', 'TEXT'),
+    ('visitor', 'INTEGER'), ('site_id', 'TEXT'), ('at', 'INTEGER'),
+    ('at_offset', 'INTEGER'), ('token', 'BLOB'), ('identity', 'TEXT'),
+    ('prev_at', 'INTEGER'), ('prev_context', 'INTEGER'),
+    ('prev_engaged', 'INTEGER'), ('prev_scroll', 'INTEGER'),
+    ('prev_visit', 'INTEGER'), ('next_at', 'INTEGER'), ('next_visit', 'INTEGER'),
+]
+
+
+def unpack(value):
+    return f"CASE WHEN typeof({value})='blob' THEN lower(hex({value})) ELSE {value} END"
+
+
+# Copy the exact identity representation; all values already exist in raw
+# storage. Queue-provided old/new detail values must survive BEFORE DELETE.
+OWN_VALUES = f"""UPDATE vane_visit_work SET
+ (site,context,day,visitor,site_id,at,at_offset,token,identity)=(
+ SELECT e.site,e.context,c.day,c.visitor,s.site_id,e.at_offset+unixepoch(c.day)*1000,e.at_offset,e.token,
+ CASE WHEN c.consented_visitor IS NOT NULL THEN s.site_id||' c '||({unpack('ci.value')})
+ ELSE s.site_id||' d '||c.day||' '||({unpack('vi.value')}) END
+ FROM vane_raw_events e JOIN vane_raw_contexts c ON c.context=e.context
+ JOIN vane_raw_sites s ON s.site=e.site
+ LEFT JOIN vane_raw_identities vi ON vi.identity=c.visitor
+ LEFT JOIN vane_raw_identities ci ON ci.identity=c.consented_visitor
+ WHERE e.raw_id=NEW.raw_id) WHERE raw_id=NEW.raw_id;"""
+
+NEIGHBOR_VALUES = """UPDATE vane_visit_work SET
+ (prev_at,prev_context,prev_engaged,prev_scroll,prev_visit,next_at,next_visit)=(
+ SELECT p.at_offset+unixepoch(pc.day)*1000,p.context,pd.engaged_at,pd.scroll,p.visit_id,
+ n.at_offset+unixepoch(nc.day)*1000,n.visit_id
+ FROM vane_visit_work w
+ LEFT JOIN vane_raw_events p ON p.raw_id=w.prev
+ LEFT JOIN vane_raw_contexts pc ON pc.context=p.context
+ LEFT JOIN vane_raw_details pd ON pd.raw_id=p.raw_id
+ LEFT JOIN vane_raw_events n ON n.raw_id=w.next
+ LEFT JOIN vane_raw_contexts nc ON nc.context=n.context
+ WHERE w.raw_id=NEW.raw_id) WHERE raw_id=NEW.raw_id;"""
+
+
+def trigger(name):
+    match = re.search(rf'CREATE TRIGGER {name}\b.*?\n END ;', SOURCE, re.S)
+    if not match:
+        raise ValueError(f'Published trigger missing: {name}')
+    header, body = match.group().split('BEGIN\n', 1)
+    neighbors, rest = body.split(';', 1)
+    # Only the source of the existing neighbor/gap lookup changes. The indexed
+    # physical (context,at_offset,token) search and its tie ordering stay exact.
+    neighbors = neighbors.replace('FROM vane_visit_raw r WHERE r.raw_id=NEW.raw_id',
+                                  'FROM vane_visit_work r WHERE r.raw_id=NEW.raw_id')
+    result = header + 'BEGIN\n ' + OWN_VALUES + '\n' + neighbors + ';\n ' + NEIGHBOR_VALUES + rest
+    result = result.replace('vane_visit_work_values', 'vane_visit_work')
+    if name == 'vane_visit_append':
+        # Canonical chains compare their unchanged physical tokens. Fact times
+        # already hold the exact endpoint times, including after a late bridge.
+        result = result.replace('(SELECT at,token FROM vane_visit_raw WHERE raw_id=first_raw)',
+                                '(started,(SELECT token FROM vane_raw_events WHERE raw_id=first_raw))')
+        result = result.replace('(SELECT at,token FROM vane_visit_raw WHERE raw_id=last_raw)',
+                                '(last_at,(SELECT token FROM vane_raw_events WHERE raw_id=last_raw))')
+    else:
+        # A decreasing/replaced last engagement recomputes the real maximum.
+        # The explicit NEW.raw_id branch remains essential for BEFORE DELETE.
+        result = result.replace('FROM vane_visit_raw r WHERE r.visit_id=vane_visit_facts.visit',
+                                'FROM vane_raw_events r JOIN vane_raw_contexts signal_context ON signal_context.context=r.context '
+                                'LEFT JOIN vane_raw_details signal_details ON signal_details.raw_id=r.raw_id '
+                                'WHERE r.visit_id=vane_visit_facts.visit')
+        result = re.sub(r'\br\.at\b', '(r.at_offset+unixepoch(signal_context.day)*1000)', result)
+        result = result.replace('r.engaged_at', 'signal_details.engaged_at')
+    if 'vane_visit_raw' in result or 'vane_visit_work_values' in result:
+        raise ValueError(f'Unconverted logical projection in {name}')
+    return result
+
+
+def generate():
+    parts = ["""-- Cache existing raw and neighbor values once per visit mutation instead of
+-- repeatedly expanding the logical raw view during SQLite trigger preparation.
+-- All added fields are transaction-local scratch, cleared by the existing queue
+-- triggers. No retained occurrence, collected identifier, or metric changes.
+-- Generated by src/vane/analytics/visits/generate-work-cache.py."""]
+    parts.extend(f'ALTER TABLE vane_visit_work ADD COLUMN {name} {kind};' for name, kind in COLUMNS)
+    parts += ['DROP TRIGGER vane_visit_append;', 'DROP TRIGGER vane_visit_detail_change;',
+              'DROP VIEW vane_visit_work_values;', trigger('vane_visit_append'),
+              trigger('vane_visit_detail_change')]
+    # Keep CASE/END token boundaries explicit for Wrangler's SQL splitter.
+    return re.sub(r'\b(CASE|END)\b', r' \1 ', '\n\n'.join(parts)) + '\n'
+
+
+if __name__ == '__main__':
+    (ROOT / 'migrations/core/0089_visit_work_cache.sql').write_text(generate())
