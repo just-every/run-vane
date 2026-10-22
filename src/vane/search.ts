@@ -1,6 +1,7 @@
 import { visitorKey } from './visitor-key'
 import { gapSql } from './definitions'
 import type { Env } from './core'
+import { readSearchMetrics } from './analytics/visits/search'
 // DASH-012: a site-search term is lowercased and its spaces collapsed. A term that looks personal (an
 // email address, a phone or account number, a URL) is dropped before storage: the search still counts,
 // as an empty term. A term is reported only once two different visitor hashes searched it on one day,
@@ -14,6 +15,7 @@ q AS (SELECT *,CASE WHEN prev_at IS NULL OR at-prev_at>gap THEN 1 ELSE 0 END AS 
 s AS (SELECT * FROM q WHERE search IS NOT NULL),
 sv AS (SELECT day,visitor,visit,COUNT(*) AS searches,MAX(ends) AS exited FROM s GROUP BY day,visitor,visit)`
 export async function searchMetrics(env:Env,siteId:string,from:string,to:string,events='vane_events') {
+ if(events==='vane_events')return readSearchMetrics(env,siteId,from,to)
  const timed=timedFrom(events)
  const [totals,terms,starts]=await env.DB.batch<any>([
   env.DB.prepare(`${timed} SELECT (SELECT COUNT(*) FROM s) AS searches,(SELECT COUNT(*) FROM sv) AS visits,(SELECT SUM(exited) FROM sv) AS exits`).bind(siteId,from,to),

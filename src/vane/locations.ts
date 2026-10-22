@@ -1,6 +1,7 @@
 import type { Env } from './core'
 import { timedFrom, type VisitRow } from './visits'
 import { leadingPlace, named, UNKNOWN_LOCATION, UNKNOWN_METRO, type MetroNaming, type Place } from './metro-names'
+import { readLocationMetrics, readMetroPlaces } from './analytics/visits/locations'
 // DASH-005: a page load's location comes from Cloudflare's request geolocation at collection: the country (stored
 // as its English name), the first-level region (a US state, a Canadian province, England), the city, and for US
 // visitors the Nielsen metro area (DMA) code, only when it is exactly 3 ASCII digits. Never an IP address and never a
@@ -27,6 +28,7 @@ export type LocationLevel=keyof typeof LEVELS
 const seconds=(ms:unknown)=>ms===null||ms===undefined?null:Math.round(Number(ms)/1000)
 const rate=(part:number,whole:number)=>whole?Math.round(part/whole*1000)/10:null
 export async function locationMetrics(env:Env,scope:string,from:string,to:string,goal:string|null,events:string,revenue='NULL',naming?:MetroNaming):Promise<Record<LocationLevel,LocationRow[]>> {
+ if(events==='vane_events')return readLocationMetrics(env,scope,from,to,goal,revenue,naming)
  const levels=Object.keys(LEVELS) as LocationLevel[]
  const results=await env.DB.batch<any>(levels.map(level=>{const cols=LEVELS[level],expression=(c:string)=>c==='metro'?metroKeySql('q'):`COALESCE(q.${c},'${UNKNOWN_LOCATION}')`;return env.DB.prepare(`${timedFrom(events,revenue)},
 x AS (SELECT ${cols.map(c=>`${expression(c)} AS ${c}`).join(',')},v.* FROM q JOIN v USING(day,visitor,visit) WHERE q.starts=1 ${level==='metros'?"AND q.country='United States'":''}),
@@ -36,6 +38,7 @@ SELECT ${cols.join(',')},COUNT(DISTINCT identity) AS visitors,COUNT(*) AS visits
 }
 // Each coded metro's observed place over the range's first page loads, counted as the report counts (daily uniques).
 export async function metroPlaces(env:Env,scope:string,from:string,to:string,events:string):Promise<Record<string,Place>> {
+ if(events==='vane_events')return readMetroPlaces(env,scope,from,to)
  const result=await env.DB.prepare(`${timedFrom(events)} SELECT metro_code,city,region,COUNT(DISTINCT identity) AS visitors FROM q WHERE starts=1 AND country='United States' AND metro_code IS NOT NULL GROUP BY metro_code,city,region`).bind(scope,from,to,null).all<{metro_code:string,city:string|null,region:string|null,visitors:number}>()
  const codes=[...new Set(result.results.map(r=>r.metro_code))]
  return Object.fromEntries(codes.flatMap(code=>{const place=leadingPlace(result.results.filter(r=>r.metro_code===code).map(r=>({...r,visitors:Number(r.visitors)})));return place?[[code,place]]:[]}))
