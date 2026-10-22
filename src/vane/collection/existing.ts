@@ -1,13 +1,10 @@
 import { type Env } from '../core'
-import { encodeRawId } from '../raw'
 import type { ValidatedPageview } from './validation'
 
 export interface ExistingPageview { id: string; path: string; source: string; campaign: string }
 export async function existingPageviews(env: Env, plans: ValidatedPageview[]) {
  const wanted = [...new Map(plans.map(plan => [plan.eventId, plan])).values()].map(plan => {
-  const token = encodeRawId(plan.value.id, plan.eventId)
-  return [plan.eventId, plan.value.id, typeof token === 'string' ? 'text' : 'blob',
-   typeof token === 'string' ? token : Array.from(new Uint8Array(token), byte => byte.toString(16).padStart(2, '0')).join('')]
+  return [plan.eventId, plan.value.id,...plan.rawToken]
  })
  // Start with the bounded requested IDs and seek each exact physical key.
  // Expanding an OR over the logical history can instead scan that history as

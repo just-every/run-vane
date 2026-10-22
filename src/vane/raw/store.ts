@@ -1,5 +1,5 @@
 import type { Env } from '../core'
-import { encodeRawHash, encodeRawId, rawIdSite } from './codec'
+import { encodeRawHash, encodeRawId, rawIdSite, type RawToken } from './codec'
 import { RAW_DIMENSIONS, type RAW_COLUMNS, contextColumns } from './schema'
 export type RawRecord = Partial<Record<typeof RAW_COLUMNS[number],string|number|null>> & {id:string;site_id:string;day:string;kind:string;path:string;source:string;campaign:string;consent:string}
 export function rawEventPredicate(id:string,alias='',siteId=rawIdSite(id)) {
@@ -63,9 +63,9 @@ function decodedValue(path:string) {
 function groupMatchSql(context:string,at:string) {
  return `g.context=${context} AND (g.at_offset IS NULL)=(${at} IS NULL) AND coalesce(g.at_offset,0)=coalesce(${at},0) AND (g.visit_id IS NULL)=1 AND coalesce(g.visit_id,0)=0`
 }
-function rawBatch(records:RawRecord[]) {
- const contexts:unknown[][]=[],indices=new Map<string,number>()
- const rows=records.map(record=>{
+export function prepareRawBatch(records:RawRecord[],tokens:RawToken[]) {
+ const contexts:unknown[][]=[],indices=new Map<string,number>(),groups:{record:RawRecord;tokens:RawToken[];ids:Set<string>}[]=[]
+ const rows=records.map((record,position)=>{
   // The key contains every actual context value, never a digest or a selected
   // representative timestamp. Encode identity bytes only for new exact contexts.
   const key=JSON.stringify([record.site_id,record.day,record.kind,RAW_DIMENSIONS.map(name=>record[name]??null),
@@ -76,14 +76,17 @@ function rawBatch(records:RawRecord[]) {
    indices.set(key,index)
    const c=rawContext(record)
    contexts.push([...c.values.slice(0,4),jsonValue(c.visitor),jsonValue(c.consented),...c.values.slice(6)])
+   groups.push({record,tokens:[],ids:new Set()})
   }
-  return [index,jsonValue(encodeRawId(record.site_id,record.id)),record.at??null]
+  const group=groups[index]!
+  if(!group.ids.has(record.id)){group.ids.add(record.id);group.tokens.push(tokens[position]!)}
+  return [index,tokens[position]!,record.at??null]
  })
  const site="(SELECT site FROM vane_raw_sites WHERE site_id=json_extract(row.value,'$[0]'))"
  const match=contextColumns.split(',').map((name,i)=>`c.${name} IS ${i===0?site:i===4||i===5
   ?`(SELECT identity FROM vane_raw_identities WHERE value=${decodedValue(`$[${i}]`)})`
   :`json_extract(row.value,'$[${i}]')`}`).join(' AND ')
- return {rows:JSON.stringify(rows),contexts:JSON.stringify(contexts),site,
+ return {groups,rows:JSON.stringify(rows),contexts:JSON.stringify(contexts),site,
   context:`(SELECT context FROM vane_raw_contexts c WHERE ${match})`}
 }
 // Resolve each distinct context once into transaction-local integer references.
@@ -92,8 +95,7 @@ function rawBatch(records:RawRecord[]) {
 // integrity trigger must reject them rather than allowing a join to drop them.
 // The caller clears vane_collection_batch_contexts AFTER its immediate changes()
 // guard, inside this same transaction. The physical INSERT must remain last here.
-export function rawInsertManyStatements(env:Env,records:RawRecord[],when:RawCondition={sql:'1',values:[]}):D1PreparedStatement[] {
- const b=rawBatch(records)
+export function rawInsertManyStatements(env:Env,b:ReturnType<typeof prepareRawBatch>,when:RawCondition={sql:'1',values:[]}):D1PreparedStatement[] {
  const from=`FROM json_each(?) row
   LEFT JOIN vane_collection_batch_contexts b ON b.context_index=json_extract(row.value,'$[0]')
   LEFT JOIN vane_raw_contexts c ON c.context=b.context`

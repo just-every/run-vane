@@ -7,6 +7,7 @@ import { hostOf, keptValue, pathAllowed, redactPath, storedPath, visitSource } f
 import { paymentReferrer } from '../revenue'
 import { searchTerm } from '../search'
 import { validationContext } from './validation-context'
+import { rawToken } from '../raw/codec'
 
 export class CollectionRefusal extends VaneError {
  constructor(code: string, message: string, status: number, public reason: 'excluded-path' | TrafficReason) { super(code, message, status) }
@@ -40,7 +41,8 @@ export async function validatePageview(request: Request, value: Site, origin: st
  insist(context.consent(value, payload.consent), 'consent', 'Consent is required for collection.', 403)
  const event = { hostname: hostOf(origin), path, source: mail && !utmSource && !keptValue(payload.ref) ? 'webmail' : visitSource(utmSource, keptValue(payload.ref), refHost, own), referrer: referrer && referrer.protocol !== 'android-app:' && !mail && !own.includes(referrer.hostname.toLowerCase()) ? referrer.hostname.toLowerCase() + redactPath(referrer.pathname || '/') : null, campaign: keptValue(payload.campaign) ?? 'none', utmSource, utmMedium: keptValue(utm.medium), utmTerm: keptValue(utm.term), utmContent: keptValue(utm.content), paidClick: payload.click ? 1 : 0, query: kept.length ? kept.join('&') : null }
  const identity = await consentedIdentity(value, request, payload, now)
- return { value, payload, event, identity, now, today: context.today(value), eventId: value.id + ':' + payload.id,
+ const eventId=value.id+':'+payload.id
+ return { value, payload, event, identity, now, today: context.today(value), eventId, rawToken:rawToken(value.id,eventId),
   props: cleanProps(payload.props), device: context.device(payload.width), geo: context.location(), search: payload.search === undefined ? null : searchTerm(payload.search),
   payment: !utmSource && !keptValue(payload.ref) && paymentReferrer(refHost), channel: channelOf(event.source, event.utmMedium, event.paidClick === 1) }
 }

@@ -15,3 +15,8 @@ export function encodeRawHash(value:string|null|undefined):ArrayBuffer|string|nu
  return Uint8Array.from(value.match(/../g)!,byte=>parseInt(byte,16)).buffer
 }
 export function rawIdSite(id:string):string { return id.slice(0,id.indexOf(':')) }
+export type RawToken = ['text'|'blob',string]
+export function rawToken(siteId:string,id:string):RawToken {
+ const token=encodeRawId(siteId,id)
+ return typeof token==='string'?['text',token]:['blob',Array.from(new Uint8Array(token),byte=>byte.toString(16).padStart(2,'0')).join('')]
+}

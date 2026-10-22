@@ -1,6 +1,5 @@
 import { site, statement, uid, VaneError, type Env } from '../core'
-import { encodeRawId, rawInsertManyStatements, rawNormalizeStatements, type RawRecord } from '../raw'
-import { RAW_DIMENSIONS } from '../raw/schema'
+import { prepareRawBatch, rawInsertManyStatements, rawNormalizeStatements } from '../raw'
 import { bulkOccurrences } from '../analytics/bulk'
 import { beginBulkVisits, finishBulkVisits } from '../analytics/visits/bulk'
 import { collectionContext, type PreparedPageview } from './context'
@@ -27,21 +26,8 @@ export async function admitPageviews(request: Request, env: Env, validated: Vali
   observed.add(plan.eventId)
  }
  const batchId = uid(), statements: D1PreparedStatement[] = [statement(env, 'DELETE FROM vane_guard')]
- const pages = prepared.map(plan => pageviewRecord(request, plan)), contexts = new Map<string, { record: RawRecord; ids: Set<string> }>()
- for (const page of pages) {
-  // Exactly the values interned by raw/store.ts: no assumed similarity based
-  // on batch position, event count, path alone, or a scale fixture.
-  const key = JSON.stringify([page.site_id, page.day, page.kind, RAW_DIMENSIONS.map(name => page[name] ?? null), page.visitor ?? null,
-   page.consented_visitor ?? null, page.consented_created_at ?? null, page.consented_expires_at ?? null])
-  let group = contexts.get(key)
-  if (!group) { group = { record: page, ids: new Set() }; contexts.set(key, group) }
-  group.ids.add(page.id)
- }
- for (const { record, ids } of contexts.values()) {
-  const tokens = [...ids].map(id => {
-   const token = encodeRawId(record.site_id, id)
-   return typeof token === 'string' ? ['text', token] : ['blob', Array.from(new Uint8Array(token), byte => byte.toString(16).padStart(2, '0')).join('')]
-  })
+ const pages = prepared.map(plan => pageviewRecord(request, plan)), raw = prepareRawBatch(pages,prepared.map(plan=>plan.rawToken))
+ for (const { record, tokens } of raw.groups) {
   // Bind the actual IDs as one bounded JSON set, keeping D1's parameter count
   // small even for 1000 members. Every lookup uses the physical (site,token)
   // index. A first member that won a race cannot suppress another new member's
@@ -55,9 +41,7 @@ export async function admitPageviews(request: Request, env: Env, validated: Vali
  // Read the indexed physical row and only the three conflict dimensions rather
  // than expanding the compatibility view for each input.
  const checks = JSON.stringify(prepared.map(plan => {
-  const token = encodeRawId(plan.value.id, plan.eventId)
-  return { site: plan.value.id, version: plan.value.version, id: plan.eventId,
-   token: typeof token === 'string' ? ['text', token] : ['blob', Array.from(new Uint8Array(token), byte => byte.toString(16).padStart(2, '0')).join('')],
+  return { site: plan.value.id, version: plan.value.version, id: plan.eventId,token:plan.rawToken,
    path: plan.event.path, source: plan.event.source, campaign: plan.event.campaign, payment: plan.payment ? 1 : 0 }
  }))
  const tokenSql = "CASE WHEN json_extract(row.value,'$.token[0]')='blob' THEN unhex(json_extract(row.value,'$.token[1]')) ELSE json_extract(row.value,'$.token[1]') END"
@@ -80,7 +64,7 @@ export async function admitPageviews(request: Request, env: Env, validated: Vali
   WHERE NOT EXISTS(SELECT 1 FROM vane_raw_events WHERE site=${physicalSite} AND token=${tokenSql})
   GROUP BY json_extract(row.value,'$.site'),${tokenSql}`, batchId, checks))
  statements.push(...beginBulkVisits(env))
- statements.push(...rawInsertManyStatements(env, pages, {
+ statements.push(...rawInsertManyStatements(env, raw, {
   sql: 'EXISTS(SELECT 1 FROM vane_collection_batch_admitted WHERE batch_id=? AND record_index=CAST(row.key AS INTEGER))', values: [batchId],
  }))
  statements.push(statement(env, `INSERT INTO vane_guard(value)
