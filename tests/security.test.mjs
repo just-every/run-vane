@@ -1,0 +1,86 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import { installation } from './harness.mjs'
+import { oidcInstallation,samlInstallation,enroll,login,otp,session } from './security-fixtures.mjs'
+
+const patch='urn:ietf:params:scim:api:messages:2.0:PatchOp',userSchema='urn:ietf:params:scim:schemas:core:2.0:User'
+const scim=(a,path,method='GET',body,token='synthetic-vane-1')=>a.request('/scim/v2/'+path,{method,headers:{authorization:'Bearer '+token,'content-type':'application/scim+json'},...(body?{body:JSON.stringify(body)}:{})})
+const privateDoors=['/app','/app?section=team','/api/vane/sites','/api/vane/audit','/api/vane/export','/auth/session','/auth/operators','/auth/sessions','/auth/providers','/auth/domain-rules','/auth/settings/identity','/setup']
+
+test('organization OIDC signs in Google and Entra members, refuses altered proofs and replay, and fences existing sessions when SSO is required',async t=>{
+ const {a,signin,begin}=await oidcInstallation(t)
+ const member=await a.invite('member@example.test','member')
+ for(const id of ['google','microsoft']) {
+  const r=await signin(id,'member@example.test');assert.equal(r.response.status,303,await r.response.clone().text());assert.equal((await session(a,r.nativeCookie)).status,200)
+  assert.equal((await a.request(r.callback,{headers:{cookie:r.binding}})).status,400)
+ }
+ for(const overrides of [{aud:'synthetic-vane-wrong'},{iss:'https://synthetic-vane-foreign.example'},{nonce:'synthetic-vane-wrong'},{exp:1}]) {
+  const bad=await signin('google','member@example.test',overrides);assert.equal(bad.response.status,400);assert.equal(bad.nativeCookie.includes('operator_session'),false)
+ }
+ const unbound=await begin('google','member@example.test');assert.equal((await a.request(unbound.callback)).status,400)
+ assert.equal((await a.post('/auth/security/policy',{requireSso:true},a.owner)).status,409)
+ const owner=await signin('google','owner@example.test');assert.equal(owner.response.status,303)
+ assert.equal((await a.post('/auth/security/policy',{requireSso:true},owner.nativeCookie)).status,303)
+ for(const cookie of [a.owner,member])for(const path of privateDoors){const r=await a.request(path,{headers:{cookie}});assert.ok([303,403].includes(r.status),path+' '+r.status);if(r.status===303)assert.equal(r.headers.get('location'),'/auth/security/sso')}
+ assert.equal((await a.post('/auth/invite',{email:'refused@example.test',role:'member'},a.owner)).status,403)
+ assert.equal((await a.post('/auth/security/policy',{},member)).status,403)
+ assert.equal((await session(a,owner.nativeCookie)).status,200)
+})
+
+test('SAML fixture signs existing invited accounts into native sessions, enforces signed binding constraints and refuses response replay',async t=>{
+ const {a,response}=await samlInstallation(t)
+ assert.equal((await a.post('/auth/invite',{email:'member@example.test',role:'member'},a.owner)).status,202)
+ const valid=await response(),r=await valid.complete();assert.equal(r.status,303,await r.clone().text());const cookie=a.cookieOf(r)
+ assert.equal((await session(a,cookie)).status,200);assert.equal((await valid.complete()).status,400)
+ for(const overrides of [{recipient:'https://synthetic-vane-foreign.example'},{destination:'https://synthetic-vane-foreign.example'},{audience:'synthetic-vane-wrong'},{expiry:'2000-01-01T00:00:00Z'},{requestId:'synthetic-vane-wrong'},{tamper:true}])assert.equal((await(await response('synthetic-vane-member',overrides)).complete()).status,400,JSON.stringify(overrides))
+ const meta=await a.request('/auth/saml/metadata');assert.equal(meta.status,200);assert.ok((await meta.text()).includes(a.origin+'/auth/saml/callback'))
+ const owner=await(await response('synthetic-vane-owner')).complete();assert.equal(owner.status,303)
+ assert.equal((await a.post('/auth/security/policy',{requireSso:true},a.cookieOf(owner))).status,303)
+ assert.equal((await session(a,a.owner)).status,303);assert.equal((await session(a,cookie)).status,200)
+})
+
+test('SCIM provisions only a live owner invitation and deprovisioning immediately ends native, OIDC and SAML access without removing the owner',async t=>{
+ for(const kind of ['oidc','saml']) {
+  const fx=kind==='oidc'?await oidcInstallation(t):await samlInstallation(t),{a}=fx
+  assert.equal((await a.post('/auth/invite',{email:'member@example.test',role:'member'},a.owner)).status,202)
+  const provision=await scim(a,'Users','POST',{schemas:[userSchema],userName:'member@example.test',externalId:'synthetic-vane-2',active:true});assert.equal(provision.status,201,await provision.clone().text());const person=await provision.json();assert.equal(person.active,false)
+  assert.equal((await scim(a,'Users','POST',{schemas:[userSchema],userName:'foreign@example.test'})).status,409)
+  const native=await a.accept('member@example.test'),signed=kind==='oidc'?(await fx.signin('google','member@example.test')).response:await(await fx.response()).complete();assert.equal(signed.status,303)
+  const cookie=a.cookieOf(signed);assert.equal((await session(a,cookie)).status,200)
+  assert.equal((await scim(a,'Users/'+person.id,'PATCH',{schemas:[patch],Operations:[{op:'replace',path:'active',value:false}]},'synthetic-vane-wrong')).status,401)
+  assert.equal((await scim(a,'Users/'+person.id,'PATCH',{schemas:[patch],Operations:[{op:'replace',value:{active:false}}]})).status,200)
+  for(const held of [native,cookie])for(const path of ['/auth/session','/api/vane/sites'])assert.equal((await a.request(path,{headers:{cookie:held}})).status,401)
+  const owner=await(await session(a,a.owner)).json();assert.equal((await scim(a,'Users/'+owner.operator.id,'DELETE')).status,404)
+  assert.equal((await scim(a,'Users/'+person.id,'PATCH',{schemas:[patch],Operations:[{op:'replace',path:'active',value:true}]})).status,400)
+  const retry=kind==='oidc'?(await fx.signin('google','member@example.test')).response:await(await fx.response()).complete();assert.equal(retry.status,400)
+ }
+})
+
+test('authenticator sign-in refuses wrong and replayed codes, consumes a recovery code once, and excludes credentials from analytics archives',async t=>{
+ const a=await installation();t.after(()=>a.close());const email='member@example.test',member=await a.invite(email,'member'),{secret,codes}=await enroll(a,member)
+ let cookie=await login(a,email)
+ for(const path of privateDoors){const r=await a.request(path,{headers:{cookie}});assert.ok([303,403].includes(r.status),path);if(r.status===303)assert.equal(r.headers.get('location'),'/auth/security/challenge')}
+ assert.equal((await a.post('/auth/security/verify',{code:'wrong'},cookie)).status,403)
+ assert.equal((await a.post('/auth/security/verify',{code:otp(secret,Math.floor(Date.now()/30000)+1)},cookie)).status,303)
+ assert.equal((await session(a,cookie)).status,200)
+ cookie=await login(a,email)
+ assert.equal((await a.post('/auth/security/verify',{code:codes[0]},cookie)).status,303)
+ cookie=await login(a,email)
+ assert.equal((await a.post('/auth/security/verify',{code:codes[0]},cookie)).status,403)
+ const archive=await a.archive();assert.equal(Object.keys(archive.payload.tables).some(k=>/^vane_(totp|second_step|security|saml)_/.test(k)),false)
+ const text=JSON.stringify(await a.dump());assert.equal(text.includes(secret),false);assert.equal(text.includes(codes[0]),false)
+})
+
+test('owner enforcement holds every account without a factor at enrollment, refuses private mutations and enrolls it before authenticator sign-in',async t=>{
+ const a=await installation();t.after(()=>a.close());const member=await a.invite('member@example.test','member'),other=await a.invite('other@example.test','member')
+ assert.equal((await a.post('/auth/security/policy',{requireSecond:true},a.owner)).status,409)
+ await enroll(a,a.owner);assert.equal((await a.post('/auth/security/policy',{requireSecond:true},a.owner)).status,303)
+ for(const cookie of [member,other])for(const path of privateDoors){const r=await a.request(path,{headers:{cookie}});assert.ok([303,403].includes(r.status),path);if(r.status===303)assert.equal(r.headers.get('location'),'/auth/security/enroll')}
+ assert.equal((await a.post('/app/action',{operation:'site.create'},member)).status,403)
+ assert.equal((await a.post('/auth/security/identity',{},member)).status,303)
+ const {secret}=await enroll(a,member);assert.equal((await a.request('/api/vane/sites',{headers:{cookie:member}})).status,200)
+ const signed=await login(a,'member@example.test');assert.equal((await a.request('/api/vane/sites',{headers:{cookie:signed}})).status,403)
+ assert.equal((await a.post('/auth/security/verify',{code:otp(secret,Math.floor(Date.now()/30000)+1)},signed)).status,303)
+ assert.equal((await a.request('/api/vane/sites',{headers:{cookie:signed}})).status,200)
+ assert.equal((await a.post('/auth/security/policy',{},a.owner,{origin:'https://foreign.example'})).status,403)
+})

@@ -1,3 +1,5 @@
+import { securityFence } from './vane/security/routes'
+import { rawOperatorAuth } from './auth.server'
 import { resolveProxy } from './vane/proxy/ingress'
 import { agencyHostResponse } from './vane/agency/domains'
 import { runChatReports } from './vane/chat/delivery'
@@ -88,6 +90,8 @@ export default withDemo({
     if (mailEvent) return mailEvent
     const keyed = await apiDoor(request, env)
     if (keyed) return keyed
+    const held = await securityFence(request,runtimeBindings(env),rawOperatorAuth(runtimeBindings(env)))
+    if (held) return held
     const auth = await authResponse(request, env)
     if (auth) return auth
     const vane = await vaneResponse(request, env)

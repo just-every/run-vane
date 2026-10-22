@@ -1,3 +1,4 @@
+import { securityPolicy } from './security/policy'
 import { allow, digest, inScope, insist, rows, sites, statement, uid, VaneError, type Actor, type Env } from './core'
 import { auditStatement } from './audit'
 import { clock } from './clock'
@@ -48,6 +49,8 @@ export async function keyOf(env:Env,request:Request,kind:KeyKind):Promise<ApiKey
  if(!token)throw new ApiRefusal('unauthorized','Send an API key as Authorization: Bearer <key>.',401);
  const found=(await rows<ApiKey>(env,"SELECT k.* FROM vane_api_keys k JOIN oa_operators o ON o.id=k.created_by AND o.status='active' WHERE k.token_hash=? AND k.revoked_at IS NULL",await digest(token)))[0];
  if(!found)throw new ApiRefusal('unauthorized','This API key is unknown or revoked.',401);
+ const security=await securityPolicy(env)
+ if(security.secondStep&&!(await rows(env,'SELECT 1 FROM vane_totp_credentials WHERE operator_id=?',found.created_by)).length)throw new ApiRefusal('second_step_required','The key custodian must enroll a second step.',403)
  if(found.kind!==kind)throw new ApiRefusal('forbidden',{stats:'Use a Stats API key to read statistics.',events:'Use the site’s events token to send events.',provisioning:'Use a provisioning key to create sites, goals and shared links.'}[kind],403);
  // Each request is kept only as these counts, and the UTC day's count (scope d) is the key's audit of its use.
  const limits=kind==='events'?{burst:EVENT_LIMITS.burst,hourly:{requests:Infinity,seconds:3600}}:RATE_LIMITS;

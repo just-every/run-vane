@@ -158,6 +158,10 @@
       "sha256": "dbdaf1ee66db565b5571d2dd4e65d4e1cae19314a54b7160a9eb7c9915fb3388",
       "executable": false
     },
+    "docs/sign-in-security.md": {
+      "sha256": "64ecbc00f46eaf61af6ed4487dcc9cbb544d59670ae9f6b4a170b06ff904dc43",
+      "executable": false
+    },
     "docs/umami-import.md": {
       "sha256": "d29dd33139a02b9b20460f29213521f8552bcc4a795c6cde3cd76615386114d9",
       "executable": false
@@ -530,6 +534,18 @@
       "sha256": "57e7895d879d30cfeaf5c23dc796606051c6ad351c62f70d9c778c29943d63b7",
       "executable": false
     },
+    "migrations/core/0104_vane_security.sql": {
+      "sha256": "db3624cbb23e140241d4d95f9bb4c228be37d341b111ea860e2860071b391b96",
+      "executable": false
+    },
+    "migrations/core/0105_vane_second_step.sql": {
+      "sha256": "10e8fc76c06832f91321fff401e5bc7f6a8506fac7953ad540044f824f9df97a",
+      "executable": false
+    },
+    "migrations/core/0106_vane_federation.sql": {
+      "sha256": "40a9e0a39177b317098d81403671d016779a70fa14fd267f0d27389d1de6ae45",
+      "executable": false
+    },
     "ONBOARDING.md": {
       "sha256": "b28a79254e2278d81d877ffd5987972aaf135d85683ae285b52fd98cc44e608e",
       "executable": false
@@ -543,11 +559,11 @@
       "executable": false
     },
     "package.json": {
-      "sha256": "3c1aea88dc616027f28f4a149bf4d418f9ebb78f15393014c655c662ea033476",
+      "sha256": "648e4c7073269d00dc90b41fad546cf75b44a7d0862ff119152727aee99b9938",
       "executable": false
     },
     "pnpm-lock.yaml": {
-      "sha256": "7fcd4956819c2962f0838a82c1d74999b7571d5efd8e6e011c7c2e8e70e22226",
+      "sha256": "48b334aeaca98595b1871e5175f55b43cc241004a28b3a14df97ae9b47b6ea7b",
       "executable": false
     },
     "public/apple-touch-icon.png": {
@@ -987,7 +1003,7 @@
       "executable": false
     },
     "src/auth.server.ts": {
-      "sha256": "d08bc24c7af0246d957ab63b11fae09359771cc5a537909b9a4f134695191183",
+      "sha256": "264ff6e6e1cbab32a04f49cca96daf34b4bc626bfcb7826fb9ddb7c167dc0b09",
       "executable": false
     },
     "src/base/contract-filter.ts": {
@@ -2614,6 +2630,10 @@
       "sha256": "739808e5ad58b982d7d40a0ce2dc3836b90d57f515d8ce904cf6cf90965ed745",
       "executable": false
     },
+    "src/modules/operator-auth/page.d.mts": {
+      "sha256": "b55e281d096bb70266e2c60de850205dfc08464aa15497bd2cfdd11f30a564ef",
+      "executable": false
+    },
     "src/modules/operator-auth/page.mjs": {
       "sha256": "3fa120d55b8ff80c613e53d4df3fb4a249cadf508b2b3144f94fd89afbdd22e4",
       "executable": false
@@ -2711,7 +2731,7 @@
       "executable": false
     },
     "src/server.ts": {
-      "sha256": "d2418175f072f5d3fb447a4c0b6f951a851ee7691c174ef81d1403bdb3b28d6c",
+      "sha256": "ae1ceb20493d7f53129edd8276661e2ae8da39d96460ea0d1035c9e52bce3caf",
       "executable": false
     },
     "src/site/docs/manifest.ts": {
@@ -2963,11 +2983,11 @@
       "executable": false
     },
     "src/vane/api-keys.ts": {
-      "sha256": "550317d6c6fa624bf12c23eee3487f30c02b047f24e5bd1c046909b23afa536b",
+      "sha256": "4fb5a5d647a4c874ffcc1211960e68556cc555dbb28cdbe9876fc74f2f76abfc",
       "executable": false
     },
     "src/vane/archive.ts": {
-      "sha256": "3f089ea836a69ae2dadbd9db3bf11e27fd903c8d7b230435640b5105af9014fb",
+      "sha256": "0fb4b90c1a52224348751b9e5ebb649d821dd2c9c62cc4f15a925afd053bff84",
       "executable": false
     },
     "src/vane/audit.ts": {
@@ -3570,6 +3590,30 @@
       "sha256": "9141beeb561141d78fb11fa8d240acb1dcd657de6051927af29b6ae44587d9bc",
       "executable": false
     },
+    "src/vane/security/page.ts": {
+      "sha256": "49a95eb48fb68a17e949ade764e31643c8516cfffc604c5c4bfbaa649104e43c",
+      "executable": false
+    },
+    "src/vane/security/policy.ts": {
+      "sha256": "4baad2a58f5f9de88bb381e5437c022be1535ec4df08b64ed1922aa787e53d8e",
+      "executable": false
+    },
+    "src/vane/security/routes.ts": {
+      "sha256": "c2ef140b1118bae6a96b269a343eaa6205105862210c2c32594d85b7a91d59a0",
+      "executable": false
+    },
+    "src/vane/security/saml.ts": {
+      "sha256": "83290bc0ea535f7fff5e98e531fd13a82a536e0fe29dfc027605778651bc7af3",
+      "executable": false
+    },
+    "src/vane/security/scim.ts": {
+      "sha256": "c4c621985dc747fdecee09e8c2baee15be2fe90c09168af7eb04f8bb0c9ccc91",
+      "executable": false
+    },
+    "src/vane/security/totp.ts": {
+      "sha256": "aee177e58f07df19b70847174fc9c4880904c8e476e063500548c4a120d84a3d",
+      "executable": false
+    },
     "src/vane/segments.ts": {
       "sha256": "5318b24c658f27b01ef1cad8b56b2218b656a2fa258f9f1cd4a9d6b2e824b7c8",
       "executable": false
@@ -3799,7 +3843,7 @@
       "executable": false
     },
     "src/vane/views/shell.ts": {
-      "sha256": "c31153b0e5f04d5a95ec4b245a9a6ce3e61177d0cb45004890ca37908f1d197d",
+      "sha256": "14776e2ec23c912d8b53d4f11c7f8a46342efaee33696616a41c2df7619bff09",
       "executable": false
     },
     "src/vane/views/store.ts": {
@@ -3811,7 +3855,7 @@
       "executable": false
     },
     "src/vane/views/team.ts": {
-      "sha256": "e945cc8b52733e4259e293dd20388aeff175e685e7a2d51ca094ff3a8a1c171b",
+      "sha256": "72e4f9671dd0e10d1d4a905f161cde47f1b6b9bc046bf50c7a15a3568c625c42",
       "executable": false
     },
     "src/vane/views/types.ts": {
@@ -4036,6 +4080,18 @@
     },
     "tests/search-console.test.mjs": {
       "sha256": "90994a1c7718d71419c916ebd6e0f22f64ea310f382467490012534f304642e8",
+      "executable": false
+    },
+    "tests/security-browser.test.mjs": {
+      "sha256": "3cbf57a223286babe67cc68fa8a649e35aa6e12ae7e0da1f64c641e2c4e6acb0",
+      "executable": false
+    },
+    "tests/security-fixtures.mjs": {
+      "sha256": "cd8d390c9816a1eec18e843e9ecbd88ed3b6166c746db70d8ffe104edc46e8ba",
+      "executable": false
+    },
+    "tests/security.test.mjs": {
+      "sha256": "7e2cbdd471ae1db026e724ef69bfe0c81223cfd12e939671bbd268cfa151c76a",
       "executable": false
     },
     "tests/site.test.mjs": {
