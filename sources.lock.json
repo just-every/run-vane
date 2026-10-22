@@ -4099,7 +4099,7 @@
       "executable": false
     },
     "tests/security-browser.test.mjs": {
-      "sha256": "9274490ce146ff3555e5d5a69cc2c463a75a8a119f38dc8928d89749c23e3618",
+      "sha256": "4394346e418cca9845829b4dbf4e1ac98a8c53b9d724580ab3974615603c30af",
       "executable": false
     },
     "tests/security-fixtures.mjs": {

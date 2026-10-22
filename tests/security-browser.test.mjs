@@ -8,11 +8,16 @@ import { samlInstallation,otp,login,enroll } from './security-fixtures.mjs'
 
 // A native HTTP bridge retains every Set-Cookie header and ordinary redirect.
 // All application behavior still runs in the built Worker; only the IdP/mail edges are fixtures.
-test('members enroll and challenge in a real browser; owner requirements and SAML sign-in render at 1440 and 390',async t=>{
+async function browserInstallation(t) {
  let a,response
  const server=createServer(async(req,res)=>{try{const chunks=[];for await(const chunk of req)chunks.push(chunk);const response=await a.request(req.url,{method:req.method,headers:req.headers,...(!['GET','HEAD'].includes(req.method)?{body:Buffer.concat(chunks)}:{})});res.writeHead(response.status,{...Object.fromEntries(response.headers),'set-cookie':response.headers.getSetCookie()});res.end(Buffer.from(await response.arrayBuffer()))}catch(error){res.destroy(error)}})
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));t.after(async()=>{const closed=new Promise(resolve=>server.close(resolve));server.closeAllConnections();await closed})
  ;({a,response}=await samlInstallation(t,{origin:`http://127.0.0.1:${server.address().port}`}));a.servesHttp=true
+ return {a,response}
+}
+
+test('members enroll and challenge in a real browser; owner requirements and SAML sign-in render at 1440 and 390',async t=>{
+ const {a,response}=await browserInstallation(t)
  const member=await a.invite('member@example.test','member'),other=await a.invite('other@example.test','member')
  const site=await a.addSite({name:'Fern Studio',paths:[]});for(let i=0;i<12;i++)assert.equal((await a.collect(a.event(site,{path:i%3?'/':'/pricing'}))).status,202)
  const {context}=await browse(t,a),page=await context.newPage(),screens=process.env.VANE_SCREEN_DIR
@@ -53,7 +58,7 @@ test('members enroll and challenge in a real browser; owner requirements and SAM
 })
 
 test('owner outage recovery requires a deployment-issued owner link, preserves the second step and audits one recovery at 1440 and 390',async t=>{
- const {a,response}=await samlInstallation(t),member=await a.invite('member@example.test','member')
+ const {a,response}=await browserInstallation(t),member=await a.invite('member@example.test','member')
  await a.addSite({name:'Fern Studio',paths:[]})
  const factor=await enroll(a,a.owner),owner=await(await response('synthetic-vane-owner')).complete(),ssoCookie=a.cookieOf(owner)
  assert.equal((await a.post('/auth/security/verify',{code:factor.codes[0]},ssoCookie)).status,303)
