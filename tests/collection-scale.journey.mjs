@@ -88,6 +88,19 @@ test('COLLECT-004 genuine monthly pageviews, a paced 500/second burst, concurren
  assert.ok(measurements.burst.completedPerSecond>=500,'the receiver kept up with at least 500 genuine events/second')
  monthExpected.set('2025-01',monthExpected.get('2025-01')+burstEvents)
 
+ const rollup = await a.form({ operation: 'rollup.create', name: 'synthetic-vane-installation', ...Object.fromEntries(ids.map(id => [`site_${id}`, 'on'])) }, a.owner)
+ assert.equal(rollup.status, 303)
+ const rollupId = rollup.headers.get('location').match(/\/app\/rollups\/([\w-]+)/)?.[1]; assert.ok(rollupId)
+ const query = 'from=2025-01-01&to=2026-01-01', owner = { headers: { cookie: a.owner } }
+ async function timed(path, expectedViews, json) {
+  const start = performance.now(), response = await a.request(path, owner), text = await response.text(), elapsedMs = performance.now() - start
+  assert.equal(response.status, 200, text.slice(0, 500))
+  if (json) { const data = JSON.parse(text); assert.equal(data.pageviews, expectedViews); assert.deepEqual(data.pages.map(r => [r.label, r.count]).sort(), [...pages].sort()); }
+  else assert.match(text, /Pageviews/)
+  measurements.reports.push({ path, pageviews: expectedViews, elapsedMs, bytes: Buffer.byteLength(text) }); await save()
+  assert.ok(elapsedMs < 2000, `complete public report took ${elapsedMs.toFixed(1)}ms`)
+ }
+
  for (let month = 0; month < MONTHS; month++) {
   const label = isoDay(Date.UTC(2025, month, 1)).slice(0, 7)
   // All months have at least 28 days. Spread actual events across those dates;
@@ -106,22 +119,15 @@ test('COLLECT-004 genuine monthly pageviews, a paced 500/second burst, concurren
   assert.deepEqual(stored.map(row => [row.month, row.n]), [...monthExpected].sort())
   console.log(`${label}: ${MONTHLY} genuine pageviews admitted; cumulative ${measurements.accepted}`)
   await save()
+  // Time the same complete public report at real monthly checkpoints too.
+  // A checkpoint remains partial evidence until every requested month passes.
+  await a.clock(Date.parse('2026-01-02T12:00:00Z'))
+  await timed(`/api/vane/summary?rollupId=${rollupId}&${query}`, measurements.accepted, true)
+  await timed(`/app/rollups/${rollupId}?section=report&${query}`, measurements.accepted, false)
  }
  const raw = await a.inspectDb.prepare("SELECT COUNT(*) AS n,COUNT(DISTINCT id) AS uniqueIds FROM vane_events WHERE kind='pageview'").first()
  assert.deepEqual([raw.n, raw.uniqueIds], [measurements.accepted, measurements.accepted])
  await a.clock(Date.parse('2026-01-02T12:00:00Z'))
- const rollup = await a.form({ operation: 'rollup.create', name: 'synthetic-vane-installation', ...Object.fromEntries(ids.map(id => [`site_${id}`, 'on'])) }, a.owner)
- assert.equal(rollup.status, 303)
- const rollupId = rollup.headers.get('location').match(/\/app\/rollups\/([\w-]+)/)?.[1]; assert.ok(rollupId)
- const query = 'from=2025-01-01&to=2026-01-01', owner = { headers: { cookie: a.owner } }
- async function timed(path, expectedViews, json) {
-  const start = performance.now(), response = await a.request(path, owner), text = await response.text(), elapsedMs = performance.now() - start
-  assert.equal(response.status, 200, text.slice(0, 500))
-  if (json) { const data = JSON.parse(text); assert.equal(data.pageviews, expectedViews); assert.deepEqual(data.pages.map(r => [r.label, r.count]).sort(), [...pages].sort()); }
-  else assert.match(text, /Pageviews/)
-  measurements.reports.push({ path, elapsedMs, bytes: Buffer.byteLength(text) }); await save()
-  assert.ok(elapsedMs < 2000, `complete public report took ${elapsedMs.toFixed(1)}ms`)
- }
  await timed(`/api/vane/summary?rollupId=${rollupId}&${query}`, measurements.accepted, true)
  await timed(`/app/rollups/${rollupId}?section=report&${query}`, measurements.accepted, false)
  const history = await (await a.request('/app?section=history', owner)).text()
