@@ -16,10 +16,9 @@ const branchPath=(c:Connection)=>repoPath(c)+'/git/ref/heads/'+c.base_branch.spl
 async function owner(env:Env,actor:Actor,siteId:string){allow(actor,'owner');inScope(actor,siteId);const current=(await rows(env,"SELECT 1 FROM oa_operators WHERE id=? AND role='owner' AND status='active'",actor.id)).length;insist(current,'forbidden','Use the active owner session.',403);return site(env,siteId)}
 async function live(env:Env,actor:Actor,c:Connection){await owner(env,actor,c.site_id);const active=await connection(env,c.site_id);insist(active?.generation===c.generation&&active.active===1&&active.created_by===actor.id&&['fine-grained','installation'].includes(active.credential_kind),'github_revoked','The GitHub connection was revoked, replaced or belongs to a former owner; reconnect explicitly.',409)}
 // Fixed GitHub host only; never redirects, returns upstream bodies to the UI or persists source/patch bodies.
-async function call(c:Connection,token:string,path:string,method='GET',body?:unknown,missing=false):Promise<any> {
+async function call(c:Connection,token:string,path:string,method='GET',body?:unknown):Promise<any> {
  const response=await fetch(API+path,{method,redirect:'manual',headers:{accept:'application/vnd.github+json','x-github-api-version':'2022-11-28','user-agent':'Vane',authorization:'Bearer '+token,...(body?{'content-type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{}),signal:AbortSignal.timeout(15000)})
  if(response.headers.get('x-oauth-scopes')?.trim()){await response.body?.cancel();throw new VaneError('github_scope','Classic OAuth or personal tokens are refused. Use a least-privilege GitHub App installation or fine-grained token.',403)}
- if(missing&&response.status===404){await response.body?.cancel();return null}
  if(!response.ok){await response.body?.cancel();throw new VaneError('github_request','GitHub did not complete the source request. No provider body or credential was retained.',502)}
  const text=await response.text();insist(text.length<=2_000_000,'github_size','The GitHub response exceeds the bounded source reader.',502)
  try{return JSON.parse(text)}catch{throw new VaneError('github_response','GitHub returned an unreadable source response.',502)}
@@ -60,7 +59,7 @@ export async function readGitHubDiff(env:Env,actor:Actor,siteId:string):Promise<
  if(c.last_head&&c.last_head!==head){
   // Read only safe, explicitly mapped templates. The compare API includes patches
   // from unmapped .env/key files, so it must never be used by this source reader.
-  const read=async(path:string,missing=false)=>{await live(env,actor,c);return call(c,token,path,'GET',undefined,missing)}
+  const read=async(path:string)=>{await live(env,actor,c);return call(c,token,path)}
   const previousTree=await sourceTree(read,repoPath(c),c.last_head),currentTree=await sourceTree(read,repoPath(c),head)
   for(const file of mapped){
    const before=await sourceFile(read,repoPath(c),file,previousTree),after=await sourceFile(read,repoPath(c),file,currentTree)
@@ -73,7 +72,7 @@ export const githubObservationGuard=(env:Env,siteId:string,o:GitHubObservation)=
 export const rememberGitHubHead=(env:Env,siteId:string,o:GitHubObservation)=>statement(env,'UPDATE vane_instrumentation_github SET last_head=? WHERE site_id=? AND generation=?',o.head,siteId,o.generation)
 export async function prepareGitHubSource(env:Env,actor:Actor,siteId:string,o:GitHubObservation,changes:{page:string;before:string;after:string}[]) {
  const c=await connection(env,siteId);insist(c?.generation===o.generation,'github_revoked','Reconnect and investigate this source again.',409);await live(env,actor,c)
- const token=await tokenOf(env,c),read=async(path:string,missing=false)=>{await live(env,actor,c);return call(c,token,path,'GET',undefined,missing)}
+ const token=await tokenOf(env,c),read=async(path:string)=>{await live(env,actor,c);return call(c,token,path)}
  const plan=await sourcePlan(env,await site(env,siteId),read,repoPath(c),o.head,JSON.parse(c.mappings_json),changes)
  await live(env,actor,c);return {diffHash:plan.diffHash,files:plan.files}
 }
@@ -105,7 +104,7 @@ export async function publishGitHubDraft(env:Env,actor:Actor,p:any) {
  try {
   await ensure();const ref=await call(c,token,branchPath(c));insist(ref.object?.sha===draft.base_sha,'github_stale','The source branch moved. Investigate and approve a new fix; nothing will be force-updated.',409)
   const changes=JSON.parse(fix.draft_json).changes as {page:string;before:string;after:string}[]
-  const read=async(path:string,missing=false)=>{await ensure();return call(c,token,path,'GET',undefined,missing)}
+  const read=async(path:string)=>{await ensure();return call(c,token,path)}
   const plan=await sourcePlan(env,value,read,repoPath(c),draft.base_sha,JSON.parse(c.mappings_json),changes)
   insist(plan.diffHash===diffHash,'approval','The diff changed. Its approval is void; investigate and approve a new fix.',409)
   const commit=await read(repoPath(c)+'/git/commits/'+draft.base_sha),tree=plan.tree

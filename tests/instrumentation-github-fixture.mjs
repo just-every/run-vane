@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 // Only GitHub's network edge is fake. All approval, scanning, source binding, custody and PR orchestration is real.
 export function githubFixture(a,{repository='just-every/run-vane',siteOrigin='http://127.0.0.1:9137'}={}) {
- const initial='a'.repeat(40),changed='b'.repeat(40),tree='c'.repeat(40),candidate='d'.repeat(40),state={head:initial,requests:[],prs:[],loseReply:false,sourceMoved:false,sourceChanged:false,symlink:false,token:'synthetic-vane-13'}
+ const initial='a'.repeat(40),changed='b'.repeat(40),tree='c'.repeat(40),candidate='d'.repeat(40),state={head:initial,requests:[],prs:[],loseReply:false,sourceChanged:false,symlink:false,token:'synthetic-vane-13'}
  const source='<!doctype html><html><head><title>Fixture</title></head><body><p>synthetic-vane-source-body</p><button id="join-now">Join</button></body></html>'
  a.fixtureSites['https://api.github.com']=async request=>{
   assert.equal(request.headers.get('authorization'),'Bearer '+state.token)

@@ -163,7 +163,7 @@
       "executable": false
     },
     "docs/instrumentation.md": {
-      "sha256": "c0d3c8a6b1394b5dea060a601643fd3555d9762eed49851e1f82fc6fee048c6f",
+      "sha256": "a5fab6addc3ca5bfc536891223e35404408c9d2a5780544009b68ad95cd2461c",
       "executable": false
     },
     "docs/movement.md": {
@@ -3299,11 +3299,11 @@
       "executable": false
     },
     "src/vane/instrumentation/github-source.ts": {
-      "sha256": "15a4d2ee80b7b1b54afa11dec2813a8c9765404ae2229fe6102fdf7f4c516097",
+      "sha256": "874e94f571e9eb9e051119dee460e9b4b35f48071a3be03966002b02575e0508",
       "executable": false
     },
     "src/vane/instrumentation/github.ts": {
-      "sha256": "c4e359d989488c314d6ac6439fde838a1fd9438b4c7fe01409f0d59035db6efc",
+      "sha256": "75a36bedc1fdec716c82c7ddf4ccdfcb34d9fe89df66898b5b544fe6ec167510",
       "executable": false
     },
     "src/vane/instrumentation/index.ts": {
@@ -4147,7 +4147,7 @@
       "executable": false
     },
     "tests/instrumentation-github-fixture.mjs": {
-      "sha256": "2bb8dbc38388cac17ae5a13df7a000679f9c7aa56d3cdd04a35b03dd5ee5b5d5",
+      "sha256": "2140336eb0c6d441be0e51336d768e1415fdf8fe1f36f825b8efbf31aa6ce835",
       "executable": false
     },
     "tests/instrumentation.test.mjs": {

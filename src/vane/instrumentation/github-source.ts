@@ -2,7 +2,7 @@ import { digest, insist, type Env, type Site } from '../core'
 import { inspectPage, nativeScriptUrls } from './page'
 
 export interface Mapping {path:string;file:string}
-export type SourceCall=(path:string,missing?:boolean)=>Promise<any>
+export type SourceCall=(path:string)=>Promise<any>
 interface SourceFile {sha:string;html:string}
 export interface SourceEdit {path:string;mode:string;type:'blob';content:string}
 export interface SourcePlan {tree:SourceEdit[];diffHash:string;files:string[]}
