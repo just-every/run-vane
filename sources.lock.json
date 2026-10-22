@@ -494,6 +494,10 @@
       "sha256": "0d0275504e73edf5ca2085a9732a12a3a28bbd788e5f80c018839bbc1a042a40",
       "executable": false
     },
+    "migrations/core/0095_bulk_raw_insert.sql": {
+      "sha256": "3e29c7e47134bccbb03d83eeb8fef1d1643513612bb8bd7f89230ae589c16187",
+      "executable": false
+    },
     "ONBOARDING.md": {
       "sha256": "b28a79254e2278d81d877ffd5987972aaf135d85683ae285b52fd98cc44e608e",
       "executable": false
@@ -3404,6 +3408,10 @@
     },
     "src/vane/raw/codec.ts": {
       "sha256": "85774170cfb75e4b388a484f57f38af3733dc2ef2676577a6fd07f59cb8c81cb",
+      "executable": false
+    },
+    "src/vane/raw/generate-bulk-insert.py": {
+      "sha256": "dbb9d55b5afd290664c74bab6b6d58aeb32b5844359041b0dd685bba731e96d5",
       "executable": false
     },
     "src/vane/raw/generate-groups.py": {
