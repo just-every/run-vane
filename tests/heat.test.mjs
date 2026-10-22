@@ -26,7 +26,7 @@ test('HEAT-001 real clicks aggregate at two buttons without text or identifiers;
  const {chromium}=await import('@playwright/test')
  // Real native tab capture, when explicitly requested for the screenshot proof.
  // These flags select the real fixture tab in Chromium's permission picker; no fake device or media is used.
- const capture=process.env.VANE_HEAT_CAPTURE==='1',browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic',...(capture?['--enable-usermedia-screen-capturing','--auto-select-tab-capture-source-by-title=synthetic-vane-heat-target']:[])]});t.after(()=>browser.close())
+ const capture=process.env.VANE_HEAT_CAPTURE==='1',browser=await chromium.launch({headless:true,...(capture?{channel:'chromium'}:{}),args:['--use-mock-keychain','--password-store=basic',...(capture?['--enable-usermedia-screen-capturing','--auto-select-tab-capture-source-by-title=synthetic-vane-heat-target']:[])]});t.after(()=>browser.close())
  const context=await browser.newContext({userAgent:DESKTOP_CHROME,viewport:{width:1440,height:900}}),bodies=[]
  await context.addCookies(a.owner.split('; ').map(pair=>{const index=pair.indexOf('=');return {name:pair.slice(0,index),value:pair.slice(index+1),url:a.origin}}))
  await context.route('**/*',async route=>{

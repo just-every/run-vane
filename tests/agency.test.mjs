@@ -46,7 +46,7 @@ test('AGENCY-001 two clients isolate every site door; agency and client brands r
  assert.equal((await upload('agency',Buffer.from('<svg onload="alert(1)"></svg>'))).status,400)
  assert.equal((await upload('agency',logo(),fernUser)).status,403)
  const agency=(await data()).brands.find(b=>b.id==='agency'),logoURL='/agency-assets/'+agency.logo_id
- assert.deepEqual(Buffer.from(await(await a.request(logoURL)).arrayBuffer()),logo())
+ const image=await a.request(logoURL);assert.equal(image.status,200);assert.deepEqual(Buffer.from(await image.arrayBuffer()),logo())
  const privateReport=await(await a.request(`/app/sites/${A}`,{headers:{cookie:fernUser}})).text();assert.match(privateReport,/Northstar Analytics logo/);assert.ok(privateReport.includes('#215544'))
  for(const siteId of [A,B]){const r=await a.request('/stats/'+siteId);assert.equal(r.status,200);assert.match(await r.text(),/Northstar Analytics logo/)}
  for(const [cookie,siteId] of [[fernUser,A],[oakUser,B]])assert.equal((await op('report.subscribe',{siteId,frequency:'weekly',weekday:'1',hour:'8'},cookie)).status,303)
@@ -92,6 +92,7 @@ test('AGENCY-001 owner manages two realistic client workspaces at 1440 and 390; 
   if(screens)await page.screenshot({path:`${screens}/agency-overview-${width}.png`,fullPage:true})
   await page.getByText('Agency branding',{exact:true}).click()
   await page.getByRole('button',{name:'Upload logo',exact:true}).waitFor()
+  if(width===1440){await page.getByLabel('Logo image',{exact:true}).setInputFiles({name:'synthetic-vane-logo.png',mimeType:'image/png',buffer:logo()});const sent=page.waitForResponse(r=>new URL(r.url()).pathname==='/app/agency/logo'&&r.request().method()==='POST');await page.getByRole('button',{name:'Upload logo',exact:true}).click();assert.equal((await sent).status(),303,'the owner uploads the real multipart form in the browser');await page.getByText('Agency branding',{exact:true}).click()}
   if(screens)await page.screenshot({path:`${screens}/agency-brand-settings-${width}.png`,fullPage:true})
   await page.locator(`[data-client="${fern.id}"]`).getByText('Fern Studio branding',{exact:true}).click()
   if(screens)await page.screenshot({path:`${screens}/agency-client-brand-settings-${width}.png`,fullPage:true})

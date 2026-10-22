@@ -9,9 +9,11 @@ const missing=()=>new Response('Not found',{status:404,headers:{'cache-control':
 async function logoResponse(request:Request,env:Env,brandId?:string):Promise<Response> {
  const id=new URL(request.url).pathname.match(/^\/agency-assets\/([0-9a-f-]{36})$/)?.[1]
  if(!id||!['GET','HEAD'].includes(request.method))return missing()
- const logo=(await rows<{brand_id:string;mime:string;bytes:ArrayBuffer}>(env,'SELECT l.* FROM vane_agency_logos l JOIN vane_agency_brands b ON b.id=l.brand_id WHERE l.id=? AND b.enabled=1',id))[0]
+ const logo=(await rows<{brand_id:string;mime:string;bytes:ArrayBuffer|number[]|Uint8Array}>(env,'SELECT l.* FROM vane_agency_logos l JOIN vane_agency_brands b ON b.id=l.brand_id WHERE l.id=? AND b.enabled=1',id))[0]
  if(!logo||brandId&&brandId!=='agency'&&logo.brand_id!==brandId&&logo.brand_id!=='agency')return missing()
- return new Response(request.method==='HEAD'?null:logo.bytes,{headers:{'content-type':logo.mime,'cache-control':'no-store','x-content-type-options':'nosniff','content-security-policy':"default-src 'none'; sandbox",'referrer-policy':'no-referrer'}})
+ const bytes=logo.bytes instanceof ArrayBuffer?new Uint8Array(logo.bytes):ArrayBuffer.isView(logo.bytes)?new Uint8Array(logo.bytes.buffer,logo.bytes.byteOffset,logo.bytes.byteLength):Array.isArray(logo.bytes)&&logo.bytes.every(n=>Number.isInteger(n)&&n>=0&&n<=255)?Uint8Array.from(logo.bytes):null
+ if(!bytes||!['image/png','image/jpeg','image/webp'].includes(logo.mime))return missing()
+ return new Response(request.method==='HEAD'?null:Uint8Array.from(bytes).buffer,{headers:{'content-type':logo.mime,'cache-control':'no-store','x-content-type-options':'nosniff','content-security-policy':"default-src 'none'; sandbox",'referrer-policy':'no-referrer'}})
 }
 async function belongs(env:Env,brandId:string,siteId:string|null):Promise<boolean> {
  return Boolean(siteId&&(brandId==='agency'||(await rows(env,'SELECT 1 FROM vane_agency_sites WHERE site_id=? AND client_id=?',siteId,brandId)).length))
