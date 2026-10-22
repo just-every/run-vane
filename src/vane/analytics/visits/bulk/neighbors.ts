@@ -1,7 +1,7 @@
 // Select timestamp boundaries once per distinct new time and existing context.
 // Clean canonical chains have visit IDs on every old timed page; newly queued
-// pages have none. Filtering groups before expanding occurrences therefore
-// avoids scanning or sorting a new tied-token bucket for each of its members.
+// pages have none. Each old tied-time group contributes only its first and
+// last token; all new occurrences remain individually represented below.
 export const neighborhoodSql = [
  `INSERT INTO vane_visit_bulk_buckets(context,at_offset)
   WITH points AS (
@@ -32,7 +32,12 @@ export const neighborhoodSql = [
    SELECT e.raw_id,c.site,c.day,c.visitor,g.context,g.at_offset,e.token,g.at_offset+unixepoch(c.day)*1000,
     d.engaged_at,COALESCE(d.scroll,-1),chain.gap,g.visit_id
    FROM vane_visit_bulk_buckets b CROSS JOIN vane_raw_groups g ON g.context=b.context AND g.at_offset=b.at_offset
-   CROSS JOIN vane_raw_occurrences e ON e.group_id=g.group_id JOIN vane_raw_contexts c ON c.context=g.context
+   CROSS JOIN vane_raw_occurrences e ON e.raw_id IN (
+    (SELECT edge.raw_id FROM vane_raw_occurrences edge WHERE edge.group_id=g.group_id
+     ORDER BY substr(edge.token,1,4),edge.token LIMIT 1),
+    (SELECT edge.raw_id FROM vane_raw_occurrences edge WHERE edge.group_id=g.group_id
+     ORDER BY substr(edge.token,1,4) DESC,edge.token DESC LIMIT 1)
+   ) JOIN vane_raw_contexts c ON c.context=g.context
    JOIN vane_visit_bulk_chains chain ON chain.site=c.site AND chain.day=c.day AND chain.visitor=c.visitor
    LEFT JOIN vane_raw_details d ON d.raw_id=e.raw_id WHERE g.visit_id IS NOT NULL
   ), ranked AS (
@@ -44,9 +49,12 @@ export const neighborhoodSql = [
    MIN(CASE WHEN old_visit IS NOT NULL THEN rank END) OVER
     (PARTITION BY site,day,visitor ORDER BY rank ROWS BETWEEN 1 FOLLOWING AND UNBOUNDED FOLLOWING)
   FROM ranked WINDOW chain AS (PARTITION BY site,day,visitor ORDER BY rank)`,
- // Only a new page or its distinct previous old page can change a frequency.
- // Each such predecessor's old successor is present: it is either in the
- // new page's same-time bucket or the nearest later old bucket in a context.
+ // Interior old ties have a later old token at the same time, so their old
+ // and new on-page contributions are both zero. The retained extrema preserve
+ // every transition between timestamps, including the final old predecessor.
+ // A retained first token can stand in for an omitted same-time predecessor:
+ // its zero contribution is removed and restored unchanged. Full first/last
+ // visit endpoints still come from visit facts, not this sparse neighborhood.
  `INSERT INTO vane_visit_bulk_pages(raw_id,site,day,visitor,context,at_offset,token,at,engaged,scroll,gap,
    old_visit,next_id,old_on_page,on_page)
   SELECT n.raw_id,n.site,n.day,n.visitor,n.context,n.at_offset,n.token,n.at,n.engaged,n.scroll,n.gap,n.old_visit,n.next_id,

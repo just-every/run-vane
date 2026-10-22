@@ -3,11 +3,13 @@
 // resulting connected component, including a bridge across several old visits.
 export const componentSql = [
  `INSERT INTO vane_visit_bulk_nodes(kind,node_id,site,day,visitor,started,last_at,last_signal,first_raw,last_raw,pages,engaged,identity,first_on_page,run)
-  WITH points AS (
+  WITH incoming_times AS (
+   SELECT DISTINCT site,day,visitor,at,gap FROM vane_visit_bulk_pages WHERE old_visit IS NULL
+  ), points AS (
    SELECT DISTINCT 0 AS kind,f.visit AS node_id,f.site,f.day,f.visitor,f.started,f.last_at,f.last_signal,f.first_raw,f.last_raw,
     f.pages,f.engaged,f.identity,f.first_on_page,p.gap
-   FROM vane_visit_bulk_pages p JOIN vane_visit_facts f ON f.site=p.site AND f.day=p.day AND f.visitor=p.visitor
-    AND f.started<=p.at+p.gap AND f.last_at>=p.at-p.gap WHERE p.old_visit IS NULL
+   FROM incoming_times p JOIN vane_visit_facts f ON f.site=p.site AND f.day=p.day AND f.visitor=p.visitor
+    AND f.started<=p.at+p.gap AND f.last_at>=p.at-p.gap
    UNION ALL
    SELECT 1,p.raw_id,p.site,p.day,p.visitor,p.at,p.at,MAX(p.at,COALESCE(p.engaged,p.at)),p.raw_id,p.raw_id,
     1,p.engaged IS NOT NULL,w.identity,p.on_page,p.gap
