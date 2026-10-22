@@ -5,7 +5,27 @@ import { oidcInstallation,samlInstallation,enroll,login,otp,session } from './se
 
 const patch='urn:ietf:params:scim:api:messages:2.0:PatchOp',userSchema='urn:ietf:params:scim:schemas:core:2.0:User'
 const scim=(a,path,method='GET',body,token='synthetic-vane-123456789012345678901234')=>a.request('/scim/v2/'+path,{method,headers:{authorization:'Bearer '+token,'content-type':'application/scim+json'},...(body?{body:JSON.stringify(body)}:{})})
-const privateDoors=['/app','/app?section=team','/api/vane/sites','/api/vane/audit','/api/vane/export','/auth/session','/auth/operators','/auth/sessions','/auth/providers','/auth/domain-rules','/auth/settings/identity','/setup']
+// Current private HTTP doors, including Base account/dependency administration.
+// Primary sign-in, factor ceremonies and sign-out stay reachable by design.
+const privateDoors=[
+ '/app',...['team','api','agency','audit','history','approvals','alerts'].map(section=>'/app?section='+section),
+ ...['heat','proxy-connections','proxy-setup','bing/report','search-console/report','chat/slack/callback','search-console/callback','cutover-scans','import-definitions','agency','sites','summary','csv','site-zip','realtime','inventory','audit','proposals','import-journal','export'].map(path=>'/api/vane/'+path),
+ '/auth/session','/auth/operators','/auth/sessions','/auth/providers','/auth/domain-rules','/auth/settings/identity','/auth/dependencies/status','/setup',
+]
+const privateWrites=[
+ '/app/action','/app/agency/logo',
+ ...['agency','heat-settings','commands','proxy-connections','parallel-run','import-preview','import-apply','import-undo','cutover-scan','install-check','site-import','restore','push/subscribe','push/unsubscribe'].map(path=>'/api/vane/'+path),
+ ...['bootstrap','invite','invite/cancel','operator/status','operator/role','session/revoke','step-up','domain-rules','providers/unlink','providers/relink','settings/identity','setup-complete','email','display-name','dependencies/relink','dependencies/setup','dependencies/unlink'].map(path=>'/auth/'+path),
+]
+async function held(a,cookie,mode,extra=[]) {
+ for(const path of [...privateDoors,...extra]) {
+  const r=await a.request(path,{headers:{cookie}})
+  if(path.startsWith('/api/')){assert.equal(r.status,403,path);assert.equal((await r.json()).error,mode==='sso'?'sso_required':'second_step_required',path)}
+  else {assert.equal(r.status,303,path);assert.equal(r.headers.get('location'),'/auth/security/'+mode,path)}
+ }
+ for(const path of privateWrites){const r=await a.post(path,{},cookie);assert.equal(r.status,403,path);assert.equal((await r.json()).error,mode==='sso'?'sso_required':'second_step_required',path)}
+}
+
 
 test('organization OIDC signs in Google and Entra members, refuses altered proofs and replay, and fences existing sessions when SSO is required',async t=>{
  const {a,signin,begin}=await oidcInstallation(t)
@@ -21,7 +41,7 @@ test('organization OIDC signs in Google and Entra members, refuses altered proof
  assert.equal((await a.post('/auth/security/policy',{requireSso:true},a.owner)).status,409)
  const owner=await signin('google','owner@example.test');assert.equal(owner.response.status,303)
  assert.equal((await a.post('/auth/security/policy',{requireSso:true},owner.nativeCookie)).status,303)
- for(const cookie of [a.owner,member])for(const path of privateDoors){const r=await a.request(path,{headers:{cookie}});assert.ok([303,403].includes(r.status),path+' '+r.status);if(r.status===303)assert.equal(r.headers.get('location'),'/auth/security/sso')}
+ for(const cookie of [a.owner,member])await held(a,cookie,'sso')
  assert.equal((await a.post('/auth/invite',{email:'refused@example.test',role:'member'},a.owner)).status,403)
  assert.equal((await a.post('/auth/security/policy',{},member)).status,403)
  assert.equal((await session(a,owner.nativeCookie)).status,200)
@@ -62,7 +82,7 @@ test('SCIM provisions zero-site viewers and deprovisioning immediately ends nati
 test('authenticator sign-in refuses wrong and replayed codes, consumes a recovery code once, and excludes credentials from analytics archives',async t=>{
  const a=await installation();t.after(()=>a.close());const email='member@example.test',member=await a.invite(email,'member'),{secret,codes}=await enroll(a,member)
  let cookie=await login(a,email)
- for(const path of privateDoors){const r=await a.request(path,{headers:{cookie}});assert.ok([303,403].includes(r.status),path);if(r.status===303)assert.equal(r.headers.get('location'),'/auth/security/challenge')}
+ await held(a,cookie,'challenge')
  assert.equal((await a.post('/auth/security/verify',{code:'wrong'},cookie)).status,403)
  assert.equal((await a.post('/auth/security/verify',{code:otp(secret,Math.floor(Date.now()/30000)+1)},cookie)).status,303)
  assert.equal((await session(a,cookie)).status,200)
@@ -80,8 +100,9 @@ test('owner enforcement holds every account without a factor at enrollment, refu
  const stats=()=>a.request(`/api/v1/stats?site_id=${site}`,{headers:{authorization:'Bearer '+key}});assert.equal((await stats()).status,200)
  assert.equal((await a.post('/auth/security/policy',{requireSecond:true},a.owner)).status,409)
  await enroll(a,a.owner);assert.equal((await a.post('/auth/security/policy',{requireSecond:true},a.owner)).status,303)
- for(const cookie of [member,other])for(const path of privateDoors){const r=await a.request(path,{headers:{cookie}});assert.ok([303,403].includes(r.status),path);if(r.status===303)assert.equal(r.headers.get('location'),'/auth/security/enroll')}
- assert.equal((await stats()).status,403);await enroll(a,other);assert.equal((await stats()).status,200)
+ for(const cookie of [member,other])await held(a,cookie,'enroll',[`/app/sites/${site}`, ...['settings','realtime','heat','history','approvals'].map(section=>`/app/sites/${site}?section=${section}`)])
+ for(const [method,path] of [['GET',`/api/v1/stats?site_id=${site}`],...['/api/v1/events','/api/v1/mcp','/api/v2/query','/api/v1/sites',`/api/v1/sites/${site}/goals`,`/api/v1/sites/${site}/shared-links`].map(path=>['POST',path])]){const r=await a.request(path,{method,headers:{authorization:'Bearer '+key,'content-type':'application/json'},...(method==='POST'?{body:'{}'}:{})});assert.equal(r.status,403,path);assert.equal((await r.json()).error,'second_step_required',path)}
+ await enroll(a,other);assert.equal((await stats()).status,200)
  assert.equal((await a.post('/app/action',{operation:'site.create'},member)).status,403)
  assert.equal((await a.post('/auth/security/identity',{},member)).status,303)
  const {secret}=await enroll(a,member);assert.equal((await a.request('/api/vane/sites',{headers:{cookie:member}})).status,200)
