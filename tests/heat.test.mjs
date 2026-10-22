@@ -49,14 +49,14 @@ test('HEAT-001 real clicks aggregate at two buttons without text or identifiers;
   for(const [visit,share] of [.5,1].entries()){
    const time=morning+(index*2+visit)*7200000;await a.clock(time);await target.clock.setSystemTime(time)
    let sent=answered('/api/vane/collect');await target.goto(origin+'/');assert.equal((await sent).status(),202)
-   for(const [button,count] of [['left',3],['right',2]])for(let n=0;n<count;n++){sent=answered('/api/vane/heat-click');await target.locator('#'+button).click();assert.equal((await sent).status(),202)}
+   for(const [button,count] of [['left',3],['right',2]])for(let n=0;n<count;n++){sent=answered('/api/vane/heat-click');await target.locator('#'+button).click({position:{x:30,y:30}});assert.equal((await sent).status(),202)}
    await target.evaluate(share=>scrollTo(0,document.documentElement.scrollHeight*share-innerHeight),share)
    await a.clock(time+11000);sent=answered('/api/vane/engage');await target.clock.fastForward(10000);assert.equal((await sent).status(),202)
   }
   const map=await report(width);assert.equal(map.clicks,10);assert.deepEqual(map.cells.map(c=>c.count).sort((a,b)=>a-b),[4,6]);assert.deepEqual([map.scroll.averageScrollDepth,map.scroll.reached75Share],[75,50])
   const summary=await (await a.request(`/api/vane/summary?siteId=${id}&from=2026-03-06&to=2026-03-07`,owner)).json()
   assert.deepEqual([map.scroll.averageScrollDepth,map.scroll.reached75Share],[summary.topPages[0].averageScrollDepth,summary.topPages[0].reached75Share])
-  const expected=await target.evaluate(()=>['left','right'].map(id=>{const b=document.getElementById(id).getBoundingClientRect(),d=document.documentElement;return {x:Math.floor((b.x+b.width/2+scrollX)/d.scrollWidth*40),y:Math.floor((b.y+b.height/2+scrollY)/d.scrollHeight*100)}}))
+  const expected=await target.evaluate(()=>['left','right'].map(id=>{const b=document.getElementById(id).getBoundingClientRect(),d=document.documentElement;return {x:Math.floor((b.x+30+scrollX)/d.scrollWidth*40),y:Math.floor((b.y+30+scrollY)/d.scrollHeight*100)}}))
   assert.deepEqual(map.cells.map(c=>({x:c.x,y:c.y})),expected,'the two hottest grid cells are on the real buttons')
   await target.evaluate(()=>scrollTo(0,0));await target.clock.runFor(200)
   if(screenDir)await target.screenshot({path:join(screenDir,`heat-fixture-${width}.png`)})

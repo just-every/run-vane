@@ -12,6 +12,43 @@ Query strings are dropped except the five UTM fields, `ref`, `source` and the pa
 
 Each page load also gets a channel (Direct, Organic Search, Paid Search, Organic Social, Paid Social, Email, Referral, AI Assistants, Affiliates or Display) from its source, `utm_medium` and paid-click flag; the methodology page lists the rules and source lists. A referring page is kept as its hostname and path, without its query; webmail referrers are grouped as `webmail` and their addresses are never kept. Referrer domains and Android app referrers report under named sources from the list on the methodology page (`news.ycombinator.com` as Hacker News, `app.slack.com` and `android-app://com.slack.android` as Slack); an unlisted referrer keeps its own domain, and **Source grouping rules** in a site's settings (approved like any change) name your own, such as `brewblog.example=Brew Blog`. The report's channel, source, referring-page and UTM tables count each visit under its first page load.
 
+## Batch collection and raw history
+
+`POST /api/vane/collect-batch` accepts `{"events":[PAGEVIEW,...]}` containing
+1–100 normal collector records, each with its own event UUID and `siteId`. The
+whole UTF-8 body may be at most 64 KiB (65,536 bytes); each serialized record has
+the ordinary 8,192-character limit. Each record follows the same origin,
+collection, consent and privacy rules as `/api/vane/collect`. The request supplies
+shared visitor metadata; payloads cannot supply trusted IP, user-agent or
+Cloudflare fields.
+
+Validation rejects the whole batch if a record is malformed or refused, naming
+its zero-based `index`. No pageview, goal, property or visitor salt is created by
+that failure; an existing exclusion counter may record the refusal. DNT/GPC and
+field-free coverage counts keep their separate rules. Valid records commit
+atomically with their dependent writes. A compatible repeated ID admits one
+pageview, including concurrent retries and repeats within a batch.
+
+Success is HTTP 202 with `atomic: true`, an `accepted` count of new records and
+ordered `results`. New results have status 202 and `accepted: true`; compatible
+duplicates have status 200, `accepted: true` and `duplicate: true`. The single
+collector keeps its existing response. Batching adds no multiplier: every accepted
+pageview has its own real raw row and UUID. Authenticated Events API budgets are
+unchanged.
+
+Raw storage shares repeated site, visitor-digest and context values and packs
+canonical UUIDs and digests losslessly. The `vane_events` logical view still
+exposes every original event, field and timestamp. Retention and erasure remove
+those rows and their derived contributions. Logical history archives preserve
+the events; restore rebuilds physical references and derived analytics.
+
+Unfiltered native whole-day reports use exact materialized visit and performance
+facts. Hostname restrictions, partial historical cutoffs and visit/segment/search
+filters reconstruct visits from their actual restricted raw event sequence.
+Materialization changes neither recorded counts nor visit definitions. Storage
+and full-scale latency remain workload-dependent and unproven; see
+[collection scale](collection-scale.md).
+
 ## Consent and browser signals
 
 With **Count declined consent** on (consent-required sites only), a page load without consent sends one empty count, so the report can show the declined share; page loads refused on an excluded path are counted the same way. Each count holds only the site, the day and the reason.

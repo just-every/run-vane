@@ -1,132 +1,158 @@
 # Collection scale: implementation and proof
 
-COLLECT-004 is not established by the existence of this workflow or schema.
-Its full acceptance needs an exact-SHA successful run with real admitted
-pageviews, the measured burst, complete dashboard latency and capacity proof.
+COLLECT-004 remains **NOT PROVEN**. The full 120-million-pageview journey has
+not passed at an exact candidate SHA. Acceptance still requires genuine admitted
+pageviews, the measured burst, complete dashboard latency and measured capacity.
+The implementation and smaller runs do not establish those results.
 
-## Analytical foundation
+## Lossless compact raw storage
 
-`0085_analytics.sql` maintains native occurrence cells, grouped by site, local
-date, event kind and the declared event dimensions. A separate reference-counted
-identity set makes range and dimension uniques exact: a consented digest counts
-once per site across dates, and an unconsented hash counts once per site/date.
-Repeated events with the same dimensions and identity increase reference counts,
-not the size of that identity set. The SQL INSERT/UPDATE/DELETE triggers share
-the raw write's transaction. A rejected transaction changes neither table.
-Retention deletes raw rows and therefore their analytical contribution; analytics
-never replaces raw history or overrides the owner's retention choice.
+The deployment uses the existing `DB` D1 binding. `vane_events` is a logical view
+of compact physical tables, preserving every accepted pageview and goal with its
+original ID, fields and timestamp. There is no occurrence multiplier or change
+to sampling, identity scope or retention.
 
-Cells have bounded width, **not bounded cardinality**. A different path/source/
-device/location combination creates a different cell. Unique identities remain
-an exact set whose size depends on real visitors. This foundation cannot promise
-constant storage or constant latency independently of that cardinality.
+- `vane_raw_sites` maps each existing site UUID to a local integer.
+- `vane_raw_identities` stores the full existing SHA-256 visitor digests as
+  32-byte values, referenced by local integers. Historical non-hex values retain
+  their exact text.
+- `vane_raw_contexts` shares exact combinations of site, local date, event kind,
+  declared dimensions, visitor references and consent issue/expiry times.
+- `vane_raw_events` keeps one physical row per occurrence. Canonical UUIDs use
+  their exact 16 bytes with any goal suffix preserved; historical noncanonical
+  IDs retain exact text. Each event retains its timestamp as an exact offset
+  from its context date and a derived visit reference.
+- `vane_raw_details` holds optional engagement, scroll and performance values
+  for the individual occurrence.
 
-The functions exported by `src/vane/analytics/index.ts` answer only their stated
-questions:
+Sharing repeated context values reduces storage without merging occurrences.
+Retention and erasure remove the actual rows and their analytical contributions;
+unused contexts and dictionary entries disappear with their last supporting row.
+Raw history remains authoritative.
 
-| Function | Exact native result |
-| --- | --- |
-| `analyticsTotals` | Pageviews, goal rows, timed pageviews, consented pageviews, range unique visitors and converting identities |
-| `analyticsGroup` | Occurrence count and distinct identities by a stored dimension |
-| `analyticsGoals` | Counts and converting identities by goal name |
-| `analyticsTransport` | Direct/proxy/unknown native pageview counts and shares |
-| `analyticsEventSeries` | Nonhourly pageviews, goal occurrences and bucket unique visitors |
+## Exact analytical readers
 
-These functions do not return a fabricated complete report. They do not compute
-visits, bounce, visit attribution, durations/medians, journeys, filters that select
-visits, performance percentiles, custom-event properties/revenue, cohorts or
-import visibility. A source occurrence group is **not** the visit-attributed
-`sourceVisits` table. A device occurrence group's identity count does not supply
-the device table's visit/conversion/revenue fields. `browser_version` and
-`os_version` are raw version dimensions, whereas the public dashboard combines
-the product name and version; its caller must combine before grouping.
+Occurrence cells group native events by site, local date, event kind and declared
+dimensions. Reference-counted identity sets keep range and dimension uniques
+exact: a consented digest counts once per site across dates, and an unconsented
+digest once per site/date. Repeated matching events increase counts rather than
+add another identity. Maintenance shares the raw write's transaction, so a
+rejected transaction changes neither raw history nor its derived results.
 
-`createInsightsService(...).list()` now uses occurrence cells for native counts
-and page/source/campaign/goal groups, combines the exact visible-import rows,
-and reads native identities and device dimensions from the analytical sets.
-Native transport shares also use cells. Whole dates include all events already
-admitted today. A running comparison's historical cutoff keeps the timed raw
-query; hostname and kept-visit/segment/search filtered sets keep their raw
-semantics. No query error selects another implementation.
+These readers supply native counts, dimension and goal groups, transport shares
+and nonhourly occurrence series. Report readers combine the exact visible import
+rows. Whole dates include events already admitted today. Occurrence source groups
+alone are not visit attribution; visit readers supply that separately.
 
-Nonhourly report series read native occurrence values from cells and combine
-visible imports while retaining the existing visit and revenue computations.
-Hourly complete-report series remain raw. Overview sparklines ask only for
-visitor buckets: analytical identities for daily/weekly/monthly buckets and a
-single timed-visitor query for hours. They do not reconstruct visits or money.
-Remaining complete-report computations return their real results. Consequently
-this integration does not establish a complete 12-month dashboard under two
-seconds.
+### Visits and performance
 
-### Archive and privacy integration
+`vane_raw_events.visit_id` records visit membership without a second occurrence
+table. `vane_visit_facts` stores visit endpoints, identity and additive counts.
+Page frequencies preserve actual multiplicities by visit, raw context, exact time
+on page and scroll depth. Duration frequencies and day totals support overview
+metrics; performance value frequencies retain exact nearest-rank percentiles and
+measured-page counts. Frequency counts represent real occurrences, not synthetic
+weighted admissions.
 
-`archive.ts` already suppresses maintenance triggers while restoring tables.
-It calls `rebuildAnalyticsStatements(env)` to its existing atomic batch after
-restoring native rows, before recreating the triggers. Rebuild even when an
-archive includes cells: archives from earlier versions lack those tables, and
-current raw rows remain authoritative. This avoids double counting and restores
-old archives correctly. The migration itself backfills existing native history.
+These materializations answer unfiltered native whole-day visit, entry/source
+attribution, page, duration, bounce, series and performance queries. Grouped page
+rows deduplicate visits under the existing page-row definition. Selected goals
+and report-currency revenue still read actual goal/custom occurrences, so late
+goals and approved exchange-rate changes remain visible.
 
-The inventory declares `vane_analytics_cells` and
-`vane_analytics_identities`, their columns and the daily/site-scoped digest
-semantics. Identity references never enter anonymous aggregate CSV data. It
-contains the same protected derived identity material as native events. History
-archives retain their existing owner-only controls.
+Ordinary append and late insertion update affected page contributions; a bridge
+merges real visits and their membership. Deletion, sequence rewrites and dated
+visit-timeout changes can invalidate a site/day/visitor chain. Before a
+materialized visit reader returns, `refreshVisitFacts` rebuilds invalid chains
+atomically. Clean chains do not scan raw page history during a read.
+
+Hostname restrictions, partial historical cutoffs and kept-visit/segment/search
+filters can change the event sequence. They keep reconstruction over the actual
+restricted raw set. Arbitrary cohorts, funnels and journeys retain their existing
+calculations. Hourly occurrence buckets still use timed raw events, while native visit buckets use materialized visit facts. No query error selects a
+fallback or a stale result.
+
+### Archives and privacy
+
+History archives and site transfers carry logical events, not compact physical
+tables, local raw row keys or derived `vane_visit_*` tables. Restore assigns fresh
+physical keys from the original logical records and rebuilds derived facts.
+History restore retains the logical view and physical maintenance triggers and
+rebuilds both occurrence analytics and visits in its atomic batch. Older archives
+remain rebuildable from their raw rows; copied analytical tables are not trusted
+as authoritative history.
+
+The inventory declares the physical fields and existing daily/site-scoped digest
+semantics. Packing a digest adds no collected identifier. Identity references do
+not enter anonymous aggregate CSV data, and history archives retain their
+owner-only controls.
+
+## Native batch admission
+
+`POST /api/vane/collect-batch` accepts exactly `{"events":[PAGEVIEW,...]}` with
+1–100 ordinary collector records, each with its normal `siteId` and event UUID.
+The complete UTF-8 body is limited to 65,536 bytes (64 KiB); each serialized record
+has the ordinary 8,192-character bound. Registered origins, collection settings,
+consent and anonymous field rules apply to every record. The HTTP request supplies
+the actual shared visitor metadata; payloads cannot supply trusted IP, user-agent
+or Cloudflare fields.
+
+Validation is all-or-nothing and identifies a refused record by its zero-based
+`index`. Such failure creates no pageview, goal, property or visitor salt; existing
+exclusion counters may record the refusal. DNT/GPC requests are refused, and
+field-free signal/declined/ignored requests remain separate doors.
+
+After validation, one D1 batch rechecks site versions and ID compatibility and
+atomically commits admission and dependent writes. Each new raw row gates only
+its own goals, properties and counters. Compatible concurrent replays and repeated
+IDs within a batch admit one pageview and acknowledge the repeats. Database
+failures remain failures.
+
+Success is HTTP 202 with `atomic: true`, an `accepted` count of newly admitted
+records and ordered `results`. A new result has status 202 and `accepted: true`;
+a compatible duplicate has status 200, `accepted: true` and `duplicate: true`.
+The ordinary `/api/vane/collect` payload and response stay unchanged. Batching
+shares transport and transaction overhead; every pageview remains a real row with
+its own UUID. Authenticated Events API budgets remain unchanged.
 
 ## Real-volume journey
 
 The explicit `Collection scale` workflow builds the candidate SHA and runs
 `tests/collection-scale.journey.mjs` outside push Verify. It creates sites through
-owner approval, submits every event through the real collector, admits more
-than 10,000 on one site/day, races sixteen copies of one ID, checks later replay,
-and offers a paced 500 events/second burst. It then submits the requested monthly
-volume across 28 real dates in each requested month. DB inspection checks
+owner approval, submits more than 10,000 events on one site/day through the single
+collector, races sixteen copies of one ID and checks later replay. It offers a
+paced 500-events/second burst and measures actual dispatch and completion rates.
+Monthly volume uses the native batch collector with ordinary individual UUIDs,
+spread across 28 real dates in each requested month. Database inspection checks
 custody; it never inserts raw rows, counters or rollups directly.
 
 Default acceptance input is 10,000,000 pageviews in each of 12 months, plus the
-daily-ceiling and burst probes. No row carries a multiplier. Both a complete
-public summary and dashboard HTML response must arrive under two seconds, with
-known totals and breakdowns. The run log records SHA, actual admission count,
-burst timing, response timings and the store's actual reported size/limit.
-This is not provider acceptance: this workflow uses the real built Worker
-and local D1 runtime on the remote GitHub runner. A deployed Cloudflare run is
-separate evidence.
+daily-ceiling and burst probes. Both a complete public summary and dashboard HTML
+response must arrive under two seconds, with known totals and breakdowns. The
+journey checks actual stored rows and distinct IDs, and records the SHA, admission
+count, burst timing, report timings and actual store size/limit. This uses the
+real built Worker and local D1 runtime on the remote GitHub runner. Deployed
+Cloudflare acceptance requires separate evidence.
 
-Smaller explicit `monthly_pageviews` / `months` inputs exercise public behavior
-and are labelled **SMOKE ONLY**. The public 10,001-event and paced-burst probes
-still run. Run expensive journeys only through the committed-SHA remote workflow
-or the prescribed heavy-slot wrapper; never on the shared Mac directly. The
-existing RETENTION-002 public journey in `tests/vane-report-settings.mjs` proves
-the actual 80% warning threshold, both required choices and continued admission.
+Smaller explicit `monthly_pageviews` / `months` inputs are **SMOKE ONLY**. The
+10,001-event and paced-burst probes still run. Run expensive journeys through the
+committed-SHA remote workflow or the prescribed heavy-slot wrapper, never directly
+on the shared Mac. The RETENTION-002 public journey in
+`tests/vane-report-settings.mjs` covers the 80% warning threshold, both required
+choices and continued admission.
 
-## Raw capacity is still an implementation obligation
+## Capacity remains workload-dependent and unproven
 
-The current deployment declares one `DB` D1 binding. The current row stores a
-site UUID, composite UUID ID and visitor digest before its many other columns
-and indexes. Those three text values alone need about 173 bytes/pageview, or
-over 19 GiB at 120 million events. A 10,240 MB D1 store cannot hold that raw
-history, and these materializations add storage. A 13-month or unlimited owner
-retention window cannot silently be shortened to get the scale test to fit.
+The former estimate based on three repeated text values does not describe this
+compact representation. It also cannot establish the new representation's
+capacity. Distinct visitors, contexts, visits, durations and scroll/performance
+values may share little; cells and identity sets have workload-dependent
+cardinality. Measure all physical raw tables, both raw indexes and derived tables
+with headroom against the declared D1 limit.
 
-The smallest additional-binding direction that preserves D1 semantics is a
-declared bank of D1 raw partitions alongside the existing control `DB`, with
-stable event routing and a control-store analytical reader. `deploy.json` already
-declares D1 bindings as a list, so naming extra bindings does not itself require
-a new Base resource kind. Keep all existing project/Worker/DB identities. Binding
-and partition migration support, real capacity per partition, atomic admission
-and replay routing, dependent page/custom/engagement access, raw retention,
-archive portability and cross-partition reporting must be implemented and proved
-before calling this an available architecture. Size the bank from measured bytes
-per row plus indexes and derived sets with headroom; choosing a shard count from
-the minimum 173-byte arithmetic would underprovision it.
-
-The existing S3/R2 scheduled warehouse export is an outbound CSV path. There is
-no warehouse query engine in that integration, so exporting alone does not make
-the dashboard a warehouse-backed analytical reader. R2-only raw storage would
-also require an ingestion/deduplication and indexed-read design, not just a
-manifest binding. No such architecture is claimed by this foundation.
-
-Until the raw architecture and remaining report aggregates ship, a full-volume
-run can fail on capacity, runner duration or latency. Its failure must remain
-visible; do not lower the acceptance count, increase the published D1 limit,
-prefill summaries or report a smoke run as full scale.
+No successful exact-SHA 120M run is claimed here. Capacity, runner duration or
+complete-report latency may still fail at full volume. Preserve that evidence;
+do not lower acceptance counts, raise the published storage limit, shorten an
+owner's 13-month or unlimited retention, prefill summaries or describe smoke
+results as full-scale proof. Scheduled S3/R2 warehouse export remains an outbound
+CSV path; export alone does not supply a warehouse-backed dashboard reader.
