@@ -122,4 +122,12 @@ test('Instrumentation recognizes active approved proxy script tags, ignores cach
  const sites=await result(await a.request('/api/vane/sites',{headers:{cookie:a.owner}})),site=sites.find(s=>s.id===id),change=await result(await a.post('/api/vane/commands',{command:'site.configure',input:{siteId:id,name:site.name,origin:site.origin,config:site.config}},a.owner),201)
  assert.equal((await a.form({operation:'proposal.approve',id:change.id},a.owner)).status,303)
  assert.equal((await a.post('/api/vane/instrumentation/prepare',{siteId:id,runId:revoked.id,confirm:'on'},a.owner)).status,409,'a stale investigation cannot propose changes against a newer configuration')
+ // Pause only the network edge; erasing through the real owner door while a crawl waits must fence its result.
+ let release,started;const waiting=new Promise(resolve=>{release=resolve}),reached=new Promise(resolve=>{started=resolve})
+ a.fixtureSites[siteOrigin]=async request=>{const path=new URL(request.url).pathname;if(path==='/robots.txt')return new Response('User-agent: *');if(path==='/sitemap.xml')return new Response(`<urlset><url><loc>${siteOrigin}/pricing</loc></url></urlset>`);started();await waiting;return new Response('<h1>No script</h1>')}
+ const pending=a.post('/api/vane/instrumentation/run',input,a.owner);await reached
+ const erased=await result(await a.post('/api/vane/commands',{command:'history.erase',input:{siteId:id}},a.owner),201);assert.equal((await a.form({operation:'proposal.approve',id:erased.id},a.owner)).status,303)
+ release();assert.equal((await pending).status,400,'the in-flight investigation cannot publish stale pre-erasure evidence')
+ assert.equal((await a.dump()).vane_instrumentation_runs.length,0)
+
 })

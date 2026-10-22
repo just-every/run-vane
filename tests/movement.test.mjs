@@ -82,7 +82,7 @@ test('Movement investigations rank a tracking break, organic ranking drop and co
   assert.ok(answer.hypotheses.flatMap(h=>h.evidence).every(e=>!e.href.includes('discard=')))
  }
  assert.match(cases[1].result.hypotheses[0].title,/Organic ranking decline/)
- assert.deepEqual(cases[1].result.hypotheses[0].evidence[0],{label:'Google query “organic guide” (Pacific dates, source-limited)',unit:'clicks',now:14,then:70,denominatorNow:700,denominatorThen:700,href:cases[1].result.hypotheses[0].evidence[0].href})
+ assert.deepEqual(cases[1].result.hypotheses[0].evidence[0],{label:'Google query “organic guide” (Pacific dates, source-limited)',unit:'clicks',denominatorUnit:'source impressions',now:14,then:70,denominatorNow:700,denominatorThen:700,href:cases[1].result.hypotheses[0].evidence[0].href})
  assert.match(cases[2].result.hypotheses[0].title,/Checkout failure/);assert.ok(cases[2].result.annotations.some(n=>n.kind==='error-spike'&&n.text==='Checkout failures reported by Spool'))
  const orders=cases[2].result.hypotheses[0].evidence.find(e=>e.unit==='completed orders');assert.deepEqual([orders.now,orders.then,orders.denominatorNow,orders.denominatorThen],[1,14,35,35])
  assert.ok(cases[2].result.unknown.some(u=>u.includes('not independently verified')),'a sender credential is never labelled provider verification')
@@ -93,7 +93,7 @@ test('Movement investigations rank a tracking break, organic ranking drop and co
  for(const width of [1440,390])for(const c of cases){
   await page.setViewportSize({width,height:1000});await page.goto(`${a.origin}/app/sites/${c.id}?${new URLSearchParams({from:c.from,to:c.to,compare:'custom',compareFrom:BASE,compareTo:BASE_END})}#movement`)
   assert.equal(await page.locator('[data-movement-result]').count(),1,'the saved exact-window investigation is rendered before submit')
-  const submitted=page.waitForResponse(r=>new URL(r.url()).pathname==='/app/action'&&r.request().method()==='POST');await page.getByRole('button',{name:'Investigate why numbers moved',exact:true}).click();const response=await submitted;assert.equal(response.status(),303,'movement form returns its normal redirect');const posted=Object.fromEntries(new URLSearchParams(response.request().postData()));assert.deepEqual([posted.from,posted.to,posted.comparedFrom,posted.comparedTo],[c.from,c.to,BASE,BASE_END]);await page.waitForURL(url=>url.hash==='#movement'&&url.searchParams.get('compareFrom')===BASE&&url.searchParams.get('compareTo')===BASE_END)
+  const submitted=page.waitForResponse(r=>new URL(r.url()).pathname==='/app/action'&&r.request().method()==='POST');await page.getByRole('button',{name:'Investigate why numbers moved',exact:true}).focus();await page.keyboard.press('Enter');const response=await submitted;assert.equal(response.status(),303,'movement form returns its normal redirect');const posted=Object.fromEntries(new URLSearchParams(response.request().postData()));assert.deepEqual([posted.from,posted.to,posted.comparedFrom,posted.comparedTo],[c.from,c.to,BASE,BASE_END]);await page.waitForURL(url=>url.hash==='#movement'&&url.searchParams.get('compareFrom')===BASE&&url.searchParams.get('compareTo')===BASE_END)
   await page.waitForLoadState('domcontentloaded');const view=page.locator('[data-movement-result]');await view.locator('li[data-movement-category]').first().scrollIntoViewIfNeeded();assert.equal(await view.locator('li[data-movement-category]').first().getAttribute('data-movement-category'),c.category)
   assert.match(await view.textContent(),/What would disprove it/);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true)
   if(dir)await page.screenshot({path:join(dir,`movement-${c.name}-${width}.png`)})
@@ -156,4 +156,15 @@ test('Movement refuses invalid or private requests, missing source dates never b
  await a.clock(Date.parse('2026-12-01T12:00:00Z'));assert.equal((await a.form({operation:'history.retention',siteId:retentionId},a.owner)).status,303)
  dump=await a.dump();assert.equal(dump.vane_agent_evidence.length,0);assert.equal(dump.vane_movement_investigations.length,0)
  const remove=await result(await a.post('/api/vane/commands',{command:'site.delete',input:{siteId:id}},a.owner),201);assert.equal((await a.form({operation:'proposal.approve',id:remove.id},a.owner)).status,303);assert.equal((await a.dump()).vane_agent_evidence_keys.some(k=>k.site_id===id),false)
+ await a.clock(NOW)
+ const consentOrigin='https://consent.example',consentId=await a.addSite({origin:consentOrigin,paths:[],goals:{},consent:'required',declinedCounter:false,retainForever:true})
+ await a.clock(Date.parse('2026-09-08T12:00:00Z'));for(let i=0;i<5;i++)assert.equal((await a.collect(a.event(consentId,{consent:'granted'}),consentOrigin)).status,202)
+ const all=await result(await a.request('/api/vane/sites',{headers:{cookie:a.owner}})),cs=all.find(s=>s.id===consentId)
+ const enabling=await result(await a.post('/api/vane/commands',{command:'site.configure',input:{siteId:consentId,name:cs.name,origin:cs.origin,config:{...cs.config,declinedCounter:true}}},a.owner),201);assert.equal((await a.form({operation:'proposal.approve',id:enabling.id},a.owner)).status,303)
+ await a.clock(Date.parse('2026-09-15T12:00:00Z'));assert.equal((await a.collect(a.event(consentId,{consent:'granted'}),consentOrigin)).status,202)
+ for(let i=0;i<20;i++)assert.equal((await a.post('/api/vane/declined/'+consentId,undefined,'',{origin:consentOrigin})).status,202)
+ await a.clock(NOW);const historical=await result(await a.post('/api/vane/movement',{...p,siteId:consentId},a.owner))
+ assert.equal(historical.hypotheses.some(h=>h.title==='Changed consent coverage is consistent with the drop'),false,'a newly enabled counter cannot fabricate a past consent denominator')
+ assert.ok(historical.unknown.some(u=>u.includes('preserved approved history')))
+
 })

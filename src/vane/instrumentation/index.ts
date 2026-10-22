@@ -1,3 +1,4 @@
+import { agentHistoryStamp, agentCommitGuard } from '../agent-fence'
 import { allow, atomic, inScope, insist, rows, site, statement, uid, type Actor, type Env } from '../core'
 import { auditStatement } from '../audit'
 import { clock } from '../clock'
@@ -26,6 +27,7 @@ export async function instrumentationHistory(env:Env,actor:Actor,siteId:string) 
 export async function investigateInstrumentation(env:Env,actor:Actor,p:any):Promise<InstrumentationReport> {
  const value=await owner(env,actor,String(p.siteId??'')),from=localDate(p.from),to=localDate(p.to)
  insist(from<to&&Date.parse(to)-Date.parse(from)<=31*86400000,'range','Investigate between 1 and 31 whole local days.')
+ const stamp=await agentHistoryStamp(env,value.id)
  const previous=(await scans(env,actor,value.id)).find(s=>s.state==='complete'&&s.pages.some(p=>p.native))
  const scriptUrls=await nativeScriptUrls(env,value),current=await scan(env,actor,{siteId:value.id,pageLimit:p.pageLimit??50},html=>inspectPage(html,value,scriptUrls))
  const problems:Problem[]=[],link=evidence(value.id,current.id)
@@ -54,7 +56,7 @@ export async function investigateInstrumentation(env:Env,actor:Actor,p:any):Prom
  const changes=problems.flatMap(p=>p.kind==='missing-script'?[{page:p.page!,before:'No matching native script',after:`<script defer src="${new URL('/vane.js',env.AUTH_ORIGIN).href}" data-site="${value.id}"></script>`}]:p.kind==='missing-selector'&&p.replacement?[{page:p.page!,before:`${p.name}: ${p.target}`,after:`${p.name}: ${p.target}, ${p.replacement}`}]:[])
  const unknown=[...(current.state!=='complete'?['The crawl failed; no clean-site conclusion is possible.']:[]),...(current.refused?[`${current.refused} sitemap/page requests were refused or exceeded the selected limit; those pages are unverified.`]:[]),'Static HTML cannot prove consent, script execution, blockers or a real user action.','GitHub/Pane deploy diffs and PR submission are not connected; this is a reviewable PR draft, not an opened pull request.','Server-confirmed outcomes from Stripe, Shopify and CRM are unavailable until CONV-008 is connected.','GTM and Pane fix hand-off are unavailable until INSTALL-005 and AGENT-003 ship.']
  const result:InstrumentationReport={id:uid(),siteId:value.id,at:clock(),scanId:current.id,siteVersion:value.version,inspectedPages:current.pages.length,from,to,problems,unknown,draft:{title:'Repair analytics instrumentation',state:'draft-only',changes,body:`Review these structural observations against the deployed source. Preserve consent, event names, properties and the collection field set. ${changes.length} suggested changes; no repository or website has been edited.`}}
- await atomic(env,actor,[statement(env,'INSERT INTO vane_instrumentation_runs(id,site_id,actor_id,at,scan_id,from_day,to_day,report_json) VALUES(?,?,?,?,?,?,?,?)',result.id,value.id,actor.id,result.at,current.id,from,to,JSON.stringify(result)),auditStatement(env,actor.id,'agent.instrumentation',value.id,result.id)])
+ await atomic(env,actor,[agentCommitGuard(env,value,stamp),statement(env,'INSERT INTO vane_instrumentation_runs(id,site_id,actor_id,at,scan_id,from_day,to_day,report_json) VALUES(?,?,?,?,?,?,?,?)',result.id,value.id,actor.id,result.at,current.id,from,to,JSON.stringify(result)),auditStatement(env,actor.id,'agent.instrumentation',value.id,result.id)])
  return result
 }
 async function runOf(env:Env,siteId:string,id:string):Promise<InstrumentationReport> {
@@ -65,6 +67,7 @@ export async function prepareInstrumentationFix(env:Env,actor:Actor,p:any) {
  const value=await owner(env,actor,String(p.siteId??'')),run=await runOf(env,value.id,String(p.runId??''))
  insist(run.siteVersion===value.version,'stale','Settings changed since this investigation. Investigate again before preparing a fix.',409)
  insist(p.confirm==='on','review','Confirm that you reviewed the structural candidates against the deployed page.')
+ const stamp=await agentHistoryStamp(env,value.id)
  const snapshot=(await scans(env,actor,value.id)).find(s=>s.id===run.scanId)
  insist(snapshot?.state==='complete','scan','A completed retained scan is required; investigate again.',409)
  const replacements=new Map<string,string>()
@@ -76,7 +79,7 @@ export async function prepareInstrumentationFix(env:Env,actor:Actor,p:any) {
  // The normal, version-bound owner approval is the sole way this draft changes a collection setting.
  const proposal=await prepare(env,actor,'site.configure',{siteId:value.id,name:value.name,origin:value.origin,config:{...value.config,eventDefinitions}},'command API')
  const id=uid(),at=clock()
- await atomic(env,actor,[statement(env,'INSERT INTO vane_instrumentation_fixes(id,site_id,run_id,created_by,created_at,proposal_id,draft_json) VALUES(?,?,?,?,?,?,?)',id,value.id,run.id,actor.id,at,proposal.id,JSON.stringify({...run.draft,problems:run.problems,eventDefinitions})),auditStatement(env,actor.id,'agent.fix.prepare',value.id,`${id}: proposal ${proposal.id}; no outbound edit` )])
+ await atomic(env,actor,[agentCommitGuard(env,value,stamp),statement(env,'INSERT INTO vane_instrumentation_fixes(id,site_id,run_id,created_by,created_at,proposal_id,draft_json) VALUES(?,?,?,?,?,?,?)',id,value.id,run.id,actor.id,at,proposal.id,JSON.stringify({...run.draft,problems:run.problems,eventDefinitions})),auditStatement(env,actor.id,'agent.fix.prepare',value.id,`${id}: proposal ${proposal.id}; no outbound edit` )])
  return {id,proposalId:proposal.id,draft:run.draft,state:'awaiting-owner-approval'}
 }
 export async function verifyInstrumentationFix(env:Env,actor:Actor,p:any) {
@@ -88,6 +91,7 @@ export async function verifyInstrumentationFix(env:Env,actor:Actor,p:any) {
  insist(proposal,'approval','The owner must approve the prepared change before verification.',409)
  const payload=JSON.parse(proposal.payload_json)
  insist(payload.version+1===value.version,'stale','Settings changed after this approval. Investigate and prepare a fresh fix.',409)
+ const stamp=await agentHistoryStamp(env,value.id)
  const draft=JSON.parse(fix.draft_json),scriptUrls=await nativeScriptUrls(env,value),current=await scan(env,actor,{siteId:value.id,pageLimit:500},html=>inspectPage(html,value,scriptUrls)),missing:string[]=[]
  const deploy=(await rows<{at:number}>(env,"SELECT at FROM vane_annotations WHERE site_id=? AND kind IN ('deploy','release') AND at>? AND at>=? ORDER BY at DESC LIMIT 1",value.id,fix.created_at,proposal.approved_at))[0],deployed=Boolean(deploy),after=Math.max(fix.created_at,Number(proposal.approved_at),deploy?.at??0)
  if(!deployed)missing.push('A deploy or release annotation received after this fix was prepared is required.')
@@ -106,6 +110,6 @@ export async function verifyInstrumentationFix(env:Env,actor:Actor,p:any) {
  await auditStatement(env,actor.id,'agent.fix.verify',value.id,`${fix.id}: ${missing.length?'not verified':'payload and page evidence observed'}`).run()
  if(missing.length)return {state:'unverified',missing,scanId:current.id}
  const at=clock(),annotationId='instrumentation:'+fix.id
- await atomic(env,actor,[statement(env,'UPDATE vane_instrumentation_fixes SET verified_at=? WHERE id=? AND verified_at IS NULL',at,fix.id),statement(env,"INSERT OR IGNORE INTO vane_annotations(id,site_id,day,kind,text,url,author,at) VALUES(?,?,?,'settings',?,NULL,?,?)",annotationId,value.id,localDay(at,value.config.timeZone??'UTC'),`Instrumentation fix verified: ${draft.changes.length} page/selector changes; approved settings, deployed page and new accepted payloads checked.`,actor.id,at)])
+ await atomic(env,actor,[agentCommitGuard(env,value,stamp),statement(env,'INSERT INTO vane_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM vane_instrumentation_fixes WHERE id=? AND verified_at IS NULL) THEN 1 ELSE 0 END',fix.id),statement(env,'UPDATE vane_instrumentation_fixes SET verified_at=? WHERE id=? AND verified_at IS NULL',at,fix.id),statement(env,"INSERT OR IGNORE INTO vane_annotations(id,site_id,day,kind,text,url,author,at) VALUES(?,?,?,'settings',?,NULL,?,?)",annotationId,value.id,localDay(at,value.config.timeZone??'UTC'),`Instrumentation fix verified: ${draft.changes.length} page/selector changes; approved settings, deployed page and new accepted payloads checked.`,actor.id,at)])
  return {state:'verified',at,scanId:current.id,annotationId}
 }
