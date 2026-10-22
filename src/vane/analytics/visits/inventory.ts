@@ -20,6 +20,7 @@ export function visitInventory(): Field[] {
   ['bulk_groups',['site','day','visitor','run','visit','first_raw','last_raw','started','last_at','last_signal','pages','engaged','identity','first_on_page'],'Transaction-local final visit facts aggregated once per affected component. Cleared before the transaction returns.'],
   ['bulk_buckets',['context','at_offset'],'Transaction-local distinct incoming timestamps and their nearest old timestamp boundaries in each existing anonymous context. Cleared before the transaction returns.'],
   ['bulk_neighbors',['rank','raw_id','site','day','visitor','context','at_offset','token','at','engaged','scroll','gap','old_visit','next_id','next_at_offset','old_prev_rank','old_next_rank'],'Transaction-local exact ordering of new pages and bounded old timestamp neighborhoods, with previous and final neighbor references. Cleared before the transaction returns.'],
+  ['bulk_membership',['group_id','visit'],'Transaction-local exact final visit assignment for affected raw context/time groups. Conflicting assignments abort admission. Cleared before the transaction returns.'],
  ]
  return fields.map(([name,columns,description]) => ({name:'Native visit '+name.replaceAll('_',' '),table:'vane_visit_'+name,columns,description:description+' Derived tables are excluded from archives; retention and erasure remove their supporting history.'}))
 }

@@ -14,10 +14,28 @@ export const applyBulkVisitSql = [
   SELECT b.visit,f.context,f.on_page,f.scroll,SUM(f.n) FROM vane_visit_bulk_nodes b JOIN vane_visit_page_frequencies f ON f.visit=b.node_id
   WHERE b.kind=0 AND b.node_id!=b.visit GROUP BY b.visit,f.context,f.on_page,f.scroll
   ON CONFLICT(visit,context,on_page,scroll) DO UPDATE SET n=n+excluded.n`,
- `UPDATE vane_raw_events AS e SET visit_id=(SELECT b.visit FROM vane_visit_bulk_nodes b WHERE b.kind=0 AND b.node_id=e.visit_id)
-  WHERE visit_id IN (SELECT node_id FROM vane_visit_bulk_nodes WHERE kind=0 AND node_id!=visit)`,
- `UPDATE vane_raw_events AS e SET visit_id=(SELECT b.visit FROM vane_visit_bulk_nodes b WHERE b.kind=1 AND b.node_id=e.raw_id)
-  WHERE raw_id IN (SELECT node_id FROM vane_visit_bulk_nodes WHERE kind=1)`,
+ // All occurrences at one context/time share a visit. UNION removes repeated
+ // identical assignments; contradictory targets fail the scratch primary key.
+ `INSERT INTO vane_visit_bulk_membership(group_id,visit)
+  SELECT g.group_id,b.visit FROM vane_visit_bulk_nodes b JOIN vane_raw_groups g ON g.visit_id=b.node_id
+  WHERE b.kind=0 AND b.node_id!=b.visit
+  UNION
+  SELECT e.group_id,b.visit FROM vane_visit_bulk_nodes b JOIN vane_raw_occurrences e ON e.raw_id=b.node_id
+  WHERE b.kind=1`,
+ // Usually the group itself can acquire its final visit in one write. A unique
+ // collision means the exact context/time/visit group already exists; only
+ // those occurrences need their physical group pointers moved below.
+ `UPDATE OR IGNORE vane_raw_groups AS g SET visit_id=(SELECT m.visit FROM vane_visit_bulk_membership m WHERE m.group_id=g.group_id)
+  WHERE group_id IN (SELECT group_id FROM vane_visit_bulk_membership)
+   AND visit_id IS NOT (SELECT m.visit FROM vane_visit_bulk_membership m WHERE m.group_id=g.group_id)`,
+ `UPDATE vane_raw_occurrences AS e SET group_id=(
+   SELECT target.group_id FROM vane_visit_bulk_membership m JOIN vane_raw_groups old ON old.group_id=m.group_id
+   JOIN vane_raw_groups target ON target.context=old.context
+    AND (target.at_offset IS NULL)=(old.at_offset IS NULL) AND coalesce(target.at_offset,0)=coalesce(old.at_offset,0)
+    AND (target.visit_id IS NULL)=0 AND coalesce(target.visit_id,0)=m.visit
+   WHERE m.group_id=e.group_id)
+  WHERE group_id IN (SELECT g.group_id FROM vane_visit_bulk_membership m JOIN vane_raw_groups g USING(group_id)
+   WHERE g.visit_id IS NOT m.visit)`,
  `DELETE FROM vane_visit_facts WHERE visit IN (SELECT node_id FROM vane_visit_bulk_nodes WHERE kind=0 AND node_id!=visit)`,
  `INSERT INTO vane_visit_page_frequencies(visit,context,on_page,scroll,n)
   SELECT e.visit_id,p.context,p.on_page,p.scroll,COUNT(*) FROM vane_visit_bulk_pages p JOIN vane_raw_events e USING(raw_id)

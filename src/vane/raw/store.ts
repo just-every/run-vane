@@ -78,19 +78,17 @@ function rawBatch(records:RawRecord[]) {
 // Every admitted member supplies its own exact context and timestamp. Context
 // interning may be shared independently; its representative timestamp is never
 // used for other members. Run this in the same transaction as the physical INSERT.
-export function rawNormalizeManyGroupsStatement(env:Env,records:RawRecord[],when:RawCondition={sql:'1',values:[]}):D1PreparedStatement {
- const b=rawBatch(records)
- return env.DB.prepare(`INSERT OR IGNORE INTO vane_raw_groups(context,at_offset,visit_id)
-  SELECT DISTINCT ${b.context},${b.at},NULL FROM json_each(?) row WHERE ${when.sql}`).bind(b.json,...when.values)
-}
 // Contexts and exact groups must already be interned in this transaction. The
 // row.key gate retains the original input index. Missing metadata fails loudly
 // through the physical integrity trigger instead of silently dropping an input.
-// This one physical INSERT leaves changes() equal to actual admitted occurrences.
-export function rawInsertManyStatement(env:Env,records:RawRecord[],when:RawCondition={sql:'1',values:[]}):D1PreparedStatement {
+// Build their common lossless payload once. The final physical INSERT leaves
+// changes() equal to actual admitted occurrences for the immediate count guard.
+export function rawInsertManyStatements(env:Env,records:RawRecord[],when:RawCondition={sql:'1',values:[]}):D1PreparedStatement[] {
  const b=rawBatch(records)
- return env.DB.prepare(`INSERT INTO vane_raw_occurrences(site,token,group_id)
+ return [env.DB.prepare(`INSERT OR IGNORE INTO vane_raw_groups(context,at_offset,visit_id)
+  SELECT DISTINCT ${b.context},${b.at},NULL FROM json_each(?) row WHERE ${when.sql}`).bind(b.json,...when.values),
+ env.DB.prepare(`INSERT INTO vane_raw_occurrences(site,token,group_id)
   SELECT ${b.site},${decodedValue('$.token')},
    (SELECT group_id FROM vane_raw_groups g WHERE ${groupMatchSql(b.context,b.at)})
-  FROM json_each(?) row WHERE ${when.sql}`).bind(b.json,...when.values)
+  FROM json_each(?) row WHERE ${when.sql}`).bind(b.json,...when.values)]
 }

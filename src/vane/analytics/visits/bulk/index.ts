@@ -13,6 +13,7 @@ export function beginBulkVisits(env: Env): D1PreparedStatement[] {
 export function finishBulkVisits(env: Env): D1PreparedStatement[] {
  return [
   ...prepareBulkVisitSql, ...componentSql, ...applyBulkVisitSql,
+  'DELETE FROM vane_visit_bulk_membership',
   'DELETE FROM vane_visit_bulk_groups', 'DELETE FROM vane_visit_bulk_nodes',
   'DELETE FROM vane_visit_bulk_neighbors', 'DELETE FROM vane_visit_bulk_buckets',
   'DELETE FROM vane_visit_bulk_pages', 'DELETE FROM vane_visit_bulk_chains',

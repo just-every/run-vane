@@ -1,5 +1,5 @@
 import { site, statement, uid, VaneError, type Env } from '../core'
-import { encodeRawId, rawInsertManyStatement, rawNormalizeManyGroupsStatement, rawNormalizeStatements, type RawRecord } from '../raw'
+import { encodeRawId, rawInsertManyStatements, rawNormalizeStatements, type RawRecord } from '../raw'
 import { RAW_DIMENSIONS } from '../raw/schema'
 import { bulkOccurrences } from '../analytics/bulk'
 import { beginBulkVisits, finishBulkVisits } from '../analytics/visits/bulk'
@@ -80,10 +80,7 @@ export async function admitPageviews(request: Request, env: Env, validated: Vali
   WHERE NOT EXISTS(SELECT 1 FROM vane_raw_events WHERE site=${physicalSite} AND token=${tokenSql})
   GROUP BY json_extract(row.value,'$.site'),${tokenSql}`, batchId, checks))
  statements.push(...beginBulkVisits(env))
- statements.push(rawNormalizeManyGroupsStatement(env, pages, {
-  sql: 'EXISTS(SELECT 1 FROM vane_collection_batch_admitted WHERE batch_id=? AND record_index=CAST(row.key AS INTEGER))', values: [batchId],
- }))
- statements.push(rawInsertManyStatement(env, pages, {
+ statements.push(...rawInsertManyStatements(env, pages, {
   sql: 'EXISTS(SELECT 1 FROM vane_collection_batch_admitted WHERE batch_id=? AND record_index=CAST(row.key AS INTEGER))', values: [batchId],
  }))
  statements.push(statement(env, `INSERT INTO vane_guard(value)
@@ -94,10 +91,12 @@ export async function admitPageviews(request: Request, env: Env, validated: Vali
   const columns = Object.keys(goals[0]!.record), values = goals.map(({ index, record }) => [...columns.map(column => record[column as keyof RawRecord] ?? null), index])
   statements.push(statement(env, `INSERT OR IGNORE INTO vane_events(${columns.join(',')})
    SELECT ${columns.map((_, i) => `json_extract(row.value,'$[${i}]')`).join(',')} FROM json_each(?) row
-   JOIN vane_collection_batch_admitted a ON a.batch_id=? AND a.record_index=json_extract(row.value,'$[${columns.length}]')`, JSON.stringify(values), batchId))
+   CROSS JOIN vane_collection_batch_admitted a ON a.batch_id=? AND a.record_index=json_extract(row.value,'$[${columns.length}]')`, JSON.stringify(values), batchId))
  }
  const metadata = JSON.stringify(prepared.map((plan, index) => ({ index, site: plan.value.id, day: plan.today, dropped: plan.props.dropped })))
- const admitted = `FROM json_each(?) row JOIN vane_collection_batch_admitted a ON a.batch_id=? AND a.record_index=json_extract(row.value,'$.index')`
+ // Visit each bounded input once, then seek its reserved key. Letting SQLite
+ // put the scratch table first scans the complete JSON array for every row.
+ const admitted = `FROM json_each(?) row CROSS JOIN vane_collection_batch_admitted a ON a.batch_id=? AND a.record_index=json_extract(row.value,'$.index')`
  statements.push(statement(env, `INSERT INTO vane_admission(site_id,day,count)
   SELECT json_extract(row.value,'$.site'),json_extract(row.value,'$.day'),COUNT(*) ${admitted} WHERE 1 GROUP BY 1,2
   ON CONFLICT(site_id,day) DO UPDATE SET count=count+excluded.count`, metadata, batchId))
