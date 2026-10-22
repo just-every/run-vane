@@ -10,17 +10,18 @@ export interface JourneyRow {
 }
 
 // Fetch one candidate per metadata group before ordering across groups. A
-// canonical chain uses the (group_id,token) index even when a timestamp has
-// many repeated loads. Legacy chains retain exact decoded logical-ID order.
+// canonical chain seeks the indexed four-byte token prefix, then resolves every
+// prefix tie using the full token. Legacy chains use decoded logical-ID order.
 function candidate(point:string,after:boolean,canonical:boolean,timestamp:string,relative=false,path=false) {
  const direction=after?'ASC':'DESC',comparison=after?'>':'<'
  const key=(alias:string)=>canonical?`${alias}.token`:unpackedIdSql(`${alias}.token`,`${point}.site_id`)
+ const order=(alias:string)=>canonical?`substr(${alias}.token,1,4) ${direction},${alias}.token ${direction}`:`${key(alias)} ${direction}`
  return `(SELECT e.raw_id FROM vane_raw_groups g
   ${path?'CROSS JOIN vane_raw_contexts c ON c.context=g.context':''}
   CROSS JOIN vane_raw_occurrences e ON e.raw_id=(
    SELECT occurrence.raw_id FROM vane_raw_occurrences occurrence WHERE occurrence.group_id=g.group_id
-   ${relative?`AND ${key('occurrence')}${comparison}${point}.${canonical?'token':'id'}`:''}
-   ORDER BY ${key('occurrence')} ${direction} LIMIT 1)
+   ${relative?`${canonical?`AND substr(occurrence.token,1,4)${comparison}=substr(${point}.token,1,4)`:''} AND ${key('occurrence')}${comparison}${point}.${canonical?'token':'id'}`:''}
+   ORDER BY ${order('occurrence')} LIMIT 1)
   WHERE g.visit_id=${point}.visit AND g.at_offset=${timestamp} ${path?`AND ${dimension('path')}=?4`:''}
   ORDER BY ${key('e')} ${direction} LIMIT 1)`
 }
