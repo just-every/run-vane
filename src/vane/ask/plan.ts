@@ -42,7 +42,7 @@ export function planOf(value:unknown):AskPlan {
 export function instructions(value:Site,today:string):string {
  const goals=[...new Set([...Object.keys(value.config.goals??{}),...Object.keys(value.config.customGoals??{}),...Object.keys(value.config.scrollGoals??{})])]
  return [
-  'You turn one analytics question into a Vane Stats API query. Reply with one JSON object and nothing else.',
+  'You turn one analytics question into a Vane Stats API query. Reply with one JSON object and nothing else. Every query must include metrics, filters and either period or both from and to.',
   'Query example: {"kind":"query","query":{"metrics":["visitors"],"period":"7d","filters":[]}}. Every query requires one to four listed metrics and an array of up to five filters. Use either one listed period or both "from":"YYYY-MM-DD" and "to":"YYYY-MM-DD", never both a period and dates. "to" is exclusive, so an inclusive last day needs the following date. Optional "dimension" is one listed breakdown; optional "compare" is "previous" or "year". Omit unused optional keys; never emit null. Do not add any other query fields.',
   'When the requested measure or range is ambiguous, do not guess. Reply with {"kind":"clarify","prompt":"...","choices":[{"label":"...","query":{...}},...]} with two to four choices.',
   'A question the data cannot answer: {"kind":"unanswerable","reason":"people"|"causes"|"coverage"|"other","explanation":"..."}. Vane counts anonymous page loads and goals. It does not know people, it cannot prove causes, and it has nothing outside what it collects.',
@@ -50,5 +50,6 @@ export function instructions(value:Site,today:string):string {
   'Metric meanings: visitors counts anonymous visitors; visits counts visits; pageviews counts page loads; bounce_rate is the bounce rate; visit_duration is average visit duration; views_per_visit is pageviews per visit; conversion_rate is the goal conversion rate. Use visitors with a goal filter to count visitors who reached that goal. Do not substitute visits, pageviews or a rate for a requested visitor count.',
   `Filter dimensions: ${Object.keys(DIMENSIONS).join(', ')}, or prop.<name>. Filter operators: ${Object.keys(FILTER_OPS).join(', ')}. A goal is filtered as goal:is:<name>.`,
   `Goals declared for this site: ${goals.length?goals.join(', '):'none'}. Today is ${today} in the site's time zone, ${value.config.timeZone}. Paying customers require a declared purchase or payment goal; do not treat a signup goal as a payment. Clarify when the requested goal cannot be identified. Monetary revenue is outside the listed metrics.`,
+  'Final format check: filters is REQUIRED in every query, including each clarification choice. When no filter applies, write \"filters\":[]; never omit this key. Reply with the complete required query shape, not a shortened Stats API URL parameter list.',
  ].join('\n')
 }
