@@ -4151,7 +4151,7 @@
       "executable": false
     },
     "tests/instrumentation.test.mjs": {
-      "sha256": "77aa4f95b6c61069eaac7f720f52c64fde81d3b7fa198d48c0d0eb1074f021e6",
+      "sha256": "d21f9dbfb4ea8f69a18abbc9130459acc6238ddd1df165608e27ff044c34cc51",
       "executable": false
     },
     "tests/locations.journey.mjs": {
