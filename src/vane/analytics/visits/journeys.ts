@@ -27,10 +27,11 @@ function candidate(point:string,after:boolean,canonical:boolean,timestamp:string
 }
 
 function orderedNeighbor(point:string,after:boolean,canonical:boolean) {
- const comparison=after?'>':'<',extreme=after?'MIN':'MAX'
- const timestamp=`(SELECT ${extreme}(bucket.at_offset) FROM vane_raw_groups bucket
+ const comparison=after?'>':'<',direction=after?'ASC':'DESC'
+ const timestamp=`(SELECT bucket.at_offset FROM vane_raw_groups bucket
   WHERE bucket.visit_id=${point}.visit AND bucket.at_offset${comparison}${point}.at_offset
-  AND EXISTS(SELECT 1 FROM vane_raw_occurrences occurrence WHERE occurrence.group_id=bucket.group_id))`
+  AND EXISTS(SELECT 1 FROM vane_raw_occurrences occurrence WHERE occurrence.group_id=bucket.group_id)
+  ORDER BY bucket.at_offset ${direction} LIMIT 1)`
  return `COALESCE(${candidate(point,after,canonical,`${point}.at_offset`,true)},${candidate(point,after,canonical,timestamp)})`
 }
 
@@ -65,16 +66,18 @@ export async function readJourneyRows(env:Env,scope:string,from:string,to:string
   CROSS JOIN vane_raw_contexts c ON c.context=g.context
   WHERE ${range} AND ${dimension('path')}=?4
  )`:`buckets AS MATERIALIZED (
-  SELECT f.visit,s.site_id,${legacy} AS legacy,MIN(g.at_offset) AS at_offset FROM vane_raw_sites s
+  SELECT f.visit,s.site_id,${legacy} AS legacy,(
+   SELECT g.at_offset FROM vane_raw_groups g
+   CROSS JOIN vane_raw_contexts c ON c.context=g.context
+   WHERE g.visit_id=f.visit AND g.at_offset IS NOT NULL AND ${dimension('path')}=?4
+   AND EXISTS(SELECT 1 FROM vane_raw_occurrences e WHERE e.group_id=g.group_id)
+   ORDER BY g.at_offset LIMIT 1
+  ) AS at_offset FROM vane_raw_sites s
   CROSS JOIN vane_visit_facts f ON f.site=s.site
-  CROSS JOIN vane_raw_groups g ON g.visit_id=f.visit
-  CROSS JOIN vane_raw_contexts c ON c.context=g.context
-  WHERE ${range} AND ${dimension('path')}=?4 AND g.at_offset IS NOT NULL
-  AND EXISTS(SELECT 1 FROM vane_raw_occurrences e WHERE e.group_id=g.group_id)
-  GROUP BY f.visit,s.site_id
+  WHERE ${range}
  ), anchor_ids AS MATERIALIZED (
   SELECT b.visit,b.site_id,b.legacy,CASE WHEN b.legacy=0 THEN ${candidate('b',true,true,'b.at_offset',false,true)}
-   ELSE ${candidate('b',true,false,'b.at_offset',false,true)} END AS raw_id FROM buckets b
+   ELSE ${candidate('b',true,false,'b.at_offset',false,true)} END AS raw_id FROM buckets b WHERE b.at_offset IS NOT NULL
  )`
  const neighbors=(['n','p'] as const).flatMap(prefix=>Array.from({length:3},(_,i)=>{
   const name=prefix+(i+1),previous=i?prefix+i:'anchor'
