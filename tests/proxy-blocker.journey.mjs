@@ -120,14 +120,18 @@ test('current default uBlock lists block incumbent tags, record direct Vane and 
   const incumbents=['https://plausible.io/js/script.js','https://www.googletagmanager.com/gtag/js?id=G-TEST']
   const controls=new Map(incumbents.map(url=>[url,new Promise(resolve=>{
     page.on('requestfailed',request=>{if(request.url()===url)resolve({failure:request.failure()?.errorText})})
-    page.on('response',response=>{if(response.url()===url)resolve({status:response.status()})})
+    page.on('response',async response=>{if(response.url()===url)resolve({status:response.status(),redirect:await response.headerValue('location')})})
   })]))
   await page.goto(origin+'/controls',{waitUntil:'load'})
+  const controlOutcomes=[]
   for(const [url,result] of controls){
     const outcome=await Promise.race([result,delay(30000,undefined,{ref:false})])
-    assert.equal(outcome?.failure,'net::ERR_BLOCKED_BY_CLIENT','The unchanged defaults must block '+url+': '+JSON.stringify(outcome))
-    t.diagnostic('Live-list control '+url+': '+outcome.failure)
+    controlOutcomes.push([url,outcome])
+    t.diagnostic('Live-list control '+url+': '+JSON.stringify(outcome))
   }
+  await t.test('both incumbent tags fail with the ct-required blocked-client result before tracked visits',()=>{
+    for(const [url,outcome] of controlOutcomes)assert.equal(outcome?.failure,'net::ERR_BLOCKED_BY_CLIENT','The unchanged defaults must block '+url+': '+JSON.stringify(outcome))
+  })
   let completeDirect
   const directCollected=new Promise(resolve=>{completeDirect=resolve})
   page.on('response',response=>{if(response.url()===new URL('/api/vane/collect',directScript).href)completeDirect(response)})

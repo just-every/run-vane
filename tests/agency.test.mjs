@@ -23,7 +23,7 @@ async function fixture(t) {
  for(const [email,clientId] of [['fern@client.example',fern.id],['oak@client.example',oak.id]])assert.equal((await op('agency.invite',{email,clientId})).status,303)
  const fernUser=await a.accept('fern@client.example'),oakUser=await a.accept('oak@client.example')
  const brand=async(brandId,name,customOrigin='',extra={})=>{const r=await op('agency.brand.save',{brandId,name,accent:'#215544',background:'#f5f9fd',enabled:'on',customOrigin,domainAttestation:'on',...extra});assert.equal(r.status,303,await r.clone().text())}
- const upload=async(brandId,image=logo(),cookie=a.owner)=>{const form=new FormData();form.set('brandId',brandId);form.set('logo',new Blob([image],{type:'image/png'}),'synthetic-vane-logo.png');return a.request('/app/agency/logo',{method:'POST',headers:{origin:a.origin,cookie},body:form})}
+ const upload=async(brandId,image=logo(),cookie=a.owner)=>{const form=new FormData();form.set('brandId',brandId);form.set('logo',new Blob([image],{type:'image/png'}),'synthetic-vane-logo.png');const wire=new Response(form);return a.request('/app/agency/logo',{method:'POST',headers:{origin:a.origin,cookie,'content-type':wire.headers.get('content-type')},body:await wire.arrayBuffer()})}
  const domain=(origin,path,options={})=>a.request(path,{...options,headers:{...options.headers,'x-original-url':origin+path}})
  for(const [siteId,origin,n] of [[A,'https://fern.example',12],[B,'https://oak.example',7]]){await a.clock(Date.parse('2026-10-16T12:00:00Z'));for(let i=0;i<n;i++)assert.equal((await a.post('/api/vane/collect',a.event(siteId,{path:i%3?'/':'/pricing'}),'',{origin,'cf-connecting-ip':`203.0.113.${i+1}`,'user-agent':'Synthetic browser'})).status,202)}
  await a.clock(Date.parse('2026-10-18T12:00:00Z'))
@@ -42,7 +42,7 @@ test('AGENCY-001 two clients isolate every site door; agency and client brands r
  }
  assert.equal((await a.request('/api/vane/agency')).status,401)
  const before=await data();assert.equal((await a.post('/api/vane/agency',{operation:'agency.client.create',name:'Refused'},a.owner,{origin:'https://foreign.example'})).status,403);assert.deepEqual(await data(),before)
- await brand('agency','Northstar Analytics',agencyOrigin);assert.equal((await upload('agency')).status,303)
+ await brand('agency','Northstar Analytics',agencyOrigin);const uploaded=await upload('agency');assert.equal(uploaded.status,303,(await uploaded.text()).match(/class="vane-error"[^>]*>([^<]*)/)?.[1])
  assert.equal((await upload('agency',Buffer.from('<svg onload="alert(1)"></svg>'))).status,400)
  assert.equal((await upload('agency',logo(),fernUser)).status,403)
  const agency=(await data()).brands.find(b=>b.id==='agency'),logoURL='/agency-assets/'+agency.logo_id
@@ -80,7 +80,7 @@ test('AGENCY-001 two clients isolate every site door; agency and client brands r
 
 test('AGENCY-001 owner manages two realistic client workspaces at 1440 and 390; client report uses the uploaded logo without overflow',async t=>{
  const {a,A,fern,op,brand,upload}=await fixture(t)
- await brand('agency','Northstar Analytics');assert.equal((await upload('agency')).status,303)
+ await brand('agency','Northstar Analytics');const uploaded=await upload('agency');assert.equal(uploaded.status,303,(await uploaded.text()).match(/class="vane-error"[^>]*>([^<]*)/)?.[1])
  await brand(fern.id,'Fern Creative','',{accent:'#693f91',background:'#fcf9ff'});assert.equal((await upload(fern.id,logo(105,63,145))).status,303)
  const sharedHtml=await(await op('share.create',{siteId:A,label:'Fern weekly board',share_totals:'on',share_pages:'on'})).text(),shared=sharedHtml.match(/\/share\/vane_s_[0-9a-f]{64}/)[0]
  const {context}=await browse(t,a);await context.addCookies(a.owner.split('; ').map(pair=>{const [name,...value]=pair.split('=');return {name,value:value.join('='),url:a.origin}}))
