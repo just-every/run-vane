@@ -62,7 +62,7 @@ test('HEAT-001 real clicks aggregate at two buttons without text or identifiers;
   if(screenDir)await target.screenshot({path:join(screenDir,`heat-fixture-${width}.png`)})
   const page=await context.newPage();await page.setViewportSize({width,height:900});await page.goto(`${a.origin}/app/sites/${id}?section=heat&heatPath=%2F&heatWidth=${width}&from=2026-03-06&to=2026-03-07`)
   assert.equal(await page.locator('[data-heat-average]').textContent(),'75%');assert.equal(await page.locator('[data-heat-deep]').textContent(),'50%')
-  assert.equal(await page.locator('[data-heat-empty]').isVisible(),true,'a screenshot is never invented')
+  assert.equal(await page.locator('[data-heat-empty]').isVisible(),true,'a screenshot is never invented');assert.equal(await page.locator('[data-heat-images]').isVisible(),false,'uncaptured maps do not show empty image frames')
   if(capture){
    await page.getByRole('button',{name:'Capture live page'}).click()
    await page.waitForFunction(()=>!document.querySelector('[data-heat-capture]').disabled,{},{timeout:25000})

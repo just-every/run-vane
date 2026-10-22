@@ -42,3 +42,33 @@ export function rawInsertStatements(env:Env,record:RawRecord,{ignore=false,when,
   env.DB.prepare(`INSERT ${ignore?'OR IGNORE ':''}INTO vane_raw_events(site,token,context,at_offset) SELECT (SELECT site FROM vane_raw_sites WHERE site_id=?),?,context,?-coalesce(unixepoch(day)*1000,0) FROM vane_raw_contexts WHERE ${c.match}${when?` AND (${when.sql})`:''} RETURNING raw_id`).bind(c.site,token,record.at??null,...c.values,...(when?.values??[])),
  ]
 }
+
+// Bound JSON retains SQLite's TEXT/BLOB distinction, including opaque IDs and
+// noncanonical hashes. A typed pair avoids treating ordinary strings as hex.
+function jsonValue(value:ArrayBuffer|string|null) {
+ return value instanceof ArrayBuffer
+  ? ['blob',Array.from(new Uint8Array(value),byte=>byte.toString(16).padStart(2,'0')).join('')]
+  : ['text',value]
+}
+function decodedValue(path:string) {
+ return `CASE WHEN json_extract(row.value,'${path}[0]')='blob' THEN unhex(json_extract(row.value,'${path}[1]')) ELSE json_extract(row.value,'${path}[1]') END`
+}
+// Contexts must already be interned in this transaction. The caller may gate
+// row.key (the original input index). A scalar context lookup deliberately makes
+// a missing context fail its NOT NULL constraint instead of dropping an input.
+// This is one plain physical INSERT: an immediately following changes() counts
+// every admitted row, independently of the analytics/visit triggers it invokes.
+export function rawInsertManyStatement(env:Env,records:RawRecord[],when:RawCondition={sql:'1',values:[]}):D1PreparedStatement {
+ const rows=records.map(record=>{
+  const c=rawContext(record)
+  return {token:jsonValue(encodeRawId(c.site,record.id)),context:[...c.values.slice(0,4),jsonValue(c.visitor),jsonValue(c.consented),...c.values.slice(6)],at:record.at??null}
+ })
+ const site="(SELECT site FROM vane_raw_sites WHERE site_id=json_extract(row.value,'$.context[0]'))"
+ const match=contextColumns.split(',').map((name,i)=>`c.${name} IS ${i===0?site:i===4||i===5
+  ?`(SELECT identity FROM vane_raw_identities WHERE value=${decodedValue(`$.context[${i}]`)})`
+  :`json_extract(row.value,'$.context[${i}]')`}`).join(' AND ')
+ return env.DB.prepare(`INSERT INTO vane_raw_events(site,token,context,at_offset)
+  SELECT ${site},${decodedValue('$.token')},(SELECT context FROM vane_raw_contexts c WHERE ${match}),
+   json_extract(row.value,'$.at')-coalesce(unixepoch(json_extract(row.value,'$.context[1]'))*1000,0)
+  FROM json_each(?) row WHERE ${when.sql}`).bind(JSON.stringify(rows),...when.values)
+}

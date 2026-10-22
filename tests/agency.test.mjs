@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdir } from 'node:fs/promises'
+import { createServer } from 'node:http'
 import { deflateSync, crc32 } from 'node:zlib'
 import { installation } from './harness.mjs'
 import { browse } from './vane-helpers.mjs'
@@ -12,8 +13,15 @@ function logo(red=29,green=88,blue=240) {
  const pixels=Buffer.alloc(64*(1+160*3));for(let y=0;y<64;y++)for(let x=0;x<160;x++){const at=y*(1+160*3)+1+x*3,on=(x>12&&x<40&&y>12&&y<52)||(x>54&&x<145&&y>18&&y<28)||(x>54&&x<115&&y>36&&y<46);pixels[at]=on?red:255;pixels[at+1]=on?green:255;pixels[at+2]=on?blue:255}
  return Buffer.concat([Buffer.from([137,80,78,71,13,10,26,10]),chunk('IHDR',header),chunk('IDAT',deflateSync(pixels)),chunk('IEND',Buffer.alloc(0))])
 }
-async function fixture(t) {
- const a=await installation();t.after(()=>a.close())
+async function fixture(t,{http=false}={}) {
+ let a,server
+ if(http){
+  server=createServer(async(req,res)=>{try{const chunks=[];for await(const chunk of req)chunks.push(chunk);const response=await a.request(req.url,{method:req.method,headers:req.headers,...(!['GET','HEAD'].includes(req.method)?{body:Buffer.concat(chunks)}:{})});res.writeHead(response.status,{...Object.fromEntries(response.headers),'set-cookie':response.headers.getSetCookie()});res.end(Buffer.from(await response.arrayBuffer()))}catch(error){res.destroy(error)}})
+  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve))
+ }
+ t.after(async()=>{await a?.close();if(server){const closed=new Promise(resolve=>server.close(resolve));server.closeAllConnections();await closed}})
+ a=await installation(server?{origin:`http://127.0.0.1:${server.address().port}`}:{})
+ if(server)a.servesHttp=true
  const op=(operation,p={},cookie=a.owner)=>a.form({operation,...p},cookie),data=async()=>{const r=await a.request('/api/vane/agency',{headers:{cookie:a.owner}});assert.equal(r.status,200);return r.json()}
  await a.clock(Date.parse('2026-10-18T12:00:00Z'))
  const A=await a.addSite({name:'Fern Studio',origin:'https://fern.example',paths:[],publicReports:['totals','pages'],timeZone:'UTC'}),B=await a.addSite({name:'Oak Books',origin:'https://oak.example',paths:[],publicReports:['totals','pages'],timeZone:'UTC'})
@@ -79,7 +87,7 @@ test('AGENCY-001 two clients isolate every site door; agency and client brands r
 })
 
 test('AGENCY-001 owner manages two realistic client workspaces at 1440 and 390; client report uses the uploaded logo without overflow',async t=>{
- const {a,A,fern,op,brand,upload}=await fixture(t)
+ const {a,A,fern,op,brand,upload}=await fixture(t,{http:true})
  await brand('agency','Northstar Analytics');const uploaded=await upload('agency');assert.equal(uploaded.status,303,(await uploaded.text()).match(/class="vane-error"[^>]*>([^<]*)/)?.[1])
  await brand(fern.id,'Fern Creative','',{accent:'#693f91',background:'#fcf9ff'});assert.equal((await upload(fern.id,logo(105,63,145))).status,303)
  const sharedHtml=await(await op('share.create',{siteId:A,label:'Fern weekly board',share_totals:'on',share_pages:'on'})).text(),shared=sharedHtml.match(/\/share\/vane_s_[0-9a-f]{64}/)[0]

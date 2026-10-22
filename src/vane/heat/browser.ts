@@ -29,7 +29,7 @@ button?.addEventListener('click',async()=>{
    if(kind==='click')for(const cell of state.cells){const [x,y]=project(cell.x/40*h.documentWidth,cell.y/100*h.documentHeight),rect=element('rect',{x,y,width:h.documentWidth/40/h.width*width,height:h.documentHeight/100/h.height*height,fill:'#f64b17','fill-opacity':.2+.65*cell.count/max});const title=element('title',{});title.textContent=cell.count+' clicks in grid cell '+cell.x+', '+cell.y;rect.append(title);svg.append(rect)}
    else for(let depth=0;depth<100;depth+=10){const band=state.scroll.bands.find(b=>b.depth===depth),[,y]=project(0,depth/100*h.documentHeight);if(band?.share!==null&&band?.share!==undefined)svg.append(element('rect',{x:0,y,width,height:h.documentHeight/10/h.height*height,fill:'#1c70c5','fill-opacity':.12+.48*band.share/100}))}
   }
-  root.querySelector('[data-heat-empty]').hidden=true;tell('Live screenshot captured locally: '+h.width+' × '+h.height+' CSS pixels, '+Math.round(h.scrollY)+' px down the page. Sharing stopped. No image was uploaded or saved.');
+  root.querySelector('[data-heat-images]').hidden=false;root.querySelector('[data-heat-empty]').hidden=true;tell('Live screenshot captured locally: '+h.width+' × '+h.height+' CSS pixels, '+Math.round(h.scrollY)+' px down the page. Sharing stopped. No image was uploaded or saved.');
  }catch(error){tell(error.name==='NotAllowedError'?'Tab sharing was declined. Choose Capture live page when you are ready.':error.message||'Live capture failed. Choose the tracked page’s browser tab.')}
  finally{if(stream)stream.getTracks().forEach(t=>t.stop());if(video){video.srcObject=null;video.remove()}active=null;button.disabled=false}
 });

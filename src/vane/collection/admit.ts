@@ -1,5 +1,5 @@
 import { site, statement, uid, VaneError, type Env } from '../core'
-import { encodeRawId, rawEventPredicate, rawInsertStatements, rawNormalizeStatements, type RawRecord } from '../raw'
+import { encodeRawId, rawInsertManyStatement, rawNormalizeStatements, type RawRecord } from '../raw'
 import { RAW_DIMENSIONS } from '../raw/schema'
 import { collectionContext, type PreparedPageview } from './context'
 import { existingPageviews } from './existing'
@@ -49,25 +49,45 @@ export async function admitPageviews(request: Request, env: Env, validated: Vali
    CASE WHEN json_extract(wanted.value,'$[0]')='blob' THEN unhex(json_extract(wanted.value,'$[1]')) ELSE json_extract(wanted.value,'$[1]') END))`, values: [JSON.stringify(tokens), record.site_id] }
   statements.push(...rawNormalizeStatements(env, record, when))
  }
- for (let index = 0; index < prepared.length; index++) {
-  const plan = prepared[index]!, point = rawEventPredicate(plan.eventId), page = pages[index]!
-  const gate = 'EXISTS(SELECT 1 FROM vane_collection_batch_admitted WHERE batch_id=? AND record_index=?)'
-  // Recheck both version and ID conflict inside the write transaction: a
-  // concurrent admission cannot slip between the earlier read and this guard.
-  statements.push(statement(env, `INSERT INTO vane_guard(value) SELECT CASE WHEN
-   EXISTS(SELECT 1 FROM vane_sites WHERE id=? AND version=?) AND NOT EXISTS(
-    SELECT 1 FROM vane_events WHERE ${point.sql} AND NOT(path=? AND (? OR source=?) AND campaign=?)
-   ) THEN 1 ELSE 0 END`, plan.value.id, plan.value.version, ...point.values, plan.event.path, plan.payment ? 1 : 0, plan.event.source, plan.event.campaign))
-  statements.push(...rawInsertStatements(env, page, { ignore: true, normalize: false }))
-  // MUST immediately follow the helper's final PHYSICAL insert. View writes
-  // report changes()=0, so they cannot decide whether an ID was newly admitted.
-  statements.push(statement(env, 'INSERT INTO vane_collection_batch_admitted(batch_id,record_index,record_id) SELECT ?,?,? WHERE changes()>0', batchId, index, plan.eventId))
-  const goals = goalRecords(page, plan)
-  if (goals.length) {
-   const columns = Object.keys(goals[0]!), values = goals.map(goal => columns.map(column => goal[column as keyof typeof goal] ?? null))
-   statements.push(statement(env, `INSERT OR IGNORE INTO vane_events(${columns.join(',')})
-    SELECT ${columns.map((_, i) => `json_extract(row.value,'$[${i}]')`).join(',')} FROM json_each(?) row WHERE ${gate}`, JSON.stringify(values), batchId, index))
-  }
+ // A single transaction guard rechecks every site version and existing ID.
+ // Read the indexed physical row and only the three conflict dimensions rather
+ // than expanding the compatibility view for each input.
+ const checks = JSON.stringify(prepared.map(plan => {
+  const token = encodeRawId(plan.value.id, plan.eventId)
+  return { site: plan.value.id, version: plan.value.version, id: plan.eventId,
+   token: typeof token === 'string' ? ['text', token] : ['blob', Array.from(new Uint8Array(token), byte => byte.toString(16).padStart(2, '0')).join('')],
+   path: plan.event.path, source: plan.event.source, campaign: plan.event.campaign, payment: plan.payment ? 1 : 0 }
+ }))
+ const tokenSql = "CASE WHEN json_extract(row.value,'$.token[0]')='blob' THEN unhex(json_extract(row.value,'$.token[1]')) ELSE json_extract(row.value,'$.token[1]') END"
+ const physicalSite = "(SELECT site FROM vane_raw_sites WHERE site_id=json_extract(row.value,'$.site'))"
+ statements.push(statement(env, `INSERT INTO vane_guard(value) SELECT CASE WHEN NOT EXISTS(
+  SELECT 1 FROM json_each(?) row WHERE NOT EXISTS(
+   SELECT 1 FROM vane_sites WHERE id=json_extract(row.value,'$.site') AND version=json_extract(row.value,'$.version')
+  ) OR EXISTS(SELECT 1 FROM vane_raw_events e JOIN vane_raw_contexts c ON c.context=e.context
+   WHERE e.site=${physicalSite} AND e.token=${tokenSql} AND NOT(
+    json_extract(c.dimensions,'$[0]')=json_extract(row.value,'$.path') AND
+    (json_extract(row.value,'$.payment') OR json_extract(c.dimensions,'$[1]')=json_extract(row.value,'$.source')) AND
+    json_extract(c.dimensions,'$[2]')=json_extract(row.value,'$.campaign')))
+ ) THEN 1 ELSE 0 END`, checks))
+ // Reserve only absent physical IDs, with the first input winning duplicates.
+ // These scratch rows and the physical INSERT are in the same D1 transaction;
+ // no concurrent admission can intervene. The immediate count guard turns any
+ // ignored insertion into rollback before goals, properties, or counters run.
+ statements.push(statement(env, `INSERT INTO vane_collection_batch_admitted(batch_id,record_index,record_id)
+  SELECT ?,MIN(CAST(row.key AS INTEGER)),json_extract(row.value,'$.id') FROM json_each(?) row
+  WHERE NOT EXISTS(SELECT 1 FROM vane_raw_events WHERE site=${physicalSite} AND token=${tokenSql})
+  GROUP BY json_extract(row.value,'$.site'),${tokenSql}`, batchId, checks))
+ statements.push(rawInsertManyStatement(env, pages, {
+  sql: 'EXISTS(SELECT 1 FROM vane_collection_batch_admitted WHERE batch_id=? AND record_index=CAST(row.key AS INTEGER))', values: [batchId],
+ }))
+ statements.push(statement(env, `INSERT INTO vane_guard(value)
+  SELECT CASE WHEN changes()=(SELECT COUNT(*) FROM vane_collection_batch_admitted WHERE batch_id=?) THEN 1 ELSE 0 END`, batchId))
+ const goals = prepared.flatMap((plan, index) => goalRecords(pages[index]!, plan).map(record => ({ index, record })))
+ if (goals.length) {
+  const columns = Object.keys(goals[0]!.record), values = goals.map(({ index, record }) => [...columns.map(column => record[column as keyof RawRecord] ?? null), index])
+  statements.push(statement(env, `INSERT OR IGNORE INTO vane_events(${columns.join(',')})
+   SELECT ${columns.map((_, i) => `json_extract(row.value,'$[${i}]')`).join(',')} FROM json_each(?) row
+   JOIN vane_collection_batch_admitted a ON a.batch_id=? AND a.record_index=json_extract(row.value,'$[${columns.length}]')`, JSON.stringify(values), batchId))
  }
  const metadata = JSON.stringify(prepared.map((plan, index) => ({ index, site: plan.value.id, day: plan.today, dropped: plan.props.dropped })))
  const admitted = `FROM json_each(?) row JOIN vane_collection_batch_admitted a ON a.batch_id=? AND a.record_index=json_extract(row.value,'$.index')`

@@ -19,6 +19,7 @@ async function browse(t,a,pages={},{userAgent=DESKTOP_CHROME,...options}={}){
   const request=route.request(),url=new URL(request.url());requests.push(url.origin)
   if(pages[url.href])return route.fulfill({contentType:'text/html',body:pages[url.href]})
   if(url.origin!==a.origin)return route.abort()
+  if(a.servesHttp)return route.continue()
   const response=await a.request(url.pathname+url.search,{method:request.method(),headers:request.headers(),body:request.postDataBuffer()??undefined})
   return route.fulfill({status:response.status,headers:Object.fromEntries(response.headers),body:Buffer.from(await response.arrayBuffer())})
  })
