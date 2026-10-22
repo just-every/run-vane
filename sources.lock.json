@@ -75,7 +75,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "ab17baf3c924d34d51dced124e4007b34ab5d850d1dbd2b7527959bde7f283e1",
+      "sha256": "e350f869721542f95b23abcc8d92af90dc45bf9a31d07715c26a5f8cfa9f5578",
       "executable": false
     },
     "AGENTS.md": {
@@ -107,7 +107,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "8c09c0576578174872f875686d7eff7a5a71c6c40f738d61ce2735a68426a0b9",
+      "sha256": "57e38a39b97516e5a8e721f89c842639c4668fbb92dfba595bf20535a3c15347",
       "executable": false
     },
     "DEMO.md": {
@@ -3595,7 +3595,7 @@
       "executable": false
     },
     "tests/agency.test.mjs": {
-      "sha256": "eb49371a7812ebf605bdad4db20c5ecc4594b67b20bdf64a6ca412fa4f12a722",
+      "sha256": "299e01738324e24ed1a47b2e9e915c74ad9dea9b2ffe015002f7c9d5690fde50",
       "executable": false
     },
     "tests/apps-script.mjs": {
@@ -3751,7 +3751,7 @@
       "executable": false
     },
     "tests/proxy-blocker.journey.mjs": {
-      "sha256": "00fa07106d9bd2a2dc755b95b56447ab727a231948835fcc59e0261162dbb8a9",
+      "sha256": "8aab659c535e9aa2e225babf7c1f606daf06178d1b7c697f17f35b50afa4375d",
       "executable": false
     },
     "tests/proxy-cloudflare.test.mjs": {
