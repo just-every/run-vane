@@ -1,3 +1,4 @@
+import { createInsightsService } from '../reports'
 import { readGitHubDiff, githubSetting, githubDrafts, githubObservationGuard, rememberGitHubHead, prepareGitHubDraft, type GitHubObservation } from './github'
 import { agentHistoryStamp, agentCommitGuard } from '../agent-fence'
 import { allow, atomic, inScope, insist, rows, site, statement, uid, type Actor, type Env } from '../core'
@@ -9,10 +10,11 @@ import { prepare } from '../commands'
 import { scan, scans } from '../cutover/scan'
 import { inspectPage, nativeScriptUrls } from './page'
 import { redactPath } from '../paths'
-export interface Problem {kind:'missing-script'|'duplicate-script'|'missing-selector'|'invalid-selector'|'silent-event'|'possible-duplicate'|'misnamed-event'|'missing-funnel-step'|'deploy-diff';page?:string;name?:string;detail:string;evidence:string;replacement?:string;target?:string}
+export interface Problem {kind:'missing-script'|'duplicate-script'|'missing-selector'|'invalid-selector'|'silent-event'|'possible-duplicate'|'misnamed-event'|'missing-funnel-step'|'deploy-diff'|'silent-goal'|'silent-funnel-step'|'unreachable-page';page?:string;name?:string;detail:string;evidence:string;replacement?:string;target?:string}
 export interface InstrumentationReport {
  id:string;siteId:string;at:number;github?:GitHubObservation;scanId:string;siteVersion:number;inspectedPages:number;from:string;to:string;problems:Problem[];unknown:string[]
- draft:{title:string;body:string;changes:{page:string;before:string;after:string}[];state:'draft-only'}
+ goals:{name:string;count:number;previous:number}[];funnels:{name:string;steps:{label:string;visits:number;previous:number}[]}[];pageviews:{count:number;previous:number};comparedFrom:string;comparedTo:string;runningComparison:boolean
+ draft:{title:string;body:string;manual:string[];changes:{page:string;before:string;after:string}[];state:'draft-only'}
 }
 const owner=async(env:Env,actor:Actor,siteId:string)=>{allow(actor,'owner');inScope(actor,siteId);return site(env,siteId)}
 const path=(url:string)=>redactPath(new URL(url).pathname)
@@ -35,7 +37,9 @@ export async function investigateInstrumentation(env:Env,actor:Actor,p:any):Prom
  try{github=await readGitHubDiff(env,actor,value.id)}catch{githubUnavailable=true}
  const problems:Problem[]=[],link=evidence(value.id,current.id)
  for(const page of current.pages) {
-  const native=page.native!,pagePath=path(page.url),base=previous?.pages.find(p=>path(p.url)===pagePath)?.native
+  const pagePath=path(page.url)
+  if(page.status&&page.status>=400){problems.push({kind:'unreachable-page',page:pagePath,detail:`The sitemap page answered HTTP ${page.status}; its body was not inspected.`,evidence:link});continue}
+  const native=page.native!,base=previous?.pages.find(p=>path(p.url)===pagePath)?.native
   if(native.scripts!==1)problems.push({kind:native.scripts?'duplicate-script':'missing-script',page:pagePath,detail:`${native.scripts} matching native script tags on this page; expected one. Static HTML does not prove execution.`,evidence:link})
   for(const d of native.selectors)if(d.matches===0||d.matches===null) {
    const old=base?.controls.find(c=>c.selector===d.target),candidates=old?native.controls.filter(c=>c.tag===old.tag&&c.ordinal===old.ordinal):[]
@@ -48,18 +52,27 @@ export async function investigateInstrumentation(env:Env,actor:Actor,p:any):Prom
   rows<{n:number}>(env,"SELECT COUNT(*) AS n FROM vane_events WHERE site_id=? AND day>=? AND day<? AND kind='pageview'",value.id,from,to),
  ])
  const declared=[...new Set([...(value.config.eventDefinitions??[]).map(d=>d.name),...Object.values(value.config.customGoals??{}).map(g=>g.event)])]
- const reportLink=`/app/sites/${encodeURIComponent(value.id)}?${new URLSearchParams({from,to})}#goals`
+ const report=await createInsightsService(env,value,clock(),{from,to,compare:'previous',imported:'off'}).list(),reportLink=`/app/sites/${encodeURIComponent(value.id)}?${new URLSearchParams({from,to,compare:'previous',imported:'off'})}`
+ const goals=Object.keys({...value.config.goals,...value.config.scrollGoals,...value.config.customGoals}).map(name=>{const row=report.goalBreakdown.find(r=>r.label===name);return {name,count:Number(row?.count??0),previous:Number(row?.previous??0)}})
+ const funnels=report.funnels.map(f=>({name:f.name,steps:f.steps.map(s=>({label:s.label,visits:s.visits,previous:s.previous}))}))
+ for(const g of goals)if(g.count===0&&g.previous>0&&report.pageviews>0)problems.push({kind:'silent-goal',name:g.name,detail:`Goal ${g.name}: 0 conversions among ${report.pageviews} accepted native page loads, compared with ${g.previous} among ${report.previousPageviews}. Silence alone does not prove a fault.`,evidence:reportLink+'#goals'})
+ for(const f of funnels)for(const [index,step] of f.steps.entries()){
+  const unavailable=current.pages.find(p=>path(p.url)===step.label&&(p.status===404||p.status===410))
+  if(unavailable)problems.push({kind:'missing-funnel-step',name:f.name,page:step.label,detail:`Funnel ${f.name} step ${step.label} answered HTTP ${unavailable.status} during this scan. Restore the declared page or explicitly review the funnel definition.`,evidence:link})
+  if(index>0&&f.steps[0]!.visits>0&&step.visits===0&&step.previous>0)problems.push({kind:'silent-funnel-step',name:f.name,detail:`Funnel ${f.name}: no tracked visit reached ${step.label} out of ${f.steps[0]!.visits} entrants; previously ${step.previous} out of ${f.steps[0]!.previous}. This is not proof of a broken checkout without page/payload evidence.`,evidence:reportLink+'#funnels'})
+ }
  for(const name of declared) {
   const found=arrivals.find(r=>r.name===name)
-  if(!found)problems.push({kind:'silent-event',name,detail:`No ${name} event among ${loads[0]!.n} accepted page loads in this window. Lack of an event alone does not prove a fault.`,evidence:reportLink})
-  if(found&&found.n>found.pages)problems.push({kind:'possible-duplicate',name,detail:`${found.n} ${name} events on ${found.pages} distinct page loads; repeated interactions can be legitimate.`,evidence:reportLink})
-  for(const other of arrivals.filter(r=>r.name!==name&&r.name.toLowerCase()===name.toLowerCase()))problems.push({kind:'misnamed-event',name:other.name,detail:`${other.n} ${other.name} events arrived; declared spelling is ${name}. Names are case-sensitive.`,evidence:reportLink})
+  if(!found)problems.push({kind:'silent-event',name,detail:`No ${name} event among ${loads[0]!.n} accepted page loads in this window. Lack of an event alone does not prove a fault.`,evidence:reportLink+'#goals'})
+  if(found&&found.n>found.pages)problems.push({kind:'possible-duplicate',name,detail:`${found.n} ${name} events on ${found.pages} distinct page loads; repeated interactions can be legitimate.`,evidence:reportLink+'#goals'})
+  for(const other of arrivals.filter(r=>r.name!==name&&r.name.toLowerCase()===name.toLowerCase()))problems.push({kind:'misnamed-event',name:other.name,detail:`${other.n} ${other.name} events arrived; declared spelling is ${name}. Names are case-sensitive.`,evidence:reportLink+'#goals'})
  }
- for(const f of value.config.funnels??[])for(const step of f.steps)if(step.startsWith('event:')&&!declared.includes(step.slice(6).split('[')[0]!))problems.push({kind:'missing-funnel-step',name:f.name,detail:`${f.name} refers to ${step}, which has no declared event definition or goal. It may be supplied by code; its existence is unverified.`,evidence:reportLink})
+ for(const f of value.config.funnels??[])for(const step of f.steps)if(step.startsWith('event:')&&!declared.includes(step.slice(6).split('[')[0]!))problems.push({kind:'missing-funnel-step',name:f.name,detail:`${f.name} refers to ${step}, which has no declared event definition or goal. It may be supplied by code; its existence is unverified.`,evidence:reportLink+'#goals'})
  for(const file of github?.files??[])problems.push({kind:'deploy-diff',detail:`Mapped source ${file.file}: ${file.status}${file.scriptRemoved?'; a native script line was removed':''}. This is source evidence, not proof of deployment.`,evidence:`https://github.com/${github!.repository}/compare/${github!.previousHead}...${github!.head}`})
  const changes=problems.flatMap(p=>p.kind==='missing-script'?[{page:p.page!,before:'No matching native script',after:`<script defer src="${new URL('/vane.js',env.AUTH_ORIGIN).href}" data-site="${value.id}"></script>`}]:p.kind==='missing-selector'&&p.replacement?[{page:p.page!,before:`${p.name}: ${p.target}`,after:`${p.name}: ${p.target}, ${p.replacement}`}]:[])
- const unknown=[...(current.state!=='complete'?['The crawl failed; no clean-site conclusion is possible.']:[]),...(current.refused?[`${current.refused} sitemap/page requests were refused or exceeded the selected limit; those pages are unverified.`]:[]),'Static HTML cannot prove consent, script execution, blockers or a real user action.',...(githubUnavailable?['The connected GitHub source could not be read; no source diff or source-head assumption is made.']:!github?['GitHub source diffs and PR submission are not connected; the PR remains a local review draft.']:['GitHub source changes are read at the shown full SHA; they do not establish deployment. Opening a draft PR requires a separate explicit owner action after approving the fix.']),'Pane deploy diffs and hand-off are unavailable until INSTALL-004 and AGENT-003 ship.','Server-confirmed outcomes from Stripe, Shopify and CRM are unavailable until CONV-008 is connected.','GTM and Pane fix hand-off are unavailable until INSTALL-005 and AGENT-003 ship.']
- const result:InstrumentationReport={id:uid(),siteId:value.id,at:clock(),...(github?{github}:{}),scanId:current.id,siteVersion:value.version,inspectedPages:current.pages.length,from,to,problems,unknown,draft:{title:'Repair analytics instrumentation',state:'draft-only',changes,body:`Review these structural observations against the deployed source. Preserve consent, event names, properties and the collection field set. ${changes.length} suggested changes; no repository or website has been edited.`}}
+ const manual=problems.filter(p=>['unreachable-page','missing-funnel-step','silent-goal','silent-funnel-step','misnamed-event','possible-duplicate'].includes(p.kind)).map(p=>p.kind==='unreachable-page'||p.kind==='missing-funnel-step'?`Restore ${p.page??p.name} in the existing source workflow, or prepare a person-reviewed definition change; no redirect or definition is applied automatically.`:`Investigate ${p.name??p.kind} against the shown payload/denominator evidence, reproduce the intended action and preserve the approved event spelling and fields. Repeated interactions and silence are not faults by themselves.`)
+ const unknown=[...(current.state!=='complete'?['The crawl failed; no clean-site conclusion is possible.']:[]),...(current.refused?[`${current.refused} sitemap/page requests were refused, unavailable or exceeded the selected limit; those pages are unverified.`]:[]),'Static HTML cannot prove consent, script execution, blockers or a real user action.',...(githubUnavailable?['The connected GitHub source could not be read; no source diff or source-head assumption is made.']:!github?['GitHub source diffs and PR submission are not connected; the PR remains a local review draft.']:['GitHub source changes are read at the shown full SHA; they do not establish deployment. Opening a draft PR requires a separate explicit owner action after approving the fix.']),'Pane deploy diffs and hand-off are unavailable until INSTALL-004 and AGENT-003 ship.','Server-confirmed outcomes from Stripe, Shopify and CRM are unavailable until CONV-008 is connected.','GTM and Pane fix hand-off are unavailable until INSTALL-005 and AGENT-003 ship.']
+ const result:InstrumentationReport={id:uid(),siteId:value.id,at:clock(),...(github?{github}:{}),scanId:current.id,siteVersion:value.version,inspectedPages:current.pages.filter(p=>p.native).length,from,to,comparedFrom:report.previousFrom,comparedTo:report.previousTo,runningComparison:report.running!==null,goals,funnels,pageviews:{count:report.pageviews,previous:report.previousPageviews},problems,unknown,draft:{title:'Repair analytics instrumentation',state:'draft-only',changes,manual,body:`Review these structural observations against the deployed source. Preserve consent, event names, properties and the collection field set. ${changes.length} suggested changes; no repository or website has been edited.`}}
  await atomic(env,actor,[agentCommitGuard(env,value,stamp),...(github?[githubObservationGuard(env,value.id,github),rememberGitHubHead(env,value.id,github)]:[]),statement(env,'INSERT INTO vane_instrumentation_runs(id,site_id,actor_id,at,scan_id,from_day,to_day,report_json) VALUES(?,?,?,?,?,?,?,?)',result.id,value.id,actor.id,result.at,current.id,from,to,JSON.stringify(result)),auditStatement(env,actor.id,'agent.instrumentation',value.id,result.id)])
  return result
 }

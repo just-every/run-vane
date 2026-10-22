@@ -97,7 +97,7 @@ test('Movement investigations rank a tracking break, organic ranking drop and co
  assert.equal(business.state.orderIds.length,15,'fourteen baseline orders and one after the actual checkout failure')
  for(const c of cases){
   c.result=await result(await a.post('/api/vane/movement',input(c.id,c.from,c.to),a.owner));const answer=c.result
-  assert.equal(answer.hypotheses[0].category,c.category,c.name);assert.ok(answer.hypotheses[0].evidence.length>=2);assert.ok(answer.hypotheses.every(h=>h.disprove.length>30&&h.limitation.length>20&&['low','medium'].includes(h.confidence)))
+  assert.equal(answer.hypotheses[0].category,c.category,c.name);const campaign=answer.hypotheses.flatMap(h=>h.evidence).find(e=>e.label==='Campaign launch');assert.ok(campaign,'the named campaign contribution is considered as well as its source');assert.ok(answer.hypotheses[0].evidence.length>=2);assert.ok(answer.hypotheses.every(h=>h.disprove.length>30&&h.limitation.length>20&&['low','medium'].includes(h.confidence)))
   assert.match(answer.statement,/Correlation is not proof/);assert.ok(answer.unknown.some(u=>/not measured|unavailable|incomplete/.test(u)))
   assert.ok(answer.annotations.some(n=>n.text==='In-window '+c.name));assert.equal(answer.annotations.some(n=>n.text==='Out-of-window '+c.name),false)
   const report=await result(await a.request('/api/vane/summary?'+new URLSearchParams({siteId:c.id,from:c.from,to:c.to,compare:'custom',compareFrom:BASE,compareTo:BASE_END,imported:'off'}),{headers:{cookie:a.owner}}))

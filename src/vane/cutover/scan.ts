@@ -3,7 +3,7 @@ import { clock } from '../clock'
 import { auditStatement } from '../audit'
 import { findings, type Finding } from './findings'
 import { robots } from './robots'
-export interface ScanPage {url:string;at:number;findings:Finding[];native?:import('../instrumentation/page').NativePage}
+export interface ScanPage {url:string;at:number;findings:Finding[];status?:number;native?:import('../instrumentation/page').NativePage}
 export interface Scan {id:string;site_id:string;actor_id:string;at:number;page_limit:number;fetched:number;refused:number;state:string;pages:ScanPage[]}
 export async function scans(env:Env,actor:Actor,siteId:string):Promise<Scan[]> {
  allow(actor,'viewer');inScope(actor,siteId);
@@ -44,7 +44,7 @@ export async function scan(env:Env,actor:Actor,input:{siteId:string,pageLimit:un
     const url=valid(raw,map.href);if(!url){result.refused++;continue}url.hash='';if(seenPages.has(url.href))continue;seenPages.add(url.href);
     if(result.fetched>=limit||!policy.allows(url)){result.refused++;continue}
     result.fetched++;
-    try{const r=await load(url);if(!r.ok){await r.body?.cancel();result.refused++;continue}const html=await body(r);result.pages.push({url:url.href,at:clock(),findings:findings(html,script,current.config.currency??'USD'),...(inspect?{native:await inspect(html)}:{})})}catch{result.refused++}
+    try{const r=await load(url);if(!r.ok){await r.body?.cancel();result.refused++;if(inspect)result.pages.push({url:url.href,at:clock(),status:r.status,findings:[]});continue}const html=await body(r);result.pages.push({url:url.href,at:clock(),findings:findings(html,script,current.config.currency??'USD'),...(inspect?{native:await inspect(html)}:{})})}catch{result.refused++}
    }
   }
   result.state='complete';

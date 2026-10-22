@@ -175,3 +175,26 @@ test('GitHub hand-off is off-default, owner-approved, sealed and revocable; sour
  assert.equal((await connecting).status,409);assert.equal((await a.dump()).vane_instrumentation_github.length,0,'a delayed source callback cannot restore revoked authority')
 
 })
+
+test('Instrumentation compares page, scroll and custom goals and funnel reach with arriving native payloads, and cites a sitemap step removed with HTTP 404',async t=>{
+ const a=await installation();t.after(()=>a.close());const now=Date.now()+60000,today=new Date(now).toISOString().slice(0,10),yesterday=new Date(now-86400000).toISOString().slice(0,10),tomorrow=new Date(now+86400000).toISOString().slice(0,10)
+ await a.clock(now-86400000)
+ const id=await a.addSite({origin,paths:[],goals:{signup:'/thanks'},scrollGoals:{deep:{path:'/blog',depth:75}},customGoals:{contact:{event:'Contact',revenue:false,currency:'USD'}},eventDefinitions:[{name:'Contact',kind:'click',target:'#signup'}],funnels:[{name:'checkout',steps:['/checkout','/thanks']}]})
+ let removed=false
+ a.fixtureSites[origin]=request=>{const path=new URL(request.url).pathname;return path==='/robots.txt'?new Response('User-agent: *'):path==='/sitemap.xml'?new Response(`<urlset>${['/checkout','/thanks','/blog'].map(path=>`<url><loc>${origin+path}</loc></url>`).join('')}</urlset>`):path==='/thanks'&&removed?new Response('Gone',{status:404}):new Response(`<html><head><script defer src="${a.origin}/vane.js" data-site="${id}"></script></head><body><button id="signup">Contact</button></body></html>`,{headers:{'content-type':'text/html'}})}
+ const load=async(path,at)=>{await a.clock(at);const page=a.event(id,{path});assert.equal((await a.collect(page,origin)).status,202);return page}
+ const checkout=await load('/checkout',now-86400000);await load('/thanks',now-86400000+1000);const blog=await load('/blog',now-86400000+2000)
+ await a.clock(now-86400000+3000);assert.equal((await a.post('/api/vane/custom',{id:crypto.randomUUID(),siteId:id,page:checkout.id,name:'Contact',consent:'not-required'},'',{origin})).status,202)
+ await a.clock(now-86400000+20000);assert.equal((await a.post('/api/vane/engage',{siteId:id,id:blog.id,scroll:80},'',{origin})).status,202)
+ await a.clock(now-86400000+25000);await result(await a.post('/api/vane/instrumentation/run',{siteId:id,from:yesterday,to:today,pageLimit:10},a.owner))
+ removed=true;await load('/checkout',now);await load('/blog',now+1000);await a.clock(now+30000)
+ const current=await result(await a.post('/api/vane/instrumentation/run',{siteId:id,from:today,to:tomorrow,pageLimit:10},a.owner))
+ for(const name of ['signup','deep','contact']){const goal=current.goals.find(g=>g.name===name);assert.deepEqual([goal.count,goal.previous],[0,1]);assert.ok(current.problems.some(p=>p.kind==='silent-goal'&&p.name===name))}
+ assert.deepEqual(current.pageviews,{count:2,previous:3});assert.equal(current.runningComparison,true)
+ const funnel=current.funnels.find(f=>f.name==='checkout');assert.deepEqual(funnel.steps.map(s=>[s.visits,s.previous]),[[1,1],[0,1]])
+ assert.ok(current.problems.some(p=>p.kind==='missing-funnel-step'&&p.page==='/thanks'&&p.detail.includes('HTTP 404')));assert.ok(current.problems.some(p=>p.kind==='silent-funnel-step'))
+ assert.ok(current.draft.manual.some(m=>m.includes('Restore /thanks')))
+ const history=await result(await a.request('/api/vane/cutover-scans?siteId='+id,{headers:{cookie:a.owner}}));assert.equal(history[0].pages.find(p=>new URL(p.url).pathname==='/thanks').status,404)
+ const {context}=await browse(t,a);await context.addCookies(a.owner.split('; ').map(pair=>{const i=pair.indexOf('=');return {name:pair.slice(0,i),value:pair.slice(i+1),url:a.origin}}));const page=await context.newPage(),dir=process.env.VANE_SCREEN_DIR;if(dir)await mkdir(dir,{recursive:true})
+ for(const width of [1440,390]){await page.setViewportSize({width,height:1000});await page.goto(`${a.origin}/app/sites/${id}?section=settings`);const card=page.locator(`[data-instrumentation-run="${current.id}"]`);await card.scrollIntoViewIfNeeded();assert.match(await card.textContent(),/signup: 1 → 0 conversions/);assert.match(await card.textContent(),/HTTP 404/);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);if(dir)await page.screenshot({path:join(dir,`instrumentation-goals-${width}.png`)});await card.getByText('Review PR draft',{exact:true}).click();assert.match(await card.textContent(),/Restore \/thanks/);if(dir)await page.screenshot({path:join(dir,`instrumentation-manual-${width}.png`)})}
+})
