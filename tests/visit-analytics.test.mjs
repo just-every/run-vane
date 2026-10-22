@@ -4,7 +4,7 @@ import { assert, withApp } from './vane-helpers.mjs'
 test('native visit facts keep reverse arrivals, tied IDs, a late bridge, engagement, performance replacement, restore and erasure exact through the summary door',async t=>{
  const a=await withApp(t),headers={cookie:a.owner},date='2026-06-01',origin='https://fern.example'
  await a.clock(Date.parse(date+'T10:00:00Z'))
- const siteId=await a.addSite({retention:'forever'}),loads={}
+ const siteId=await a.addSite({retention:'forever',paths:[]}),loads={}
  const load=async(name,time,id,source='synthetic-vane-1.example')=>{
   await a.clock(Date.parse(date+'T'+time+'Z'))
   const event=a.event(siteId,{id,path:'/'+name,source});loads[name]=event
@@ -19,8 +19,11 @@ test('native visit facts keep reverse arrivals, tied IDs, a late bridge, engagem
  await load('c','10:50:00','ffffffff-ffff-4fff-8fff-ffffffffffff')
  await load('a','10:00:00','eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee','direct')
  assert.deepEqual([(await summary()).visits,(await summary()).bounces],[2,2])
- await load('b','10:25:00','dddddddd-dddd-4ddd-8ddd-dddddddddddd')
- await load('tie','10:25:00','00000000-0000-4000-8000-000000000001')
+ await a.clock(Date.parse(date+'T10:25:00Z'))
+ loads.b=a.event(siteId,{id:'dddddddd-dddd-4ddd-8ddd-dddddddddddd',path:'/b',source:'synthetic-vane-1.example'})
+ loads.tie=a.event(siteId,{id:'00000000-0000-4000-8000-000000000001',path:'/tie',source:'synthetic-vane-1.example'})
+ const tied=await a.post('/api/vane/collect-batch',{events:[loads.b,loads.tie]},'',{origin,'cf-connecting-ip':'203.0.113.17','user-agent':'Synthetic Vane Browser 1'})
+ assert.equal(tied.status,202,await tied.clone().text())
  let report=await summary()
  assert.deepEqual([report.pageviews,report.visits,report.bounces,report.averageDuration,report.medianDuration],[4,1,0,3000,3000])
  assert.deepEqual(report.entryPages.map(r=>[r.path,r.pageviews,r.visits]),[['/a',1,1]])

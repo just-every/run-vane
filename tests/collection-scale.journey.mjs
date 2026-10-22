@@ -26,7 +26,7 @@ test('COLLECT-004 genuine monthly pageviews, a paced 500/second burst, concurren
  t.diagnostic(fullVolume ? 'FULL VOLUME REQUESTED: 120M+ actual native pageviews; capacity and all assertions must pass.' : 'SMOKE ONLY: this count does not establish COLLECT-004 monthly volume or twelve-month scale.')
  await a.clock(Date.parse('2025-01-01T12:00:00Z'))
  const origins = ['https://synthetic-vane-1.example', 'https://synthetic-vane-2.example']
- const ids = await Promise.all(origins.map((origin, i) => a.addSite({ name: `synthetic-vane-${i + 1}`, origin, goals: {}, retention: '13m' })))
+ const ids = await Promise.all(origins.map((origin, i) => a.addSite({ name: `synthetic-vane-${i + 1}`, origin, paths: [], goals: {}, retention: '13m' })))
  const expected = ids.map(() => 0), pages = new Map(), monthExpected = new Map()
  async function send(site, n, payload) {
   const event = payload ?? a.event(ids[site], { path: `/scale/${n % 3}`, campaign: `synthetic-vane-${n % 2}` })
