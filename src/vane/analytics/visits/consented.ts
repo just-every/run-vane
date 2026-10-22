@@ -12,11 +12,13 @@ const contexts = `contexts AS MATERIALIZED (
  JOIN vane_raw_sites s ON s.site=c.site JOIN vane_raw_identities i ON i.identity=c.consented_visitor
  WHERE c.consented_visitor IS NOT NULL AND c.kind='pageview'
  AND s.site_id IN (SELECT value FROM json_each(?1))
- AND EXISTS(SELECT 1 FROM vane_raw_events e WHERE e.context=c.context)
+ AND EXISTS(SELECT 1 FROM vane_raw_groups g
+  CROSS JOIN vane_raw_occurrences e ON e.group_id=g.group_id WHERE g.context=c.context)
 )`
 const inRange = 'c.day>=?2 AND c.day<?3'
 const entryJoin = `CROSS JOIN vane_visit_facts f ON f.site=c.site AND f.day=c.day AND f.visitor=c.visitor
- JOIN vane_raw_events e ON e.raw_id=f.first_raw AND e.context=c.context`
+ CROSS JOIN vane_raw_occurrences e ON e.raw_id=f.first_raw
+ CROSS JOIN vane_raw_groups g ON g.group_id=e.group_id AND g.context=c.context`
 
 // Each context contributes at most one physical candidate. Select its timestamp
 // through the context/time index, then order only that bucket's decoded logical
@@ -24,16 +26,19 @@ const entryJoin = `CROSS JOIN vane_visit_facts f ON f.site=c.site AND f.day=c.da
 function touch(last: boolean) {
  const direction = last ? 'DESC' : 'ASC'
  return `(SELECT ${dimension('source', 'h')} FROM vane_raw_contexts h
- JOIN vane_raw_events he ON he.raw_id=(
-  SELECT candidate.raw_id FROM vane_raw_events candidate
-  WHERE candidate.context=h.context AND candidate.at_offset=(
-   SELECT bucket.at_offset FROM vane_raw_events bucket
+ CROSS JOIN vane_raw_occurrences he ON he.raw_id=(
+  SELECT candidate.raw_id FROM vane_raw_groups chosen
+  CROSS JOIN vane_raw_occurrences candidate ON candidate.group_id=chosen.group_id
+  WHERE chosen.context=h.context AND chosen.at_offset=(
+   SELECT bucket.at_offset FROM vane_raw_groups bucket
    WHERE bucket.context=h.context AND bucket.at_offset<=c.at-COALESCE(unixepoch(h.day)*1000,0)
+   AND EXISTS(SELECT 1 FROM vane_raw_occurrences live WHERE live.group_id=bucket.group_id)
    ORDER BY bucket.at_offset ${direction} LIMIT 1)
   ORDER BY ${unpackedIdSql('candidate.token', 'c.site_id')} ${direction} LIMIT 1
- ) WHERE h.site=c.site AND h.consented_visitor=c.consented_visitor AND h.kind='pageview'
+ ) CROSS JOIN vane_raw_groups hg ON hg.group_id=he.group_id
+ WHERE h.site=c.site AND h.consented_visitor=c.consented_visitor AND h.kind='pageview'
  ${last ? `AND ${dimension('source', 'h')}<>'direct'` : ''}
- ORDER BY he.at_offset+COALESCE(unixepoch(h.day)*1000,0) ${direction},${unpackedIdSql('he.token', 'c.site_id')} ${direction} LIMIT 1)`
+ ORDER BY hg.at_offset+COALESCE(unixepoch(h.day)*1000,0) ${direction},${unpackedIdSql('he.token', 'c.site_id')} ${direction} LIMIT 1)`
 }
 
 // Only the unrestricted native whole-day source can use maintained visits.
@@ -43,7 +48,10 @@ export async function readConsentedReport(env: Env, scope: string, from: string,
  return env.DB.batch<any>([
   env.DB.prepare(`WITH ${contexts}, firsts AS (
    SELECT site,consented_visitor,MIN(day) AS first_day,
-   MIN((SELECT MIN(e.at_offset) FROM vane_raw_events e WHERE e.context=c.context)+COALESCE(unixepoch(c.day)*1000,0)) AS first_at
+   MIN((SELECT g.at_offset FROM vane_raw_groups g
+    WHERE g.context=c.context AND g.at_offset IS NOT NULL
+    AND EXISTS(SELECT 1 FROM vane_raw_occurrences e WHERE e.group_id=g.group_id)
+    ORDER BY g.at_offset LIMIT 1)+COALESCE(unixepoch(c.day)*1000,0)) AS first_at
    FROM contexts c GROUP BY site,consented_visitor
   ), seen AS (
    SELECT DISTINCT c.identity,f.first_day FROM contexts c JOIN firsts f USING(site,consented_visitor) WHERE ${inRange}
@@ -71,7 +79,8 @@ export async function readConsentedReport(env: Env, scope: string, from: string,
   env.DB.prepare(`${reportFrom()}, ${contexts}, conversions AS MATERIALIZED (
    SELECT v.site,v.site_id,v.started AS at,c.consented_visitor,c.identity
    FROM contexts c CROSS JOIN v ON v.site=c.site AND v.day=c.day AND v.visitor=c.visitor
-   JOIN vane_raw_events e ON e.raw_id=v.first_raw AND e.context=c.context
+   CROSS JOIN vane_raw_occurrences e ON e.raw_id=v.first_raw
+   CROSS JOIN vane_raw_groups g ON g.group_id=e.group_id AND g.context=c.context
    WHERE ${inRange} AND v.visit_converted=1
   ), touches AS (
    SELECT c.*,${touch(false)} AS first_source,${touch(true)} AS last_source FROM conversions c

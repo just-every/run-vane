@@ -11,15 +11,19 @@ export const contextIdentity = (context = 'c', site = 's') => `CASE WHEN ${conte
 // Goals and money are read at their real network-edge cardinality, so late
 // custom/scroll goals and newly approved exchange rates are immediately exact.
 export const reportFrom = (revenue = 'NULL') => `WITH goal_counts AS (
- SELECT p.visit_id AS visit,1 AS converted FROM vane_raw_contexts gc JOIN vane_raw_sites s ON s.site=gc.site
- JOIN vane_raw_events g ON g.context=gc.context
- JOIN vane_raw_events p ON p.site=g.site AND p.token=CASE WHEN typeof(g.token)='blob' THEN substr(g.token,1,16) ELSE substr(g.token,1,length(s.site_id)+37) END
+ SELECT pg.visit_id AS visit,1 AS converted FROM vane_raw_contexts gc JOIN vane_raw_sites s ON s.site=gc.site
+ CROSS JOIN vane_raw_groups gg ON gg.context=gc.context
+ CROSS JOIN vane_raw_occurrences go ON go.group_id=gg.group_id
+ CROSS JOIN vane_raw_occurrences po ON po.site=go.site AND po.token=CASE WHEN typeof(go.token)='blob' THEN substr(go.token,1,16) ELSE substr(go.token,1,length(s.site_id)+37) END
+ CROSS JOIN vane_raw_groups pg ON pg.group_id=po.group_id
  WHERE s.site_id IN (SELECT value FROM json_each(?1)) AND gc.day>=?2 AND gc.day<?3 AND gc.kind!='pageview'
- AND (?4 IS NULL OR gc.kind=?4) AND p.visit_id IS NOT NULL GROUP BY p.visit_id
+ AND (?4 IS NULL OR gc.kind=?4) AND pg.visit_id IS NOT NULL GROUP BY pg.visit_id
 ), money AS (
- ${revenue === 'NULL' ? 'SELECT NULL AS visit,NULL AS revenue WHERE 0' : `SELECT rp.visit_id AS visit,SUM(${revenue}) AS revenue FROM vane_custom_events ce
- JOIN vane_raw_sites s ON s.site_id=ce.site_id JOIN vane_raw_events rp ON rp.site=s.site AND rp.token=${packedIdSql('ce.page_id', 'ce.site_id')}
- WHERE ce.site_id IN (SELECT value FROM json_each(?1)) AND ce.day>=?2 AND ce.day<?3 AND rp.visit_id IS NOT NULL GROUP BY rp.visit_id`}
+ ${revenue === 'NULL' ? 'SELECT NULL AS visit,NULL AS revenue WHERE 0' : `SELECT pg.visit_id AS visit,SUM(${revenue}) AS revenue FROM vane_custom_events ce
+ CROSS JOIN vane_raw_sites s ON s.site_id=ce.site_id
+ CROSS JOIN vane_raw_occurrences po ON po.site=s.site AND po.token=${packedIdSql('ce.page_id', 'ce.site_id')}
+ CROSS JOIN vane_raw_groups pg ON pg.group_id=po.group_id
+ WHERE ce.site_id IN (SELECT value FROM json_each(?1)) AND ce.day>=?2 AND ce.day<?3 AND pg.visit_id IS NOT NULL GROUP BY pg.visit_id`}
 ), v AS (
  SELECT f.*,s.site_id,f.last_signal-f.started AS duration,(f.pages=1 AND f.engaged=0) AS bounce,
  COALESCE(g.converted,0) AS visit_converted,m.revenue AS visit_revenue
