@@ -64,31 +64,49 @@ function groupMatchSql(context:string,at:string) {
  return `g.context=${context} AND (g.at_offset IS NULL)=(${at} IS NULL) AND coalesce(g.at_offset,0)=coalesce(${at},0) AND (g.visit_id IS NULL)=1 AND coalesce(g.visit_id,0)=0`
 }
 function rawBatch(records:RawRecord[]) {
+ const contexts:unknown[][]=[],indices=new Map<string,number>()
  const rows=records.map(record=>{
-  const c=rawContext(record)
-  return {token:jsonValue(encodeRawId(c.site,record.id)),context:[...c.values.slice(0,4),jsonValue(c.visitor),jsonValue(c.consented),...c.values.slice(6)],at:record.at??null}
+  // The key contains every actual context value, never a digest or a selected
+  // representative timestamp. Encode identity bytes only for new exact contexts.
+  const key=JSON.stringify([record.site_id,record.day,record.kind,RAW_DIMENSIONS.map(name=>record[name]??null),
+   record.visitor??null,record.consented_visitor??null,record.consented_created_at??null,record.consented_expires_at??null])
+  let index=indices.get(key)
+  if(index===undefined) {
+   index=contexts.length
+   indices.set(key,index)
+   const c=rawContext(record)
+   contexts.push([...c.values.slice(0,4),jsonValue(c.visitor),jsonValue(c.consented),...c.values.slice(6)])
+  }
+  return [index,jsonValue(encodeRawId(record.site_id,record.id)),record.at??null]
  })
- const site="(SELECT site FROM vane_raw_sites WHERE site_id=json_extract(row.value,'$.context[0]'))"
+ const site="(SELECT site FROM vane_raw_sites WHERE site_id=json_extract(row.value,'$[0]'))"
  const match=contextColumns.split(',').map((name,i)=>`c.${name} IS ${i===0?site:i===4||i===5
-  ?`(SELECT identity FROM vane_raw_identities WHERE value=${decodedValue(`$.context[${i}]`)})`
-  :`json_extract(row.value,'$.context[${i}]')`}`).join(' AND ')
- return {json:JSON.stringify(rows),site,context:`(SELECT context FROM vane_raw_contexts c WHERE ${match})`,
-  at:"json_extract(row.value,'$.at')-coalesce(unixepoch(json_extract(row.value,'$.context[1]'))*1000,0)"}
+  ?`(SELECT identity FROM vane_raw_identities WHERE value=${decodedValue(`$[${i}]`)})`
+  :`json_extract(row.value,'$[${i}]')`}`).join(' AND ')
+ return {rows:JSON.stringify(rows),contexts:JSON.stringify(contexts),site,
+  context:`(SELECT context FROM vane_raw_contexts c WHERE ${match})`}
 }
-// Every admitted member supplies its own exact context and timestamp. Context
-// interning may be shared independently; its representative timestamp is never
-// used for other members. Run this in the same transaction as the physical INSERT.
-// Contexts and exact groups must already be interned in this transaction. The
-// row.key gate retains the original input index. Missing metadata fails loudly
-// through the physical integrity trigger instead of silently dropping an input.
-// Build their common lossless payload once. The final physical INSERT leaves
-// changes() equal to actual admitted occurrences for the immediate count guard.
+// Resolve each distinct context once into transaction-local integer references.
+// Each compact row retains its original index, typed full ID and exact timestamp.
+// LEFT JOIN deliberately retains inputs with missing metadata: the physical
+// integrity trigger must reject them rather than allowing a join to drop them.
+// The caller clears vane_collection_batch_contexts AFTER its immediate changes()
+// guard, inside this same transaction. The physical INSERT must remain last here.
 export function rawInsertManyStatements(env:Env,records:RawRecord[],when:RawCondition={sql:'1',values:[]}):D1PreparedStatement[] {
  const b=rawBatch(records)
- return [env.DB.prepare(`INSERT OR IGNORE INTO vane_raw_groups(context,at_offset,visit_id)
-  SELECT DISTINCT ${b.context},${b.at},NULL FROM json_each(?) row WHERE ${when.sql}`).bind(b.json,...when.values),
- env.DB.prepare(`INSERT INTO vane_raw_occurrences(site,token,group_id)
-  SELECT ${b.site},${decodedValue('$.token')},
-   (SELECT group_id FROM vane_raw_groups g WHERE ${groupMatchSql(b.context,b.at)})
-  FROM json_each(?) row WHERE ${when.sql}`).bind(b.json,...when.values)]
+ const from=`FROM json_each(?) row
+  LEFT JOIN vane_collection_batch_contexts b ON b.context_index=json_extract(row.value,'$[0]')
+  LEFT JOIN vane_raw_contexts c ON c.context=b.context`
+ const at="json_extract(row.value,'$[2]')-coalesce(unixepoch(c.day)*1000,0)"
+ return [
+  env.DB.prepare('DELETE FROM vane_collection_batch_contexts'),
+  env.DB.prepare(`INSERT INTO vane_collection_batch_contexts(context_index,site,context)
+   SELECT CAST(row.key AS INTEGER),${b.site},${b.context} FROM json_each(?) row`).bind(b.contexts),
+  env.DB.prepare(`INSERT OR IGNORE INTO vane_raw_groups(context,at_offset,visit_id)
+   SELECT DISTINCT b.context,${at},NULL ${from} WHERE ${when.sql}`).bind(b.rows,...when.values),
+  env.DB.prepare(`INSERT INTO vane_raw_occurrences(site,token,group_id)
+   SELECT b.site,${decodedValue('$[1]')},
+    (SELECT group_id FROM vane_raw_groups g WHERE ${groupMatchSql('b.context',at)})
+   ${from} WHERE ${when.sql}`).bind(b.rows,...when.values),
+ ]
 }

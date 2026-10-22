@@ -22,6 +22,7 @@ test('native batches admit real pageviews once across simultaneous and in-batch 
  assert.equal(custody.vane_admission.find(row=>row.site_id===id).count,998)
  assert.equal(custody.vane_exclusions.find(row=>row.site_id===id&&row.reason==='dropped-property').count,998)
  assert.equal(custody.vane_collection_batch_admitted.length,0,'admission scratch never survives the transaction')
+ assert.equal(custody.vane_collection_batch_contexts.length,0,'context references never survive the transaction')
  const newEvent=a.event(id),conflicting={...events[0],path:'/different'}
  const conflict=await json(await batch(a,[newEvent,conflicting]));assert.deepEqual([conflict.status,conflict.body.index,conflict.body.accepted],[409,1,0])
  const after=await a.dump();assert.equal(after.vane_events.filter(row=>row.kind==='pageview').length,998);assert.equal(after.vane_collection_batch_admitted.length,0)

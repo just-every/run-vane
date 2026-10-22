@@ -85,6 +85,7 @@ export async function admitPageviews(request: Request, env: Env, validated: Vali
  }))
  statements.push(statement(env, `INSERT INTO vane_guard(value)
   SELECT CASE WHEN changes()=(SELECT COUNT(*) FROM vane_collection_batch_admitted WHERE batch_id=?) THEN 1 ELSE 0 END`, batchId))
+ statements.push(statement(env, 'DELETE FROM vane_collection_batch_contexts'))
  statements.push(...bulkOccurrences(env), ...finishBulkVisits(env))
  const goals = prepared.flatMap((plan, index) => goalRecords(pages[index]!, plan).map(record => ({ index, record })))
  if (goals.length) {
