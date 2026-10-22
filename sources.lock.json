@@ -1003,7 +1003,7 @@
       "executable": false
     },
     "scripts/installer/local.mjs": {
-      "sha256": "4219a8a61371fdf8945d1ec302fab9b5bfdd138b69fa16b64faf4258066fa783",
+      "sha256": "8f5cd4a33e94f1bce87c2351b712b50bec64a98dd849ecd5adae339d51ace207",
       "executable": false
     },
     "scripts/installer/seed.mjs": {
@@ -3199,7 +3199,7 @@
       "executable": false
     },
     "src/vane/deletion-fence.ts": {
-      "sha256": "2e9a24fe4fe0ed12e4db53da074b6c99ed9e6e2db91bed8e7639e311393e8d5b",
+      "sha256": "d01bac11bbfa5f279677e567f75e7a438ec6baf3c1c25742508f3427e175bcd3",
       "executable": false
     },
     "src/vane/devices.ts": {
