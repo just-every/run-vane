@@ -3731,7 +3731,7 @@
       "executable": false
     },
     "tests/collection-scale.journey.mjs": {
-      "sha256": "5c1662654ceb11e50ae2b6e9729bf5d911a33b1f226324df42f70d23a545b34f",
+      "sha256": "0de28774807dac806605c4fd2561e6b1c090af01d77a256039875f86179a52ac",
       "executable": false
     },
     "tests/consented.test.mjs": {
@@ -3887,7 +3887,7 @@
       "executable": false
     },
     "tests/raw-storage.test.mjs": {
-      "sha256": "d6e116eea167c9c03abd03b1361a7b27f8de83f423d015200616febac3e72245",
+      "sha256": "866e35e738cab30ddb758580506fa7c023885bfca8087cc2f419fe371ccad0e5",
       "executable": false
     },
     "tests/revenue-alert.test.mjs": {
@@ -3951,7 +3951,7 @@
       "executable": false
     },
     "tests/visit-analytics.test.mjs": {
-      "sha256": "220a6742a97e4564982bd0c727ae9e0098be1f5ef6192a700ad1df87469e1c7e",
+      "sha256": "0491388746c9fa6b826d6470a4208973820347cfede32fc32ad3d10c75a8e2e1",
       "executable": false
     },
     "tsconfig.json": {
