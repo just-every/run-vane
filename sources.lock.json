@@ -43,7 +43,7 @@
       "executable": false
     },
     ".github/workflows/proxy-blocker.yml": {
-      "sha256": "baa4d00cab30cfd1ddd0d5dedb86d4f1741687c7942a69271ca3bbc257a948d4",
+      "sha256": "818a6980857576e2b3a6809ae974701ada99b2af888ab8ab875790763ba32adf",
       "executable": false
     },
     ".github/workflows/proxy-next.yml": {
@@ -71,7 +71,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "bc4e14b63577769091d7aceb0f584bd6966c5fed6e646f5243c30458ba8f9769",
+      "sha256": "181cceab997f924d7c3c64383a53f33b58ba9c48cd37ea85ad59d2ebb94cad8f",
       "executable": false
     },
     "AGENTS.md": {
@@ -103,7 +103,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "66d828c9c5392925831845495c1eec9a67f4fd72420a5913e4d62a5a0beceef0",
+      "sha256": "3867797ce2138b14ba98ec9b34971545687010ec9e6cd7ccd9978f406623bd41",
       "executable": false
     },
     "DEMO.md": {
@@ -3523,11 +3523,11 @@
       "executable": false
     },
     "tests/extension-chrome.mjs": {
-      "sha256": "d2db858789918b7fd81b4bb160819a09774c40d6db6ede2b0264cc6d130f5cd4",
+      "sha256": "a60ac7759cfe5fc8d8d44c584070118a5f2e98fec88361dfdb194b88ab740173",
       "executable": false
     },
     "tests/extension-state.mjs": {
-      "sha256": "2219dfa54a163446fcc4f3f170a903fa0a8ed8efbd8a0ec413de3ec5bd5d47df",
+      "sha256": "b87fee5ff65a8701f4a97ed405812df8a036ab2263ad3a31c8e726cbb397d96e",
       "executable": false
     },
     "tests/fixtures/matomo-reports.json": {
@@ -3643,7 +3643,7 @@
       "executable": false
     },
     "tests/proxy-blocker.journey.mjs": {
-      "sha256": "99c260732a3249f70e87c1f5c67612a0a6f5cbe7f1f23d73b9b2e44579ec4fef",
+      "sha256": "00fa07106d9bd2a2dc755b95b56447ab727a231948835fcc59e0261162dbb8a9",
       "executable": false
     },
     "tests/proxy-cloudflare.test.mjs": {
