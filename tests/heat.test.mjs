@@ -41,11 +41,28 @@ test('HEAT-001 real clicks aggregate at two buttons without text or identifiers;
   browser=await chromium.launch({headless:true,args});t.after(()=>browser.close())
   context=await browser.newContext({userAgent:DESKTOP_CHROME,viewport:{width:1440,height:900}})
  }
- const bodies=[]
+ // Set the real rendering area after resizing the host window. Otherwise macOS
+ // window minimums can clip a 390 CSS px emulated tab's native frame.
+ const nativeSize=async(page,width)=>{
+  await page.setViewportSize({width,height:900})
+  const session=await context.newCDPSession(page),{windowId}=await session.send('Browser.getWindowForTarget')
+  await session.send('Browser.setContentsSize',{windowId,width:Math.max(width,900),height:900})
+  await session.send('Emulation.setVisibleSize',{width,height:900});await session.detach()
+  assert.equal(await page.evaluate(()=>innerWidth),width,'the rendered page width matches the selected map')
+ }
+ const focusCapture=async(page,width)=>{
+  await nativeSize(target,width)
+  await target.bringToFront();await target.clock.runFor(250)
+  await page.bringToFront()
+  const session=await context.newCDPSession(target)
+  await session.send('Emulation.setVisibleSize',{width,height:900});await session.detach()
+  await page.waitForFunction(()=>document.hasFocus())
+ }
+ const bodies=[],fixtures=new Map([[origin,html]])
  await context.addCookies(a.owner.split('; ').map(pair=>{const index=pair.indexOf('=');return {name:pair.slice(0,index),value:pair.slice(index+1),url:a.origin}}))
  await context.route('**/*',async route=>{
   const request=route.request(),url=new URL(request.url())
-  if(url.origin===origin&&url.pathname==='/')return route.fulfill({contentType:'text/html',body:html})
+  if(fixtures.has(url.origin)&&['/','/thanks'].includes(url.pathname))return route.fulfill({contentType:'text/html',body:fixtures.get(url.origin)})
   if(url.origin!==a.origin)return route.abort()
   if(url.pathname==='/api/vane/heat-click'&&request.method()==='POST')bodies.push(JSON.parse(request.postData()))
   const r=await a.request(url.pathname+url.search,{method:request.method(),headers:request.headers(),body:request.postData()??undefined})
@@ -55,7 +72,8 @@ test('HEAT-001 real clicks aggregate at two buttons without text or identifiers;
  const answered=path=>target.waitForResponse(r=>new URL(r.url()).pathname===path&&r.request().method()==='POST')
  const screenDir=process.env.VANE_SCREEN_DIR;if(screenDir)await mkdir(screenDir,{recursive:true})
  for(const [index,width] of [1440,390].entries()){
-  await target.setViewportSize({width,height:900})
+  if(capture)await nativeSize(target,width);else await target.setViewportSize({width,height:900})
+  await target.bringToFront()
   for(const [visit,share] of [.5,1].entries()){
    const time=morning+(index*2+visit)*7200000;await a.clock(time);await target.clock.setSystemTime(time)
    let sent=answered('/api/vane/collect');await target.goto(origin+'/');assert.equal((await sent).status(),202)
@@ -70,7 +88,7 @@ test('HEAT-001 real clicks aggregate at two buttons without text or identifiers;
   assert.deepEqual(map.cells.map(c=>({x:c.x,y:c.y})),expected,'the two hottest grid cells are on the real buttons')
   await target.evaluate(()=>scrollTo(0,0));await target.clock.runFor(200)
   if(screenDir)await target.screenshot({path:join(screenDir,`heat-fixture-${width}.png`)})
-  const page=await context.newPage();if(capture)await page.addInitScript(()=>{const original=navigator.mediaDevices.getDisplayMedia.bind(navigator.mediaDevices);window.capturedTracks=[];navigator.mediaDevices.getDisplayMedia=async options=>{const stream=await original(options);window.capturedTracks.push(...stream.getTracks());return stream}});await page.setViewportSize({width,height:900});await page.goto(`${a.origin}/app/sites/${id}?section=heat&heatPath=%2F&heatWidth=${width}&from=2026-03-06&to=2026-03-07`)
+  const page=await context.newPage();if(capture)await page.addInitScript(()=>{const original=navigator.mediaDevices.getDisplayMedia.bind(navigator.mediaDevices);window.capturedTracks=[];window.captureGeometry=[];window.videoGeometry=[];const play=HTMLMediaElement.prototype.play;HTMLMediaElement.prototype.play=function(...args){return play.apply(this,args).then(result=>{if(this instanceof HTMLVideoElement)window.videoGeometry.push({width:this.videoWidth,height:this.videoHeight});return result})};navigator.mediaDevices.getDisplayMedia=async options=>{const stream=await original(options);window.capturedTracks.push(...stream.getTracks());for(const track of stream.getVideoTracks()){const s=track.getSettings(),h=JSON.parse(track.getCaptureHandle()?.handle||'{}');window.captureGeometry.push({stream:{width:s.width,height:s.height},page:{width:h.width,height:h.height}})}return stream}});if(capture)await nativeSize(page,width);else await page.setViewportSize({width,height:900});await page.goto(`${a.origin}/app/sites/${id}?section=heat&heatPath=%2F&heatWidth=${width}&from=2026-03-06&to=2026-03-07`)
   assert.equal(await page.locator('[data-heat-average]').textContent(),'75%');assert.equal(await page.locator('[data-heat-deep]').textContent(),'50%')
   assert.equal(await page.locator('[data-heat-geometry]').count(),2)
   assert.equal(await page.locator('[data-heat-geometry=click] [data-heat-cell]').count(),2)
@@ -81,25 +99,44 @@ test('HEAT-001 real clicks aggregate at two buttons without text or identifiers;
   assert.equal(await page.locator('[data-heat-empty]').isVisible(),true,'a screenshot is never invented');assert.equal(await page.locator('[data-heat-images]').isVisible(),false,'uncaptured maps do not show empty image frames')
   if(capture){
    const correctMap=page.url();await page.goto(correctMap.replace('heatWidth='+width,'heatWidth='+(width+1)))
+   await focusCapture(page,width)
    await page.getByRole('button',{name:'Capture live page'}).click()
    await page.waitForFunction(()=>!document.querySelector('[data-heat-capture]').disabled,{},{timeout:25000})
    assert.match(await page.locator('[data-heat-status]').textContent(),/CSS pixels wide/,'real mismatched tab geometry is refused')
    assert.equal(await page.locator('[data-heat-click] image').count(),0)
    assert.equal(await page.evaluate(()=>window.capturedTracks.length>0&&window.capturedTracks.every(t=>t.readyState==='ended')),true,'sharing stops after refusal too')
    await page.goto(correctMap)
+   await focusCapture(page,width)
    await page.getByRole('button',{name:'Capture live page'}).click()
    await page.waitForFunction(()=>!document.querySelector('[data-heat-capture]').disabled,{},{timeout:25000})
    const captureStatus=await page.locator('[data-heat-status]').textContent()
-   if(!captureStatus.startsWith('Live screenshot captured locally')){assert.equal(await page.locator('[data-heat-click] image').count(),0,'an unverified tab never becomes a screenshot');t.diagnostic('Strict native capture did not succeed under the approved fresh ordinary-context harness. No handle or stream was substituted.')}
+   if(!captureStatus.startsWith('Live screenshot captured locally')){assert.equal(await page.locator('[data-heat-click] image').count(),0,'an unverified tab never becomes a screenshot');t.diagnostic('Strict native capture did not succeed under the approved fresh ordinary-context harness. No handle or stream was substituted.');t.diagnostic(JSON.stringify(await page.evaluate(()=>({tracks:window.captureGeometry,frames:window.videoGeometry}))))}
    assert.match(captureStatus,/Live screenshot captured locally/)
    assert.equal(await page.locator('[data-heat-click] image').count(),1)
    assert.equal(await page.locator('[data-heat-click] rect').count(),2)
    assert.equal(await page.locator('[data-heat-scroll] image').count(),1)
    assert.equal(await page.evaluate(()=>window.capturedTracks.length>0&&window.capturedTracks.every(t=>t.readyState==='ended')),true,'real sharing stops after the captured frame')
   }else t.diagnostic('HEAT-002 native capture is an explicit separate run with VANE_HEAT_CAPTURE=1 under the approved throwaway-profile exception. Recorded geometry maps prove HEAT-001 only.')
+  await page.evaluate(()=>scrollTo(0,0))
   if(screenDir)await page.screenshot({path:join(screenDir,`heat-${width}.png`),fullPage:true})
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,'no horizontal overflow')
   await page.close()
+ }
+ if(capture){
+  // Both rejected captures use genuine Vane Capture Handles from real fixture tabs.
+  const otherOrigin='https://moss.example',other=await a.addSite({name:'Moss Studio',origin:otherOrigin})
+  fixtures.set(otherOrigin,html.replace('data-site="'+id+'"','data-site="'+other+'"'))
+  for(const [siteId,path] of [[id,'/thanks'],[other,'/']])assert.equal((await a.post('/api/vane/heat-settings',{siteId,path,enabled:true},a.owner)).status,200)
+  const page=await context.newPage();await nativeSize(page,390)
+  for(const [href,reason] of [[origin+'/thanks',/not this enabled page/],[otherOrigin+'/',/not this site/]]){
+   const ready=answered('/api/vane/collect');await target.goto(href);assert.equal((await ready).status(),202)
+   await page.goto(`${a.origin}/app/sites/${id}?section=heat&heatPath=%2F&heatWidth=390&from=2026-03-06&to=2026-03-07`)
+   await focusCapture(page,390);await page.getByRole('button',{name:'Capture live page'}).click()
+   await page.waitForFunction(()=>!document.querySelector('[data-heat-capture]').disabled,{},{timeout:25000})
+   assert.match(await page.locator('[data-heat-status]').textContent(),reason)
+   assert.equal(await page.locator('[data-heat-click] image').count(),0,'wrong-site and wrong-path tabs are never displayed')
+  }
+  await page.close();assert.equal((await a.post('/api/vane/heat-settings',{siteId:id,path:'/thanks',enabled:false},a.owner)).status,200)
  }
  assert.equal(bodies.length,20);for(const body of bodies)assert.deepEqual(Object.keys(body).sort(),['consent','geometry','kind','path','siteId','width','x','y'])
  const dump=await a.dump();assert.equal(dump.vane_heat_clicks.length,4);assert.equal(dump.vane_heat_layouts.length,2)
