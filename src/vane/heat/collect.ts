@@ -8,7 +8,7 @@ import { heatGeometry } from './geometry'
 
 // No event ID, page-load ID, visitor hash, selector, label, text or form field enters this door.
 export async function collectHeat(request:Request,env:Env,value:Site,payload:any) {
- insist(payload&&typeof payload==='object'&&!Array.isArray(payload)&&[7,8].includes(Object.keys(payload).length)&&Object.keys(payload).every(k=>['siteId','path','x','y','width','consent','kind','geometry'].includes(k))&&payload.kind==='click','heat_fields','A heat click carries only site, page, grid position, viewport width, consent and kind.')
+ insist(payload&&typeof payload==='object'&&!Array.isArray(payload)&&[7,8].includes(Object.keys(payload).length)&&Object.keys(payload).every(k=>['siteId','path','x','y','width','consent','kind','geometry'].includes(k))&&payload.kind==='click','heat_fields','A heat click carries only site, page, grid position, viewport width, consent, kind and optional anonymous layout geometry.')
  insist(request.headers.get('origin')===value.origin,'heat_origin','Heatmaps collect only this site’s primary origin.',403)
  insist(request.headers.get('dnt')!=='1'&&request.headers.get('sec-gpc')!=='1','heat_signal','This browser has declined collection.',403)
  insist(consentAccepted(value.config,request,payload.consent),'consent','Consent is required for collection.',403)

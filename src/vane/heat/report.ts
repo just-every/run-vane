@@ -1,6 +1,6 @@
 import { inScope, insist, role, rows, site, type Actor, type Env } from '../core'
 import { hostOf } from '../paths'
-import type { HeatGeometry } from './geometry'
+import { heatGeometry, type HeatGeometry } from './geometry'
 import { heatSetting, type HeatSetting } from './settings'
 
 export interface HeatCell { x:number; y:number; count:number }
@@ -23,5 +23,5 @@ export async function heatReport(env:Env,actor:Actor,input:{siteId:string;path?:
   rows<{depth:number;count:number}>(env,"SELECT scroll AS depth,COUNT(*) AS count FROM vane_events WHERE site_id=? AND path=? AND hostname=? AND kind='pageview' AND visitor IS NOT NULL AND at IS NOT NULL AND day>=? AND day<? AND scroll IS NOT NULL GROUP BY scroll ORDER BY scroll",value.id,path,hostOf(value.origin),input.from,input.to),
  ])
  const samples=depths.reduce((n,r)=>n+r.count,0),reached=(d:number)=>depths.reduce((n,r)=>n+(r.depth>=d?r.count:0),0),share=(n:number)=>samples?Math.round(n/samples*1000)/10:null
- return {geometry:layouts.length?JSON.parse(layouts[0].geometry_json):null,siteId:value.id,origin:value.origin,pages,path,from:input.from,to:input.to,width,enabled:pages.some(p=>p.path===path),clicks:cells.reduce((n,r)=>n+r.count,0),cells,scroll:{samples,averageScrollDepth:samples?Math.round(depths.reduce((n,r)=>n+r.depth*r.count,0)/samples):null,reached75Share:share(reached(75)),bands:[0,10,20,30,40,50,60,70,75,80,90,100].map(depth=>({depth,count:reached(depth),share:share(reached(depth))}))}}
+ return {geometry:layouts.length?heatGeometry(JSON.parse(layouts[0].geometry_json)):null,siteId:value.id,origin:value.origin,pages,path,from:input.from,to:input.to,width,enabled:pages.some(p=>p.path===path),clicks:cells.reduce((n,r)=>n+r.count,0),cells,scroll:{samples,averageScrollDepth:samples?Math.round(depths.reduce((n,r)=>n+r.depth*r.count,0)/samples):null,reached75Share:share(reached(75)),bands:[0,10,20,30,40,50,60,70,75,80,90,100].map(depth=>({depth,count:reached(depth),share:share(reached(depth))}))}}
 }
