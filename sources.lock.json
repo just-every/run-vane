@@ -47,7 +47,7 @@
       "executable": false
     },
     ".github/workflows/proxy-blocker.yml": {
-      "sha256": "818a6980857576e2b3a6809ae974701ada99b2af888ab8ab875790763ba32adf",
+      "sha256": "ed0071daeb856fca70fc9d15c081c6ae6d7c9fbfa04a93eb4f0821bcced37849",
       "executable": false
     },
     ".github/workflows/proxy-next.yml": {
@@ -135,11 +135,11 @@
       "executable": false
     },
     "docs/collection-scale.md": {
-      "sha256": "2f7aec3028706a88d68784401df0cc0f3dccbc503c9eb97da619821dded88137",
+      "sha256": "bbd22ced96efc2d931e46457ad547ed430c63e81cab078e782d07c8d209b7a50",
       "executable": false
     },
     "docs/collection.md": {
-      "sha256": "a4c4576f475b602189719f66263ef12a22a63c3b7b283e70e48dbdfd7abc3cc0",
+      "sha256": "a510c0bb936f4cc62c2d34582be88237bac72451a073f700e8c392067ad4fb85",
       "executable": false
     },
     "docs/commands.md": {
@@ -147,7 +147,7 @@
       "executable": false
     },
     "docs/first-party-proxy.md": {
-      "sha256": "c36905aa1723d3d1696cbeac520be3ddfef41a04612ac17b542102b3d70a49f5",
+      "sha256": "bf188ee9910bf8be13354cc7de5c0e12350ccb1b12e613f9b7646a11899a9fcf",
       "executable": false
     },
     "docs/getting-started.md": {
@@ -2979,7 +2979,7 @@
       "executable": false
     },
     "src/vane/collection/admit.ts": {
-      "sha256": "f8dd34dd4c083717e8cec0356442b2e0f21b812e4ff8379ea2b8152ecdf6dd17",
+      "sha256": "24321fc8ac1f46f1c8747ff367cbae4e9e5f6252900d1f477c599e12398dfb8f",
       "executable": false
     },
     "src/vane/collection/batch.ts": {
@@ -2987,7 +2987,7 @@
       "executable": false
     },
     "src/vane/collection/body.ts": {
-      "sha256": "9636f8e56bf53e6571aa7cca71f63b5cf706695a17e42df7ff914f392e2c41e8",
+      "sha256": "c7a108622dc127fc0276b2c5e8172aedc1f7d9f0010e456c92ec83363bb9ac1d",
       "executable": false
     },
     "src/vane/collection/context.ts": {
@@ -3003,7 +3003,7 @@
       "executable": false
     },
     "src/vane/collection/README.md": {
-      "sha256": "3f456c719802dfb3871e6ff547221ba0e791c8dd2e46c407a936bc84ca56cfe7",
+      "sha256": "3c43345d6f4970e0ecfae64686ed2d97f8edad3282299a136ae92d501694e120",
       "executable": false
     },
     "src/vane/collection/records.ts": {
@@ -3799,11 +3799,11 @@
       "executable": false
     },
     "tests/collection-batch.test.mjs": {
-      "sha256": "451db66ce697bb6f4912de3ddedfab2adfec21115c306b0e6fd1d8f170c18c56",
+      "sha256": "809e9ebe5d0e433a12e02ee846e0565c28a41e13999feac0ab02eb40fd3a1af6",
       "executable": false
     },
     "tests/collection-scale.journey.mjs": {
-      "sha256": "89117f111d0def805a353ac94948b577846a21df0ea2e9c4ec375e890d4d9a04",
+      "sha256": "e14fcd4a8a071606a382be91420898b63361e92ef09114b72b4568fd23eb1491",
       "executable": false
     },
     "tests/consented.test.mjs": {
