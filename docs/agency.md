@@ -8,6 +8,4 @@ An owner may configure an HTTPS origin such as `https://reports.agency.example`.
 
 Whole-installation archives include agency grouping, membership, branding and uploaded images. Site transfers deliberately omit installation-level client identities, member grants and custom-host configuration; assign the imported site to a local client. Deleting visitor history leaves these configuration records alone. Deleting a site removes its client assignment.
 
-The owner’s attestation is a conservative default awaiting ct’s policy ruling: **may an owner attach an already-controlled HTTPS hostname by attestation alone, or must Vane verify DNS/control before serving it?** Client users default to Viewers and owner-only management; ct should confirm those authority defaults. Keep AGENCY-001 partial until these choices and a held-account custom-domain DNS/TLS journey are resolved. Local Worker tests prove routing behavior, not provider domain attachment.
-
-`tests/agency.test.mjs` adds two public-door flows: two-client isolation/branding/email/custom-host behavior and the actual app at 1440/390. Set `VANE_SCREEN_DIR` to capture the populated agency overview, brand settings and a branded client report. The existing TEAM-001 and REPORT-001 flows retain their full authorization and delivery semantics.
+Attach only hostnames you control. Saving the brand records your attestation; it does not configure or verify the provider’s domain attachment. Confirm the DNS and TLS setup in your Cloudflare account before sharing report links.
