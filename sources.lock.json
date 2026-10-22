@@ -4139,7 +4139,7 @@
       "executable": false
     },
     "tests/movement.test.mjs": {
-      "sha256": "3824a6e06d448702a1ce2f9c6e4445f6f4eb05ea1656eb559d4531501320bc27",
+      "sha256": "0b08d986cb0966e735face72b100498d9995b412a927aa78487219d62380189c",
       "executable": false
     },
     "tests/plausible-definitions.test.mjs": {
