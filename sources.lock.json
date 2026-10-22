@@ -522,6 +522,10 @@
       "sha256": "f7841ae8cc9f3fd8ca66bc49540219561d9f28c0ad168415100733f8c31c473a",
       "executable": false
     },
+    "migrations/core/0102_raw_visit_time.sql": {
+      "sha256": "42472c00f0dd026499cc50eb6f0170964405f0677c29446344297cb4375da2ba",
+      "executable": false
+    },
     "ONBOARDING.md": {
       "sha256": "b28a79254e2278d81d877ffd5987972aaf135d85683ae285b52fd98cc44e608e",
       "executable": false
@@ -2903,7 +2907,7 @@
       "executable": false
     },
     "src/vane/analytics/visits/journeys.ts": {
-      "sha256": "3c07ef81a020d1b3756047be7bf684d64b8bf7956e3361f0f1dbbaadaefb2965",
+      "sha256": "28f2197e7b75750863c6e2491a0b1432f2dff0be55f41d4afcdb309304dfafe8",
       "executable": false
     },
     "src/vane/analytics/visits/locations.ts": {
