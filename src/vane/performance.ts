@@ -1,3 +1,5 @@
+import { readPerformanceMetrics } from './analytics/visits'
+import { rawEventPredicate } from './raw'
 import { consentedPage } from './consented'
 import { insist, rows, site, siteOrigin, statement, VaneError, type Env } from './core'
 import { clock } from './clock'
@@ -19,9 +21,9 @@ export async function perfResponse(request:Request,env:Env):Promise<Response|nul
   const figures=Object.keys(p).filter(k=>Object.hasOwn(PERF_FIELDS,k)) as (keyof typeof PERF_FIELDS)[];
   insist(Object.keys(p).every(k=>['siteId','id',...Object.keys(PERF_FIELDS)].includes(k))&&/^[a-f0-9-]{36}$/.test(p.id)&&figures.length>0,'fields','A performance report carries only the site and page-load IDs and the measured figures.');
   insist(figures.every(k=>typeof p[k]==='number'&&Number.isFinite(p[k])&&p[k]>=0&&p[k]<=PERF_FIELDS[k]&&(k==='cls'||Number.isInteger(p[k]))),'figures','LCP, INP and load time are whole milliseconds and CLS a score from 0 to 100.');
-  const eventId=value.id+':'+p.id,load=await env.DB.prepare("SELECT at,consented_visitor,consented_created_at,consented_expires_at FROM vane_events WHERE id=? AND kind='pageview'").bind(eventId).first<{at:number|null;consented_visitor:string|null;consented_created_at:number|null;consented_expires_at:number|null}>();
+  const eventId=value.id+':'+p.id,raw=rawEventPredicate(eventId),load=await env.DB.prepare("SELECT at,consented_visitor,consented_created_at,consented_expires_at FROM vane_events WHERE "+raw.sql+" AND kind='pageview'").bind(...raw.values).first<{at:number|null;consented_visitor:string|null;consented_created_at:number|null;consented_expires_at:number|null}>();
   insist(typeof load?.at==='number','page_load','No timed page load has this ID.',404);consentedPage(value.config,request,load,clock());insist(clock()-load.at<=ENGAGEMENT_WINDOW_MS,'expired','Performance more than 30 minutes after its page load is not counted.',409);
-  await statement(env,'UPDATE vane_events SET lcp=COALESCE(?,lcp),inp=COALESCE(?,inp),cls=COALESCE(?,cls),load_ms=COALESCE(?,load_ms) WHERE id=?',p.lcp??null,p.inp??null,p.cls===undefined?null:Math.round(p.cls*1000)/1000,p.load??null,eventId).run();
+  await statement(env,'UPDATE vane_events SET lcp=COALESCE(?,lcp),inp=COALESCE(?,inp),cls=COALESCE(?,cls),load_ms=COALESCE(?,load_ms) WHERE '+raw.sql,p.lcp??null,p.inp??null,p.cls===undefined?null:Math.round(p.cls*1000)/1000,p.load??null,...raw.values).run();
   return Response.json({accepted:true},{status:202,headers:cors});
  } catch(error) { const e=error instanceof VaneError?error:new VaneError('invalid_report','Performance could not be accepted.');return Response.json({error:e.code,message:e.message},{status:e.status,headers:cors}) }
 }
@@ -33,6 +35,7 @@ function summarise(list:any[],key:string):PerfRow[] {
  return [...by.entries()].map(([label,rs])=>({label,measured:rs.length,lcp:p75(of(rs,'lcp')),inp:p75(of(rs,'inp')),cls:p75(of(rs,'cls')),load:p75(of(rs,'load_ms'))})).sort((a,b)=>b.measured-a.measured||a.label.localeCompare(b.label))
 }
 export async function perfReport(env:Env,scope:string,from:string,to:string,events:string,hosts:boolean) {
+ if(events==='vane_events')return readPerformanceMetrics(env,scope,from,to,hosts)
  const list=await rows(env,`SELECT ${hosts?"COALESCE(hostname,'')||path":'path'} AS page,COALESCE(device,'unknown') AS device,lcp,inp,cls,load_ms FROM ${events} WHERE site_id IN (SELECT value FROM json_each(?)) AND day>=? AND day<? AND kind='pageview' AND (lcp IS NOT NULL OR inp IS NOT NULL OR cls IS NOT NULL OR load_ms IS NOT NULL)`,scope,from,to)
  return {pages:summarise(list,'page'),devices:summarise(list,'device')}
 }

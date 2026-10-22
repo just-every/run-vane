@@ -1,6 +1,7 @@
 import { visitorKey } from './visitor-key'
 import { insist, type Env } from './core'
 import { gapSql } from './definitions'
+import { readVisitMetrics, readEntryMetrics } from './analytics/visits'
 // METRIC-002: a visit is a run of one visitor hash's page loads with no gap over the site's visit timeout for that
 // day (30 minutes unless the owner approved another; METRIC-004). The hash
 // rotates with the daily salt, so a visit also ends at the site's local midnight.
@@ -48,6 +49,7 @@ JOIN (SELECT label,COUNT(*) AS visits,SUM(bounce) AS bounces,SUM(visit_converted
 }
 const row=(r:any):PageRow=>({path:r.label,visitors:Number(r.visitors),pageviews:Number(r.pageviews),visits:Number(r.visits),bounceRate:rate(Number(r.bounces),Number(r.visits)),conversions:Number(r.conversions),conversionRate:rate(Number(r.conversions),Number(r.visits)),revenue:Number(r.revenue)/1e6,medianDuration:seconds(r.duration_median),averageDuration:seconds(r.duration_average),medianTimeOnPage:seconds(r.time_median),averageTimeOnPage:seconds(r.time_average),averageScrollDepth:r.scroll===null?null:Math.round(Number(r.scroll)),reached75Share:r.deep===null?null:Math.round(Number(r.deep)*10)/10})
 export async function visitMetrics(env:Env,siteId:string,from:string,to:string,groups:PageGroup[]=[],goal:string|null=null,events='vane_events',hosts=false,revenue='NULL') {
+ if(events==='vane_events')return readVisitMetrics(env,siteId,from,to,groups,goal,hosts,revenue)
  const args=[siteId,from,to,goal],timed=timedFrom(events),label=hosts?`COALESCE(hostname,'')||${labelSql(groups)}`:labelSql(groups)
  const [all,top,entry,exit,hostnames]=await env.DB.batch<any>([
   env.DB.prepare(`${timed},vr AS (SELECT duration,ROW_NUMBER() OVER (ORDER BY duration) AS r,COUNT(*) OVER () AS c FROM v) SELECT (SELECT COUNT(*) FROM v) AS visits,(SELECT COUNT(*) FROM q) AS pageviews,(SELECT SUM(bounce) FROM v) AS bounces,(SELECT AVG(duration) FROM v) AS average,(SELECT AVG(duration) FROM vr WHERE ${middle('r','c')}) AS median`).bind(...args),
@@ -62,6 +64,7 @@ export interface VisitRow { label:string; visitors:number; visits:number; bounce
 export const ENTRY_DIMENSIONS={channels:'channel',sourceVisits:'source',referrers:'referrer',utmSources:'utm_source',utmMediums:'utm_medium',utmCampaigns:"NULLIF(campaign,'none')",utmTerms:'utm_term',utmContents:'utm_content',deviceVisits:'device'} as const
 // DASH-014: sources are labelled by the named-source SQL; the drill-down lists each source's raw referrers.
 export async function entryMetrics(env:Env,siteId:string,from:string,to:string,goal:string|null,sourceName:string,events='vane_events',revenue='NULL'):Promise<Record<keyof typeof ENTRY_DIMENSIONS,VisitRow[]>&{sourceReferrers:{source:string,referrer:string,visits:number}[]}> {
+ if(events==='vane_events')return readEntryMetrics(env,siteId,from,to,goal,sourceName,revenue)
  const timed=timedFrom(events,revenue),names=Object.keys(ENTRY_DIMENSIONS) as (keyof typeof ENTRY_DIMENSIONS)[],label=(name:keyof typeof ENTRY_DIMENSIONS)=>name==='sourceVisits'?sourceName:ENTRY_DIMENSIONS[name]
  const results=await env.DB.batch<any>(names.map(name=>env.DB.prepare(`${timed},
 x AS (SELECT ${label(name)} AS label,v.* FROM q JOIN v USING(day,visitor,visit) WHERE q.starts=1),

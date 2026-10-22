@@ -38,6 +38,15 @@ test('COLLECT-004 genuine monthly pageviews, a paced 500/second burst, concurren
   measurements.accepted++; expected[site]++; pages.set(event.path, (pages.get(event.path) ?? 0) + 1)
   return event
  }
+ // The native batch transport carries ordinary, individually identified
+ // pageviews. It shares network/transaction overhead, never a row's weight.
+ async function sendBatch(site, first, count) {
+  const events=Array.from({length:count},(_,index)=>a.event(ids[site],{path:`/scale/${(first+index)%3}`,campaign:`synthetic-vane-${(first+index)%2}`}))
+  measurements.submitted+=events.length
+  const response=await a.post('/api/vane/collect-batch',{events},'',{origin:origins[site],'cf-connecting-ip':`203.0.113.${first%10+1}`,'user-agent':'Synthetic Browser scale'})
+  const body=await response.json();assert.equal(response.status,202,JSON.stringify(body));assert.equal(body.accepted,events.length);assert.equal(body.results.length,events.length)
+  for(let index=0;index<events.length;index++){assert.equal(body.results[index].status,202);assert.notEqual(body.results[index].duplicate,true);measurements.accepted++;expected[site]++;const path=events[index].path;pages.set(path,(pages.get(path)??0)+1)}
+ }
  // More than the removed daily ceiling, independent of the optional volume.
  for (let first = 0; first < 10_001; first += CONCURRENCY) {
   await Promise.all(Array.from({ length: Math.min(CONCURRENCY, 10_001 - first) }, (_, i) => send(0, first + i)))
@@ -76,8 +85,8 @@ test('COLLECT-004 genuine monthly pageviews, a paced 500/second burst, concurren
   for (let day = 1; day <= 28; day++) {
    await a.clock(Date.UTC(2025, month, day, 12))
    const firstOfDay = Math.floor(MONTHLY * (day - 1) / 28), endOfDay = Math.floor(MONTHLY * day / 28)
-   for (let first = firstOfDay; first < endOfDay; first += CONCURRENCY) {
-    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, endOfDay - first) }, (_, i) => send((first + i) % 2, first + i)))
+   for (let first = firstOfDay; first < endOfDay; first += CONCURRENCY*100) {
+    await Promise.all(Array.from({length:Math.min(CONCURRENCY,Math.ceil((endOfDay-first)/100))},(_,index)=>{const batchStart=first+index*100;return sendBatch(index%2,batchStart,Math.min(100,endOfDay-batchStart))}))
    }
   }
   monthExpected.set(label, (monthExpected.get(label) ?? 0) + MONTHLY)

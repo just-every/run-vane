@@ -14,7 +14,7 @@ function refusal(status:number):Response {
 interface Door { path:string; method:'GET'|'POST'; empty?:boolean; script?:boolean }
 function doorOf(suffix:string,siteId:string):Door|null {
  if(suffix==='script.js')return {path:'/vane.js',method:'GET',script:true}
- if(['collect','engage','custom','event','perf','exposure','heat-click'].includes(suffix))return {path:'/api/vane/'+suffix,method:'POST'}
+ if(['collect','collect-batch','engage','custom','event','perf','exposure','heat-click'].includes(suffix))return {path:'/api/vane/'+suffix,method:'POST'}
  const match=suffix.match(/^(config|signal|declined|ignored)\/([\w-]+)$/)
  if(!match||match[2]!==siteId)return null
  return {path:'/api/vane/'+suffix,method:match[1]==='config'?'GET':'POST',empty:match[1]!=='config'}

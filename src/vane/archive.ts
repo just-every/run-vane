@@ -1,17 +1,19 @@
+import { RAW_COLUMNS, RAW_TABLES } from './raw'
 import { rebuildAnalyticsStatements } from './analytics'
+import { rebuildVisitFactsStatements } from './analytics/visits'
 import { atomic, digest, insist, role, rows, statement, uid, type Actor, type Env } from './core'
 import { cleanSite } from './privacy'
 interface Payload { format:'vane-history/1'; exportedAt:number; tables:Record<string,Record<string,any>[]> }
 interface Archive { payload:Payload; sha256:string }
-function encodeCell(value:any):any { if(value instanceof ArrayBuffer||ArrayBuffer.isView(value)) {const bytes=value instanceof ArrayBuffer?new Uint8Array(value):new Uint8Array(value.buffer,value.byteOffset,value.byteLength);let text='';for(const b of bytes)text+=String.fromCharCode(b);return {blob:btoa(text)}}return value }
+function encodeCell(value:any):any { if(value instanceof ArrayBuffer||ArrayBuffer.isView(value)||Array.isArray(value)&&value.every(byte=>Number.isInteger(byte)&&byte>=0&&byte<=255)) {const bytes=Array.isArray(value)?Uint8Array.from(value):value instanceof ArrayBuffer?new Uint8Array(value):new Uint8Array(value.buffer,value.byteOffset,value.byteLength);let text='';for(const b of bytes)text+=String.fromCharCode(b);return {blob:btoa(text)}}return value }
 function decodeCell(value:any):any { if(value===null||typeof value==='string'||typeof value==='number')return value;insist(value&&Object.keys(value).length===1&&typeof value.blob==='string'&&/^[A-Za-z0-9+/]*={0,2}$/.test(value.blob),'cell','Invalid archive cell.');return Uint8Array.from(atob(value.blob),c=>c.charCodeAt(0)).buffer }
-async function tableNames(env:Env) { return (await rows(env,"SELECT name FROM sqlite_master WHERE type='table' AND (name LIKE 'vane_%' OR name LIKE 'ik_%') ORDER BY name")).map(r=>r.name as string).filter(n=>!['vane_proxy_connections','vane_chat_connections','vane_chat_states','vane_chat_schedules'].includes(n)&&n!=='vane_guard'&&n!=='vane_salts'&&n!=='vane_exports'&&n!=='vane_webhooks'&&n!=='vane_report_kept'&&n!=='vane_bing_connections'&&n!=='vane_search_connections'&&n!=='vane_search_oauth_states'&&n!=='vane_push_keys'&&n!=='vane_push_subscriptions') }
+async function tableNames(env:Env) { return ['vane_events',...(await rows(env,"SELECT name FROM sqlite_master WHERE type='table' AND (name LIKE 'vane_%' OR name LIKE 'ik_%') ORDER BY name")).map(r=>r.name as string).filter(n=>!['vane_proxy_connections','vane_chat_connections','vane_chat_states','vane_chat_schedules'].includes(n)&&n!=='vane_guard'&&n!=='vane_collection_batch_admitted'&&n!=='vane_salts'&&n!=='vane_exports'&&n!=='vane_webhooks'&&n!=='vane_report_kept'&&n!=='vane_bing_connections'&&n!=='vane_search_connections'&&n!=='vane_search_oauth_states'&&n!=='vane_push_keys'&&n!=='vane_push_subscriptions'&&!(RAW_TABLES as readonly string[]).includes(n)&&!n.startsWith('vane_visit_'))] }
 export async function exportHistory(env:Env,actor:Actor):Promise<Archive> {
  role(actor);
  const names=await tableNames(env);
  // D1 batch supplies a consistent snapshot across the event and custody tables.
  const result=await env.DB.batch<Record<string,any>>(names.map(n=>statement(env,`SELECT * FROM "${n}"`)));
- const payload:Payload={format:'vane-history/1',exportedAt:Date.now(),tables:Object.fromEntries(names.map((n,i)=>[n,result[i].results.map(row=>Object.fromEntries(Object.entries(row).map(([key,value])=>[key,encodeCell(value)])))]))};
+ const payload:Payload={format:'vane-history/1',exportedAt:Date.now(),tables:Object.fromEntries(names.map((n,i)=>[n,result[i].results.map(row=>Object.fromEntries(Object.entries(row).filter(([key])=>key!=='_raw_id').map(([key,value])=>[key,encodeCell(value)])))]))};
  return {payload,sha256:await digest(JSON.stringify(payload))};
 }
 async function checked(value:any):Promise<Archive> {
@@ -34,7 +36,7 @@ export async function restoreHistory(env:Env,actor:Actor,input:any,journal?:any)
  let count=0;
  for(const name of names) {
   insist(Array.isArray(data[name]),'archive','Invalid archive table.');
-  const columns=(await rows(env,`PRAGMA table_info("${name}")`)).map(c=>c.name as string);
+  const columns=name==='vane_events'?[...RAW_COLUMNS]:(await rows(env,`PRAGMA table_info("${name}")`)).map(c=>c.name as string);
   for(const record of data[name]) {
    // Columns added since an earlier release (such as the visitor hash) restore empty.
    insist(record&&typeof record==='object'&&Object.keys(record).every(c=>columns.includes(c))&&['id','site_id'].filter(c=>columns.includes(c)).every(c=>Object.hasOwn(record,c)),'columns','Archive contains an invalid record.');
@@ -42,17 +44,18 @@ export async function restoreHistory(env:Env,actor:Actor,input:any,journal?:any)
   }
  }
  const ordered=names.includes('vane_sites')?['vane_sites',...names.filter(n=>n!=='vane_sites')]:names;
- // Like Base portability's atomic restore, suppress write-maintenance triggers
- // while loading their already-recorded custody state, then recreate them in
- // the same transaction. Otherwise a plan insert duplicates its saved snapshot.
- const triggers=(await rows(env,"SELECT name,tbl_name,sql FROM sqlite_master WHERE type='trigger'")).filter(t=>names.includes(t.tbl_name));
+ // Suppress copied custody-table maintenance, then recreate it atomically.
+ // The logical event view's INSTEAD OF triggers and the raw-table maintenance
+ // remain active: raw keys are newly assigned and derived visit facts rebuild
+ // from those genuine rows rather than trusting another installation's keys.
+ const triggers=(await rows(env,"SELECT name,tbl_name,sql FROM sqlite_master WHERE type='trigger'")).filter(t=>names.includes(t.tbl_name)&&t.tbl_name!=='vane_events');
  const inserts:D1PreparedStatement[]=[statement(env,'INSERT INTO vane_guard(value) SELECT CASE WHEN (SELECT COUNT(*) FROM vane_sites)=0 THEN 1 ELSE 0 END')];
  // Recreate the bounded statements in dependency order. Import-kit schemas have
  // their own forward references; defer those checks until the atomic batch ends.
  inserts.push(statement(env,'PRAGMA defer_foreign_keys = ON'));
  inserts.push(...triggers.map(t=>statement(env,`DROP TRIGGER "${t.name}"`)));
- for(const name of ordered)for(const record of data[name]) { const columns=Object.keys(record); inserts.push(statement(env,`INSERT INTO "${name}" (${columns.map(c=>'"'+c+'"').join(',')}) VALUES(${columns.map(()=>'?').join(',')})`,...columns.map(c=>decodeCell(record[c])))); }
- inserts.push(...rebuildAnalyticsStatements(env));
+ for(const name of ordered.filter(name=>!name.startsWith('vane_analytics_')))for(const record of data[name]) { const columns=Object.keys(record); inserts.push(statement(env,`INSERT INTO "${name}" (${columns.map(c=>'"'+c+'"').join(',')}) VALUES(${columns.map(()=>'?').join(',')})`,...columns.map(c=>decodeCell(record[c])))); }
+ inserts.push(...rebuildAnalyticsStatements(env),...rebuildVisitFactsStatements(env));
  inserts.push(statement(env,'INSERT INTO vane_restore(id,digest,restored_by,at) VALUES(?,?,?,?)',uid(),archive.sha256,actor.id,Date.now()));
  inserts.push(...triggers.map(t=>statement(env,t.sql)));
  await atomic(env,actor,inserts);

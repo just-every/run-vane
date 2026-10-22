@@ -1,0 +1,13 @@
+# Native visit materializations
+
+`vane_raw_events.visit_id` is the membership reference. No second occurrence table is retained. `vane_visit_facts` keeps each visit's endpoints, identity and additive counts. `vane_visit_page_frequencies` keeps actual page occurrence multiplicities by visit, raw context, exact time on page and scroll depth. It can compress only when those values actually repeat. Duration frequencies and day totals answer overview metrics without expanding visits. Performance value frequencies retain exact nearest-rank percentiles, with one measured-page count per raw context.
+
+The raw `(context,at_offset,token)` index finds one predecessor/successor candidate per context of the same site/day/visitor, then chooses the actual neighbor. Canonical UUID bytes order exactly as their canonical logical IDs. Historically accepted noncanonical text IDs mark their chain for reconstruction ordered by the original logical ID; they never silently use SQLite's mixed BLOB/TEXT order.
+
+Append, tied-time insert and late insertion within a visit change only the new and preceding page contributions. A bridge merges the two real visits, their frequencies and their membership references. Deletion can split a visit; raw context/timestamp changes and dated timeout changes can repartition it. Those exceptional mutations atomically invalidate their site/day/visitor chain. `refreshVisitFacts` rebuilds invalid chains in a single D1 batch before any materialized reader returns. A clean chain never scans its raw page history during a read.
+
+Only unfiltered native whole-day sequences use these readers. Hostname filtering and partial historical cutoffs change visits and must use reconstruction on the actual restricted event set. Arbitrary cohorts, funnels and journeys retain their existing calculations. Grouped page rows combine frequencies and deduplicate visits under the established page-row definition. Selected goals and report-currency revenue are computed from actual goal/custom occurrences so late goal insertion and approved exchange-rate changes are visible immediately.
+
+All `vane_visit_*` tables are derived and excluded from archives/site transfers. Membership raw IDs are local to a database. Restore retains physical maintenance triggers and may call `rebuildVisitFactsStatements` after loading logical events. There is no approximate answer, raw-event weighting, hidden input narrowing or stale-result fallback.
+
+Capacity is workload-dependent: distinct visit/context/duration/scroll combinations do not compress. A 120M occurrence storage/latency claim requires measurement including these tables and both physical raw indexes; the implementation alone does not establish that claim.

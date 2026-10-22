@@ -92,7 +92,7 @@ test('AGENCY-001 owner manages two realistic client workspaces at 1440 and 390; 
   if(screens)await page.screenshot({path:`${screens}/agency-overview-${width}.png`,fullPage:true})
   await page.getByText('Agency branding',{exact:true}).click()
   await page.getByRole('button',{name:'Upload logo',exact:true}).waitFor()
-  if(width===1440){await page.getByLabel('Logo image',{exact:true}).setInputFiles({name:'synthetic-vane-logo.png',mimeType:'image/png',buffer:logo()});const sent=page.waitForResponse(r=>new URL(r.url()).pathname==='/app/agency/logo'&&r.request().method()==='POST');await page.getByRole('button',{name:'Upload logo',exact:true}).click();assert.equal((await sent).status(),303,'the owner uploads the real multipart form in the browser');await page.getByText('Agency branding',{exact:true}).click()}
+  if(width===1440){await page.locator('details').filter({has:page.locator('input[name=brandId][value=agency]')}).getByLabel('Logo image',{exact:true}).setInputFiles({name:'synthetic-vane-logo.png',mimeType:'image/png',buffer:logo()});const sent=page.waitForResponse(r=>new URL(r.url()).pathname==='/app/agency/logo'&&r.request().method()==='POST');await page.getByRole('button',{name:'Upload logo',exact:true}).click();assert.equal((await sent).status(),303,'the owner uploads the real multipart form in the browser');await page.getByText('Agency branding',{exact:true}).click()}
   if(screens)await page.screenshot({path:`${screens}/agency-brand-settings-${width}.png`,fullPage:true})
   await page.locator(`[data-client="${fern.id}"]`).getByText('Fern Studio branding',{exact:true}).click()
   if(screens)await page.screenshot({path:`${screens}/agency-client-brand-settings-${width}.png`,fullPage:true})

@@ -1,5 +1,7 @@
 import type { Site } from './core'
 import { retentionPhrase } from './retention'
+import { rawInventory } from './raw/inventory'
+import { visitInventory } from './analytics/visits'
 // PRIVACY-001: what a site collects, derives and discards, its identifiers, salt, retention and processors,
 // built from the site's settings, and the privacy-policy text generated from the same inventory. Every
 // stored column is listed under the table that holds it, so the stored data can be checked against it.
@@ -11,6 +13,8 @@ export interface Field { name:string; table:string; columns:string[]; descriptio
 export function inventory(site:Site,searchConnected=false,bingConnected=false,chatProviders:string[]=[])  {
  const c=site.config,auto=c.incumbentCompatibility?[...new Set([...(c.autoEvents??[]),'outbound','download','form'])]:c.autoEvents??[],page='vane_events'
  const fields:Field[]=[
+  ...rawInventory(),...visitInventory(),
+  {name:'Atomic batch admission scratch',table:'vane_collection_batch_admitted',columns:['batch_id','record_index','record_id'],description:'Transaction-local accepted record positions used to make retries exactly once. Cleared in the same atomic batch; no visitor data or durable delivery ledger remains and the table is excluded from archives.'},
   {name:'Daily analytical cells',table:'vane_analytics_cells',columns:['site_id','day','kind','cell','n','timed','consented'],description:'Exact daily native event counts grouped by the already-declared event dimensions, plus timed and consented counts. D1 rollups accelerate matching whole-day occurrence queries; raw detail remains intact. Insert, update, erasure and retention maintain them in the same transaction; archive restore rebuilds them from raw rows.'},
   {name:'Analytical identity references',table:'vane_analytics_identities',columns:['site_id','day','kind','cell','identity','n'],description:'Reference counts for the same site-scoped consented or daily anonymous visitor key already held in events, allowing exact distinct counts when cells combine. No new identity is collected. References disappear transactionally with their last supporting event and never outlive its retention or erasure.'},
   {name:'Heatmap page choices',table:'vane_heat_pages',columns:['site_id','path','enabled_by','enabled_at'],description:'Exact primary-origin pages the owner explicitly enabled, with actor and time. Collection is off by default. The tracker exposes these approved paths and the installation origin only while enabled.'},

@@ -1,0 +1,13 @@
+import type { Field } from '../inventory'
+// Logical vane_events inventory entries continue to explain the collected
+// fields. These entries declare their physical representation and every column.
+export function rawInventory():Field[] {
+ return [
+  {name:'Raw site dictionary',table:'vane_raw_sites',columns:['site','site_id'],description:'An installation-local integer for an existing site UUID. It shares repeated site values without changing the scope of any visitor digest; unused mappings are removed with the last raw context.'},
+  {name:'Raw identity dictionary',table:'vane_raw_identities',columns:['identity','value'],description:'The full existing SHA-256 daily or consented visitor digest, stored losslessly as 32 bytes and referenced by a local integer. Historical non-hex values retain their exact text. No new identifier is collected or transmitted; an entry is erased when its last raw context disappears.'},
+  {name:'Raw event contexts',table:'vane_raw_contexts',columns:['context','site','day','kind','dimensions','visitor','consented_visitor','consented_created_at','consented_expires_at'],description:'Shared, exact event context: local date, event kind, declared path/source/campaign/host/device/location/search/transport/consent/sampling/import/query dimensions, references to the original visitor digests, and consent issue/expiry times. Raw events retain their own IDs and times. Contexts disappear with their last supporting raw event.'},
+  {name:'Raw event occurrences',table:'vane_raw_events',columns:['raw_id','site','token','context','at_offset','visit_id'],description:'One row per accepted pageview or goal, with a local row key, site/context references and the full original event ID. Canonical UUIDs use their exact 16 bytes plus the untouched goal suffix; other historical IDs retain exact text. The event timestamp is stored as its exact offset from the context date. A derived visit reference supports reports; no occurrence multiplier or sampling is introduced. Retention and erasure remove the rows.'},
+  {name:'Raw engagement and performance',table:'vane_raw_details',columns:['raw_id','engaged_at','scroll','lcp','inp','cls','load_ms'],description:'Optional latest engagement time, maximum scroll, and the original performance values, attached to one raw event. Absence preserves null values. The row is erased with its page load.'},
+  {name:'Logical event row key',table:'vane_events',columns:['_raw_id'],description:'An internal indexed reference to the physical raw occurrence. Logical history and site archives omit it and assign fresh physical row keys when restored.'},
+ ]
+}

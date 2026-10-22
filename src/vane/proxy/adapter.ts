@@ -58,7 +58,7 @@ export function createVaneProxy(options: ProxyAdapterOptions) {
   if (url.search || !url.pathname.startsWith(publicPrefix + '/')) return fail(404)
   const suffix = url.pathname.slice(publicPrefix.length + 1)
   const get = suffix === 'script.js' || suffix === 'config/' + siteId
-  const post = /^(collect|engage|custom|event|perf|exposure|heat-click)$/.test(suffix) || ['signal/','declined/','ignored/'].some(path => suffix === path + siteId)
+  const post = /^(collect|collect-batch|engage|custom|event|perf|exposure|heat-click)$/.test(suffix) || ['signal/','declined/','ignored/'].some(path => suffix === path + siteId)
   if (!get && !post) return fail(404)
   // A custom collection subdomain needs a preflight; no visitor data goes upstream here.
   if (request.method === 'OPTIONS') {

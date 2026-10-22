@@ -26,6 +26,10 @@ test('HEAT-001 real clicks aggregate at two buttons without text or identifiers;
  const {chromium}=await import('@playwright/test')
  // Real native tab capture, when explicitly requested for the screenshot proof.
  // These flags select the real fixture tab in Chromium's permission picker; no fake device or media is used.
+ // browser.newContext() is required by the home rules. Chromium blocks cross-tab
+ // Capture Handles in this private context; strict capture remains a real assertion,
+ // not a fake handle or a downgraded screenshot proof. An ordinary-context exception
+ // is needed before that acceptance can pass (capture_handle_manager.cc).
  const capture=process.env.VANE_HEAT_CAPTURE==='1',browser=await chromium.launch({headless:true,...(capture?{channel:'chromium'}:{}),args:['--use-mock-keychain','--password-store=basic',...(capture?['--enable-usermedia-screen-capturing','--auto-select-tab-capture-source-by-title=synthetic-vane-heat-target']:[])]});t.after(()=>browser.close())
  const context=await browser.newContext({userAgent:DESKTOP_CHROME,viewport:{width:1440,height:900}}),bodies=[]
  await context.addCookies(a.owner.split('; ').map(pair=>{const index=pair.indexOf('=');return {name:pair.slice(0,index),value:pair.slice(index+1),url:a.origin}}))
@@ -62,11 +66,13 @@ test('HEAT-001 real clicks aggregate at two buttons without text or identifiers;
   if(capture){
    await page.getByRole('button',{name:'Capture live page'}).click()
    await page.waitForFunction(()=>!document.querySelector('[data-heat-capture]').disabled,{},{timeout:25000})
-   assert.match(await page.locator('[data-heat-status]').textContent(),/Live screenshot captured locally/)
+   const captureStatus=await page.locator('[data-heat-status]').textContent()
+   if(!captureStatus.startsWith('Live screenshot captured locally')){assert.equal(await page.locator('[data-heat-click] image').count(),0,'an unverified tab never becomes a screenshot');t.diagnostic('Strict native capture did not succeed. Chromium suppresses cross-tab Capture Handles in browser.newContext(); the home rules require this context and prohibit launchPersistentContext. No handle or stream was substituted.')}
+   assert.match(captureStatus,/Live screenshot captured locally/)
    assert.equal(await page.locator('[data-heat-click] image').count(),1)
    assert.equal(await page.locator('[data-heat-click] rect').count(),2)
    assert.equal(await page.locator('[data-heat-scroll] image').count(),1)
-  }else t.diagnostic('Native live-screenshot proof NOT RUN: set VANE_HEAT_CAPTURE=1 for actual browser tab sharing; aggregate/table screenshots do not prove capture.')
+  }else t.diagnostic('Native live-screenshot proof NOT RUN: Chromium blocks cross-tab Capture Handles in the home-required browser.newContext(). An owner-approved ordinary-context proof is pending. VANE_HEAT_CAPTURE=1 keeps the strict real-stream assertion; aggregate/table screenshots do not prove capture.')
   if(screenDir)await page.screenshot({path:join(screenDir,`heat-${width}.png`),fullPage:true})
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,'no horizontal overflow')
   await page.close()

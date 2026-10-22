@@ -1,3 +1,4 @@
+import { RAW_COLUMNS } from './raw'
 import { atomic, digest, insist, role, rows, statement, type Actor, type Env } from './core'
 import { cleanSite } from './privacy'
 import { audit, auditStatement } from './audit'
@@ -15,7 +16,7 @@ export async function exportSite(env:Env,actor:Actor,siteId:string):Promise<Site
  const value=(await rows(env,'SELECT * FROM vane_sites WHERE id=?',siteId))[0];insist(value,'site_missing','Site not found.',404);
  // One batch gives a consistent snapshot of the site's rows.
  const result=await env.DB.batch<Record<string,any>>([...TABLES.map(name=>statement(env,`SELECT * FROM "${name}" WHERE site_id=?`,siteId)),statement(env,'SELECT r.* FROM vane_import_revisions r JOIN (SELECT id,site_id FROM vane_import_events UNION ALL SELECT id,site_id FROM vane_import_reports) e ON e.id=r.event_id WHERE e.site_id=?',siteId)]);
- const payload:Payload={format:'vane-site/1',exportedAt:Date.now(),site:value,tables:{...Object.fromEntries(TABLES.map((name,i)=>[name,result[i].results])),vane_import_revisions:result[TABLES.length].results}};
+ const payload:Payload={format:'vane-site/1',exportedAt:Date.now(),site:value,tables:{...Object.fromEntries(TABLES.map((name,i)=>[name,result[i].results.map(row=>Object.fromEntries(Object.entries(row).filter(([key])=>key!=='_raw_id')))])),vane_import_revisions:result[TABLES.length].results}};
  const archive={payload,sha256:await digest(JSON.stringify(payload))};
  await audit(env,actor.id,'site.export',siteId,`archive ${archive.sha256}`);
  return archive;
@@ -36,7 +37,7 @@ export async function importSite(env:Env,actor:Actor,input:any) {
   const records=name==='vane_sites'?[value]:tables[name]??[];insist(Array.isArray(records),'archive','Invalid archive table.');
   // Site archives from earlier releases carried an always-empty per-event metro_name (DASH-005).
   if(name==='vane_events')for(const record of records)if(record&&typeof record==='object')delete record.metro_name;
-  const columns=(await rows(env,`PRAGMA table_info("${name}")`)).map(c=>c.name as string);
+  const columns=name==='vane_events'?[...RAW_COLUMNS]:(await rows(env,`PRAGMA table_info("${name}")`)).map(c=>c.name as string);
   for(const record of records) {
    insist(record&&typeof record==='object'&&Object.keys(record).every(c=>columns.includes(c))&&Object.values(record).every(v=>v===null||['string','number'].includes(typeof v)),'columns','Archive contains an invalid record.');
    insist(name==='vane_sites'?true:name==='vane_import_revisions'?events.has(record.event_id):record.site_id===id,'columns','Archive rows must all belong to its site.');
