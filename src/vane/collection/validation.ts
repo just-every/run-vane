@@ -2,8 +2,8 @@ import { consentedIdentity } from '../consented'
 import { insist, VaneError, type Site } from '../core'
 import type { TrafficReason } from '../traffic'
 import { cleanProps } from '../properties'
-import { channelOf, webmail } from '../channels'
-import { hostOf, keptValue, pathAllowed, redactPath, storedPath, visitSource } from '../paths'
+import { webmail } from '../channels'
+import { keptValue, pathAllowed, redactPath, visitSource } from '../paths'
 import { paymentReferrer } from '../revenue'
 import { searchTerm } from '../search'
 import { validationContext } from './validation-context'
@@ -26,7 +26,7 @@ export async function validatePageview(request: Request, value: Site, origin: st
  insist(payload.search === undefined || Boolean(value.config.searchParam) && typeof payload.search === 'string' && payload.search.trim().length > 0 && payload.search.length <= 100, 'search', 'Search terms are accepted only for a named site-search parameter, up to 100 characters.')
  insist(payload.width === undefined || Number.isInteger(payload.width) && payload.width >= 0 && payload.width <= 10000, 'width', 'The viewport width is a whole number of CSS pixels.')
  insist(typeof payload.id === 'string' && /^[a-f0-9-]{36}$/.test(payload.id), 'event_id', 'A fresh UUID identifies each page load.')
- const path = storedPath(value.config, payload.path), utmSource = keptValue(utm.source)
+ const path = context.path(value, payload.path), utmSource = keptValue(utm.source)
  if (!pathAllowed(value.config, path)) throw new CollectionRefusal('path', 'This path is not collected for this site.', 403, 'excluded-path')
  let referrer: URL | null = null
  if (payload.referrer !== undefined) {
@@ -39,12 +39,12 @@ export async function validatePageview(request: Request, value: Site, origin: st
  const excluded = context.excluded(value, typeof refHost === 'string' && !refHost.startsWith('android-app://') ? refHost : null)
  if (excluded) throw new CollectionRefusal('excluded', `This traffic is excluded from collection (${excluded}).`, 403, excluded)
  insist(context.consent(value, payload.consent), 'consent', 'Consent is required for collection.', 403)
- const event = { hostname: hostOf(origin), path, source: mail && !utmSource && !keptValue(payload.ref) ? 'webmail' : visitSource(utmSource, keptValue(payload.ref), refHost, own), referrer: referrer && referrer.protocol !== 'android-app:' && !mail && !own.includes(referrer.hostname.toLowerCase()) ? referrer.hostname.toLowerCase() + redactPath(referrer.pathname || '/') : null, campaign: keptValue(payload.campaign) ?? 'none', utmSource, utmMedium: keptValue(utm.medium), utmTerm: keptValue(utm.term), utmContent: keptValue(utm.content), paidClick: payload.click ? 1 : 0, query: kept.length ? kept.join('&') : null }
+ const event = { hostname: context.hostname(origin), path, source: mail && !utmSource && !keptValue(payload.ref) ? 'webmail' : visitSource(utmSource, keptValue(payload.ref), refHost, own), referrer: referrer && referrer.protocol !== 'android-app:' && !mail && !own.includes(referrer.hostname.toLowerCase()) ? referrer.hostname.toLowerCase() + redactPath(referrer.pathname || '/') : null, campaign: keptValue(payload.campaign) ?? 'none', utmSource, utmMedium: keptValue(utm.medium), utmTerm: keptValue(utm.term), utmContent: keptValue(utm.content), paidClick: payload.click ? 1 : 0, query: kept.length ? kept.join('&') : null }
  const identity = await consentedIdentity(value, request, payload, now)
  const eventId=value.id+':'+payload.id
  return { value, payload, event, identity, now, today: context.today(value), eventId, rawToken:rawToken(value.id,eventId),
   props: cleanProps(payload.props), device: context.device(payload.width), geo: context.location(), search: payload.search === undefined ? null : searchTerm(payload.search),
-  payment: !utmSource && !keptValue(payload.ref) && paymentReferrer(refHost), channel: channelOf(event.source, event.utmMedium, event.paidClick === 1) }
+  payment: !utmSource && !keptValue(payload.ref) && paymentReferrer(refHost), channel: context.channel(event.source, event.utmMedium, event.paidClick === 1) }
 }
 export type ValidatedPageview = Awaited<ReturnType<typeof validatePageview>>
 export function samePageview(prior: { path: string; source: string; campaign: string }, current: ValidatedPageview) {

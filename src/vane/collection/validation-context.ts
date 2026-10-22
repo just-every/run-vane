@@ -1,8 +1,9 @@
 import { consentAccepted } from '../consent'
-import type { Site } from '../core'
+import { siteOrigin, type Site } from '../core'
+import { channelOf } from '../channels'
 import { deviceOf, type Device } from '../devices'
 import { locationOf, type Location } from '../locations'
-import { hostOf } from '../paths'
+import { hostOf, storedPath } from '../paths'
 import { excludedTraffic, type TrafficReason } from '../traffic'
 import { localDay } from '../visitors'
 
@@ -10,15 +11,41 @@ import { localDay } from '../visitors'
 // objects. Compute lazily so every record reaches these checks in the same order.
 export function validationContext(request: Request, now: number) {
  const hosts = new WeakMap<Site, string[]>(), days = new WeakMap<Site, string>()
+ const paths = new WeakMap<Site, Map<string, string>>(), origins = new WeakMap<Site, string>()
+ const originHosts = new Map<string, string>(), channels = new Map<string, string>()
  const traffic = new WeakMap<Site, Map<string | null, TrafficReason | null>>()
  const consents = new WeakMap<Site, Map<unknown, boolean>>()
  const devices = new Map<number | undefined, Device>()
  let geo: Location | undefined
+ function hostname(origin: string) {
+  let host = originHosts.get(origin)
+  if (host === undefined) { host = hostOf(origin); originHosts.set(origin, host) }
+  return host
+ }
  return {
+  hostname,
+  origin(value: Site) {
+   let origin = origins.get(value)
+   if (origin === undefined) { origin = siteOrigin(value, request); origins.set(value, origin) }
+   return origin
+  },
   ownHosts(value: Site) {
    let own = hosts.get(value)
-   if (!own) { own = [value.origin, ...(value.config.origins ?? [])].map(hostOf); hosts.set(value, own) }
+   if (!own) { own = [value.origin, ...(value.config.origins ?? [])].map(hostname); hosts.set(value, own) }
    return own
+  },
+  path(value: Site, input: string) {
+   let cache = paths.get(value)
+   if (!cache) { cache = new Map(); paths.set(value, cache) }
+   let path = cache.get(input)
+   if (path === undefined) { path = storedPath(value.config, input); cache.set(input, path) }
+   return path
+  },
+  channel(source: string, medium: string | null, paidClick: boolean) {
+   const key = JSON.stringify([source, medium, paidClick])
+   let channel = channels.get(key)
+   if (channel === undefined) { channel = channelOf(source, medium, paidClick); channels.set(key, channel) }
+   return channel
   },
   today(value: Site) {
    let day = days.get(value)

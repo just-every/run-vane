@@ -1,4 +1,4 @@
-import { insist, site, siteOrigin, VaneError, type Env, type Site } from '../core'
+import { insist, site, VaneError, type Env, type Site } from '../core'
 import { clock } from '../clock'
 import { admitPageviews } from './admit'
 import { batchBody } from './body'
@@ -26,7 +26,7 @@ export async function collectionBatchResponse(request: Request, env: Env): Promi
     value = known.get(id)
     if (!value) { value = await site(env, id); known.set(id, value) }
     recordSites[index] = value
-    const origin = siteOrigin(value, request); headers = { ...headers, 'access-control-allow-origin': origin }
+    const origin = context.origin(value); headers = { ...headers, 'access-control-allow-origin': origin }
     plans.push(await validatePageview(request, value, origin, payload, now, context))
    } catch (error) {
     if (!(error instanceof VaneError)) throw error
