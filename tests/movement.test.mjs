@@ -24,6 +24,27 @@ async function httpInstallation(t,options={}) {
 const input=(siteId,from,to)=>({siteId,from,to,comparedFrom:BASE,comparedTo:BASE_END})
 async function sender(a,siteId){const r=await result(await a.post('/api/vane/movement-evidence/settings',{siteId,enabled:'on',confirm:'on'},a.owner));assert.ok(r.token);return r.token}
 async function send(a,token,body){return a.request('/api/vane/agent-evidence',{method:'POST',headers:{authorization:'Bearer '+token,'content-type':'application/json'},body:JSON.stringify(body)})}
+// An independent business-server edge: real HTTP checkout requests fail with 500 after a deploy. Only successful
+// responses add a confirmed order to its private ledger; Vane receives daily aggregates, never those order IDs.
+async function checkoutEdge(t) {
+ const state={broken:false,firstBrokenDay:'',days:new Map(),orderIds:[]}
+ const server=createServer(async(req,res)=>{
+  const url=new URL(req.url,'http://localhost')
+  if(req.method==='GET'&&url.pathname==='/counts'){res.setHeader('content-type','application/json');return res.end(JSON.stringify(state.days.get(url.searchParams.get('day'))??{attempts:0,orders:0,errors:0}))}
+  if(req.method!=='POST'||url.pathname!=='/checkout'){res.writeHead(404);return res.end()}
+  const chunks=[];for await(const chunk of req)chunks.push(chunk);const {day,attempt}=JSON.parse(Buffer.concat(chunks).toString())
+  const row=state.days.get(day)??{attempts:0,orders:0,errors:0};row.attempts++
+  const failed=state.broken&&attempt>=2,complete=!failed&&(!state.broken?attempt<2:day===state.firstBrokenDay&&attempt===0)
+  if(failed)row.errors++
+  let orderId=null;if(complete){row.orders++;orderId=crypto.randomUUID();state.orderIds.push(orderId)}state.days.set(day,row)
+  res.writeHead(failed?500:complete?201:200,{'content-type':'application/json'});res.end(JSON.stringify(failed?{error:'Checkout unavailable'}:{completed:complete,orderId}))
+ })
+ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));t.after(()=>{server.close();server.closeAllConnections()})
+ const origin=`http://127.0.0.1:${server.address().port}`
+ return {state,async run(from,to,broken){state.broken=broken;state.firstBrokenDay=from
+  for(const day of dates(from,to))for(let attempt=0;attempt<5;attempt++){const response=await fetch(origin+'/checkout',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({day,attempt})}),body=await response.json();assert.equal(response.status,broken&&attempt>=2?500:(!broken&&attempt<2||broken&&day===from&&attempt===0)?201:200);if(response.status===201)assert.ok(body.orderId)}
+ },async publish(a,siteId,key,from,to){for(const day of dates(from,to)){const row=await(await fetch(origin+'/counts?'+new URLSearchParams({day}))).json();for(const [metric,numerator] of [['orders',row.orders],['checkout-errors',row.errors]])await result(await send(a,key,{siteId,day,metric,numerator,denominator:row.attempts,revision:1}),201)}}}
+}
 async function dailyEvidence(a,id,key,from,to,{orders=2,errors=0,attempts=5}={}){for(const [index,day] of dates(from,to).entries())for(const [metric,numerator] of [['orders',typeof orders==='function'?orders(index):orders],['checkout-errors',errors]])await result(await send(a,key,{siteId:id,day,metric,numerator,denominator:attempts,revision:1,url:'https://source.example/receipts?discard=synthetic-vane-6'}),201)}
 async function traffic(a,id,origin,from,to,{visits=5,success=2}={}) {
  for(const [d,day] of dates(from,to).entries())for(let i=0;i<visits;i++){
@@ -71,7 +92,9 @@ test('Movement investigations rank a tracking break, organic ranking drop and co
  const inspected=await result(await a.post('/api/vane/instrumentation/run',{siteId:tracking.id,from:tracking.from,to:tracking.to,pageLimit:10},a.owner));assert.ok(inspected.problems.some(p=>p.kind==='missing-script'))
  await a.clock(NOW);await google(a,cases[1].id,cases[1].origin)
  await annotation(a,cases[2].id,{day:'2026-10-01',title:'Checkout failures reported by Spool',kind:'error-spike'})
- for(const c of [cases[0],cases[2]]){c.key=await sender(a,c.id);await dailyEvidence(a,c.id,c.key,BASE,BASE_END);await dailyEvidence(a,c.id,c.key,c.from,c.to,c.name==='checkout'?{orders:d=>d===0?1:0,errors:3}:{})}
+ const business=await checkoutEdge(t);await business.run(BASE,BASE_END,false);await business.run(cases[2].from,cases[2].to,true)
+ for(const c of [cases[0],cases[2]]){c.key=await sender(a,c.id);if(c.name==='checkout'){await business.publish(a,c.id,c.key,BASE,BASE_END);await business.publish(a,c.id,c.key,c.from,c.to)}else{await dailyEvidence(a,c.id,c.key,BASE,BASE_END);await dailyEvidence(a,c.id,c.key,c.from,c.to)}}
+ assert.equal(business.state.orderIds.length,15,'fourteen baseline orders and one after the actual checkout failure')
  for(const c of cases){
   c.result=await result(await a.post('/api/vane/movement',input(c.id,c.from,c.to),a.owner));const answer=c.result
   assert.equal(answer.hypotheses[0].category,c.category,c.name);assert.ok(answer.hypotheses[0].evidence.length>=2);assert.ok(answer.hypotheses.every(h=>h.disprove.length>30&&h.limitation.length>20&&['low','medium'].includes(h.confidence)))
@@ -99,7 +122,7 @@ test('Movement investigations rank a tracking break, organic ranking drop and co
   if(dir)await page.screenshot({path:join(dir,`movement-${c.name}-${width}.png`)})
   await view.locator('[data-movement-unknown]').scrollIntoViewIfNeeded();if(dir)await page.screenshot({path:join(dir,`movement-unknown-${c.name}-${width}.png`)})
  }
- const dump=await a.dump();assert.ok(dump.vane_audit.some(r=>r.action==='agent.movement'));assert.equal(dump.vane_movement_investigations.length,12)
+ const dump=await a.dump();for(const orderId of business.state.orderIds)assert.equal(JSON.stringify(dump).includes(orderId),false,'business order identities never enter Vane');assert.ok(dump.vane_audit.some(r=>r.action==='agent.movement'));assert.equal(dump.vane_movement_investigations.length,12)
 })
 
 test('Aggregate evidence is off until explicit owner consent, shown once and hashed, scoped, revision-safe, revocable and limited, and never grants native or annotation authority',async t=>{

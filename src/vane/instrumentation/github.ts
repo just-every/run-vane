@@ -4,6 +4,7 @@ import { clock } from '../clock'
 import { seal, unseal } from '../sealed'
 import { storedPath } from '../paths'
 import { agentHistoryStamp } from '../agent-fence'
+import { inspectPage, nativeScriptUrls } from './page'
 const PURPOSE='vane-instrumentation-github-v1',API='https://api.github.com'
 interface Connection {active:number;site_id:string;generation:string;repository:string;base_branch:string;mappings_json:string;sealed_token:string;last_head:string|null;created_by:string;created_at:number}
 export interface Mapping {path:string;file:string}
@@ -18,7 +19,7 @@ async function live(env:Env,actor:Actor,c:Connection){await owner(env,actor,c.si
 async function call(c:Connection,token:string,path:string,method='GET',body?:unknown,missing=false):Promise<any> {
  const response=await fetch(API+path,{method,redirect:'manual',headers:{accept:'application/vnd.github+json','x-github-api-version':'2022-11-28','user-agent':'Vane',authorization:'Bearer '+token,...(body?{'content-type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{}),signal:AbortSignal.timeout(15000)})
  if(missing&&response.status===404){await response.body?.cancel();return null}
- insist(response.ok,'github_request','GitHub did not complete the source request. No provider body or credential was retained.',502)
+ if(!response.ok){await response.body?.cancel();throw new VaneError('github_request','GitHub did not complete the source request. No provider body or credential was retained.',502)}
  const text=await response.text();insist(text.length<=2_000_000,'github_size','The GitHub response exceeds the bounded source reader.',502)
  try{return JSON.parse(text)}catch{throw new VaneError('github_response','GitHub returned an unreadable source response.',502)}
 }
@@ -85,15 +86,18 @@ export async function publishGitHubDraft(env:Env,actor:Actor,p:any) {
   await ensure();const ref=await call(c,token,branchPath(c));insist(ref.object?.sha===draft.base_sha,'github_stale','The source branch moved. Investigate and approve a new fix; nothing will be force-updated.',409)
   const changes=JSON.parse(fix.draft_json).changes as {page:string;before:string;after:string}[],mappings=JSON.parse(c.mappings_json) as Mapping[],files=[...new Set(changes.filter(x=>x.before==='No matching native script').map(x=>mappings.find(m=>m.path===x.page)?.file).filter(Boolean))] as string[]
   insist(files.length>0&&files.every(f=>/\.html?$/i.test(f)),'github_template','Map the missing-script pages to HTML templates. Other source languages require manual completion.',409)
-  const tree=[]
-  for(const file of files){await ensure();const content=await call(c,token,repoPath(c)+'/contents/'+file.split('/').map(encodeURIComponent).join('/')+'?ref='+draft.base_sha);insist(content.type==='file'&&content.encoding==='base64'&&typeof content.content==='string'&&content.size<=500_000,'github_file','Use a regular HTML template no larger than 500 KB.',409)
-   let html:string;try{html=new TextDecoder().decode(Uint8Array.from(atob(content.content.replace(/\s/g,'')),c=>c.charCodeAt(0)))}catch{throw new VaneError('github_file','The template encoding could not be read.',502)}
-   const snippet=`<script defer src="${new URL('/vane.js',env.AUTH_ORIGIN).href}" data-site="${value.id}"></script>`
-   insist(!html.includes(snippet),'github_no_change','The mapped source already has this script; investigate the deployed difference manually.',409)
-   const at=html.search(/<\/head\s*>/i);insist(at>=0,'github_template','An HTML head closing tag is required for this bounded script-only edit.',409)
-   tree.push({path:file,mode:'100644',type:'blob',content:html.slice(0,at)+snippet+'\n'+html.slice(at)})
-  }
   await ensure();const commit=await call(c,token,repoPath(c)+'/git/commits/'+draft.base_sha);insist(sha(commit.tree?.sha),'github_tree','GitHub did not return the source tree.',502)
+  await ensure();const baseTree=await call(c,token,repoPath(c)+'/git/trees/'+commit.tree.sha+'?recursive=1');insist(baseTree.truncated===false&&Array.isArray(baseTree.tree),'github_tree','The source tree is truncated; complete the PR manually.',409)
+  const tree=[],scriptUrls=await nativeScriptUrls(env,value)
+  for(const file of files){await ensure();const content=await call(c,token,repoPath(c)+'/contents/'+file.split('/').map(encodeURIComponent).join('/')+'?ref='+draft.base_sha);insist(content.type==='file'&&content.encoding==='base64'&&typeof content.content==='string'&&content.size<=500_000,'github_file','Use a regular HTML template no larger than 500 KB.',409)
+   const entry=baseTree.tree.find((e:any)=>e.path===file);insist(entry?.type==='blob'&&['100644','100755'].includes(entry.mode)&&entry.sha===content.sha,'github_file','The mapped file must be a regular blob at the approved source SHA.',409)
+   let html:string;try{const bytes=Uint8Array.from(atob(content.content.replace(/\s/g,'')),c=>c.charCodeAt(0));insist(bytes.length<=500_000,'github_file','Use a template no larger than 500 KB.',409);html=new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(bytes)}catch{throw new VaneError('github_file','The template encoding could not be read.',502)}
+   const snippet=`<script defer src="${new URL('/vane.js',env.AUTH_ORIGIN).href}" data-site="${value.id}"></script>`
+   insist((await inspectPage(html,value,scriptUrls)).scripts===0,'github_no_change','The mapped source already has this script; investigate the deployed difference manually.',409)
+   const at=html.search(/<\/head\s*>/i);insist(at>=0,'github_template','An HTML head closing tag is required for this bounded script-only edit.',409)
+   tree.push({path:file,mode:entry.mode,type:'blob',content:html.slice(0,at)+snippet+'\n'+html.slice(at)})
+  }
+  await ensure();const stillCurrent=await call(c,token,branchPath(c));insist(stillCurrent.object?.sha===draft.base_sha,'github_stale','The source branch moved while its templates were read. No source write was made.',409)
   await ensure();const createdTree=await call(c,token,repoPath(c)+'/git/trees','POST',{base_tree:commit.tree.sha,tree});insist(sha(createdTree.sha),'github_tree','GitHub did not return a candidate tree.',502)
   await ensure();const createdCommit=await call(c,token,repoPath(c)+'/git/commits','POST',{message:marker,tree:createdTree.sha,parents:[draft.base_sha]});insist(sha(createdCommit.sha),'github_commit','GitHub did not return a candidate commit.',502)
   draft.candidate_sha=createdCommit.sha;await statement(env,'UPDATE vane_instrumentation_prs SET candidate_sha=?,updated_at=? WHERE fix_id=? AND generation=?',draft.candidate_sha,clock(),fix.id,c.generation).run()
