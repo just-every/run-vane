@@ -1,8 +1,9 @@
+import product from '../../branding.json'
 import { pageResponse } from '../../modules/operator-auth/page.mjs'
 import { escape, field } from '../views/html'
 import type { SecurityPolicy } from './policy'
 
-const branding={productName:'Vane',accentColor:'#315d51',theme:'/rer-theme.css'}
+const branding={productName:product.name,accentColor:product.primaryColor,theme:'/rer-theme.css'}
 const submit=(action:string,label:string,body='')=>`<form method="post" action="${action}">${body}<button type="submit">${label}</button></form>`
 const code=field('Authenticator or recovery code','code','','required autocomplete="one-time-code" maxlength="64"')
 export async function securityPage(input:{mode:'settings'|'enroll'|'challenge'|'recovery'|'sso';owner?:boolean;enrolled?:boolean;policy?:SecurityPolicy;secret?:string;uri?:string;codes?:string[];error?:string;status?:number;providers?:boolean;saml?:boolean}) {

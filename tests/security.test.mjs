@@ -29,7 +29,7 @@ test('organization OIDC signs in Google and Entra members, refuses altered proof
 
 test('SAML fixture signs existing invited accounts into native sessions, enforces signed binding constraints and refuses response replay',async t=>{
  const {a,response}=await samlInstallation(t)
- assert.equal((await a.post('/auth/invite',{email:'member@example.test',role:'member'},a.owner)).status,202)
+ assert.equal((await a.post('/auth/invite',{email:'member@example.test',role:'member',displayName:'Fern analyst'},a.owner)).status,202)
  const valid=await response(),r=await valid.complete();assert.equal(r.status,303,await r.clone().text());const cookie=a.cookieOf(r)
  assert.equal((await session(a,cookie)).status,200);assert.equal((await valid.complete()).status,400)
  for(const overrides of [{recipient:'https://synthetic-vane-foreign.example'},{destination:'https://synthetic-vane-foreign.example'},{audience:'synthetic-vane-wrong'},{expiry:'2000-01-01T00:00:00Z'},{requestId:'synthetic-vane-wrong'},{tamper:true}])assert.equal((await(await response('synthetic-vane-member',overrides)).complete()).status,400,JSON.stringify(overrides))
@@ -42,7 +42,7 @@ test('SAML fixture signs existing invited accounts into native sessions, enforce
 test('SCIM provisions only a live owner invitation and deprovisioning immediately ends native, OIDC and SAML access without removing the owner',async t=>{
  for(const kind of ['oidc','saml']) {
   const fx=kind==='oidc'?await oidcInstallation(t):await samlInstallation(t),{a}=fx
-  assert.equal((await a.post('/auth/invite',{email:'member@example.test',role:'member'},a.owner)).status,202)
+  assert.equal((await a.post('/auth/invite',{email:'member@example.test',role:'member',displayName:'Fern analyst'},a.owner)).status,202)
   const provision=await scim(a,'Users','POST',{schemas:[userSchema],userName:'member@example.test',externalId:'synthetic-vane-2',active:true});assert.equal(provision.status,201,await provision.clone().text());const person=await provision.json();assert.equal(person.active,false)
   assert.equal((await scim(a,'Users','POST',{schemas:[userSchema],userName:'foreign@example.test'})).status,409)
   const native=await a.accept('member@example.test'),signed=kind==='oidc'?(await fx.signin('google','member@example.test')).response:await(await fx.response()).complete();assert.equal(signed.status,303)

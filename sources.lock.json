@@ -3591,7 +3591,7 @@
       "executable": false
     },
     "src/vane/security/page.ts": {
-      "sha256": "49a95eb48fb68a17e949ade764e31643c8516cfffc604c5c4bfbaa649104e43c",
+      "sha256": "8f7cbc1acbdd143cc875fbb080402e7d0a52b3bb2d36865072cebd1dac1ac5a8",
       "executable": false
     },
     "src/vane/security/policy.ts": {
@@ -4087,11 +4087,11 @@
       "executable": false
     },
     "tests/security-fixtures.mjs": {
-      "sha256": "2f4509145ebc57db050d26bc16481c0a3a58d0a0c1e5f304cabbe00217f21056",
+      "sha256": "9fe9b78b509c009010bf651973268a123af31f9462647067e382dbdb70f3b42e",
       "executable": false
     },
     "tests/security.test.mjs": {
-      "sha256": "c36dfe8a589dc61182651f5ffd1ec6e4620aee694db6b12370d4f8bbc8a8519a",
+      "sha256": "50b0e754b8146ecf76699ba79e2d9f2eb07259d0296559c7cddfc0f5367b43c2",
       "executable": false
     },
     "tests/site.test.mjs": {
