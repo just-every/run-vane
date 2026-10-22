@@ -27,24 +27,28 @@ test('native batches admit real pageviews once across simultaneous and in-batch 
  const conflict=await json(await batch(a,[newEvent,conflicting]));assert.deepEqual([conflict.status,conflict.body.index,conflict.body.accepted],[409,1,0])
  const after=await a.dump();assert.equal(after.vane_events.filter(row=>row.kind==='pageview').length,998);assert.equal(after.vane_collection_batch_admitted.length,0)
  assert.ok(!JSON.stringify(after).includes('203.0.113.31'),'visitor connection metadata is not stored')
- // New extrema around a populated tied-time bucket keep all interior loads,
+ // A later batch beside a populated tied-time bucket keeps all interior loads,
  // exact visit endpoints and the old final page's changed on-page duration.
  const edgeEvents=[a.event(id,{id:'00000000-0000-4000-8000-000000000000',path:'/before'}),a.event(id,{id:'ffffffff-ffff-4fff-8fff-ffffffffffff',path:'/after'})]
  assert.equal((await json(await batch(a,edgeEvents))).body.accepted,2)
- await a.clock(Date.parse('2026-10-19T12:00:20Z'))
+ const edgeAt=(await a.archive()).payload.tables.vane_events.find(row=>row.id===id+':'+edgeEvents[1].id).at
+ await a.clock(edgeAt+20000)
  assert.equal((await a.post('/api/vane/engage',{siteId:id,id:edgeEvents[1].id,scroll:80},'',metadata)).status,202)
- const summary=async()=>(await (await a.request(`/api/vane/summary?siteId=${id}&period=today`,{headers:{cookie:a.owner}})).json())
+ const summary=async(extra='')=>(await (await a.request(`/api/vane/summary?siteId=${id}&period=today${extra}`,{headers:{cookie:a.owner}})).json())
  let edges=await summary()
- assert.deepEqual([edges.pageviews,edges.visits,edges.averageDuration],[1000,1,20])
- assert.deepEqual([edges.entryPages[0].path,edges.exitPages[0].path],['/before','/after'])
+ assert.deepEqual([edges.pageviews,edges.visits],[1000,1])
+ assert.deepEqual([edges.entryPages[0].path,edges.exitPages[0].path],[report.entryPages[0].path,'/after'])
  assert.deepEqual(edges.topPages.filter(r=>['/checkout/:number','/thanks'].includes(r.path)).map(r=>[r.path,r.pageviews,r.averageTimeOnPage]).sort(),[['/checkout/:number',499,0],['/thanks',499,0]])
  assert.equal(edges.topPages.find(r=>r.path==='/after').averageTimeOnPage,20)
- await a.clock(Date.parse('2026-10-19T12:00:10Z'))
+ const duration=edges.averageDuration
+ await a.clock(edgeAt+10000)
  assert.equal((await json(await batch(a,[a.event(id,{path:'/later'})]))).body.accepted,1)
  edges=await summary()
- assert.deepEqual([edges.pageviews,edges.visits,edges.averageDuration,edges.exitPages[0].path],[1001,1,20,'/later'])
+ assert.deepEqual([edges.pageviews,edges.visits,edges.averageDuration,edges.exitPages[0].path],[1001,1,duration,'/later'])
  assert.equal(edges.topPages.find(r=>r.path==='/after').averageTimeOnPage,10)
  assert.equal(edges.topPages.find(r=>r.path==='/after').averageScrollDepth,80)
+ const scoped=await summary('&host=fern.example&hostOp=is')
+ assert.deepEqual([edges.topPages,edges.entryPages,edges.exitPages],[scoped.topPages,scoped.entryPages,scoped.exitPages],'selecting the sole hostname reconstructs the same exact page and visit metrics')
 })
 
 test('batch validation is bounded, origin and consent scoped, refuses personal or trusted-metadata fields atomically, and leaves privacy counters field-free',async t=>{
