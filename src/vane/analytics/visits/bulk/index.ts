@@ -14,6 +14,7 @@ export function finishBulkVisits(env: Env): D1PreparedStatement[] {
  return [
   ...prepareBulkVisitSql, ...componentSql, ...applyBulkVisitSql,
   'DELETE FROM vane_visit_bulk_groups', 'DELETE FROM vane_visit_bulk_nodes',
+  'DELETE FROM vane_visit_bulk_neighbors', 'DELETE FROM vane_visit_bulk_buckets',
   'DELETE FROM vane_visit_bulk_pages', 'DELETE FROM vane_visit_bulk_chains',
   "DELETE FROM vane_visit_work WHERE action='bulk'", 'DELETE FROM vane_visit_bulk_scope',
  ].map(sql => env.DB.prepare(sql))
