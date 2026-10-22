@@ -470,6 +470,10 @@
       "sha256": "a93571b3dd97ba18d67b216393dc1faac6e0d921fbd550df66d838c1ac516d74",
       "executable": false
     },
+    "migrations/core/0089_visit_work_cache.sql": {
+      "sha256": "2ff09b942547528309694a7735a1d1c6b7af7b7f90fec234b1f11c887650d356",
+      "executable": false
+    },
     "ONBOARDING.md": {
       "sha256": "b28a79254e2278d81d877ffd5987972aaf135d85683ae285b52fd98cc44e608e",
       "executable": false
@@ -1035,7 +1039,7 @@
       "executable": false
     },
     "src/demo-traffic.ts": {
-      "sha256": "7326d22858d83f144b6e88f3542bc8e414d6ed9557b03265ed74097ba4e97212",
+      "sha256": "8363dfd6ae2308327db77a57f7d6af93aa6ebc95891425a7b9d20be6aa51b1c1",
       "executable": false
     },
     "src/demo.ts": {
@@ -2655,7 +2659,7 @@
       "executable": false
     },
     "src/site/docs/manifest.ts": {
-      "sha256": "8bda3b4a58ac259f1d71b9acef7c5c4d557f3a1a9034aa38850394724705f376",
+      "sha256": "ffd741a4fea3dfbed3aa72253bdbf7b5b181068ea2362544449f074e49e0f39f",
       "executable": false
     },
     "src/site/docs/pages.ts": {
@@ -2802,12 +2806,16 @@
       "sha256": "d7d5f7459cd46968a8c0fb3bf0dce5bb6d7f6206a08b34d4eacf7d376f0cb126",
       "executable": false
     },
+    "src/vane/analytics/visits/generate-work-cache.py": {
+      "sha256": "80ba951a4528f63a29f77b2a5e93a2a6febbc98b183d30c9ba9c34dee043d88c",
+      "executable": false
+    },
     "src/vane/analytics/visits/index.ts": {
       "sha256": "7a03da8a5397656aa2557a506ea6fa841850cb3d1bd4b1f6d5a007edd3723bab",
       "executable": false
     },
     "src/vane/analytics/visits/inventory.ts": {
-      "sha256": "3d2260cc41891200eea9bed7d6f4c752ce003f0adb3007d2f4d73ed92c8b9f57",
+      "sha256": "4b8597a9fd94d31c5a01c20cd2eb15aeae3b445c37cceeb6ff47b2ecd7d22a29",
       "executable": false
     },
     "src/vane/analytics/visits/locations.ts": {
@@ -3911,7 +3919,7 @@
       "executable": false
     },
     "tests/site.test.mjs": {
-      "sha256": "b0951580f5586ce04178c1dff1a6f3411fe6b89d52a7aba29054e5ddbf0ebeee",
+      "sha256": "6a9902c927068d37e7b1cad3c98a2f6ea656add18fd20a85513581d416d14824",
       "executable": false
     },
     "tests/sitemap-scan.test.mjs": {
