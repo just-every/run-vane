@@ -3735,7 +3735,7 @@
       "executable": false
     },
     "src/vane/views/ask.ts": {
-      "sha256": "995ed7b36911e99a2135fd14e422ff859d4611bcc45b96e43e7b9a9e5a5adf60",
+      "sha256": "fcb4ae728538649c9de31cf955576f32175b5f9d839f942421ac1d974d94ee8a",
       "executable": false
     },
     "src/vane/views/audit.ts": {

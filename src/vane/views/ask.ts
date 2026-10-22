@@ -9,7 +9,7 @@ const figure=(value:unknown)=>typeof value==='number'?count(Math.round(value*10)
 // One horizontal bar per breakdown row for the first metric, with the same figures in the table beneath (MOBILE-001).
 function bars(rows:{value:unknown;n:number}[],metric:string):string {
  const top=Math.max(1,...rows.map(r=>r.n)),height=rows.length*28+8
- return `<svg viewBox="0 0 480 ${height}" role="img" aria-label="${escape(metric)} by row, bars scaled to the largest" class="vane-ask-chart" width="100%">${rows.map((r,i)=>`<text x="0" y="${i*28+18}" font-size="12" fill="currentColor">${escape(String(r.value).slice(0,24))}</text><rect x="150" y="${i*28+6}" width="${Math.max(2,Math.round(r.n/top*300))}" height="16" rx="3" fill="currentColor" opacity=".55"/><text x="${150+Math.max(2,Math.round(r.n/top*300))+6}" y="${i*28+18}" font-size="12" fill="currentColor">${figure(r.n)}</text>`).join('')}</svg>`
+ return `<svg viewBox="0 0 480 ${height}" preserveAspectRatio="xMinYMin meet" role="img" aria-label="${escape(metric)} by row, bars scaled to the largest" class="vane-ask-chart" width="100%" height="${height}">${rows.map((r,i)=>`<text x="0" y="${i*28+18}" font-size="12" fill="currentColor">${escape(String(r.value).slice(0,24))}</text><rect x="150" y="${i*28+6}" width="${Math.max(2,Math.round(r.n/top*300))}" height="16" rx="3" fill="currentColor" opacity=".55"/><text x="${150+Math.max(2,Math.round(r.n/top*300))+6}" y="${i*28+18}" font-size="12" fill="currentColor">${figure(r.n)}</text>`).join('')}</svg>`
 }
 function answer(a:Extract<AskResult,{kind:'answer'}>):string {
  const s=a.stats,rows:any[]=s.breakdown??[],keys=a.query.metrics.filter(m=>rows.some(r=>r[METRICS[m]!]!==undefined))
