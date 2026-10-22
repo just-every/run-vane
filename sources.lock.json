@@ -107,7 +107,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "aed40c169f505ffa178c9aafd23fcc58f9926608e276fcbab5bacabcd0bdb803",
+      "sha256": "9aca1685c4d8e6cebcd10da3ac2a5f4315222c8d38b8ef6998574feb14057692",
       "executable": false
     },
     "DEMO.md": {
@@ -3975,7 +3975,7 @@
       "executable": false
     },
     "tests/site.test.mjs": {
-      "sha256": "6a9902c927068d37e7b1cad3c98a2f6ea656add18fd20a85513581d416d14824",
+      "sha256": "3d5c255be62dd77904cc83aa927f4f0ae25fd7b66f11c7d48215abdc9292268e",
       "executable": false
     },
     "tests/sitemap-scan.test.mjs": {
