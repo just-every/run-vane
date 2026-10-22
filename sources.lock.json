@@ -3843,7 +3843,7 @@
       "executable": false
     },
     "tests/collection-batch.test.mjs": {
-      "sha256": "2a50dfcff5259c0dd09c41727670edfe74293908c363175a57b451f8ffe8e4c8",
+      "sha256": "5791c851d31c1574958515b9e7a7c4b79349985887abb79a3d0f7f401924a25e",
       "executable": false
     },
     "tests/collection-scale.journey.mjs": {
