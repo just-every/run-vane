@@ -98,7 +98,7 @@ async function handleAuthResponse(request: Request, original: Bindings): Promise
    if(env.VANE_SAML_CONFIG&&request.method==='GET') {
     const cfg=JSON.parse(env.VANE_SAML_CONFIG),headers=new Headers(page.headers)
     headers.set('content-security-policy',(headers.get('content-security-policy')??'').replace("form-action 'self'",`form-action 'self' ${new URL(cfg.entryPoint).origin}`))
-    return fontDocumentResponse(new Response((await page.text()).replace('</main>','<form method="post" action="/auth/saml/start"><button type="submit">Continue with SAML</button></form></main>'),{status:page.status,headers}))
+    return fontDocumentResponse(new Response((await page.text()).replace('</main>','<h2>Organization sign-in</h2><div class="stack"><form method="post" action="/auth/saml/start"><button class="secondary" type="submit">Continue with SAML</button></form></div></main>'),{status:page.status,headers}))
    }
    return fontDocumentResponse(page)
   }

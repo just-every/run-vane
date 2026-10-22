@@ -4,7 +4,7 @@ import { escape, field } from '../views/html'
 import type { SecurityPolicy } from './policy'
 
 const branding={productName:product.name,accentColor:product.primaryColor,theme:'/rer-theme.css'}
-const submit=(action:string,label:string,body='')=>`<form method="post" action="${action}">${body}<button type="submit">${label}</button></form>`
+const submit=(action:string,label:string,body='')=>`<div class="stack"><form method="post" action="${action}">${body}<button type="submit">${label}</button></form></div>`
 const code=field('Authenticator or recovery code','code','','required autocomplete="one-time-code" maxlength="64"')
 export async function securityPage(input:{mode:'settings'|'enroll'|'challenge'|'recovery'|'sso';owner?:boolean;enrolled?:boolean;policy?:SecurityPolicy;secret?:string;uri?:string;codes?:string[];error?:string;status?:number;providers?:boolean;saml?:boolean}) {
  let title='Sign-in security',content=''
@@ -25,5 +25,5 @@ export async function securityPage(input:{mode:'settings'|'enroll'|'challenge'|'
  }
  if(input.error)content=`<p class="notice" role="alert">${escape(input.error)}</p>`+content
  content+=submit('/auth/signout','Sign out')
- return pageResponse({branding,title,heading:title,content,status:input.status??200})
+ return pageResponse({branding,title,heading:title,content,status:input.status??200,referrer:'strict-origin'})
 }

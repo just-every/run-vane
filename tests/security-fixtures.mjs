@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { generateKeyPairSync, sign, randomBytes, createHmac } from 'node:crypto'
+import { generateKeyPairSync, sign, randomBytes, createHmac, createHash } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
 import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -34,7 +34,7 @@ export async function oidcInstallation(t) {
   if(url.pathname.endsWith('/jwks'))return Response.json({keys:[key]})
   if(url.pathname.endsWith('/token')) {
    const form=new URLSearchParams(await request.text()),proof=codes.get(form.get('code'));assert.ok(proof);codes.delete(form.get('code'))
-   assert.equal(form.get('redirect_uri'),a.origin+`/auth/oidc/${id}/callback`);assert.ok(form.get('code_verifier'))
+   assert.equal(form.get('redirect_uri'),a.origin+`/auth/oidc/${id}/callback`);assert.equal(createHash('sha256').update(form.get('code_verifier')).digest('base64url'),proof.challenge)
    const now=Math.floor(Date.now()/1000),claims={iss:issuer,sub:proof.email.startsWith('owner')?'synthetic-vane-owner':'synthetic-vane-member',aud:providers.find(p=>p.id===id).clientId,exp:now+300,iat:now,nonce:proof.nonce,email:proof.email,email_verified:true,hd:'example.test',...proof.overrides}
    const body=[{alg:'RS256',kid:key.kid},claims].map(v=>Buffer.from(JSON.stringify(v)).toString('base64url')).join('.')
    return Response.json({id_token:body+'.'+sign('RSA-SHA256',Buffer.from(body),privateKey).toString('base64url'),token_type:'Bearer'})
@@ -45,7 +45,7 @@ export async function oidcInstallation(t) {
  async function begin(id,email,overrides={}) {
   const start=await a.post(`/auth/oidc/${id}/start`,{returnTo:'/app'});assert.equal(start.status,303,await start.clone().text());const auth=new URL(start.headers.get('location'))
   assert.equal(auth.searchParams.get('code_challenge_method'),'S256')
-  const code=crypto.randomUUID();codes.set(code,{email,nonce:auth.searchParams.get('nonce'),overrides})
+  const code=crypto.randomUUID();codes.set(code,{email,nonce:auth.searchParams.get('nonce'),challenge:auth.searchParams.get('code_challenge'),overrides})
   const callback=`/auth/oidc/${id}/callback?`+new URLSearchParams({code,state:auth.searchParams.get('state'),iss:id==='google'?'https://accounts.google.com':'https://login.microsoftonline.com/synthetic-vane-1/v2.0'})
   return {callback,cookie:a.cookieOf(start)}
  }
