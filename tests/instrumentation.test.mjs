@@ -37,7 +37,7 @@ test('Instrumentation investigation compares a renamed signup control and missin
  assert.ok(broken.problems.some(p=>p.kind==='missing-script'&&p.page==='/pricing'))
  assert.ok(broken.problems.some(p=>p.kind==='missing-selector'&&p.name==='Signup'&&p.target==='#signup'&&p.replacement==='#join-now'))
  assert.ok(broken.problems.some(p=>p.kind==='misnamed-event'&&p.name==='SignUp'))
- assert.ok(broken.problems.every(p=>p.evidence.startsWith('/app/sites/'+id)))
+ assert.ok(broken.problems.every(p=>p.kind==='deploy-diff'?p.evidence===`https://github.com/just-every/run-vane/compare/${github.initial}...${github.changed}`:p.evidence.startsWith('/app/sites/'+id)),'every citation is bound to this site or the exact connected source comparison')
  assert.equal(broken.draft.state,'draft-only');assert.ok(broken.draft.changes.some(c=>c.after.includes('/vane.js')));assert.ok(broken.draft.changes.some(c=>c.after==='Signup: #signup, #join-now'))
  assert.ok(broken.unknown.some(u=>u.includes('CONV-008')))
  const prepared=await result(await a.post('/api/vane/instrumentation/prepare',{siteId:id,runId:broken.id,confirm:'on'},a.owner),201)
