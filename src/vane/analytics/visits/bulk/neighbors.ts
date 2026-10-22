@@ -24,10 +24,11 @@ export const neighborhoodSql = [
  `INSERT INTO vane_visit_bulk_neighbors(rank,raw_id,site,day,visitor,context,at_offset,token,at,engaged,scroll,gap,old_visit,
    next_id,next_at_offset,old_prev_rank,old_next_rank)
   WITH source AS (
-   SELECT w.raw_id,w.site,w.day,w.visitor,w.context,w.at_offset,w.token,w.at,
-    w.new_engaged AS engaged,COALESCE(w.new_scroll,-1) AS scroll,c.gap,NULL AS old_visit
-   FROM vane_visit_bulk_new_groups g CROSS JOIN vane_visit_work w ON w.raw_id IN (g.first_raw,g.last_raw)
+   SELECT e.raw_id,g.site,g.day,g.visitor,g.context,g.at_offset,e.token,g.at,
+    d.engaged_at AS engaged,COALESCE(d.scroll,-1) AS scroll,c.gap,NULL AS old_visit
+   FROM vane_visit_bulk_new_groups g CROSS JOIN vane_raw_occurrences e ON e.raw_id IN (g.first_raw,g.last_raw)
    JOIN vane_visit_bulk_chains c ON c.site=g.site AND c.day=g.day AND c.visitor=g.visitor
+   LEFT JOIN vane_raw_details d ON d.raw_id=e.raw_id
    UNION ALL
    SELECT e.raw_id,c.site,c.day,c.visitor,g.context,g.at_offset,e.token,g.at_offset+unixepoch(c.day)*1000,
     d.engaged_at,COALESCE(d.scroll,-1),chain.gap,g.visit_id
