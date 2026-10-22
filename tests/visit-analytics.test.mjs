@@ -32,6 +32,9 @@ test('native visit facts keep reverse arrivals, tied IDs, a late bridge, engagem
  assert.deepEqual(report.series.map(r=>[r.visits,r.pageviews,r.duration]),[[1,4,3000]])
  assert.equal(report.topPages.find(r=>r.path==='/tie').averageTimeOnPage,0)
  assert.equal(report.topPages.find(r=>r.path==='/b').averageTimeOnPage,1500)
+ const tiedJourney=(await summary(a,'&journey=/tie')).journey
+ assert.deepEqual(tiedJourney.next.map(r=>[r.steps,r.visits]),[[['/b','/c','(exit)'],1]])
+ assert.deepEqual(tiedJourney.previous.map(r=>[r.steps,r.visits]),[[['/a','(entrance)'],1]])
  // Public engagement and performance arrive after their page occurrence.
  await a.clock(Date.parse(date+'T10:50:12Z'))
  assert.equal((await a.post('/api/vane/engage',{siteId,id:loads.c.id,scroll:80},'',{origin})).status,202)
@@ -48,6 +51,7 @@ test('native visit facts keep reverse arrivals, tied IDs, a late bridge, engagem
  assert.equal(restored.status,200,await restored.clone().text())
  const after=await summary(b)
  assert.deepEqual([after.visits,after.bounces,after.topPages,after.entryPages,after.exitPages,after.perf],[report.visits,report.bounces,report.topPages,report.entryPages,report.exitPages,report.perf])
+ assert.deepEqual((await summary(b,'&journey=/tie')).journey,tiedJourney)
  const proposal=await (await b.post('/api/vane/commands',{command:'history.erase',input:{siteId}},b.owner)).json()
  assert.equal((await b.form({operation:'proposal.approve',id:proposal.id},b.owner)).status,303)
  const erased=await summary(b)
