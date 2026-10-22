@@ -478,6 +478,14 @@
       "sha256": "8a904eb71803150bee85ba62d2bd502b08278c6f94545ebceec2ef1d16a5c958",
       "executable": false
     },
+    "migrations/core/0091_bulk_visits.sql": {
+      "sha256": "1b35a95eb0caba353880b426c8243556dd37d7863c6aad91b89f65b32ed87ccf",
+      "executable": false
+    },
+    "migrations/core/0092_bulk_occurrences.sql": {
+      "sha256": "82765c96aa71e90de097c83d6b84413d71a7b51f3352916deaa5e2c5c1a1fd33",
+      "executable": false
+    },
     "ONBOARDING.md": {
       "sha256": "b28a79254e2278d81d877ffd5987972aaf135d85683ae285b52fd98cc44e608e",
       "executable": false
@@ -2778,6 +2786,10 @@
       "sha256": "1ed99b25ed9e42d7a55185dfc73f006a76eff1d77b74040beb22355c460604ef",
       "executable": false
     },
+    "src/vane/analytics/bulk.ts": {
+      "sha256": "25598a38885aaeae961df33cd8bc4a8c93a43d5868ff85a689369df6c15bdc5d",
+      "executable": false
+    },
     "src/vane/analytics/index.ts": {
       "sha256": "eeeeec1ea8166e732b5a5dbacf3d2a1352bd8ce2c73a79309df3c0e2493992b7",
       "executable": false
@@ -2802,6 +2814,30 @@
       "sha256": "a5eb0cdc509bf4fb4d686742cacbf1b9ad0d0bc77db3e4c6fbf29f28d714ec7e",
       "executable": false
     },
+    "src/vane/analytics/visits/bulk/apply.ts": {
+      "sha256": "d256d6ede4381eccc72b6954a8feaed5baf7067b8d0f50b5840c7ea6d27f2ab4",
+      "executable": false
+    },
+    "src/vane/analytics/visits/bulk/components.ts": {
+      "sha256": "1c8bee3b2c9fb8069ed039c1169000a7fd4d890a28f7aa9b8d751b78b27ab0c7",
+      "executable": false
+    },
+    "src/vane/analytics/visits/bulk/generate.py": {
+      "sha256": "d587e7680842dcf6f5b28082ea46eee50d807d3e6a53862dab62536f5548e1ae",
+      "executable": false
+    },
+    "src/vane/analytics/visits/bulk/index.ts": {
+      "sha256": "6c801c02a63104416c6619ecc9543c38eb06c2c869da9db309d36e00691a5030",
+      "executable": false
+    },
+    "src/vane/analytics/visits/bulk/neighbors.ts": {
+      "sha256": "90243a521e41c2ae50115493cbe54c503a6466d1e3f9654d51fbb07ee63358d4",
+      "executable": false
+    },
+    "src/vane/analytics/visits/bulk/prepare.ts": {
+      "sha256": "02da02a40a1510b1189a615e531fd7017537b3994b49ef2e542366b6a659c353",
+      "executable": false
+    },
     "src/vane/analytics/visits/consented.ts": {
       "sha256": "5fc314913e9b3afd60157778f32ffb4d8539232a4d9e4855e0175a3359a76c2f",
       "executable": false
@@ -2823,7 +2859,7 @@
       "executable": false
     },
     "src/vane/analytics/visits/inventory.ts": {
-      "sha256": "4b8597a9fd94d31c5a01c20cd2eb15aeae3b445c37cceeb6ff47b2ecd7d22a29",
+      "sha256": "47f5460e61e7dcf7468c758f326a2f63a9912b40a46910f4f681cc89b9904895",
       "executable": false
     },
     "src/vane/analytics/visits/locations.ts": {
@@ -2939,7 +2975,7 @@
       "executable": false
     },
     "src/vane/collection/admit.ts": {
-      "sha256": "75e0fba5b94078ea0c1d36e8ab8b76d5275328303fd04b5eb92ff505b4bb7faa",
+      "sha256": "2d76b16c65b8b43333bf69685a2172e188d045297f6d6c0b058f2556fc09f773",
       "executable": false
     },
     "src/vane/collection/batch.ts": {
