@@ -490,6 +490,10 @@
       "sha256": "8c91d84502a055c62b883cf7a672984470e75d7871d621a1a56f3b39d362ab99",
       "executable": false
     },
+    "migrations/core/0094_bulk_visit_neighbors.sql": {
+      "sha256": "0d0275504e73edf5ca2085a9732a12a3a28bbd788e5f80c018839bbc1a042a40",
+      "executable": false
+    },
     "ONBOARDING.md": {
       "sha256": "b28a79254e2278d81d877ffd5987972aaf135d85683ae285b52fd98cc44e608e",
       "executable": false
@@ -2831,15 +2835,15 @@
       "executable": false
     },
     "src/vane/analytics/visits/bulk/index.ts": {
-      "sha256": "6c801c02a63104416c6619ecc9543c38eb06c2c869da9db309d36e00691a5030",
+      "sha256": "ea3c9249813aecfe4ad4039710bdf37a9e6bf8d8dc1d4481d73fac5c41b1d8ff",
       "executable": false
     },
     "src/vane/analytics/visits/bulk/neighbors.ts": {
-      "sha256": "90243a521e41c2ae50115493cbe54c503a6466d1e3f9654d51fbb07ee63358d4",
+      "sha256": "6b4f8a796ac7f46d0459d52fb6a9296a8410f2084e599a1c73872aa67a2e746d",
       "executable": false
     },
     "src/vane/analytics/visits/bulk/prepare.ts": {
-      "sha256": "02da02a40a1510b1189a615e531fd7017537b3994b49ef2e542366b6a659c353",
+      "sha256": "5b9e37c125c39cd5da238ba7ace003c72fe5293e8a8016616a518d2d7bdf901b",
       "executable": false
     },
     "src/vane/analytics/visits/consented.ts": {
@@ -2863,7 +2867,7 @@
       "executable": false
     },
     "src/vane/analytics/visits/inventory.ts": {
-      "sha256": "47f5460e61e7dcf7468c758f326a2f63a9912b40a46910f4f681cc89b9904895",
+      "sha256": "7ff46cfe8d165e2d1675f448565fcc66aaafd3e80b5426409452107fa669e322",
       "executable": false
     },
     "src/vane/analytics/visits/locations.ts": {
