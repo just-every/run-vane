@@ -1,9 +1,8 @@
-import { transportCoverage } from './proxy/coverage'
+import { analyticsUniques, analyticsVisitorSeries, analyticsTransport } from './analytics'
 import { visitorKey } from './visitor-key'
 import { insist, rows, type Env, type Site } from './core'
 import { bucketKey, comparisonRange, intervalOf, PERIODS, presetRange, runningCut, upTo, type Period } from './periods'
 import { annotationsFor } from './annotations'
-import { timeSeries } from './series'
 import { healthOf } from './tracking-health'
 // DASH-010: the sites list shows each site's unique visitors for a preset range in the site's own time zone, the change
 // from the previous period of the same length, and a sparkline of the chart's buckets for that range. It sorts by name,
@@ -14,13 +13,13 @@ export const SORTS={added:'Date added',name:'Name',visitors:'Visitors',change:'C
 export async function overview(env:Env,list:Site[],now:number,query:{period?:string|null,sort?:string|null,q?:string|null}) {
  const period=(query.period||'7d') as Period,sort=(query.sort||'added') as keyof typeof SORTS,q=String(query.q??'').trim().toLowerCase()
  insist(Object.hasOwn(PERIODS,period),'period','Choose one of the preset ranges.');insist(Object.hasOwn(SORTS,sort),'sort','Sort by date added, name, visitors or change.')
- const uniques=async(id:string,from:string,to:string,events='vane_events')=>Number((await rows(env,`SELECT COUNT(*) AS n FROM (SELECT DISTINCT ${visitorKey()} AS identity FROM ${events} WHERE site_id=? AND day>=? AND day<? AND kind='pageview' AND visitor IS NOT NULL)`,id,from,to))[0]!.n)
+ const uniques=async(id:string,from:string,to:string,events='vane_events')=>events==='vane_events'?analyticsUniques(env,{siteIds:[id],from,to}):Number((await rows(env,`SELECT COUNT(*) AS n FROM (SELECT DISTINCT ${visitorKey()} AS identity FROM ${events} WHERE site_id=? AND day>=? AND day<? AND kind='pageview' AND visitor IS NOT NULL)`,id,from,to))[0]!.n)
  const shown=list.filter(s=>!q||s.name.toLowerCase().includes(q)||s.origin.toLowerCase().includes(q))
  const rowsOf=await Promise.all(shown.map(async site=>{
   const timeZone=site.config.timeZone??'UTC',earliest=period==='all'?(await rows<{d:string|null}>(env,'SELECT MIN(day) AS d FROM (SELECT day FROM vane_events WHERE site_id=?1 UNION ALL SELECT day FROM vane_import_events WHERE site_id=?1)',site.id))[0]?.d??null:null
-  const {from,to}=presetRange(period,now,timeZone,earliest),before=comparisonRange('previous',from,to,false,{from:null,to:null}),scope=JSON.stringify([site.id])
+  const {from,to}=presetRange(period,now,timeZone,earliest),before=comparisonRange('previous',from,to,false,{from:null,to:null}),analyticalRange={siteIds:[site.id],from,to}
   const cut=runningCut(now,timeZone,from,to,before.from),current='vane_events',then=cut?upTo('vane_events',cut.thenDay,cut.thenAt):'vane_events'
-  const interval=intervalOf(null,from,to),[visitors,previous,series,notes,health,transport]=await Promise.all([uniques(site.id,from,to,current),uniques(site.id,before.from,before.to,then),timeSeries(env,scope,from,to,interval,timeZone,current,current),annotationsFor(env,[site],from,to,false),healthOf(env,site.id),transportCoverage(env,scope,from,to,current)])
+  const interval=intervalOf(null,from,to),[visitors,previous,series,notes,health,transport]=await Promise.all([uniques(site.id,from,to,current),uniques(site.id,before.from,before.to,then),analyticsVisitorSeries(env,analyticalRange,interval,timeZone),annotationsFor(env,[site],from,to,false),healthOf(env,site.id),analyticsTransport(env,analyticalRange)])
   // DASH-009: the sparkline (visitors) marks the bucket of each annotation in range; definition versions do not affect visitors.
   const marks=[...new Set(notes.filter(n=>n.kind!=='definition').map(n=>series.findIndex(b=>b.key===bucketKey(interval,n.day,from,timeZone))).filter(i=>i>=0))]
   return {site,from,to,visitors,previous,running:Boolean(cut),sparkline:series.map(b=>b.visitors),trendLabels:series.map(b=>b.label),marks,health,transport}

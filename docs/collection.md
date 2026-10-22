@@ -34,7 +34,7 @@ Imported activity has unknown consent and sampling. Vane keeps those values unkn
 
 Every report compares the selected period against its preceding period. The default is the current seven UTC days against the seven before. The **Weekly explanation** gives both counts and the difference, with evidence tables below.
 
-Changes in recorded activity alone do not establish why people acted. Counts are page loads, rather than people or sessions. Non-browser senders can spoof the public collector. Admission is capped at 10,000 page loads per site per UTC day.
+Changes in recorded activity alone do not establish why people acted. Counts are page loads, rather than people or sessions. Non-browser senders can spoof the public collector. There is no fixed daily page-load admission ceiling. History publishes the D1 store capacity and every app page warns from 80%, naming a shorter raw retention window or scheduled warehouse export. Full-volume and dashboard latency proof remain pending; see [collection scale](collection-scale.md).
 
 ## Change collection settings
 

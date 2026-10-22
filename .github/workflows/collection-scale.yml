@@ -1,0 +1,44 @@
+name: Collection scale
+
+# Explicit, expensive acceptance journey. Never part of push Verify.
+on:
+  workflow_dispatch:
+    inputs:
+      monthly_pageviews:
+        description: 'Real pageviews per month (10000000 for acceptance; smaller is smoke only)'
+        required: true
+        default: '10000000'
+      months:
+        description: 'Real months (12 for acceptance)'
+        required: true
+        default: '12'
+      concurrency:
+        description: 'Remote admission concurrency'
+        required: true
+        default: '32'
+
+permissions:
+  contents: read
+
+jobs:
+  collection:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    env:
+      CI: 'true'
+      WRANGLER_SEND_METRICS: 'false'
+      VANE_COLLECTION_SCALE_MONTHLY: ${{ inputs.monthly_pageviews }}
+      VANE_COLLECTION_SCALE_MONTHS: ${{ inputs.months }}
+      VANE_COLLECTION_SCALE_CONCURRENCY: ${{ inputs.concurrency }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '22.20.0'
+          package-manager-cache: false
+      - run: npm install --global pnpm@10.12.4
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec vite build
+      - run: node --test --test-concurrency=1 tests/collection-scale.journey.mjs

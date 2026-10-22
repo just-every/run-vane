@@ -95,18 +95,25 @@ export async function collector(request:Request,env:Env):Promise<Response|null> 
   const visitor=identity?await digest(today+'\0'+identity.hash):await visitorHash(env,value,request,today,now),d=deviceOf(request.headers.get('user-agent')??'',payload.width),geo=locationOf(request),search=payload.search===undefined?null:searchTerm(payload.search);
   if(payment){const before=await env.DB.prepare("SELECT source,referrer,campaign,utm_source,utm_medium,utm_term,utm_content,paid_click,channel FROM vane_events WHERE site_id=? AND day=? AND visitor=? AND kind='pageview' ORDER BY at DESC,id DESC LIMIT 1").bind(value.id,today,visitor).first<any>();Object.assign(e,{source:before?.source??'direct',referrer:before?.referrer??null,campaign:before?.campaign??'none',utmSource:before?.utm_source??null,utmMedium:before?.utm_medium??null,utmTerm:before?.utm_term??null,utmContent:before?.utm_content??null,paidClick:before?.paid_click??0});channel=before?.channel??channelOf('direct',null,false)}
   const kinds=['pageview',...[...Object.entries(value.config.goals),...Object.entries(value.config.customGoals??{}).filter(([,g])=>g.path&&g.depth===undefined&&propertiesMatch(g.props,props.kept)).map(([name,g])=>[name,g.path!] as [string,string])].filter(([,goal])=>goalApplies(goal,e.hostname,e.path)).map(([name])=>name)];
-  const statements=[statement(env,'DELETE FROM vane_guard'),statement(env,'INSERT INTO vane_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM vane_sites WHERE id=? AND version=?) THEN 1 ELSE 0 END',value.id,value.version),statement(env,'INSERT INTO vane_admission(site_id,day,count) VALUES(?,?,1) ON CONFLICT(site_id,day) DO UPDATE SET count=count+1',value.id,today),statement(env,'INSERT INTO vane_guard(value) SELECT CASE WHEN count<=10000 THEN 1 ELSE 0 END FROM vane_admission WHERE site_id=? AND day=?',value.id,today)];
+  const statements=[statement(env,'DELETE FROM vane_guard'),statement(env,'INSERT INTO vane_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM vane_sites WHERE id=? AND version=?) THEN 1 ELSE 0 END',value.id,value.version),statement(env,'INSERT INTO vane_admission(site_id,day,count) VALUES(?,?,1) ON CONFLICT(site_id,day) DO UPDATE SET count=count+1',value.id,today)];
   for(const kind of kinds)statements.push(statement(env,'INSERT INTO vane_events(id,site_id,day,kind,path,source,campaign,consent,sample_rate,visitor,at,device,browser,browser_version,os,os_version,screen,search,hostname,utm_source,utm_medium,utm_term,utm_content,paid_click,query,channel,referrer,country,region,city,metro_code,consented_visitor,consented_created_at,consented_expires_at,transport) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',kind==='pageview'?eventId:eventId+':'+kind,value.id,today,kind,e.path,e.source,e.campaign,payload.consent,value.config.sampleRate,visitor,now,d.device,d.browser,d.browserVersion,d.os,d.osVersion,d.screen,kind==='pageview'?search:null,e.hostname,e.utmSource,e.utmMedium,e.utmTerm,e.utmContent,e.paidClick,e.query,channel,e.referrer,geo.country,geo.region,geo.city,geo.metro_code,identity?.hash??null,identity?.createdAt??null,identity?.expiresAt??null,isProxied(request)?'proxy':'direct'));
   // CONV-002: a pageview's properties (INSTALL-007) are stored beside it.
   statements.push(...propStatements(env,eventId,value.id,today,props),...droppedStatement(env,value.id,today,props),statement(env,'DELETE FROM vane_guard'));
-  try{await env.DB.batch(statements)}catch { throw new VaneError('admission','Collection changed, the daily limit was reached, or this event was already admitted. Refresh before sending another page load.',409) }
+  try{await env.DB.batch(statements)}catch {
+   // A simultaneous replay may lose the unique insert after both requests read
+   // absence. The losing transaction rolls back its counter, goals and properties;
+   // acknowledge the committed matching ID rather than classifying it as a loss.
+   const admitted=await env.DB.prepare('SELECT path,source,campaign FROM vane_events WHERE id=?').bind(eventId).first<{path:string;source:string;campaign:string}>();
+   if(admitted){insist(admitted.path===e.path&&(payment||admitted.source===e.source)&&admitted.campaign===e.campaign,'conflict','Event ID already has different data.',409);return Response.json({accepted:true,duplicate:true},{headers:cors})}
+   throw new VaneError('admission','Collection changed before this event could be admitted. Refresh the site configuration before sending another page load.',409)
+  }
   // EXPERIMENT-001: the page load's variant in each split test running on its page, from its visitor hash.
   const experiments=await assignments(value.config.experiments,identity?.hash??visitor,e.hostname,e.path);
   return Response.json({accepted:true,...(experiments?{experiments}:{})},{status:202,headers:cors});
  } catch(error) {
   const e=error instanceof VaneError?error:new VaneError('invalid_event','Event could not be accepted.');
   // ALERT-002, COVERAGE-001: a page load of a known site refused as malformed, from an origin the site does not register,
-  // or conflicting with an admitted page load or the daily admission limit is counted as a collection error (site, day, fixed reason class, count).
+  // or conflicting with an admitted page load is counted as a collection error (site, day, fixed reason class, count).
   if(known&&!match&&!engage&&!heat&&(e.status===400||e.status===413||['origin','conflict','admission'].includes(e.code)))await countExclusion(env,known.id,localDay(clock(),known.config.timeZone??'UTC'),'collection-error').run();
   return Response.json({error:e.code,message:e.message},{status:e.status,headers:cors});
  }

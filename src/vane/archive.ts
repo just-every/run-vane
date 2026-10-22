@@ -1,3 +1,4 @@
+import { rebuildAnalyticsStatements } from './analytics'
 import { atomic, digest, insist, role, rows, statement, uid, type Actor, type Env } from './core'
 import { cleanSite } from './privacy'
 interface Payload { format:'vane-history/1'; exportedAt:number; tables:Record<string,Record<string,any>[]> }
@@ -51,6 +52,7 @@ export async function restoreHistory(env:Env,actor:Actor,input:any,journal?:any)
  inserts.push(statement(env,'PRAGMA defer_foreign_keys = ON'));
  inserts.push(...triggers.map(t=>statement(env,`DROP TRIGGER "${t.name}"`)));
  for(const name of ordered)for(const record of data[name]) { const columns=Object.keys(record); inserts.push(statement(env,`INSERT INTO "${name}" (${columns.map(c=>'"'+c+'"').join(',')}) VALUES(${columns.map(()=>'?').join(',')})`,...columns.map(c=>decodeCell(record[c])))); }
+ inserts.push(...rebuildAnalyticsStatements(env));
  inserts.push(statement(env,'INSERT INTO vane_restore(id,digest,restored_by,at) VALUES(?,?,?,?)',uid(),archive.sha256,actor.id,Date.now()));
  inserts.push(...triggers.map(t=>statement(env,t.sql)));
  await atomic(env,actor,inserts);

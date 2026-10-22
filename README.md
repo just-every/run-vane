@@ -69,8 +69,7 @@ scaled estimates. A visit's source is its `utm_source`, `ref` or `source` parame
 referring hostname; no referrer becomes `direct`. Consent exclusions, blockers
 and excluded pages are invisible, so
 Vane does not claim complete traffic coverage or inferred causes. Non-browser
-senders can spoof the public collector. Admission is capped at 10,000 page loads
-per site per UTC day.
+senders can spoof the public collector. There is no fixed daily page-load admission ceiling. Storage capacity is shown in History, with a warning from 80% and choices to shorten raw retention or schedule a warehouse export. The 10-million/month and 500/second target remains unproven; see [collection scale](docs/collection-scale.md).
 
 ## Import, undo and portability
 

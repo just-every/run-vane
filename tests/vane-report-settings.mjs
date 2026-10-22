@@ -1,5 +1,52 @@
 import test from 'node:test'
+import { mkdir } from 'node:fs/promises'
 import { assert, readFile, createHash, createHmac, crc32, createRequire, installation, appsScript, fixture, unlinked, withApp, DESKTOP_CHROME, browse, movein } from './vane-helpers.mjs'
+
+test('COLLECT-004 public analytical reports keep retries exact, retain engagement and daily versus consented identities, rebuild older archives and erase history',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}}
+ await a.clock(Date.parse('2026-03-02T09:00:00Z'))
+ const id=await a.addSite({retention:'forever',consentedVisitors:true}),consented={id:crypto.randomUUID(),createdAt:Date.parse('2026-03-01T12:00:00Z')}
+ const load=async(at,path='/',linked=true)=>{
+  await a.clock(Date.parse(at));const event=a.event(id,{path,width:1440,...(linked?{consent:'granted',consented}:{})})
+  const response=await a.post('/api/vane/collect',event,'',{origin:'https://fern.example','cf-connecting-ip':'203.0.113.17','user-agent':DESKTOP_CHROME})
+  assert.equal(response.status,202,await response.clone().text());return event
+ }
+ const first=await load('2026-03-02T09:00:00Z')
+ const repeats=await Promise.all(Array.from({length:4},()=>a.post('/api/vane/collect',first,'',{origin:'https://fern.example','cf-connecting-ip':'203.0.113.17','user-agent':DESKTOP_CHROME})))
+ for(const repeat of repeats){assert.equal(repeat.status,200);assert.equal((await repeat.json()).duplicate,true)}
+ await load('2026-03-02T09:05:00Z','/thanks')
+ const engaged=await load('2026-03-03T09:00:00Z')
+ await load('2026-03-03T10:00:00Z','/',false)
+ const query=`/api/vane/summary?siteId=${id}&from=2026-03-02&to=2026-03-04&interval=day`,summary=async(app=a)=>{
+  const response=await app.request(query,{headers:{cookie:app.owner}});assert.equal(response.status,200,await response.clone().text());return response.json()
+ }
+ await a.clock(Date.parse('2026-03-04T12:00:00Z'))
+ assert.equal((await summary()).bounces,2)
+ // Move only the gated product clock: engagement remains the normal public
+ // door and changes the visit metric without adding another occurrence.
+ await a.clock(Date.parse('2026-03-03T09:00:12Z'))
+ assert.equal((await a.post('/api/vane/engage',{siteId:id,id:engaged.id,scroll:80},'',{origin:'https://fern.example'})).status,202)
+ const running=await (await a.request(`/api/vane/summary?siteId=${id}&period=today&interval=day`,owner)).json()
+ assert.deepEqual([running.pageviews,running.previousPageviews,running.previousVisitors,running.previousGoals,running.previousSeries[0].pageviews],[2,1,1,0,1],'today includes admitted rows; its comparison stops at the matching prior-day instant')
+ await a.clock(Date.parse('2026-03-04T12:00:00Z'))
+ const report=await summary()
+ assert.deepEqual([report.pageviews,report.goals,report.visitors,report.visits,report.bounces,report.converters,report.transport.direct],[4,1,2,3,1,1,4])
+ assert.deepEqual(report.series.map(r=>[r.label,r.pageviews,r.visitors,r.conversions]),[['2026-03-02',2,1,1],['2026-03-03',2,2,0]])
+ assert.deepEqual(report.pages.map(r=>[r.label,r.count]).sort(),[['/',3],['/thanks',1]])
+ assert.deepEqual(report.devices.map(r=>[r.label,r.pageviews,r.visitors]),[['desktop',4,2]])
+ const overview=await (await a.request('/app?period=7d',owner)).text();assert.match(overview,new RegExp(`data-site="${id}"[^]*?data-visitors="2"`))
+ const archive=await a.archive(),older=structuredClone(archive)
+ delete older.payload.tables.vane_analytics_cells;delete older.payload.tables.vane_analytics_identities
+ older.sha256=createHash('sha256').update(JSON.stringify(older.payload)).digest('hex')
+ const b=await withApp(t);await b.clock(Date.parse('2026-03-04T12:00:00Z'))
+ const restored=await b.post('/api/vane/restore',{archive:older},b.owner);assert.equal(restored.status,200,await restored.clone().text())
+ const after=await summary(b)
+ assert.deepEqual([after.pageviews,after.goals,after.visitors,after.visits,after.bounces,after.pages,after.devices,after.series],[report.pageviews,report.goals,report.visitors,report.visits,report.bounces,report.pages,report.devices,report.series])
+ const proposal=await (await b.post('/api/vane/commands',{command:'history.erase',input:{siteId:id}},b.owner)).json()
+ assert.equal((await b.form({operation:'proposal.approve',id:proposal.id},b.owner)).status,303)
+ const erased=await summary(b)
+ assert.deepEqual([erased.pageviews,erased.goals,erased.visitors,erased.visits,erased.transport.total,erased.pages,erased.devices],[0,0,0,0,0,[],[]])
+})
 
 test('RETENTION-002 a keep-forever site keeps 30 months of imported history and today\'s events, 25 months erases only older events with one journal entry, and a store past 80% of its capacity warns with both choices and drops nothing',async t=>{
  const a=await withApp(t),owner={headers:{cookie:a.owner}}
@@ -34,6 +81,15 @@ test('RETENTION-002 a keep-forever site keeps 30 months of imported history and 
  for(const path of ['/app',`/app/sites/${small}?section=report`,`/app/sites/${small}?section=history`]){const text=await warning(path);assert.match(text,/a scheduled warehouse export of older events/,path);assert.match(text,/a shorter retention window/,path)}
  for(let n=0;n<5;n++,sent++)assert.equal((await b.collect(b.event(small))).status,202,'nothing is turned away at 80%')
  assert.equal((await (await b.request(`/api/vane/summary?siteId=${small}&period=today`,{headers:{cookie:b.owner}})).json()).pageviews,sent,'every event is kept')
+ if(process.env.VANE_SCREEN_DIR){
+  await mkdir(process.env.VANE_SCREEN_DIR,{recursive:true});const {context}=await browse(t,b)
+  await context.addCookies(b.owner.split('; ').map(pair=>{const i=pair.indexOf('=');return {name:pair.slice(0,i),value:pair.slice(i+1),url:b.origin}}))
+  const page=await context.newPage()
+  for(const width of [1440,390]){await page.setViewportSize({width,height:960});for(const [name,path] of [['collection-report',`/app/sites/${small}?period=today`],['collection-capacity',`/app/sites/${small}?section=history`]]){
+   await page.goto(b.origin+path);assert.equal(await page.getByRole('alert').isVisible(),true);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await page.screenshot({path:`${process.env.VANE_SCREEN_DIR}/${name}-${width}.png`})
+  }}
+ }
+
 })
 test('DASH-010 three sites sort by change and search on the overview, and a roll-up of two sums visitors and visits per site with the cross-site note, exact pageview and conversion sums, a recomputed bounce rate and a split by site',async t=>{
  const a=await withApp(t),owner={headers:{cookie:a.owner}}
