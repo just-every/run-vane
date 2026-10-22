@@ -75,7 +75,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "44eff0e639147b51cf254ce6391e8b1a64d48a72059a9ca0a65cb5ae88143d05",
+      "sha256": "7cf90279f0372825b89e9d3fe2c80a2f4ac2fe23328f5625b0ceca45f6fabcb2",
       "executable": false
     },
     "AGENTS.md": {
@@ -107,7 +107,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "a1e48426ffaf5d778594d1cfd435836e60870b1e1b5fdf015b926739d06bfe6f",
+      "sha256": "e443886f6aaaef87dd52ef56bc64f2162446a023132bd6310a92a6507936eedc",
       "executable": false
     },
     "DEMO.md": {
@@ -584,6 +584,10 @@
     },
     "migrations/core/0113_vane_github_credential_kind.sql": {
       "sha256": "55b88d4ac53ae01ceeca1e01127fc01ffeb89dfc48e888b50cafb83d6b39ea43",
+      "executable": false
+    },
+    "migrations/core/0114_vane_heat_geometry.sql": {
+      "sha256": "999618590b4dcd43843d522dc00939c0cb15bf593af523745087c3c5a406e6a1",
       "executable": false
     },
     "ONBOARDING.md": {
@@ -3267,7 +3271,11 @@
       "executable": false
     },
     "src/vane/heat/collect.ts": {
-      "sha256": "07ad62502a4251ca42f5f734e357a2f87c2754bbd655be79a48292533406e840",
+      "sha256": "2ebab3a1ec3002b80f1b448a9380471473de29ec432f05fc116b501a74f0fd17",
+      "executable": false
+    },
+    "src/vane/heat/geometry.ts": {
+      "sha256": "1120dde9afe0796e1e058c4442397e829f76a1048a27452136cb9c519c89ff53",
       "executable": false
     },
     "src/vane/heat/index.ts": {
@@ -3275,7 +3283,7 @@
       "executable": false
     },
     "src/vane/heat/report.ts": {
-      "sha256": "6a424ab2d61b26883da7502480d2f9a7411cfd7368e04623821bf2709658fddc",
+      "sha256": "4be84867357bc2bfaf69a7ace28f618b0079591b3797a2002c82755a81d80ff2",
       "executable": false
     },
     "src/vane/heat/settings.ts": {
@@ -3283,7 +3291,7 @@
       "executable": false
     },
     "src/vane/heat/tracker.ts": {
-      "sha256": "9801ac33c3f9afe0efb5410b023f1576939a7d3d6b8096cde0d167d32086fd4e",
+      "sha256": "9c13c5973b8880bbfd6e306acf9eda9b476618b581c786c48f6c58bf0125d781",
       "executable": false
     },
     "src/vane/hosts.ts": {
@@ -3315,7 +3323,7 @@
       "executable": false
     },
     "src/vane/inventory.ts": {
-      "sha256": "13ac1747f2887b64b7490e4f5f75bccc77e7cefdc78535c23e064b8d8111549f",
+      "sha256": "b7241541458cc4b7dc8ea0a2c8c2793d5f2807229901162b2a5cd5ad2a5d182d",
       "executable": false
     },
     "src/vane/journeys.ts": {
@@ -3767,7 +3775,7 @@
       "executable": false
     },
     "src/vane/transfer.ts": {
-      "sha256": "89fe55babbe8e3c69d53f60a4c8cc0b5be7cbf0c2b60124da1727420c986f76c",
+      "sha256": "013c12ce083811b272c1dbb352b41b790e457138b32a7fb0e83fed0ae3823724",
       "executable": false
     },
     "src/vane/views/agency.ts": {
@@ -3834,8 +3842,12 @@
       "sha256": "86b79453f809048f37a6dc4b98667a25f77e52799bb5e2a8d69114b64fc42851",
       "executable": false
     },
+    "src/vane/views/heat-geometry.ts": {
+      "sha256": "578e80bde3f72592c1963d9b1a9cc9e09430df3dff9575be28071f32393ed2c2",
+      "executable": false
+    },
     "src/vane/views/heat.ts": {
-      "sha256": "52849c44ff2009799545e4188d857c961ce1fc3436212d97a87854b778f4f3bd",
+      "sha256": "f4837758b9faccd7fdb229d8926576c4d8f40df4e7ce2bfd9148938d1b92475d",
       "executable": false
     },
     "src/vane/views/history.ts": {
@@ -4119,7 +4131,7 @@
       "executable": false
     },
     "tests/heat.test.mjs": {
-      "sha256": "b818507a59c13bc90c5046f6a89b420c5effe498770026a59f14f5b46268cfb3",
+      "sha256": "856266e57fc264b2c9d649080bc71b9c7153b2aede3094f8ea02cec99b0892ac",
       "executable": false
     },
     "tests/host-local.journey.mjs": {
