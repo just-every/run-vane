@@ -1,4 +1,5 @@
 import { analyticsCellsSource, analyticsUniques, analyticsConverters, analyticsDeviceDimension, analyticsTransport, analyticsReportSeries } from './analytics'
+import { dimensionSql } from './analytics/schema'
 import { transportCoverage } from './proxy/coverage'
 import { importedRanges } from './movein/ranges'
 import { consentedReport } from './consented'
@@ -47,7 +48,8 @@ export function createInsightsService(env:Env,value:Site,now=clock(),range?:{fro
  const timeZone=value.config.timeZone??'UTC',custom=Boolean(range?.from||range?.to),period=(custom?'custom':range?.period||'7d') as Period|'custom';
  insist(custom||Object.hasOwn(PERIODS,period),'period','Choose one of the preset ranges or a custom range.');
  if(custom)insist(Boolean(range!.from&&range!.to)&&[range!.from,range!.to].every(x=>/^\d{4}-\d{2}-\d{2}$/.test(x!)&&Number.isFinite(Date.parse(x!))&&day(Date.parse(x!))===x),'range','Choose valid start and end dates.');
- const preset=async()=>presetRange(period as Period,now,timeZone,period==='all'?(await rows<{d:string|null}>(env,`SELECT MIN(day) AS d FROM ${baseSet} WHERE site_id IN (SELECT value FROM json_each(?))`,scope))[0]?.d??null:null);
+ const firstHistoryDay=()=>rows<{d:string|null}>(env,`SELECT MIN(day) AS d FROM ${host?baseSet:`(SELECT site_id,day FROM vane_analytics_cells WHERE n>0${importedOff?'':` UNION ALL SELECT site_id,day FROM ${visibleImports('vane_import_events')}`})`} WHERE site_id IN (SELECT value FROM json_each(?))`,scope);
+ const preset=async()=>presetRange(period as Period,now,timeZone,period==='all'?(await firstHistoryDay())[0]?.d??null:null);
  const metric=(range?.metric||'visitors') as Metric;insist(Object.hasOwn(METRICS,metric),'metric','Chart one of the listed metrics.');
  // Unique visitors: consented identities once per site across the range, plus cookie-free daily uniques.
  const analyticalRange=(from:string,to:string)=>({siteIds:members??[value.id],from,to});
@@ -96,7 +98,7 @@ export function createInsightsService(env:Env,value:Site,now=clock(),range?:{fro
   // A table row's change compares its first count column with the same row in the compared period (0 when absent there).
   const withPrevious=<T extends Record<string,any>>(now:T[],then:T[],keys:string[],field:string)=>now.map(row=>({...row,previous:Number(then.find(old=>keys.every(k=>old[k]===row[k]))?.[field]??0)}));
   // DASH-011: the journey through the chosen page, by default the most loaded one.
-  const journey=async()=>{const path=range?.journey||(await rows<{path:string}>(env,`SELECT path FROM ${evNow} WHERE site_id IN (SELECT value FROM json_each(?)) AND day>=? AND day<? AND kind='pageview' AND at IS NOT NULL GROUP BY path ORDER BY COUNT(*) DESC,path LIMIT 1`,scope,from,to))[0]?.path;if(!path)return null;const mode=(range?.journeyMode||'page') as JourneyMode,[now,then]=await Promise.all([journeys(env,scope,from,to,evNow,path,mode),journeys(env,scope,previousFrom,previousTo,evThen,path,mode)]);
+  const journey=async()=>{const path=range?.journey||(await rows<{path:string}>(env,evNow==='vane_events'?`SELECT ${dimensionSql('path')} AS path FROM vane_analytics_cells WHERE site_id IN (SELECT value FROM json_each(?)) AND day>=? AND day<? AND kind='pageview' AND timed>0 GROUP BY path ORDER BY SUM(timed) DESC,path LIMIT 1`:`SELECT path FROM ${evNow} WHERE site_id IN (SELECT value FROM json_each(?)) AND day>=? AND day<? AND kind='pageview' AND at IS NOT NULL GROUP BY path ORDER BY COUNT(*) DESC,path LIMIT 1`,scope,from,to))[0]?.path;if(!path)return null;const mode=(range?.journeyMode||'page') as JourneyMode,[now,then]=await Promise.all([journeys(env,scope,from,to,evNow,path,mode),journeys(env,scope,previousFrom,previousTo,evThen,path,mode)]);
    // DASH-008: each journey row carries its visits in the compared period.
    const key=(row:{steps:string[]})=>row.steps.join('\u0000');return {...now,previousVisits:then.visits,next:withPrevious(now.next.map(r=>({...r,key:key(r)})),then.next.map(r=>({...r,key:key(r)})),['key'],'visits'),previous:withPrevious(now.previous.map(r=>({...r,key:key(r)})),then.previous.map(r=>({...r,key:key(r)})),['key'],'visits'),nextSteps:withPrevious(now.nextSteps,then.nextSteps,['step'],'reached'),previousSteps:withPrevious(now.previousSteps,then.previousSteps,['step'],'reached')}};
   // CONV-005: a site's funnels over the range and the compared period, with the report's hostname filter (roll-ups have none).
@@ -116,9 +118,10 @@ export function createInsightsService(env:Env,value:Site,now=clock(),range?:{fro
   const annotations=await annotationsFor(env,scoped.map(s=>({id:s.id,name:s.name,config:JSON.parse(s.config_json)})),from,to,Boolean(members)),timeout=members?null:visitTimeout(value.config);
   // REPORT-003: the largest movers with their totals, the range's annotations, coverage that changed, and each day's
   // place against the day-of-week baseline (ranges up to 31 days; the baseline needs the 8 weeks before the range).
+  const dailyVariation=Date.parse(to)-Date.parse(from)<=31*86400000
   const [daily,firstDay,previousSignals,previousExclusions,previousCoverage]=await Promise.all([
-   Date.parse(to)-Date.parse(from)<=31*86400000?seriesFor(day(Date.parse(from)-56*86400000),to,'day',setNow,evNow):Promise.resolve(null),
-   rows<{d:string|null}>(env,`SELECT MIN(day) AS d FROM ${baseSet} WHERE site_id IN (SELECT value FROM json_each(?))`,scope),
+   dailyVariation?seriesFor(day(Date.parse(from)-56*86400000),to,'day',setNow,evNow):Promise.resolve(null),
+   dailyVariation?firstHistoryDay():Promise.resolve([]),
    rows(env,'SELECT COALESCE(SUM(count),0) AS n FROM vane_signals WHERE site_id IN (SELECT value FROM json_each(?)) AND day>=? AND day<?',scope,previousFrom,previousTo),
    rows<{reason:string,count:number}>(env,'SELECT reason,SUM(count) AS count FROM vane_exclusions WHERE site_id IN (SELECT value FROM json_each(?)) AND day>=? AND day<? GROUP BY reason',scope,previousFrom,previousTo),
    rows(env,`SELECT COALESCE(SUM(occurrence_count),0) AS imported FROM ${occurrencesThen} WHERE site_id IN (SELECT value FROM json_each(?)) AND day>=? AND day<? AND import_job IS NOT NULL`,scope,previousFrom,previousTo)])
