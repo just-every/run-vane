@@ -5,6 +5,13 @@ not passed at an exact candidate SHA. Acceptance still requires genuine admitted
 pageviews, the measured burst, complete dashboard latency and measured capacity.
 The implementation and smaller runs do not establish those results.
 
+A smaller run at `9626aa234a824e2ae36a21d20e0d87a91acae61f`
+(`20261022T044016963235Z-heavy-slot-faf36394`) admitted 1,015,102 real
+pageviews, completed its paced burst at 517.2 events/second, and returned the
+complete summary in 145.4 ms and dashboard HTML in 135.3 ms. Its requested
+12-month range contained one populated month. The actual store used 80,904,192
+bytes. These figures describe that smaller workload, not the full target.
+
 ## Lossless compact raw storage
 
 The deployment uses the existing `DB` D1 binding. `vane_events` is a logical view
