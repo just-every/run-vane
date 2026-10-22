@@ -1,4 +1,4 @@
-import type { Env, Site } from '../core'
+import { rows, type Env, type Site } from '../core'
 import type { EventDefinition } from '../event-definitions'
 import { redactPath } from '../paths'
 export interface NativePage {
@@ -8,11 +8,15 @@ export interface NativePage {
 }
 // Keep structural evidence only: no page body, element text, input value, link destination or script contents.
 // Candidate IDs contain words only; identifier-looking values never become a suggested selector.
-export async function inspectPage(html:string,value:Site,env:Env):Promise<NativePage> {
+export async function nativeScriptUrls(env:Env,value:Site):Promise<string[]> {
+ const connections=await rows<{hostname:string;public_prefix:string}>(env,'SELECT hostname,public_prefix FROM vane_proxy_connections WHERE site_id=? AND revoked_at IS NULL',value.id)
+ return [new URL('/vane.js',env.AUTH_ORIGIN).href,...connections.map(c=>`https://${c.hostname}${c.public_prefix}/script.js`)]
+}
+export async function inspectPage(html:string,value:Site,scriptUrls:string[]):Promise<NativePage> {
  const native:NativePage={scripts:0,selectors:[],controls:[]},counts=new Map<string,number>()
  const output=new HTMLRewriter().on('script[src]',{element(el){
   try {const u=new URL(el.getAttribute('src')!,value.origin)
-   if(u.href===new URL('/vane.js',env.AUTH_ORIGIN).href&&el.getAttribute('data-site')===value.id)native.scripts++
+   if(!u.username&&!u.password&&scriptUrls.includes(u.origin+u.pathname)&&el.getAttribute('data-site')===value.id)native.scripts++
   } catch {}
  }}).on('button,form,a[id],input[type="submit"]',{element(el){
   const ordinal=counts.get(el.tagName)??0;counts.set(el.tagName,ordinal+1)

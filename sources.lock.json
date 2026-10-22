@@ -163,7 +163,7 @@
       "executable": false
     },
     "docs/instrumentation.md": {
-      "sha256": "49b2de88292dddc35fad36119baa76004bba71110dde8cf97478ae25dd7a856a",
+      "sha256": "26aeb4975f52e31509749aef9acfff4939914518fa0f246c56047d28add660b5",
       "executable": false
     },
     "docs/movement.md": {
@@ -3287,11 +3287,11 @@
       "executable": false
     },
     "src/vane/instrumentation/index.ts": {
-      "sha256": "d921b248dc0007d1e196a0daab5e49cc59e18a51ec03222bfd79620dd00f7a61",
+      "sha256": "f4073b66540d32f9449b1a70c5353e7388cb65371cee2f4440058fff0482741c",
       "executable": false
     },
     "src/vane/instrumentation/page.ts": {
-      "sha256": "76ddcfcf37614db381c256b28ed836bcf7a8815ce325d0e2ff15e08db98db206",
+      "sha256": "7f041828b1ce144ff247aad0fb4e78b743330d4c8fd98b3f1136e1e9c7b9318d",
       "executable": false
     },
     "src/vane/inventory.ts": {
@@ -4127,7 +4127,7 @@
       "executable": false
     },
     "tests/instrumentation.test.mjs": {
-      "sha256": "7e4167a8136bb5711ab60ae009929b3dd46eb47ee88f6c07ca9026e9571ec74a",
+      "sha256": "76053303240625d9f2de69feec717a4a846a2722215012f3f32400a50aa4f059",
       "executable": false
     },
     "tests/locations.journey.mjs": {
@@ -4139,7 +4139,7 @@
       "executable": false
     },
     "tests/movement.test.mjs": {
-      "sha256": "0b08d986cb0966e735face72b100498d9995b412a927aa78487219d62380189c",
+      "sha256": "992753e92390dfac70115521b43b5e7aba1b2ee5e4a145d7b7a5d91f3adb9523",
       "executable": false
     },
     "tests/plausible-definitions.test.mjs": {

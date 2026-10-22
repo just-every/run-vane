@@ -5,11 +5,11 @@ import { localDay } from '../visitors'
 import { localDate } from '../annotations'
 import { prepare } from '../commands'
 import { scan, scans } from '../cutover/scan'
-import { inspectPage } from './page'
+import { inspectPage, nativeScriptUrls } from './page'
 import { redactPath } from '../paths'
 export interface Problem {kind:'missing-script'|'duplicate-script'|'missing-selector'|'invalid-selector'|'silent-event'|'possible-duplicate'|'misnamed-event'|'missing-funnel-step';page?:string;name?:string;detail:string;evidence:string;replacement?:string;target?:string}
 export interface InstrumentationReport {
- id:string;siteId:string;at:number;scanId:string;inspectedPages:number;from:string;to:string;problems:Problem[];unknown:string[]
+ id:string;siteId:string;at:number;scanId:string;siteVersion:number;inspectedPages:number;from:string;to:string;problems:Problem[];unknown:string[]
  draft:{title:string;body:string;changes:{page:string;before:string;after:string}[];state:'draft-only'}
 }
 const owner=async(env:Env,actor:Actor,siteId:string)=>{allow(actor,'owner');inScope(actor,siteId);return site(env,siteId)}
@@ -27,7 +27,7 @@ export async function investigateInstrumentation(env:Env,actor:Actor,p:any):Prom
  const value=await owner(env,actor,String(p.siteId??'')),from=localDate(p.from),to=localDate(p.to)
  insist(from<to&&Date.parse(to)-Date.parse(from)<=31*86400000,'range','Investigate between 1 and 31 whole local days.')
  const previous=(await scans(env,actor,value.id)).find(s=>s.state==='complete'&&s.pages.some(p=>p.native))
- const current=await scan(env,actor,{siteId:value.id,pageLimit:p.pageLimit??50},html=>inspectPage(html,value,env))
+ const scriptUrls=await nativeScriptUrls(env,value),current=await scan(env,actor,{siteId:value.id,pageLimit:p.pageLimit??50},html=>inspectPage(html,value,scriptUrls))
  const problems:Problem[]=[],link=evidence(value.id,current.id)
  for(const page of current.pages) {
   const native=page.native!,pagePath=path(page.url),base=previous?.pages.find(p=>path(p.url)===pagePath)?.native
@@ -51,9 +51,9 @@ export async function investigateInstrumentation(env:Env,actor:Actor,p:any):Prom
   for(const other of arrivals.filter(r=>r.name!==name&&r.name.toLowerCase()===name.toLowerCase()))problems.push({kind:'misnamed-event',name:other.name,detail:`${other.n} ${other.name} events arrived; declared spelling is ${name}. Names are case-sensitive.`,evidence:reportLink})
  }
  for(const f of value.config.funnels??[])for(const step of f.steps)if(step.startsWith('event:')&&!declared.includes(step.slice(6).split('[')[0]!))problems.push({kind:'missing-funnel-step',name:f.name,detail:`${f.name} refers to ${step}, which has no declared event definition or goal. It may be supplied by code; its existence is unverified.`,evidence:reportLink})
- const changes=problems.flatMap(p=>p.kind==='missing-script'?[{page:p.page!,before:'No matching native script',after:`<script defer src="${new URL('/vane.js',env.AUTH_ORIGIN).href}" data-site="${value.id}"></script>`}]:p.kind==='missing-selector'&&p.replacement?[{page:p.page!,before:`${p.name}: ${p.target}`,after:`${p.name}: ${p.replacement}`}]:[])
+ const changes=problems.flatMap(p=>p.kind==='missing-script'?[{page:p.page!,before:'No matching native script',after:`<script defer src="${new URL('/vane.js',env.AUTH_ORIGIN).href}" data-site="${value.id}"></script>`}]:p.kind==='missing-selector'&&p.replacement?[{page:p.page!,before:`${p.name}: ${p.target}`,after:`${p.name}: ${p.target}, ${p.replacement}`}]:[])
  const unknown=[...(current.state!=='complete'?['The crawl failed; no clean-site conclusion is possible.']:[]),...(current.refused?[`${current.refused} sitemap/page requests were refused or exceeded the selected limit; those pages are unverified.`]:[]),'Static HTML cannot prove consent, script execution, blockers or a real user action.','GitHub/Pane deploy diffs and PR submission are not connected; this is a reviewable PR draft, not an opened pull request.','Server-confirmed outcomes from Stripe, Shopify and CRM are unavailable until CONV-008 is connected.','GTM and Pane fix hand-off are unavailable until INSTALL-005 and AGENT-003 ship.']
- const result:InstrumentationReport={id:uid(),siteId:value.id,at:clock(),scanId:current.id,inspectedPages:current.pages.length,from,to,problems,unknown,draft:{title:'Repair analytics instrumentation',state:'draft-only',changes,body:`Review these structural observations against the deployed source. Preserve consent, event names, properties and the collection field set. ${changes.length} suggested changes; no repository or website has been edited.`}}
+ const result:InstrumentationReport={id:uid(),siteId:value.id,at:clock(),scanId:current.id,siteVersion:value.version,inspectedPages:current.pages.length,from,to,problems,unknown,draft:{title:'Repair analytics instrumentation',state:'draft-only',changes,body:`Review these structural observations against the deployed source. Preserve consent, event names, properties and the collection field set. ${changes.length} suggested changes; no repository or website has been edited.`}}
  await atomic(env,actor,[statement(env,'INSERT INTO vane_instrumentation_runs(id,site_id,actor_id,at,scan_id,from_day,to_day,report_json) VALUES(?,?,?,?,?,?,?,?)',result.id,value.id,actor.id,result.at,current.id,from,to,JSON.stringify(result)),auditStatement(env,actor.id,'agent.instrumentation',value.id,result.id)])
  return result
 }
@@ -63,12 +63,13 @@ async function runOf(env:Env,siteId:string,id:string):Promise<InstrumentationRep
 }
 export async function prepareInstrumentationFix(env:Env,actor:Actor,p:any) {
  const value=await owner(env,actor,String(p.siteId??'')),run=await runOf(env,value.id,String(p.runId??''))
+ insist(run.siteVersion===value.version,'stale','Settings changed since this investigation. Investigate again before preparing a fix.',409)
  insist(p.confirm==='on','review','Confirm that you reviewed the structural candidates against the deployed page.')
  const snapshot=(await scans(env,actor,value.id)).find(s=>s.id===run.scanId)
  insist(snapshot?.state==='complete','scan','A completed retained scan is required; investigate again.',409)
  const replacements=new Map<string,string>()
  for(const problem of run.problems.filter(p=>p.kind==='missing-selector'&&p.replacement)) {
-  const prior=replacements.get(problem.target!);insist(!prior||prior===problem.replacement,'ambiguous','Different pages suggest conflicting replacements. Complete the change manually.');replacements.set(problem.target!,problem.replacement!)
+  const prior=replacements.get(problem.target!);insist(!prior||prior===`${problem.target}, ${problem.replacement}`,'ambiguous','Different pages suggest conflicting replacements. Complete the change manually.');replacements.set(problem.target!,`${problem.target}, ${problem.replacement}`)
  }
  const eventDefinitions=(value.config.eventDefinitions??[]).map(d=>({...d,target:replacements.get(d.target)??d.target}))
  insist(run.draft.changes.length>0,'fix','No concrete fix was found. Complete the missing evidence first.')
@@ -87,7 +88,7 @@ export async function verifyInstrumentationFix(env:Env,actor:Actor,p:any) {
  insist(proposal,'approval','The owner must approve the prepared change before verification.',409)
  const payload=JSON.parse(proposal.payload_json)
  insist(payload.version+1===value.version,'stale','Settings changed after this approval. Investigate and prepare a fresh fix.',409)
- const draft=JSON.parse(fix.draft_json),current=await scan(env,actor,{siteId:value.id,pageLimit:500},html=>inspectPage(html,value,env)),missing:string[]=[]
+ const draft=JSON.parse(fix.draft_json),scriptUrls=await nativeScriptUrls(env,value),current=await scan(env,actor,{siteId:value.id,pageLimit:500},html=>inspectPage(html,value,scriptUrls)),missing:string[]=[]
  const deploy=(await rows<{at:number}>(env,"SELECT at FROM vane_annotations WHERE site_id=? AND kind IN ('deploy','release') AND at>? AND at>=? ORDER BY at DESC LIMIT 1",value.id,fix.created_at,proposal.approved_at))[0],deployed=Boolean(deploy),after=Math.max(fix.created_at,Number(proposal.approved_at),deploy?.at??0)
  if(!deployed)missing.push('A deploy or release annotation received after this fix was prepared is required.')
  for(const change of draft.changes as {page:string}[]) {
