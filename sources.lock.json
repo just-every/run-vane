@@ -71,7 +71,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "bacae6a81588a2982f9528ff89f8911cd021997ae51dc67de7f7889931731148",
+      "sha256": "979974fa6148c9bf546f9c854aa46e18f679c69c1b87e4e7349f0df9983b7b5f",
       "executable": false
     },
     "AGENTS.md": {
@@ -103,7 +103,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "bb2431578c283f83436c7f08c615af3afea89525fc9c42c00c96066bbc43c590",
+      "sha256": "2a608a7638be1bfb9e335e2d36e1973a6ca2794d77f8a2dbf58f1e16ad72141e",
       "executable": false
     },
     "DEMO.md": {
@@ -440,6 +440,10 @@
     },
     "migrations/core/0083_agency.sql": {
       "sha256": "fad1797ba1457c0e9b1e34fe43e1d4f09be23664c7604afa55b67a1577843919",
+      "executable": false
+    },
+    "migrations/core/0084_heat.sql": {
+      "sha256": "3a93784a3b79eb2f14ff626df1f1ea59132c351a378cc9ad113613f15619e981",
       "executable": false
     },
     "ONBOARDING.md": {
@@ -2819,7 +2823,7 @@
       "executable": false
     },
     "src/vane/collect.ts": {
-      "sha256": "63bf27e9f87b3a1908a59bdeaec207d736f0fcec87c593b2907cf471175cc8fd",
+      "sha256": "ebcd22ca59099fb46c8cc36e9c26a4029af19a28a502fa62f6474900ea37f4ac",
       "executable": false
     },
     "src/vane/commands.ts": {
@@ -2930,6 +2934,30 @@
       "sha256": "e6c9fb525fb757e35bd7a4f6f901f1a71cd38df77220b18617619a52198042c4",
       "executable": false
     },
+    "src/vane/heat/browser.ts": {
+      "sha256": "ba52a393f284db3380390ac43f433296f1f1256325251f390007a5e509b8ed49",
+      "executable": false
+    },
+    "src/vane/heat/collect.ts": {
+      "sha256": "07ad62502a4251ca42f5f734e357a2f87c2754bbd655be79a48292533406e840",
+      "executable": false
+    },
+    "src/vane/heat/index.ts": {
+      "sha256": "c1eb00910a4c8d45a8ff79b75ebab5cd9ef302f2b3795b3ff2f626c3cf8cf2b8",
+      "executable": false
+    },
+    "src/vane/heat/report.ts": {
+      "sha256": "6a424ab2d61b26883da7502480d2f9a7411cfd7368e04623821bf2709658fddc",
+      "executable": false
+    },
+    "src/vane/heat/settings.ts": {
+      "sha256": "56ed2e661c7467492b221a60599e7718d8025fb47ece408231855209b24bbd57",
+      "executable": false
+    },
+    "src/vane/heat/tracker.ts": {
+      "sha256": "9801ac33c3f9afe0efb5410b023f1576939a7d3d6b8096cde0d167d32086fd4e",
+      "executable": false
+    },
     "src/vane/hosts.ts": {
       "sha256": "ff975509dc5b94715cd0a650c64fa514b1afda3edfa20b6142f6a8458ea200a7",
       "executable": false
@@ -2943,7 +2971,7 @@
       "executable": false
     },
     "src/vane/inventory.ts": {
-      "sha256": "7de782f74028d0074a7c0711cf22964a656fbb1b10c4dd1066c60927578efb34",
+      "sha256": "e8a99dcd8af8e7de4c41b3a44c5133389bd95f772a3862821be28023c94ec4fb",
       "executable": false
     },
     "src/vane/journeys.ts": {
@@ -3119,7 +3147,7 @@
       "executable": false
     },
     "src/vane/proxy/adapter.ts": {
-      "sha256": "736cdc62e332c802a8cb1747effd3ee087327bf45132abfc98809b49e5081010",
+      "sha256": "2e6803488c5f49329b80abe9cea6d788e28aa05e2f62d47dbb7d1c215a9df639",
       "executable": false
     },
     "src/vane/proxy/cloudflare.ts": {
@@ -3135,7 +3163,7 @@
       "executable": false
     },
     "src/vane/proxy/ingress.ts": {
-      "sha256": "659fe8218be471fdf9ba14dd729fe1540533853b65d5b6c820656ed02141e5ff",
+      "sha256": "797cb2a8b425ad42586c459488889508d941007edf651782a6bf997c9fecffa7",
       "executable": false
     },
     "src/vane/proxy/management.ts": {
@@ -3199,7 +3227,7 @@
       "executable": false
     },
     "src/vane/routes.ts": {
-      "sha256": "3ed6992a3790d2a7464b2bf99f560f581071c57eecf2f762b9545164299bcf13",
+      "sha256": "30e7ff93aee4f654d947e6b89be3ff80d4d969c9bd3650ebbfd881bd932a7457",
       "executable": false
     },
     "src/vane/sealed.ts": {
@@ -3291,7 +3319,7 @@
       "executable": false
     },
     "src/vane/tracker.ts": {
-      "sha256": "5c78f06f9c8509b4ba9d0305db0423c1b2b0194e4066bd77738118e359a53434",
+      "sha256": "5495daf993133da6a236c9657325bed77129ab37f4052b80c487e660231441ac",
       "executable": false
     },
     "src/vane/tracking-health.ts": {
@@ -3307,7 +3335,7 @@
       "executable": false
     },
     "src/vane/transfer.ts": {
-      "sha256": "67834395e4912b72a9308e6b979dff503e4f85b98cea22531bfd5b022b628069",
+      "sha256": "e674cb6f3d27cb02d680e4e8966f12541a9ead005935f789e1f5578616c2ee5b",
       "executable": false
     },
     "src/vane/views/agency.ts": {
@@ -3370,6 +3398,10 @@
       "sha256": "86b79453f809048f37a6dc4b98667a25f77e52799bb5e2a8d69114b64fc42851",
       "executable": false
     },
+    "src/vane/views/heat.ts": {
+      "sha256": "2ef32c7fc01a9f3a4e732de482647a13ed9cd8205170b4e3b98a07a5782856e7",
+      "executable": false
+    },
     "src/vane/views/history.ts": {
       "sha256": "6e9147641e821b2875d660cac727c7c9c671cd52bd509e46099876361dccd4de",
       "executable": false
@@ -3395,7 +3427,7 @@
       "executable": false
     },
     "src/vane/views/index.ts": {
-      "sha256": "b3d11f636f33d4abd1abc8110fa414ea8de33043822e72f78c780e8060bd9fee",
+      "sha256": "ad9cce38cc19d75308b1b2cd4518d9c0754bf3f62612c4962e8678f2c3f315e1",
       "executable": false
     },
     "src/vane/views/locations.ts": {
@@ -3475,7 +3507,7 @@
       "executable": false
     },
     "src/vane/views/shell.ts": {
-      "sha256": "ad0522f8dc6e6f4eb7dc044edca751b2b566d611158b65e78d674c777da307ce",
+      "sha256": "c31153b0e5f04d5a95ec4b245a9a6ce3e61177d0cb45004890ca37908f1d197d",
       "executable": false
     },
     "src/vane/views/store.ts": {
@@ -3491,7 +3523,7 @@
       "executable": false
     },
     "src/vane/views/types.ts": {
-      "sha256": "7b994e877a005d09ded02afdda94461c85115e82b7e8d66e6b75de5cddda9b22",
+      "sha256": "77fb1a99f732f103162736712e1d5463dc0c2fab653285787f76831e4fe8307c",
       "executable": false
     },
     "src/vane/views/webhook-settings.ts": {
@@ -3630,6 +3662,10 @@
       "sha256": "8728b7fb25118b9b47e307c4579350ef72affb59fd132ece297fbed47534d9b2",
       "executable": false
     },
+    "tests/heat.test.mjs": {
+      "sha256": "0504bfe35bf02d16f86b974ff3efb8b1e6bc80e4edb0ab9d0eed8e47728d9f61",
+      "executable": false
+    },
     "tests/host-local.journey.mjs": {
       "sha256": "ad12080677448aa2aa6a67795233d6d399ddc178bbfad025359164639d32af61",
       "executable": false
@@ -3671,7 +3707,7 @@
       "executable": false
     },
     "tests/proxy-adapters.test.mjs": {
-      "sha256": "110bae1d4e54600505cf3fd99aa81f2486656d175c4695ea60223a2fd37491c7",
+      "sha256": "b6f51b78ffaea146c0a22d8fb525e0f820a3dc32e70f50e49d445c61f1c04df8",
       "executable": false
     },
     "tests/proxy-blocker.journey.mjs": {
