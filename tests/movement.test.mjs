@@ -76,7 +76,8 @@ test('Movement investigations rank a tracking break, organic ranking drop and co
  const {context}=await browse(t,a);await context.addCookies(a.owner.split('; ').map(pair=>{const i=pair.indexOf('=');return {name:pair.slice(0,i),value:pair.slice(i+1),url:a.origin}}));const page=await context.newPage(),dir=process.env.VANE_SCREEN_DIR;if(dir)await mkdir(dir,{recursive:true})
  for(const width of [1440,390])for(const c of cases){
   await page.setViewportSize({width,height:1000});await page.goto(`${a.origin}/app/sites/${c.id}?${new URLSearchParams({from:c.from,to:c.to,compare:'custom',compareFrom:BASE,compareTo:BASE_END})}#movement`)
-  await page.getByRole('button',{name:'Investigate why numbers moved',exact:true}).click();await page.waitForURL(/#movement$/)
+  assert.equal(await page.locator('[data-movement-result]').count(),1,'the saved exact-window investigation is rendered before submit')
+  const submitted=page.waitForResponse(r=>new URL(r.url()).pathname==='/app/action'&&r.request().method()==='POST');await page.getByRole('button',{name:'Investigate why numbers moved',exact:true}).click();const response=await submitted;assert.equal(response.status(),303,await page.locator('.vane-error').allTextContents());await page.waitForURL(/#movement$/)
   const view=page.locator('[data-movement-result]');await view.locator('li[data-movement-category]').first().scrollIntoViewIfNeeded();assert.equal(await view.locator('li[data-movement-category]').first().getAttribute('data-movement-category'),c.category)
   assert.match(await view.textContent(),/What would disprove it/);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true)
   if(dir)await page.screenshot({path:join(dir,`movement-${c.name}-${width}.png`)})
