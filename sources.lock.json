@@ -3867,7 +3867,7 @@
       "executable": false
     },
     "src/vane/views/instrumentation.ts": {
-      "sha256": "b1d1fc5370df329be470603d0da66b0b36b0918f390434a3207861832f05884f",
+      "sha256": "bd6f911dd9a71edf493e404733a969c4d27fb5e8c57a5499434fe2a63ea69947",
       "executable": false
     },
     "src/vane/views/locations.ts": {
