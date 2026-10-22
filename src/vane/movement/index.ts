@@ -13,7 +13,7 @@ import type { InstrumentationReport } from '../instrumentation'
 export interface Citation {label:string;href:string;unit:string;now:number|null;then:number|null;denominatorNow:number|null;denominatorThen:number|null;denominatorUnit:string}
 export interface Hypothesis {category:'tracking-coverage'|'channel-mix'|'page-behavior'|'external-events';title:string;score:number;confidence:'low'|'medium';evidence:Citation[];disprove:string;limitation:string}
 export interface MovementInvestigation {
- id:string;siteId:string;at:number;from:string;to:string;comparedFrom:string;comparedTo:string;timeZone:string
+ id:string;siteId:string;at:number;nativeOnly:true;from:string;to:string;comparedFrom:string;comparedTo:string;timeZone:string
  hypotheses:Hypothesis[];unknown:string[];annotations:{day:string;kind:string;text:string;url?:string}[]
  context:{day:string;label:string}[];statement:string
  sourceCoverage:{metric:EvidenceMetric;nowDays:number;thenDays:number;requiredDays:number;complete:boolean}[]
@@ -47,16 +47,16 @@ export async function investigateMovement(env:Env,actor:Actor,p:any):Promise<Mov
  insist(to<=localDay(clock(),value.config.timeZone??'UTC'),'range','Investigate ended local days; today is incomplete.')
  const stamp=await agentHistoryStamp(env,value.id)
  const days=dates(from,to),beforeDays=dates(comparedFrom,comparedTo)
- const report=await createInsightsService(env,value,clock(),{from,to,compare:'custom',compareFrom:comparedFrom,compareTo:comparedTo}).list()
+ const report=await createInsightsService(env,value,clock(),{from,to,compare:'custom',compareFrom:comparedFrom,compareTo:comparedTo,imported:'off'}).list()
  const [search,beforeSearch,nowEvidence,thenEvidence,instrumentation,exclusions]=await Promise.all([
   searchReport(env,actor,siteId,from,to),searchReport(env,actor,siteId,comparedFrom,comparedTo),sourceEvidence(env,siteId,from,to),sourceEvidence(env,siteId,comparedFrom,comparedTo),
   rows<{report_json:string;at:number}>(env,'SELECT report_json,at FROM vane_instrumentation_runs WHERE site_id=? AND from_day=? AND to_day=? ORDER BY at DESC LIMIT 1',siteId,from,to),
   rows<{day:string;reason:string;n:number}>(env,'SELECT day,reason,SUM(count) AS n FROM vane_exclusions WHERE site_id=? AND ((day>=? AND day<?) OR (day>=? AND day<?)) GROUP BY day,reason',siteId,from,to,comparedFrom,comparedTo),
  ])
- const base=`/app/sites/${encodeURIComponent(siteId)}?${new URLSearchParams({from,to,compare:'custom',compareFrom:comparedFrom,compareTo:comparedTo})}`
+ const base=`/app/sites/${encodeURIComponent(siteId)}?${new URLSearchParams({from,to,compare:'custom',compareFrom:comparedFrom,compareTo:comparedTo,imported:'off'})}`
  const sourceLink=`/api/vane/movement-evidence?${new URLSearchParams({siteId,from:comparedFrom,to})}`
  const cite=(label:string,unit:string,now:number|null,then:number|null,denominatorNow:number|null,denominatorThen:number|null,href=base,denominatorUnit='accepted page loads'):Citation=>({label,unit,now,then,denominatorNow,denominatorThen,href,denominatorUnit})
- const hypotheses:Hypothesis[]=[],unknown:string[]=['Ranked hypotheses describe consistency with observations, never proven causality. Scores order evidence and are not probabilities.','Blocker share and browser script-execution errors are not measured; collection errors below are server refusals.','Ad-spend changes and numeric Mango-send effects are unavailable; dated campaign annotations are context only.','Seasonality is not established by two windows; holidays are US observed federal dates and may not describe this site’s audience.']
+ const hypotheses:Hypothesis[]=[],unknown:string[]=['Imported history is excluded from native-arrival hypotheses because its collection and consent coverage are unknown; source-labelled history remains available in the ordinary reports.','Ranked hypotheses describe consistency with observations, never proven causality. Scores order evidence and are not probabilities.','Blocker share and browser script-execution errors are not measured; collection errors below are server refusals.','Ad-spend changes and numeric Mango-send effects are unavailable; dated campaign annotations are context only.','Seasonality is not established by two windows; holidays are US observed federal dates and may not describe this site’s audience.']
  const sourceCoverage=(['orders','checkout-errors','uptime-failures'] as EvidenceMetric[]).map(metric=>{const a=comparable(nowEvidence,metric,days),b=comparable(thenEvidence,metric,beforeDays);if(!a.complete||!b.complete)unknown.push(`${metric}: ${a.days}/${days.length} current and ${b.days}/${beforeDays.length} compared daily aggregates; missing dates are unknown, not zero.`);return {metric,nowDays:a.days,thenDays:b.days,requiredDays:days.length,complete:a.complete&&b.complete}})
  if(nowEvidence.length||thenEvidence.length)unknown.push('External aggregates are reported by the owner-selected authenticated sender; Vane has not independently verified a Stripe, Shopify, CRM, Spool or Uptime account. No visitor/order identity is reconciled.')
  const orders=comparable(nowEvidence,'orders',days),priorOrders=comparable(thenEvidence,'orders',beforeDays),errors=comparable(nowEvidence,'checkout-errors',days),priorErrors=comparable(thenEvidence,'checkout-errors',beforeDays),uptime=comparable(nowEvidence,'uptime-failures',days),priorUptime=comparable(thenEvidence,'uptime-failures',beforeDays)
@@ -110,7 +110,7 @@ export async function investigateMovement(env:Env,actor:Actor,p:any):Promise<Mov
  if(report.annotations.some(a=>a.kind==='settings'||a.kind==='definition'))unknown.push('Settings or metric definitions changed in the window; inspect the dated annotations before treating denominators as comparable.')
  const holidays=Object.assign({},...Array.from(new Set(days.map(d=>Number(d.slice(0,4))))).map(usHolidays)),context=days.filter(d=>holidays[d]).map(day=>({day,label:holidays[day]+' (US observed federal holiday; context only)'}))
  hypotheses.sort((a,b)=>b.score-a.score||a.title.localeCompare(b.title))
- const result:MovementInvestigation={id:uid(),siteId,at:clock(),from,to,comparedFrom,comparedTo,timeZone:value.config.timeZone??'UTC',hypotheses,unknown:[...new Set(unknown)],annotations:notes,context,sourceCoverage,statement:'These are ranked, falsifiable hypotheses from the cited observations. Correlation is not proof of causality. Missing coverage is unknown and is never ranked as a cause.'}
+ const result:MovementInvestigation={id:uid(),siteId,at:clock(),nativeOnly:true,from,to,comparedFrom,comparedTo,timeZone:value.config.timeZone??'UTC',hypotheses,unknown:[...new Set(unknown)],annotations:notes,context,sourceCoverage,statement:'These are ranked, falsifiable hypotheses from the cited observations. Correlation is not proof of causality. Missing coverage is unknown and is never ranked as a cause.'}
  await atomic(env,actor,[agentCommitGuard(env,value,stamp),statement(env,'INSERT INTO vane_movement_investigations(id,site_id,actor_id,at,from_day,to_day,compared_from,compared_to,report_json) VALUES(?,?,?,?,?,?,?,?,?)',result.id,siteId,actor.id,result.at,from,to,comparedFrom,comparedTo,JSON.stringify(result)),auditStatement(env,actor.id,'agent.movement',siteId,result.id)])
  return result
 }
