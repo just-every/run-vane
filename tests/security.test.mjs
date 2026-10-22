@@ -39,20 +39,23 @@ test('SAML fixture signs existing invited accounts into native sessions, enforce
  assert.equal((await session(a,a.owner)).status,303);assert.equal((await session(a,cookie)).status,200)
 })
 
-test('SCIM provisions only a live owner invitation and deprovisioning immediately ends native, OIDC and SAML access without removing the owner',async t=>{
+test('SCIM provisions zero-site viewers and deprovisioning immediately ends native, OIDC and SAML access without removing the owner',async t=>{
  for(const kind of ['oidc','saml']) {
   const fx=kind==='oidc'?await oidcInstallation(t):await samlInstallation(t),{a}=fx
-  assert.equal((await a.post('/auth/invite',{email:'member@example.test',role:'member',displayName:'Fern analyst'},a.owner)).status,202)
-  const provision=await scim(a,'Users','POST',{schemas:[userSchema],userName:'member@example.test',externalId:'synthetic-vane-2',active:true});assert.equal(provision.status,201,await provision.clone().text());const person=await provision.json();assert.equal(person.active,false)
-  assert.equal((await scim(a,'Users','POST',{schemas:[userSchema],userName:'foreign@example.test'})).status,409)
-  const native=await a.accept('member@example.test'),signed=kind==='oidc'?(await fx.signin('google','member@example.test')).response:await(await fx.response()).complete();assert.equal(signed.status,303)
+  await a.addSite({name:'Fern Studio',paths:[]})
+  const provision=await scim(a,'Users','POST',{schemas:[userSchema],userName:'member@example.test',externalId:'synthetic-vane-2',active:true});assert.equal(provision.status,201,await provision.clone().text());const person=await provision.json();assert.equal(person.active,true)
+  assert.equal((await scim(a,'Users','POST',{schemas:[userSchema],userName:'owner@example.test'})).status,409)
+  const native=await login(a,'member@example.test');assert.deepEqual(await(await a.request('/api/vane/sites',{headers:{cookie:native}})).json(),[])
+  assert.equal((await a.form({operation:'team.grant',operatorId:person.id,role:'viewer',scope:'all'},a.owner)).status,303)
+  assert.equal((await(await a.request('/api/vane/sites',{headers:{cookie:native}})).json()).length,1)
+  const signed=kind==='oidc'?(await fx.signin('google','member@example.test')).response:await(await fx.response()).complete();assert.equal(signed.status,303)
   const cookie=a.cookieOf(signed);assert.equal((await session(a,cookie)).status,200)
   assert.equal((await scim(a,'Users/'+person.id,'PATCH',{schemas:[patch],Operations:[{op:'replace',path:'active',value:false}]},'synthetic-vane-wrong')).status,401)
   assert.equal((await scim(a,'Users/'+person.id,'PATCH',{schemas:[patch],Operations:[{op:'replace',value:{active:false}}]})).status,200)
   for(const held of [native,cookie])for(const path of ['/auth/session','/api/vane/sites'])assert.equal((await a.request(path,{headers:{cookie:held}})).status,401)
   const owner=await(await session(a,a.owner)).json();assert.equal((await scim(a,'Users/'+owner.operator.id,'DELETE')).status,404)
   assert.equal((await scim(a,'Users/'+person.id,'PATCH',{schemas:[patch],Operations:[{op:'replace',path:'active',value:true}]})).status,400)
-  const retry=kind==='oidc'?(await fx.signin('google','member@example.test')).response:await(await fx.response()).complete();assert.equal(retry.status,400)
+  const retry=kind==='oidc'?(await fx.signin('google','member@example.test')).response:await(await fx.response()).complete();assert.equal(retry.status,kind==='oidc'?403:400)
  }
 })
 
@@ -67,7 +70,7 @@ test('authenticator sign-in refuses wrong and replayed codes, consumes a recover
  assert.equal((await a.post('/auth/security/verify',{code:codes[0]},cookie)).status,303)
  cookie=await login(a,email)
  assert.equal((await a.post('/auth/security/verify',{code:codes[0]},cookie)).status,403)
- const archive=await a.archive();assert.equal(Object.keys(archive.payload.tables).some(k=>/^vane_(totp|second_step|security|saml)_/.test(k)),false)
+ const archive=await a.archive();assert.equal(Object.keys(archive.payload.tables).some(k=>/^vane_(totp|second_step|security|saml|scim)_/.test(k)),false)
  const text=JSON.stringify(await a.dump());assert.equal(text.includes(secret),false);assert.equal(text.includes(codes[0]),false)
 })
 

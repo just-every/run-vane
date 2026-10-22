@@ -16,7 +16,7 @@ function roles(owner: boolean, current = 'viewer'): string {
 export function teamPage(data: ViewData): string {
   const owner = data.actor.access === 'owner', people = data.people ?? []
   const rows = people.map(person => {
-    const sites = person.sites ? person.sites.map(id => data.sites.find(site => site.id === id)?.name ?? id).join(', ') : 'Every site'
+    const sites = person.sites ? person.sites.map(id => data.sites.find(site => site.id === id)?.name ?? id).join(', ') || 'No sites' : 'Every site'
     const manage = person.access !== 'owner' && person.id !== data.actor.id && (owner || person.access !== 'admin')
     const change = manage ? `<details><summary>Change access</summary><form action="/app/action" method="post">${operation('team.grant')}${hidden('operatorId', person.id)}${person.access === 'admin' ? '' : roles(false, person.access)}${scope(data, person)}<button type="submit" class="vane-secondary">Save access</button></form><form action="/app/action" method="post">${operation('team.remove')}${hidden('operatorId', person.id)}<button type="submit" class="vane-secondary">Remove from the team</button></form></details>` : ''
     return `<tr data-person="${escape(person.email)}"><td>${escape(person.name)}<br><span class="vane-help">${escape(person.email)}</span></td><td><span class="vane-badge">${escape(person.access)}</span>${person.status === 'invited' ? ' invited' : ''}</td><td>${escape(sites)}</td><td>${change}</td></tr>`

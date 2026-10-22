@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
+import { normalizeEmail } from '../../modules/operator-auth/index.mjs'
 import { rows, statement, uid, type Env } from '../core'
 
 const USER='urn:ietf:params:scim:schemas:core:2.0:User',PATCH='urn:ietf:params:scim:api:messages:2.0:PatchOp',ERROR='urn:ietf:params:scim:api:messages:2.0:Error'
@@ -48,7 +49,7 @@ async function deactivate(env:Env,person:Person) {
  const current=await byId(env,person.id);if(!current||current.status!=='inactive')reject(409)
  return current
 }
-/** Narrow SCIM: exact lookup, owner-preauthorized invitation association, and deprovisioning. */
+/** SCIM creates zero-site viewers; only the native owner can grant analytics access. */
 export async function scimResponse(request:Request,env:Env & {VANE_SCIM_TOKEN?:string}):Promise<Response|null> {
  const url=new URL(request.url)
  if(url.pathname!=='/scim/v2'&&!url.pathname.startsWith('/scim/v2/'))return null
@@ -75,20 +76,23 @@ export async function scimResponse(request:Request,env:Env & {VANE_SCIM_TOKEN?:s
   if(request.method==='POST'&&!id) {
    const input=await read(request);exact(input,['schemas','id','userName','externalId','active']);schema(input.schemas,USER)
    if(typeof input.userName!=='string'||input.userName.length>254||input.active!==undefined&&input.active!==true||input.id!==undefined&&typeof input.id!=='string'||input.externalId!==undefined&&(typeof input.externalId!=='string'||!input.externalId||input.externalId.length>255))reject()
-   const email=input.userName.trim().toLowerCase(),now=Date.now()
-   const person=(await rows<Person>(env,"SELECT id,email,role,status FROM oa_operators WHERE email=? AND role!='owner' AND status='invited'",email))[0]
-   if(!person||input.id!==undefined&&input.id!==person.id)reject(409)
-   // Association witnesses an existing, live owner-issued invitation. SCIM
-   // cannot activate it: the invited person must still prove identity to Base.
-   const mapped=await env.DB.batch([statement(env,`INSERT INTO vane_scim_users(operator_id,external_id,created_at)
-    SELECT o.id,?,? FROM oa_operators o WHERE o.id=? AND o.role!='owner' AND o.status='invited'
-    AND EXISTS(SELECT 1 FROM oa_tokens t JOIN oa_operators owner ON owner.id=t.issuer_id WHERE t.operator_id=o.id AND t.kind='invite' AND t.operator_version=o.version
-     AND t.consumed_at IS NULL AND t.revoked_at IS NULL AND t.expires_at>? AND owner.status='active' AND owner.role='owner' AND owner.version=t.issuer_version
-     AND NOT EXISTS(SELECT 1 FROM oa_dev_credentials d WHERE d.credential='oa_tokens' AND d.id=t.id))
-    ON CONFLICT DO NOTHING RETURNING operator_id`,input.externalId??null,now,person.id,now),
-    statement(env,"INSERT INTO vane_audit(id,at,actor,action,subject,detail) SELECT ?,?,'scim','team.scim.provision',?,'existing invitation associated' WHERE changes()>0",uid(),now,person.id)])
-   if(!mapped[0]?.results.length)reject(409)
-   return json({...resource(person,origin),...(input.externalId===undefined?{}:{externalId:input.externalId})},201,{Location:origin+'/scim/v2/Users/'+encodeURIComponent(person.id)})
+   let email:string;try{email=normalizeEmail(input.userName)}catch{reject()}
+   const now=Date.now()
+   const existing=(await rows<Person>(env,'SELECT id,email,role,status FROM oa_operators WHERE email=?',email))[0]
+   if(!existing) {
+    if(input.id!==undefined)reject(400)
+    const id=uid(),external=input.externalId??null
+    const made=await env.DB.batch([
+     statement(env,`INSERT INTO oa_operators(id,email,display_name,role,status,created_at) SELECT ?,?,?,'member','active',? WHERE EXISTS(SELECT 1 FROM oa_operators WHERE role='owner' AND status='active') AND NOT EXISTS(SELECT 1 FROM vane_scim_users WHERE external_id=?) ON CONFLICT(email) DO NOTHING RETURNING id`,id,email,email.split('@')[0],now,external),
+     statement(env,`INSERT INTO vane_grants(operator_id,role,site_ids,granted_by,granted_at) SELECT id,'viewer','[]','scim',? FROM oa_operators WHERE id=?`,now,id),
+     statement(env,`INSERT INTO vane_scim_users(operator_id,external_id,created_at) SELECT id,?,? FROM oa_operators WHERE id=?`,external,now,id),
+     statement(env,"INSERT INTO vane_audit(id,at,actor,action,subject,detail) SELECT ?,?,'scim','team.scim.provision',?,'Viewer created with no sites; owner grant required' WHERE EXISTS(SELECT 1 FROM vane_scim_users WHERE operator_id=?)",uid(),now,id,id),
+    ])
+    if(!made[0]?.results.length)reject(409)
+    const created=await byId(env,id);if(!created)reject(409)
+    return json(resource(created,origin),201,{Location:origin+'/scim/v2/Users/'+encodeURIComponent(id)})
+   }
+   reject(409)
   }
   if(!id)reject(405)
   const person=await byId(env,id);if(!person)reject(404)

@@ -48,14 +48,15 @@ uses Base's existing accounts, invitations, versions and sessions. No sign-in
 creates an uninvited account. SAML accepts no email attribute as an association;
 the installation owner supplies the NameID map. Sign-in attempts never modify it.
 
-SCIM `POST /Users` may associate only a live invitation previously issued by the
-owner; it cannot create a role or activate an account. The person still proves
-identity through SSO to accept the invitation. `GET /Users` requires an exact
+SCIM `POST /Users` creates a native Viewer with no site access. Only the owner
+can grant analytics access afterwards through Team. The person still proves
+identity on sign-in. Existing accounts cannot be taken over or associated by SCIM; a duplicate
+address is refused. `GET /Users` requires an exact
 `userName eq "…"` filter; unfiltered directory enumeration is refused. `PATCH
 /Users/<id>` with `replace active: false` (including the pathless object form),
 or `DELETE /Users/<id>`, deactivates a non-owner immediately and revokes their
 sessions, links, custodial API keys and native credentials. SCIM cannot reactivate
-people, alter roles or remove an owner. Its changes are audited without credentials.
+people, grant sites, alter roles or remove an owner. Its changes are audited without credentials.
 
 Authenticator secrets are sealed under the installation secret; recovery codes
 are stored only as keyed hashes. Pending enrollment expires after ten minutes.

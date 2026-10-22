@@ -62,7 +62,7 @@ export interface Bindings {
 export const runtimeBindings = (env: Bindings): Bindings => env.RER_DEV_ORIGIN && env.AUTH_LOCAL === 'true' ? { ...env, AUTH_ORIGIN: env.RER_DEV_ORIGIN } : env
 export const authConfig = (env: Bindings): AuthConfig => ({ dependencies: true, origin: env.AUTH_ORIGIN, local: env.AUTH_LOCAL === 'true', OWNER_EMAIL: env.OWNER_EMAIL, SESSION_SECRET: env.SESSION_SECRET, SETUP_TOKEN: env.SETUP_TOKEN, MAIL_FROM: env.MAIL_FROM, providers: env.VANE_OIDC_PROVIDERS ? JSON.parse(env.VANE_OIDC_PROVIDERS) : [], OIDC_TRANSACTION_SECRET: env.OIDC_TRANSACTION_SECRET, branding: { productName: branding.name, accentColor: branding.primaryColor, signInPath: '/signin', theme: theme.href } })
 export function rawOperatorAuth(env: Bindings) {
- return createOperatorAuth({ db: env.DB, config: authConfig(env), mailSender: operatorMail(env), hooks:{async afterConfirm({operator,session}){const pending=await pendingSecurity(env,{...session,operatorId:operator.id,operator});if(pending==='sso')throw new AuthError('sso_required',403);return pending?{returnTo:pending==='sso'?'/auth/security/sso':`/auth/security/${pending}`}:{}}}, clientIp: request => request.headers.get('CF-Connecting-IP') ?? '' })
+ return createOperatorAuth({ db: env.DB, config: authConfig(env), mailSender: operatorMail(env), hooks:{async afterConfirm({operator,session}){const pending=await pendingSecurity(env,{...session,operatorId:operator.id,operator});if(pending==='sso')throw new AuthError('sso_required',403);return pending?{returnTo:`/auth/security/${pending}`}:{}}}, clientIp: request => request.headers.get('CF-Connecting-IP') ?? '' })
 }
 
 // Direct session consumers share the same fence as HTTP. Enrollment uses rawOperatorAuth only.
