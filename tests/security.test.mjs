@@ -99,7 +99,8 @@ test('owner enforcement holds every account without a factor at enrollment, refu
  const a=await installation();t.after(()=>a.close());const member=await a.invite('member@example.test','member'),other=await a.invite('other@example.test','admin')
  const site=await a.addSite({name:'Fern Studio',paths:[]}),keyPage=await(await a.form({operation:'apikey.create',kind:'stats',label:'Team reporting',[`site_${site}`]:'on'},other)).text(),key=keyPage.match(/data-api-key>(vane_k_[0-9a-f]{64})</)[1]
  const stats=()=>a.request(`/api/v1/stats?site_id=${site}`,{headers:{authorization:'Bearer '+key}});assert.equal((await stats()).status,200)
- const createdRollup=await a.form({operation:'rollup.create',name:'Fern combined report',[`site_${site}`]:'on'},a.owner);assert.equal(createdRollup.status,303);const rollupPath=createdRollup.headers.get('location');assert.match(rollupPath,/^\/app\/rollups\//)
+ const secondSite=await a.addSite({name:'Oak Books',origin:'https://oak.example',paths:[]})
+ const createdRollup=await a.form({operation:'rollup.create',name:'Fern and Oak report',[`site_${site}`]:'on',[`site_${secondSite}`]:'on'},a.owner);assert.equal(createdRollup.status,303);const rollupPath=createdRollup.headers.get('location');assert.match(rollupPath,/^\/app\/rollups\//);assert.equal((await a.request(rollupPath,{headers:{cookie:a.owner}})).status,200)
  assert.equal((await a.post('/auth/security/policy',{requireSecond:true},a.owner)).status,409)
  await enroll(a,a.owner);assert.equal((await a.post('/auth/security/policy',{requireSecond:true},a.owner)).status,303)
  for(const cookie of [member,other])await held(a,cookie,'enroll',[rollupPath,`/app/sites/${site}`, ...['settings','realtime','heat','history','approvals'].map(section=>`/app/sites/${site}?section=${section}`)])
