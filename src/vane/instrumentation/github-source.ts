@@ -16,11 +16,23 @@ export function templatePath(file:string) {
  insist(!sensitive&&!operational&&/\.html?$/i.test(file),'github_template','Owner must change CI/workflow, deploy, dependency, secret-bearing and non-HTML paths by hand; they cannot enter an agent PR.',409)
 }
 
-export async function sourceFile(call:SourceCall,root:string,file:string,head:string):Promise<SourceFile|null> {
+interface SourceTree {sha:string;tree:{path:string;sha:string;type:string;mode:string}[]}
+export async function sourceTree(call:SourceCall,root:string,head:string):Promise<SourceTree> {
+ const commit=await call(root+'/git/commits/'+head)
+ insist(/^[a-f0-9]{40}$/.test(commit.tree?.sha),'github_tree','GitHub did not return the source tree.',502)
+ const tree=await call(root+'/git/trees/'+commit.tree.sha+'?recursive=1')
+ insist(tree.truncated===false&&Array.isArray(tree.tree),'github_tree','The source tree is truncated; complete the PR manually.',409)
+ return {sha:commit.tree.sha,tree:tree.tree}
+}
+export async function sourceFile(call:SourceCall,root:string,file:string,tree:SourceTree):Promise<SourceFile|null> {
  templatePath(file)
- const content=await call(root+'/contents/'+file.split('/').map(encodeURIComponent).join('/')+'?ref='+head,true)
- if(!content)return null
- insist(content.type==='file'&&content.encoding==='base64'&&typeof content.content==='string'&&content.size<=500_000&&/^[a-f0-9]{40}$/.test(content.sha),'github_file','Use a regular UTF-8 HTML template no larger than 500 KB.',409)
+ const entry=tree.tree.find(e=>e.path===file)
+ if(!entry)return null
+ // Check mode BEFORE reading bytes. The Contents API resolves an HTML symlink
+ // to its target, which could be an unmapped .env or key file.
+ insist(entry.type==='blob'&&['100644','100755'].includes(entry.mode)&&/^[a-f0-9]{40}$/.test(entry.sha),'github_file','The mapped template must be a regular file, never a symlink or submodule.',409)
+ const content=await call(root+'/git/blobs/'+entry.sha)
+ insist(content.encoding==='base64'&&typeof content.content==='string'&&content.size<=500_000&&content.sha===entry.sha,'github_file','Use a regular UTF-8 HTML template no larger than 500 KB.',409)
  const bytes=Uint8Array.from(atob(content.content.replace(/\s/g,'')),c=>c.charCodeAt(0))
  insist(bytes.length<=500_000,'github_file','Use a template no larger than 500 KB.',409)
  let html:string
@@ -32,13 +44,10 @@ export async function sourcePlan(env:Env,value:Site,call:SourceCall,root:string,
  const files=[...new Set(changes.filter(x=>x.before==='No matching native script').map(x=>mappings.find(m=>m.path===x.page)?.file).filter((f):f is string=>Boolean(f)))].sort()
  insist(files.length>0,'github_template','Map missing-script pages to safe HTML templates; the owner must complete other source changes by hand.',409)
  files.forEach(templatePath)
- const commit=await call(root+'/git/commits/'+head)
- insist(/^[a-f0-9]{40}$/.test(commit.tree?.sha),'github_tree','GitHub did not return the source tree.',502)
- const baseTree=await call(root+'/git/trees/'+commit.tree.sha+'?recursive=1')
- insist(baseTree.truncated===false&&Array.isArray(baseTree.tree),'github_tree','The source tree is truncated; complete the PR manually.',409)
+ const baseTree=await sourceTree(call,root,head)
  const tree:SourceEdit[]=[],bindings:unknown[]=[],scriptUrls=await nativeScriptUrls(env,value)
  for(const file of files){
-  const source=await sourceFile(call,root,file,head),entry=baseTree.tree.find((e:any)=>e.path===file)
+  const source=await sourceFile(call,root,file,baseTree),entry=baseTree.tree.find((e:any)=>e.path===file)
   insist(source&&entry?.type==='blob'&&['100644','100755'].includes(entry.mode)&&entry.sha===source.sha,'github_file','The mapped file must be a regular blob at the approved source SHA.',409)
   insist((await inspectPage(source.html,value,scriptUrls)).scripts===0,'github_no_change','The mapped source already has this script; investigate the deployed difference manually.',409)
   const at=source.html.search(/<\/head\s*>/i)

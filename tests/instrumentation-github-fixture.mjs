@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 // Only GitHub's network edge is fake. All approval, scanning, source binding, custody and PR orchestration is real.
 export function githubFixture(a,{repository='just-every/run-vane',siteOrigin='http://127.0.0.1:9137'}={}) {
- const initial='a'.repeat(40),changed='b'.repeat(40),tree='c'.repeat(40),candidate='d'.repeat(40),state={head:initial,requests:[],prs:[],loseReply:false,sourceMoved:false,sourceChanged:false,token:'synthetic-vane-13'}
+ const initial='a'.repeat(40),changed='b'.repeat(40),tree='c'.repeat(40),candidate='d'.repeat(40),state={head:initial,requests:[],prs:[],loseReply:false,sourceMoved:false,sourceChanged:false,symlink:false,token:'synthetic-vane-13'}
  const source='<!doctype html><html><head><title>Fixture</title></head><body><p>synthetic-vane-source-body</p><button id="join-now">Join</button></body></html>'
  a.fixtureSites['https://api.github.com']=async request=>{
   assert.equal(request.headers.get('authorization'),'Bearer '+state.token)
@@ -9,9 +9,10 @@ export function githubFixture(a,{repository='just-every/run-vane',siteOrigin='ht
   const root='/repos/'+repository
   if(path===root)return Response.json({full_name:repository,permissions:{push:true},archived:false,disabled:false})
   if(path===root+'/git/ref/heads/main')return Response.json({object:{sha:state.head}})
-  if(path===root+'/contents/public/pricing.html'){const ref=url.searchParams.get('ref');assert.ok([initial,changed].includes(ref));const html=ref===initial?source.replace('</head>','<script src="/vane.js"></script></head>'):source+(state.sourceChanged?'<!-- changed diff -->':'');return Response.json({type:'file',encoding:'base64',size:Buffer.byteLength(html),sha:(ref===initial?'9':'f').repeat(40),content:Buffer.from(html).toString('base64')})}
-  if(path===root+'/git/trees/'+initial&&request.method==='GET'){assert.equal(url.searchParams.get('recursive'),'1');return Response.json({sha:initial,truncated:false,tree:[{path:'public/pricing.html',mode:'100755',type:'blob',sha:'f'.repeat(40)}]})}
+  if(path.startsWith(root+'/git/blobs/')){const sha=path.slice((root+'/git/blobs/').length);assert.ok(['9'.repeat(40),'f'.repeat(40)].includes(sha));const html=sha==='9'.repeat(40)?source.replace('</head>','<script src="/vane.js"></script></head>'):source+(state.sourceChanged?'<!-- changed diff -->':'');return Response.json({encoding:'base64',size:Buffer.byteLength(html),sha,content:Buffer.from(html).toString('base64')})}
+  if(path===root+'/git/trees/'+initial||path===root+'/git/trees/'+'8'.repeat(40)){assert.equal(url.searchParams.get('recursive'),'1');return Response.json({truncated:false,tree:[{path:'public/pricing.html',mode:state.symlink?'120000':'100755',type:'blob',sha:(path.endsWith(initial)?'f':'9').repeat(40)}]})}
   if(path===root+'/git/commits/'+changed)return Response.json({tree:{sha:initial}})
+  if(path===root+'/git/commits/'+initial)return Response.json({tree:{sha:'8'.repeat(40)}})
   if(path===root+'/git/trees'&&request.method==='POST'){assert.equal(body.base_tree,initial);assert.deepEqual(body.tree.map(f=>f.path),['public/pricing.html']);assert.equal(body.tree[0].mode,'100755','the source mode is preserved');assert.ok(body.tree[0].content.includes('<script defer src="'+a.origin+'/vane.js"'));assert.ok(body.tree[0].content.includes('synthetic-vane-source-body'));assert.ok(!JSON.stringify(body).includes('private/unmapped.html'));return Response.json({sha:tree})}
   if(path===root+'/git/commits'&&request.method==='POST'){assert.deepEqual(body.parents,[changed]);assert.equal(body.tree,tree);return Response.json({sha:candidate})}
   if(path===root+'/git/refs'&&request.method==='POST'){assert.match(body.ref,/^refs\/heads\/vane\/instrumentation-[a-f0-9-]{36}$/);assert.equal(body.sha,candidate);return Response.json({ref:body.ref,object:{sha:candidate}})}

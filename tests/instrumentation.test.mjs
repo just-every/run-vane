@@ -71,7 +71,7 @@ test('Instrumentation investigation compares a renamed signup control and missin
  assert.ok(dump.vane_audit.some(r=>r.action==='agent.instrumentation'));assert.ok(dump.vane_audit.some(r=>r.action==='agent.fix.prepare'));assert.ok(dump.vane_audit.some(r=>r.action==='agent.fix.verify'))
  const custody=JSON.stringify({runs:dump.vane_instrumentation_runs,fixes:dump.vane_instrumentation_fixes,scans:dump.vane_cutover_scans})
  for(const sentinel of ['synthetic-vane-private-body','synthetic-vane-private-input','account123456','<h1>','synthetic-vane-source-body','synthetic-vane-private-unmapped',github.state.token])assert.equal(custody.includes(sentinel),false,sentinel+' is not retained')
- assert.equal(github.state.requests.some(r=>r.path.includes('/compare/')),false,'unmapped source patches are never requested')
+ assert.equal(github.state.requests.some(r=>r.path.includes('/compare/')||r.path.includes('/contents/')),false,'broad patches and symlink-resolving contents are never requested')
  assert.ok(site.requests.every(r=>!r.headers.cookie&&!r.headers.authorization),'the site never receives native authentication')
  // Review the evidence and verified fix through the unchanged Settings/Approvals components at both required widths.
  await context.addCookies(a.owner.split('; ').map(pair=>{const i=pair.indexOf('=');return {name:pair.slice(0,i),value:pair.slice(i+1),url:a.origin}}))
@@ -168,7 +168,13 @@ test('GitHub hand-off is off-default, owner-approved, sealed and revocable; sour
  const changed=await prepare();github.state.sourceChanged=true
  assert.equal((await a.post('/api/vane/instrumentation/github-pr',{siteId:id,fixId:changed.id,confirm:'on'},a.owner)).status,409,'changing the exact source diff voids the approval even if the source-head response is unchanged')
  assert.equal(github.state.requests.filter(r=>r.method==='POST').length,0)
- github.state.sourceChanged=false;const uncertain=await prepare();github.state.loseReply=true
+ github.state.sourceChanged=false
+ const linked=await prepare();github.state.symlink=true
+ const reads=github.state.requests.filter(r=>r.path.includes('/git/blobs/')).length
+ assert.equal((await a.post('/api/vane/instrumentation/github-pr',{siteId:id,fixId:linked.id,confirm:'on'},a.owner)).status,409,'symlink templates cannot resolve into secret-bearing files')
+ assert.equal(github.state.requests.filter(r=>r.path.includes('/git/blobs/')).length,reads,'symlink mode is refused before source bytes are read')
+ assert.equal(github.state.requests.filter(r=>r.method==='POST').length,0)
+ github.state.symlink=false;const uncertain=await prepare();github.state.loseReply=true
  const publish=()=>a.post('/api/vane/instrumentation/github-pr',{siteId:id,fixId:uncertain.id,confirm:'on'},a.owner)
  const lost=await publish();assert.equal(lost.status,502);assert.equal((await lost.text()).includes('synthetic-vane-provider-detail'),false)
  const mutations=github.state.requests.filter(r=>r.method==='POST').length,reconciled=await result(await publish());assert.equal(reconciled.state,'published');assert.equal(github.state.requests.filter(r=>r.method==='POST').length,mutations,'reconciliation performs reads only')

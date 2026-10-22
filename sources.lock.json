@@ -3299,11 +3299,11 @@
       "executable": false
     },
     "src/vane/instrumentation/github-source.ts": {
-      "sha256": "9523d428ab8344f1d4aaa4770cfb4aa2d497fda84f36403270d837b3df4ed792",
+      "sha256": "15a4d2ee80b7b1b54afa11dec2813a8c9765404ae2229fe6102fdf7f4c516097",
       "executable": false
     },
     "src/vane/instrumentation/github.ts": {
-      "sha256": "768c49ddf10395d592e44937c7ef1f273f3f0befb3b8bcbac4cc0ed9cca0190d",
+      "sha256": "c4e359d989488c314d6ac6439fde838a1fd9438b4c7fe01409f0d59035db6efc",
       "executable": false
     },
     "src/vane/instrumentation/index.ts": {
@@ -4147,11 +4147,11 @@
       "executable": false
     },
     "tests/instrumentation-github-fixture.mjs": {
-      "sha256": "909483849a2d4026f7ccff7b174046283bae2bd34f1e9ec2dfd2f110047347fb",
+      "sha256": "2bb8dbc38388cac17ae5a13df7a000679f9c7aa56d3cdd04a35b03dd5ee5b5d5",
       "executable": false
     },
     "tests/instrumentation.test.mjs": {
-      "sha256": "eca711dadcd8b77675c5b7c4ace3706d7b612cf1a3cf69a3e1d38d1dd7b77a15",
+      "sha256": "77aa4f95b6c61069eaac7f720f52c64fde81d3b7fa198d48c0d0eb1074f021e6",
       "executable": false
     },
     "tests/locations.journey.mjs": {

@@ -4,7 +4,7 @@ import { clock } from '../clock'
 import { seal, unseal } from '../sealed'
 import { storedPath } from '../paths'
 import { agentHistoryStamp } from '../agent-fence'
-import { sourceFile, sourcePlan, templatePath, type Mapping } from './github-source'
+import { sourceFile, sourceTree, sourcePlan, templatePath, type Mapping } from './github-source'
 export type { Mapping } from './github-source'
 const PURPOSE='vane-instrumentation-github-v1',API='https://api.github.com'
 interface Connection {active:number;site_id:string;generation:string;repository:string;base_branch:string;mappings_json:string;sealed_token:string;last_head:string|null;created_by:string;created_at:number;credential_kind:string}
@@ -60,9 +60,10 @@ export async function readGitHubDiff(env:Env,actor:Actor,siteId:string):Promise<
  if(c.last_head&&c.last_head!==head){
   // Read only safe, explicitly mapped templates. The compare API includes patches
   // from unmapped .env/key files, so it must never be used by this source reader.
+  const read=async(path:string,missing=false)=>{await live(env,actor,c);return call(c,token,path,'GET',undefined,missing)}
+  const previousTree=await sourceTree(read,repoPath(c),c.last_head),currentTree=await sourceTree(read,repoPath(c),head)
   for(const file of mapped){
-   const read=async(path:string,missing=false)=>{await live(env,actor,c);return call(c,token,path,'GET',undefined,missing)}
-   const before=await sourceFile(read,repoPath(c),file,c.last_head),after=await sourceFile(read,repoPath(c),file,head)
+   const before=await sourceFile(read,repoPath(c),file,previousTree),after=await sourceFile(read,repoPath(c),file,currentTree)
    if(before?.sha!==after?.sha)files.push({file,status:!before?'added':!after?'removed':'modified',scriptRemoved:Boolean(before&&/vane\.js|\/script\.js/.test(before.html)&&(!after||!/vane\.js|\/script\.js/.test(after.html)))})
   }
  }
