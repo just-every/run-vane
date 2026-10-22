@@ -122,6 +122,7 @@ async function live() {
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href) {
  try{await live()}catch(error){
   const status=/^public response [0-9]{3}, [a-z_]+$/.test(error.message)?'; '+error.message:''
+  if(error.code==='ERR_ASSERTION')console.error('Sandbox assertion: '+error.message.split('\n')[0])
   console.error(`AGENT-007 live sandbox failed at ${liveStage}${status}; no complete receipt. Provider bodies and credentials are withheld.`);if(providerFailure)console.error(JSON.stringify(providerFailure));process.exitCode=1
  }
 }
