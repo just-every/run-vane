@@ -101,6 +101,7 @@ test('COLLECT-004 genuine monthly pageviews, a paced 500/second burst, concurren
   assert.ok(elapsedMs < 2000, `complete public report took ${elapsedMs.toFixed(1)}ms`)
  }
 
+ let monthlyBatches=0
  for (let month = 0; month < MONTHS; month++) {
   const label = isoDay(Date.UTC(2025, month, 1)).slice(0, 7)
   // All months have at least 28 days. Spread actual events across those dates;
@@ -109,7 +110,7 @@ test('COLLECT-004 genuine monthly pageviews, a paced 500/second burst, concurren
    await a.clock(Date.UTC(2025, month, day, 12))
    const firstOfDay = Math.floor(MONTHLY * (day - 1) / 28), endOfDay = Math.floor(MONTHLY * day / 28)
    for (let first = firstOfDay; first < endOfDay; first += CONCURRENCY*BATCH_SIZE) {
-    await Promise.all(Array.from({length:Math.min(CONCURRENCY,Math.ceil((endOfDay-first)/BATCH_SIZE))},(_,index)=>{const batchStart=first+index*BATCH_SIZE;return sendBatch(index%2,batchStart,Math.min(BATCH_SIZE,endOfDay-batchStart))}))
+    await Promise.all(Array.from({length:Math.min(CONCURRENCY,Math.ceil((endOfDay-first)/BATCH_SIZE))},(_,index)=>{const batchStart=first+index*BATCH_SIZE;return sendBatch(monthlyBatches++%2,batchStart,Math.min(BATCH_SIZE,endOfDay-batchStart))}))
    }
   }
   monthExpected.set(label, (monthExpected.get(label) ?? 0) + MONTHLY)
