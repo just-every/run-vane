@@ -120,7 +120,13 @@ test('current default uBlock lists block incumbent tags, record direct Vane and 
   const incumbents=['https://plausible.io/js/script.js','https://www.googletagmanager.com/gtag/js?id=G-TEST']
   const controls=new Map(incumbents.map(url=>[url,new Promise(resolve=>{
     page.on('requestfailed',request=>{if(request.url()===url)resolve({failure:request.failure()?.errorText})})
-    page.on('response',async response=>{if(response.url()===url)resolve({status:response.status(),redirect:await response.headerValue('location')})})
+    page.on('response',async response=>{if(response.url()===url){
+      const location=await response.headerValue('location');let redirect=null
+      // Extensions can attach transient access tokens to their redirect URL.
+      // Its scheme explains the outcome without publishing private query data.
+      if(location)try{redirect=new URL(location,response.url()).protocol}catch{redirect='invalid'}
+      resolve({status:response.status(),redirect})
+    }})
   })]))
   await page.goto(origin+'/controls',{waitUntil:'load'})
   const controlOutcomes=[]
