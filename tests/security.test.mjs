@@ -30,6 +30,7 @@ async function held(a,cookie,mode,extra=[]) {
 
 test('organization OIDC signs in Google and Entra members, refuses altered proofs and replay, and fences existing sessions when SSO is required',async t=>{
  const {a,signin,begin}=await oidcInstallation(t)
+ assert.deepEqual((await a.dump()).vane_security_policy,[])
  const member=await a.invite('member@example.test','member')
  for(const id of ['google','microsoft']) {
   const r=await signin(id,'member@example.test');assert.equal(r.response.status,303,await r.response.clone().text());assert.equal((await session(a,r.nativeCookie)).status,200)
@@ -42,6 +43,7 @@ test('organization OIDC signs in Google and Entra members, refuses altered proof
  assert.equal((await a.post('/auth/security/policy',{requireSso:true},a.owner)).status,409)
  const owner=await signin('google','owner@example.test');assert.equal(owner.response.status,303)
  assert.equal((await a.post('/auth/security/policy',{requireSso:true},owner.nativeCookie)).status,303)
+ const changed=await a.dump();assert.deepEqual(changed.vane_security_policy,[{singleton:1,require_sso:1,require_second:0}]);assert.equal(changed.vane_audit.filter(item=>item.action==='security.policy'&&item.actor===changed.oa_operators.find(p=>p.role==='owner').id).length,1)
  for(const cookie of [a.owner,member])await held(a,cookie,'sso')
  assert.equal((await a.post('/auth/invite',{email:'refused@example.test',role:'member'},a.owner)).status,403)
  assert.equal((await a.post('/auth/security/policy',{},member)).status,403)
@@ -91,7 +93,7 @@ test('SCIM provisions bound zero-site Viewers without mail or email merges and n
   const after=await a.dump();for(const table of ['oa_operators','oa_external_identities','vane_grants','vane_scim_users','vane_audit'])assert.deepEqual(after[table],before[table],table)
   for(const extra of [{roles:['admin']},{groups:['synthetic-vane-1']},{siteIds:[site]}])assert.equal((await send('Users','POST',{...input,...extra})).status,400)
   for(const body of [{...input,userName:'owner@example.test',externalId:'synthetic-vane-owner'},{...input,externalId:'synthetic-vane-other'},{...input,userName:'synthetic-vane-other@example.test'}])assert.equal((await send('Users','POST',body)).status,409)
-  assert.equal((await a.post('/auth/invite',{email:'invited@example.test',role:'member'},a.owner)).status,202);assert.equal((await send('Users','POST',{...input,userName:'invited@example.test',externalId:'synthetic-vane-invited'})).status,409)
+  assert.equal((await a.post('/auth/invite',{email:'invited@example.test',role:'member',displayName:'Invited analyst'},a.owner)).status,202);assert.equal((await send('Users','POST',{...input,userName:'invited@example.test',externalId:'synthetic-vane-invited'})).status,409)
   assert.equal((await a.dump()).oa_operators.find(p=>p.email==='invited@example.test').status,'invited')
   const native=await login(a,input.userName);assert.equal((await(await session(a,native)).json()).operator.role,'member');assert.deepEqual(await(await a.request('/api/vane/sites',{headers:{cookie:native}})).json(),[])
   assert.equal((await a.post('/api/vane/commands',{command:'site.create',input:{name:'Synthetic site',origin:'https://synthetic-vane-2.example'}},native)).status,403)
@@ -165,12 +167,14 @@ test('authenticator sign-in refuses wrong and replayed codes, consumes a recover
 
 test('owner enforcement holds every account without a factor at enrollment, refuses private mutations and enrolls it before authenticator sign-in',async t=>{
  const a=await installation();t.after(()=>a.close());const member=await a.invite('member@example.test','member'),other=await a.invite('other@example.test','admin')
+ assert.deepEqual((await a.dump()).vane_security_policy,[])
  const site=await a.addSite({name:'Fern Studio',paths:[]}),keyPage=await(await a.form({operation:'apikey.create',kind:'stats',label:'Team reporting',[`site_${site}`]:'on'},other)).text(),key=keyPage.match(/data-api-key>(vane_k_[0-9a-f]{64})</)[1]
  const stats=()=>a.request(`/api/v1/stats?site_id=${site}`,{headers:{authorization:'Bearer '+key}});assert.equal((await stats()).status,200)
  const secondSite=await a.addSite({name:'Oak Books',origin:'https://oak.example',paths:[]})
  const createdRollup=await a.form({operation:'rollup.create',name:'Fern and Oak report',[`site_${site}`]:'on',[`site_${secondSite}`]:'on'},a.owner);assert.equal(createdRollup.status,303);const rollupPath=createdRollup.headers.get('location');assert.match(rollupPath,/^\/app\/rollups\//);assert.equal((await a.request(rollupPath,{headers:{cookie:a.owner}})).status,200)
  assert.equal((await a.post('/auth/security/policy',{requireSecond:true},a.owner)).status,409)
  await enroll(a,a.owner);assert.equal((await a.post('/auth/security/policy',{requireSecond:true},a.owner)).status,303)
+ const policy=await a.dump();assert.deepEqual(policy.vane_security_policy,[{singleton:1,require_sso:0,require_second:1}]);assert.equal(policy.vane_audit.filter(item=>item.action==='security.policy'&&item.actor===policy.oa_operators.find(p=>p.role==='owner').id).length,1)
  for(const cookie of [member,other])await held(a,cookie,'enroll',[rollupPath,`/app/sites/${site}`, ...['settings','realtime','heat','history','approvals'].map(section=>`/app/sites/${site}?section=${section}`)])
  for(const [method,path] of [['GET',`/api/v1/stats?site_id=${site}`],...['/api/v1/events','/api/v1/mcp','/api/v2/query','/api/v1/sites',`/api/v1/sites/${site}/goals`,`/api/v1/sites/${site}/shared-links`].map(path=>['POST',path])]){const r=await a.request(path,{method,headers:{authorization:'Bearer '+key,'content-type':'application/json'},...(method==='POST'?{body:'{}'}:{})});assert.equal(r.status,403,path);assert.equal((await r.json()).error,'second_step_required',path)}
  await enroll(a,other);assert.equal((await stats()).status,200)

@@ -4103,7 +4103,7 @@
       "executable": false
     },
     "tests/security.test.mjs": {
-      "sha256": "171a3160e030f414de7865f874c666b7934c4bf3f75b6b8c1ca8afe21b3c5f37",
+      "sha256": "f96206a5b1b791903044ff70a9eda16a7c0aca9c119534a709665cd973d097ff",
       "executable": false
     },
     "tests/site.test.mjs": {
