@@ -75,7 +75,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "ef34c7ba91129d4cc61a4f52672ebac96e7cd36b2d6207bbfd9d03385f29b3fd",
+      "sha256": "e89099b31e7e51fbc9871be3c341feff00740d56d81b8bb0f2f9122ac6c96c06",
       "executable": false
     },
     "AGENTS.md": {
@@ -107,7 +107,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "a88c53d316b9ce908d17e161339bb4315e0743cf927839187f97e7c7eb0a7b93",
+      "sha256": "c67a07b7bbd1fdea2298974673e60832e9be24a58da91fe6150ff3343ba64395",
       "executable": false
     },
     "DEMO.md": {
@@ -159,7 +159,7 @@
       "executable": false
     },
     "docs/sign-in-security.md": {
-      "sha256": "1c6f997e891c1196f14fe722508ecc78f2a657da50dee874c0598993a87d2c52",
+      "sha256": "251ba696925a3db518bc6c4cee3210c165f11613f2cde69e7c2204344123d186",
       "executable": false
     },
     "docs/umami-import.md": {
@@ -548,6 +548,10 @@
     },
     "migrations/core/0107_vane_scim_authority.sql": {
       "sha256": "ac36f3923b1f83f6804bfdefef5832e13db60cd72723920b64f6959eb49bc482",
+      "executable": false
+    },
+    "migrations/core/0108_vane_owner_signin.sql": {
+      "sha256": "98da904e768e35b43fb1be83d9dcc9c9b5d86ab3a795234ed5223c4fddc567d9",
       "executable": false
     },
     "ONBOARDING.md": {
@@ -4103,7 +4107,7 @@
       "executable": false
     },
     "tests/security.test.mjs": {
-      "sha256": "f96206a5b1b791903044ff70a9eda16a7c0aca9c119534a709665cd973d097ff",
+      "sha256": "5765327f23f02008fdf5d106f95602e5508405c9e4209e58b083a0c05f568580",
       "executable": false
     },
     "tests/site.test.mjs": {

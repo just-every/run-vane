@@ -81,7 +81,7 @@ link, confirm sign-in, then open `/auth/security/break-glass` (also linked from
 the SSO hold page). Ordinary owner email links, existing sessions, members and
 SCIM credentials cannot open this recovery door.
 
-Confirm **Disable SSO for outage recovery**. An enrolled authenticator or recovery
+Confirm **Disable SSO for outage recovery**. If you enrolled an authenticator, its code or a recovery
 code is still required for that session; the authenticator requirement is
 preserved. This explicitly disables the installation’s SSO requirement and
 records `security.break-glass` in the audit. Repair the provider, sign in through
@@ -99,5 +99,6 @@ continues to use the installation's existing private archive controls.
 TEAM-002 follows ct’s 22 October 12:30Z identity and recovery ruling. Fixture
 issuers prove the implemented protocol and access behavior. Provider acceptance
 remains PARTIAL until a real Auth, Okta or Entra IdP tenant exercises SCIM; that
-tenant and its administrator credentials are an external dependency, not
+tenant and its administrator credentials are the named external dependency
+`real-IdP-tenant`, not
 replaced by the fixtures.

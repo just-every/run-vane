@@ -72,6 +72,7 @@ test('SCIM credentials are owner-issued once, hashed, isolated from native and A
  const first=await issue();assert.equal(typeof first,'string');assert.equal((await scim(a,'ServiceProviderConfig','GET',undefined,first)).status,200)
  assert.equal((await a.request('/api/v1/stats?site_id=synthetic-vane-1',{headers:{authorization:'Bearer '+first}})).status,401)
  assert.equal((await a.post('/auth/invite',{email:'synthetic-vane-1@example.test'},'',{authorization:'Bearer '+first})).status,401)
+ assert.equal((await a.post('/auth/security/break-glass',{confirm:'disable-sso'},'',{authorization:'Bearer '+first})).status,401)
  const settings=await(await a.request('/auth/security',{headers:{cookie:a.owner}})).text();assert.equal(settings.includes(first),false)
  const second=await issue();assert.notEqual(second,first);assert.equal((await scim(a,'ServiceProviderConfig','GET',undefined,first)).status,401);assert.equal((await scim(a,'ServiceProviderConfig','GET',undefined,second)).status,200)
  let dump=await a.dump();assert.equal(JSON.stringify(dump).includes(first),false);assert.equal(JSON.stringify(dump).includes(second),false);assert.ok(dump.vane_scim_credentials[0].token_hash)
