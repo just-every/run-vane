@@ -2819,7 +2819,7 @@
       "executable": false
     },
     "src/vane/analytics/bulk.ts": {
-      "sha256": "25598a38885aaeae961df33cd8bc4a8c93a43d5868ff85a689369df6c15bdc5d",
+      "sha256": "750192d16ed4522284e7cc19604189bb92e8fb274c6352070955c98ad05382bd",
       "executable": false
     },
     "src/vane/analytics/index.ts": {
@@ -2851,7 +2851,7 @@
       "executable": false
     },
     "src/vane/analytics/visits/bulk/components.ts": {
-      "sha256": "1c8bee3b2c9fb8069ed039c1169000a7fd4d890a28f7aa9b8d751b78b27ab0c7",
+      "sha256": "e00b77e4258bae2d887c9ca76012a48692e70156c8351b54ae0c7a5874d1f2b7",
       "executable": false
     },
     "src/vane/analytics/visits/bulk/generate.py": {
@@ -2863,7 +2863,7 @@
       "executable": false
     },
     "src/vane/analytics/visits/bulk/neighbors.ts": {
-      "sha256": "6b4f8a796ac7f46d0459d52fb6a9296a8410f2084e599a1c73872aa67a2e746d",
+      "sha256": "6d8fc723ffe60d3dfbc18028997859023274762c47a8ab6446698de2524585dc",
       "executable": false
     },
     "src/vane/analytics/visits/bulk/prepare.ts": {
@@ -3843,7 +3843,7 @@
       "executable": false
     },
     "tests/collection-batch.test.mjs": {
-      "sha256": "f4ae71ca1130aa4ffa939fcdc2c3de548baca50993417b1029696e018d554a32",
+      "sha256": "2a50dfcff5259c0dd09c41727670edfe74293908c363175a57b451f8ffe8e4c8",
       "executable": false
     },
     "tests/collection-scale.journey.mjs": {
@@ -4067,7 +4067,7 @@
       "executable": false
     },
     "tests/visit-analytics.test.mjs": {
-      "sha256": "bf88d5b1258d4be92f9070b44eedfcf1b3a36e91858de5e6016081979c5c0994",
+      "sha256": "157fbe1c332636110b2f2934bdd3efa41898b9a22641b17089c4a288f8d968c1",
       "executable": false
     },
     "tsconfig.json": {
