@@ -22,7 +22,9 @@ function refuse(): never {
 // Numbered parameters are shared by every statement: operator, session, current time.
 const liveSession = `EXISTS(SELECT 1 FROM oa_sessions s JOIN oa_operators o ON o.id=s.operator_id
  WHERE o.id=?1 AND s.id=?2 AND o.status='active' AND s.operator_version=o.version
- AND s.revoked_at IS NULL AND s.expires_at>?3)`
+ AND s.revoked_at IS NULL AND s.expires_at>?3
+ AND (s.kind!='oidc' OR EXISTS(SELECT 1 FROM oa_provider_sessions p JOIN oa_auth_settings a ON a.singleton=1 AND a.idp_sign_in=1 AND a.generation=p.generation WHERE p.session_id=s.id))
+ AND NOT EXISTS(SELECT 1 FROM oa_provider_session_pins pin WHERE pin.session_id=s.id AND NOT EXISTS(SELECT 1 FROM oa_identity_providers p WHERE p.provider_id=pin.provider_id AND p.status='linked' AND p.issuer=pin.issuer AND p.client_id=pin.client_id AND p.linked_at=pin.linked_at)))`
 
 function base32(bytes: Uint8Array): string {
  let value = 0, bits = 0, result = ''

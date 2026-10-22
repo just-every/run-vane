@@ -26,7 +26,7 @@ export async function enroll(a,cookie) {
 export async function oidcInstallation(t) {
  const {privateKey,publicKey}=generateKeyPairSync('rsa',{modulusLength:2048}),key={...publicKey.export({format:'jwk'}),kid:'synthetic-vane-1',alg:'RS256',use:'sig'}
  const providers=[{id:'google',preset:'google',clientId:'synthetic-vane-1',tokenAuthMethod:'client_secret_basic',clientSecret:'synthetic-vane-2'}, {id:'microsoft',preset:'microsoft',tenant:'synthetic-vane-1',clientId:'synthetic-vane-3',tokenAuthMethod:'client_secret_basic',clientSecret:'synthetic-vane-4',subjectEmails:{'synthetic-vane-owner':'owner@example.test','synthetic-vane-member':'member@example.test'}}]
- const a=await installation({vars:{VANE_OIDC_PROVIDERS:JSON.stringify(providers),OIDC_TRANSACTION_SECRET:randomBytes(32).toString('hex'),VANE_SCIM_TOKEN:'synthetic-vane-1'}});t.after(()=>a.close())
+ const a=await installation({vars:{VANE_OIDC_PROVIDERS:JSON.stringify(providers),OIDC_TRANSACTION_SECRET:randomBytes(32).toString('hex'),VANE_SCIM_TOKEN:'synthetic-vane-123456789012345678901234'}});t.after(()=>a.close())
  const codes=new Map()
  for(const [id,issuer] of [['google','https://accounts.google.com'],['microsoft','https://login.microsoftonline.com/synthetic-vane-1/v2.0']])a.fixtureSites[new URL(issuer).origin]=async request=>{
   const url=new URL(request.url)
@@ -56,7 +56,7 @@ export async function samlInstallation(t,{origin}={}) {
  const dir=await mkdtemp(join(tmpdir(),'synthetic-vane-saml-'));t.after(()=>rm(dir,{recursive:true,force:true}))
  execFileSync('openssl',['req','-x509','-newkey','rsa:2048','-nodes','-keyout',join(dir,'key.pem'),'-out',join(dir,'cert.pem'),'-days','1','-subj','/CN=synthetic-vane-1'],{stdio:'ignore'})
  const privateKey=await readFile(join(dir,'key.pem'),'utf8'),cert=await readFile(join(dir,'cert.pem'),'utf8'),issuer='https://synthetic-vane-1.example/saml'
- const a=await installation({...(origin?{origin}:{}),vars:{VANE_SAML_CONFIG:JSON.stringify({issuer,entryPoint:issuer+'/sso',idpCert:cert,subjects:{'synthetic-vane-owner':'owner@example.test','synthetic-vane-member':'member@example.test'}}),VANE_SCIM_TOKEN:'synthetic-vane-1'}});t.after(()=>a.close())
+ const a=await installation({...(origin?{origin}:{}),vars:{VANE_SAML_CONFIG:JSON.stringify({issuer,entryPoint:issuer+'/sso',idpCert:cert,subjects:{'synthetic-vane-owner':'owner@example.test','synthetic-vane-member':'member@example.test'}}),VANE_SCIM_TOKEN:'synthetic-vane-123456789012345678901234'}});t.after(()=>a.close())
  assert.equal((await a.post('/auth/security/identity',{},a.owner)).status,303)
  const assertionNS='urn:oasis:names:tc:SAML:2.0:assertion',protocolNS='urn:oasis:names:tc:SAML:2.0:protocol'
  function signed(xml,name) {

@@ -4,7 +4,7 @@ import { installation } from './harness.mjs'
 import { oidcInstallation,samlInstallation,enroll,login,otp,session } from './security-fixtures.mjs'
 
 const patch='urn:ietf:params:scim:api:messages:2.0:PatchOp',userSchema='urn:ietf:params:scim:schemas:core:2.0:User'
-const scim=(a,path,method='GET',body,token='synthetic-vane-1')=>a.request('/scim/v2/'+path,{method,headers:{authorization:'Bearer '+token,'content-type':'application/scim+json'},...(body?{body:JSON.stringify(body)}:{})})
+const scim=(a,path,method='GET',body,token='synthetic-vane-123456789012345678901234')=>a.request('/scim/v2/'+path,{method,headers:{authorization:'Bearer '+token,'content-type':'application/scim+json'},...(body?{body:JSON.stringify(body)}:{})})
 const privateDoors=['/app','/app?section=team','/api/vane/sites','/api/vane/audit','/api/vane/export','/auth/session','/auth/operators','/auth/sessions','/auth/providers','/auth/domain-rules','/auth/settings/identity','/setup']
 
 test('organization OIDC signs in Google and Entra members, refuses altered proofs and replay, and fences existing sessions when SSO is required',async t=>{

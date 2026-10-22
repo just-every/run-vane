@@ -2987,7 +2987,7 @@
       "executable": false
     },
     "src/vane/archive.ts": {
-      "sha256": "0fb4b90c1a52224348751b9e5ebb649d821dd2c9c62cc4f15a925afd053bff84",
+      "sha256": "5cfcce195e894b1899a8dd05300f26a8c565dd80b4b4464e31cb0cdf81418780",
       "executable": false
     },
     "src/vane/audit.ts": {
@@ -3607,11 +3607,11 @@
       "executable": false
     },
     "src/vane/security/scim.ts": {
-      "sha256": "c4c621985dc747fdecee09e8c2baee15be2fe90c09168af7eb04f8bb0c9ccc91",
+      "sha256": "105f0e33e091d49a337fef97cb6c4407b4ee2c90f4cc56c314ecc9f0dedb9ffc",
       "executable": false
     },
     "src/vane/security/totp.ts": {
-      "sha256": "aee177e58f07df19b70847174fc9c4880904c8e476e063500548c4a120d84a3d",
+      "sha256": "77b0015c2f6bc1ce1e01848b0e7ae0a56a7393a27c8ba09a1baf218c952edbdb",
       "executable": false
     },
     "src/vane/segments.ts": {
@@ -4087,11 +4087,11 @@
       "executable": false
     },
     "tests/security-fixtures.mjs": {
-      "sha256": "cd8d390c9816a1eec18e843e9ecbd88ed3b6166c746db70d8ffe104edc46e8ba",
+      "sha256": "2f4509145ebc57db050d26bc16481c0a3a58d0a0c1e5f304cabbe00217f21056",
       "executable": false
     },
     "tests/security.test.mjs": {
-      "sha256": "7e2cbdd471ae1db026e724ef69bfe0c81223cfd12e939671bbd268cfa151c76a",
+      "sha256": "c36dfe8a589dc61182651f5ffd1ec6e4620aee694db6b12370d4f8bbc8a8519a",
       "executable": false
     },
     "tests/site.test.mjs": {

@@ -23,7 +23,7 @@ async function read(request:Request) {
 }
 function authorized(request:Request,env:Env & {VANE_SCIM_TOKEN?:string}) {
  const credential=env.VANE_SCIM_TOKEN,match=/^Bearer ([\x21-\x7e]{1,2048})$/i.exec(request.headers.get('authorization')??'')
- if(!credential||!env.SESSION_SECRET||!match||credential.length>2048)reject(401)
+ if(!credential||credential.length<32||!env.SESSION_SECRET||!match||credential.length>2048)reject(401)
  // A domain-separated fixed-length MAC makes every token comparison constant
  // time, including differing input lengths. Neither bearer is ever persisted.
  const mac=(value:string)=>createHmac('sha256',env.SESSION_SECRET).update('vane:scim:bearer:v1\0').update(value).digest()
