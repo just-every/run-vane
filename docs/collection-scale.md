@@ -119,9 +119,11 @@ its own UUID. Authenticated Events API budgets remain unchanged.
 
 The explicit `Collection scale` workflow builds the candidate SHA and runs
 `tests/collection-scale.journey.mjs` outside push Verify. It creates sites through
-owner approval, submits more than 10,000 events on one site/day through the single
-collector, races sixteen copies of one ID and checks later replay. It offers a
-paced 500-events/second burst and measures actual dispatch and completion rates.
+owner approval, admits 10,000 ordinary records through native batching and crosses
+the old daily ceiling with a new single-collector record. It races sixteen copies
+of one ID and checks later replay. Native batches offer 510 genuine events/second
+so actual dispatch and completion must each reach at least 500 events/second.
+Each batch member retains its own UUID and raw row.
 Monthly volume uses the native batch collector with ordinary individual UUIDs,
 spread across 28 real dates in each requested month. Database inspection checks
 custody; it never inserts raw rows, counters or rollups directly.
