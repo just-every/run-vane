@@ -1,5 +1,6 @@
 import { insist, type Config, type Env } from './core'
 import { cleanCurrency, minorDigits } from './ecommerce'
+import { nativePageJoinSql } from './raw/page-joins'
 // CONV-006: revenue is stored in the currency the event sent, as millionths of it, rounded half up to that
 // currency's minor units (USD cents, JPY yen). A report sums it in the site's currency (USD unless the owner chose
 // another, SITE-001). Revenue in another currency converts only at a rate the owner entered for that currency,
@@ -38,10 +39,11 @@ export function convertedSql(sites:{id:string,config:Config}[],reporting:string,
 // currency (converted or not), and unconverted revenue by currency.
 export async function revenueTotals(env:Env,scope:string,from:string,to:string,events:string,converted:string) {
  const pages=`(SELECT id FROM ${events} WHERE kind='pageview' AND site_id IN (SELECT value FROM json_each(?1)) AND day>=?2 AND day<?3)`
+ const pageJoin=events==='vane_events'?nativePageJoinSql('ce.page_id'):`JOIN ${pages} p ON p.id=ce.page_id`
  const [total,apart,sent]=await env.DB.batch<any>([
-  env.DB.prepare(`SELECT COALESCE(SUM(r),0) AS revenue,COUNT(r) AS orders FROM (SELECT ${converted} AS r FROM vane_custom_events ce JOIN ${pages} p ON p.id=ce.page_id WHERE ce.revenue_micros IS NOT NULL)`).bind(scope,from,to),
-  env.DB.prepare(`SELECT ce.currency AS currency,SUM(ce.revenue_micros) AS micros,COUNT(*) AS orders FROM vane_custom_events ce JOIN ${pages} p ON p.id=ce.page_id WHERE ce.revenue_micros IS NOT NULL AND ${converted} IS NULL GROUP BY ce.currency ORDER BY ce.currency`).bind(scope,from,to),
-  env.DB.prepare(`SELECT ce.currency AS currency,SUM(ce.revenue_micros) AS micros,COUNT(*) AS orders FROM vane_custom_events ce JOIN ${pages} p ON p.id=ce.page_id WHERE ce.revenue_micros IS NOT NULL GROUP BY ce.currency ORDER BY ce.currency`).bind(scope,from,to),
+  env.DB.prepare(`SELECT COALESCE(SUM(r),0) AS revenue,COUNT(r) AS orders FROM (SELECT ${converted} AS r FROM vane_custom_events ce ${pageJoin} WHERE ce.revenue_micros IS NOT NULL)`).bind(scope,from,to),
+  env.DB.prepare(`SELECT ce.currency AS currency,SUM(ce.revenue_micros) AS micros,COUNT(*) AS orders FROM vane_custom_events ce ${pageJoin} WHERE ce.revenue_micros IS NOT NULL AND ${converted} IS NULL GROUP BY ce.currency ORDER BY ce.currency`).bind(scope,from,to),
+  env.DB.prepare(`SELECT ce.currency AS currency,SUM(ce.revenue_micros) AS micros,COUNT(*) AS orders FROM vane_custom_events ce ${pageJoin} WHERE ce.revenue_micros IS NOT NULL GROUP BY ce.currency ORDER BY ce.currency`).bind(scope,from,to),
  ])
  const byCurrency=(rows:any[])=>rows.map((r:any)=>({currency:r.currency,amount:Number(r.micros)/MICROS,orders:Number(r.orders)}))
  return {revenue:Number(total.results[0].revenue)/MICROS,orders:Number(total.results[0].orders),sent:byCurrency(sent.results),unconverted:byCurrency(apart.results)}

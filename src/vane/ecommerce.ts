@@ -1,5 +1,6 @@
 import { insist, statement, type Env } from './core'
 import type { Funnel } from './funnels'
+import { nativePageJoinSql } from './raw/page-joins'
 // CONV-007: the standard ecommerce events are custom events (CONV-002) with these names. Each may carry up to 50
 // product lines (items) with one ISO 4217 currency for the event: a line is a SKU (1 to 64 characters), a name
 // (1 to 100), an optional category (1 to 100), a whole quantity from 1 to 10,000 and a unit price from 0 to
@@ -39,6 +40,7 @@ export const lineStatements=(env:Env,eventId:string,siteId:string,day:string,lin
 // page loads: product views (lines on Product view events), quantities added to cart, checked out and purchased,
 // and revenue (purchased quantity times unit price) in the currency the event sent, never converted.
 export async function productReport(env:Env,scope:string,from:string,to:string,events:string) {
- const result=await env.DB.prepare(`SELECT l.sku,l.name,l.category,l.currency,SUM(CASE WHEN ce.name='Product view' THEN 1 ELSE 0 END) AS views,SUM(CASE WHEN ce.name='Add to cart' THEN l.quantity ELSE 0 END) AS added,SUM(CASE WHEN ce.name='Begin checkout' THEN l.quantity ELSE 0 END) AS checkouts,SUM(CASE WHEN ce.name='Purchase' THEN l.quantity ELSE 0 END) AS purchased,SUM(CASE WHEN ce.name='Purchase' THEN l.quantity*l.price_minor ELSE 0 END) AS revenue_minor FROM vane_ecommerce_lines l JOIN vane_custom_events ce ON ce.id=l.event_id JOIN (SELECT id FROM ${events} WHERE kind='pageview' AND site_id IN (SELECT value FROM json_each(?1)) AND day>=?2 AND day<?3) p ON p.id=ce.page_id GROUP BY 1,2,3,4 ORDER BY purchased DESC,revenue_minor DESC,views DESC,l.sku`).bind(scope,from,to).all<any>()
+ const pageJoin=events==='vane_events'?nativePageJoinSql('ce.page_id'):`JOIN (SELECT id FROM ${events} WHERE kind='pageview' AND site_id IN (SELECT value FROM json_each(?1)) AND day>=?2 AND day<?3) p ON p.id=ce.page_id`
+ const result=await env.DB.prepare(`SELECT l.sku,l.name,l.category,l.currency,SUM(CASE WHEN ce.name='Product view' THEN 1 ELSE 0 END) AS views,SUM(CASE WHEN ce.name='Add to cart' THEN l.quantity ELSE 0 END) AS added,SUM(CASE WHEN ce.name='Begin checkout' THEN l.quantity ELSE 0 END) AS checkouts,SUM(CASE WHEN ce.name='Purchase' THEN l.quantity ELSE 0 END) AS purchased,SUM(CASE WHEN ce.name='Purchase' THEN l.quantity*l.price_minor ELSE 0 END) AS revenue_minor FROM vane_ecommerce_lines l JOIN vane_custom_events ce ON ce.id=l.event_id ${pageJoin} GROUP BY 1,2,3,4 ORDER BY purchased DESC,revenue_minor DESC,views DESC,l.sku`).bind(scope,from,to).all<any>()
  return result.results.map(r=>({sku:r.sku,name:r.name,category:r.category,currency:r.currency,views:Number(r.views),added:Number(r.added),checkouts:Number(r.checkouts),purchased:Number(r.purchased),revenue:Number(r.revenue_minor)/10**minorDigits(r.currency)}))
 }
