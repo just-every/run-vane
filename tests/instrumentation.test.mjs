@@ -77,7 +77,7 @@ test('Instrumentation investigation compares a renamed signup control and missin
  const dir=process.env.VANE_SCREEN_DIR;if(dir)await mkdir(dir,{recursive:true})
  for(const width of [1440,390]){
   await page.setViewportSize({width,height:1000});await page.goto(`${a.origin}/app/sites/${id}?section=settings`)
-  await page.locator('#instrumentation').scrollIntoViewIfNeeded();const source=page.getByText('GitHub source and draft PR authority',{exact:true});await source.click();assert.equal(await page.getByLabel('Repository-scoped GitHub token',{exact:true}).inputValue(),'');if(dir)await page.screenshot({path:join(dir,`instrumentation-source-${width}.png`)});await source.click();assert.ok(await page.getByRole('button',{name:'Investigate instrumentation',exact:true}).isVisible())
+  await page.locator('#instrumentation').scrollIntoViewIfNeeded();const source=page.getByText('GitHub source and draft PR authority',{exact:true});await source.click();assert.equal(await page.getByLabel('Repository-scoped GitHub token',{exact:true}).inputValue(),'');if(dir)await page.screenshot({path:join(dir,`instrumentation-source-${width}.png`)});await page.getByLabel('Repository-scoped GitHub token',{exact:true}).scrollIntoViewIfNeeded();if(dir)await page.screenshot({path:join(dir,`instrumentation-source-controls-${width}.png`)});await source.click();assert.ok(await page.getByRole('button',{name:'Investigate instrumentation',exact:true}).isVisible())
   const card=page.locator(`[data-instrumentation-run="${broken.id}"]`);await card.getByText('Review PR draft',{exact:true}).click();await card.scrollIntoViewIfNeeded();assert.match(await card.textContent(),/Draft only/);assert.ok(await page.getByRole('link',{name:'Open draft PR 17',exact:true}).count())
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);if(dir)await page.screenshot({path:join(dir,`instrumentation-draft-${width}.png`)})
   await page.locator(`[data-instrumentation-fix="${prepared.id}"]`).scrollIntoViewIfNeeded();assert.match(await page.locator(`[data-instrumentation-fix="${prepared.id}"]`).textContent(),/Verified fix/)
@@ -157,7 +157,7 @@ test('GitHub hand-off is off-default, owner-approved, sealed and revocable; sour
  const prepare=async()=>{const run=await result(await investigate()),fix=await result(await a.post('/api/vane/instrumentation/prepare',{siteId:id,runId:run.id,confirm:'on'},a.owner),201);assert.equal((await a.form({operation:'proposal.approve',id:fix.proposalId},a.owner)).status,303);return fix}
  const moved=await prepare();github.state.head='e'.repeat(40)
  assert.equal((await a.post('/api/vane/instrumentation/github-pr',{siteId:id,fixId:moved.id,confirm:'on'},a.owner)).status,409)
- assert.equal(github.state.requests.filter(r=>r.method==='POST').length,0,'a moved source branch causes no outbound write')
+ assert.equal(github.state.requests.filter(r=>r.method==='POST').length,0,'a moved source branch causes no outbound write');assert.equal((await a.dump()).vane_instrumentation_prs.find(p=>p.fix_id===moved.id).state,'blocked','a known no-write preflight failure is not labelled an uncertain send')
  github.state.head=github.changed;const uncertain=await prepare();github.state.loseReply=true
  const publish=()=>a.post('/api/vane/instrumentation/github-pr',{siteId:id,fixId:uncertain.id,confirm:'on'},a.owner)
  const lost=await publish();assert.equal(lost.status,502);assert.equal((await lost.text()).includes('synthetic-vane-provider-detail'),false)
@@ -166,7 +166,7 @@ test('GitHub hand-off is off-default, owner-approved, sealed and revocable; sour
  assert.equal((await a.post('/api/vane/instrumentation/github-pr',{siteId:id,fixId:fresh.id,confirm:'on'},a.owner)).status,409)
  assert.equal(github.state.requests.filter(r=>r.method==='POST').length,mutations,'disconnect blocks the next external change')
  assert.ok(github.state.requests.filter(r=>r.method==='POST'&&r.path.endsWith('/git/refs')).every(r=>r.body.ref.startsWith('refs/heads/vane/instrumentation-')))
- assert.ok((await a.dump()).vane_audit.some(r=>r.action==='agent.github.pr'))
+ assert.ok((await a.dump()).vane_audit.some(r=>r.action==='agent.github.pr'));assert.ok((await a.dump()).vane_audit.some(r=>r.action==='agent.github.pr.begin'))
  // A connect callback begun before disconnect must not resurrect its credential when the provider finally replies.
  const edge=a.fixtureSites['https://api.github.com'];let release,started;const waiting=new Promise(resolve=>{release=resolve}),reached=new Promise(resolve=>{started=resolve})
  a.fixtureSites['https://api.github.com']=async request=>{if(new URL(request.url).pathname==='/repos/just-every/run-vane'){started();await waiting}return edge(request)}

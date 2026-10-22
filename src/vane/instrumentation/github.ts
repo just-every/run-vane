@@ -14,7 +14,7 @@ const sha=(value:unknown):value is string=>typeof value==='string'&&/^[a-f0-9]{4
 const repoPath=(c:Connection)=>'/repos/'+c.repository.split('/').map(encodeURIComponent).join('/')
 const branchPath=(c:Connection)=>repoPath(c)+'/git/ref/heads/'+c.base_branch.split('/').map(encodeURIComponent).join('/')
 async function owner(env:Env,actor:Actor,siteId:string){allow(actor,'owner');inScope(actor,siteId);const current=(await rows(env,"SELECT 1 FROM oa_operators WHERE id=? AND role='owner' AND status='active'",actor.id)).length;insist(current,'forbidden','Use the active owner session.',403);return site(env,siteId)}
-async function live(env:Env,actor:Actor,c:Connection){await owner(env,actor,c.site_id);const active=await connection(env,c.site_id);insist(active?.generation===c.generation&&active.active===1,'github_revoked','The GitHub connection was revoked or replaced.',409)}
+async function live(env:Env,actor:Actor,c:Connection){await owner(env,actor,c.site_id);const active=await connection(env,c.site_id);insist(active?.generation===c.generation&&active.active===1&&active.created_by===actor.id,'github_revoked','The GitHub connection was revoked, replaced or belongs to a former owner; reconnect explicitly.',409)}
 // Fixed GitHub host only; never redirects, returns upstream bodies to the UI or persists source/patch bodies.
 async function call(c:Connection,token:string,path:string,method='GET',body?:unknown,missing=false):Promise<any> {
  const response=await fetch(API+path,{method,redirect:'manual',headers:{accept:'application/vnd.github+json','x-github-api-version':'2022-11-28','user-agent':'Vane',authorization:'Bearer '+token,...(body?{'content-type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{}),signal:AbortSignal.timeout(15000)})
@@ -24,7 +24,7 @@ async function call(c:Connection,token:string,path:string,method='GET',body?:unk
  try{return JSON.parse(text)}catch{throw new VaneError('github_response','GitHub returned an unreadable source response.',502)}
 }
 const tokenOf=(env:Env,c:Connection)=>unseal(env,PURPOSE,c.site_id+':'+c.generation,c.sealed_token)
-export async function githubSetting(env:Env,actor:Actor,siteId:string){await owner(env,actor,siteId);const c=await connection(env,siteId);return c?.active===1?{repository:c.repository,branch:c.base_branch,mappings:JSON.parse(c.mappings_json) as Mapping[],createdAt:c.created_at}:null}
+export async function githubSetting(env:Env,actor:Actor,siteId:string){await owner(env,actor,siteId);const c=await connection(env,siteId);return c?.active===1?{repository:c.repository,branch:c.base_branch,mappings:JSON.parse(c.mappings_json) as Mapping[],canUse:c.created_by===actor.id,createdAt:c.created_at}:null}
 export async function configureGitHub(env:Env,actor:Actor,p:any) {
  const value=await owner(env,actor,String(p.siteId??''))
  insist(p.enabled==='on'||p.enabled==='off','github_setting','Choose on or off.')
@@ -67,11 +67,12 @@ export async function githubDrafts(env:Env,actor:Actor,siteId:string){await owne
 function prUrl(c:Connection,p:any){const expected=`https://github.com/${c.repository}/pull/${p.number}`;insist(Number.isSafeInteger(p.number)&&p.number>0&&p.html_url===expected,'github_pr','GitHub did not return the expected repository PR URL.',502);return expected}
 export async function publishGitHubDraft(env:Env,actor:Actor,p:any) {
  const value=await owner(env,actor,String(p.siteId??''));insist(p.confirm==='on','github_publish','Explicitly approve opening this draft PR.')
- const c=await connection(env,value.id);insist(c?.active===1,'github_connection','Connect the repository first.',409)
+ const c=await connection(env,value.id);insist(c?.active===1,'github_connection','Connect the repository first.',409);await live(env,actor,c)
  const fix=(await rows<any>(env,'SELECT * FROM vane_instrumentation_fixes WHERE id=? AND site_id=?',String(p.fixId??''),value.id))[0],draft=(await rows<any>(env,'SELECT * FROM vane_instrumentation_prs WHERE fix_id=? AND site_id=?',String(p.fixId??''),value.id))[0]
  insist(fix&&draft&&draft.generation===c.generation,'github_draft','Prepare a fix against this current repository connection.',409)
  const proposal=(await rows<any>(env,"SELECT * FROM vane_proposals WHERE id=? AND state='approved'",fix.proposal_id))[0]
  insist(proposal&&JSON.parse(proposal.payload_json).version+1===value.version,'approval','The owner must approve this version-bound fix before opening a PR; stale settings require a new investigation.',409)
+ if(draft.state==='blocked')throw new VaneError('github_preflight','This draft failed source preflight before any external write. Investigate and approve a fresh fix.',409)
  if(draft.state==='published')return {state:'published',url:draft.pr_url,head:draft.candidate_sha}
  const token=await tokenOf(env,c),marker='Vane instrumentation fix '+fix.id,stamp=await agentHistoryStamp(env,value.id)
  const ensure=async()=>{await live(env,actor,c);const current=await site(env,value.id);insist(current.version===value.version&&await agentHistoryStamp(env,value.id)===stamp&&(await rows(env,'SELECT 1 FROM vane_instrumentation_fixes WHERE id=?',fix.id)).length,'github_stale','The fix was erased or settings changed; no further external write is allowed.',409)}
@@ -81,7 +82,8 @@ export async function publishGitHubDraft(env:Env,actor:Actor,p:any) {
   await ensure();const list=await call(c,token,repoPath(c)+'/pulls?'+new URLSearchParams({state:'all',head:c.repository.split('/')[0]+':'+draft.branch,base:c.base_branch}));insist(Array.isArray(list),'github_pr','GitHub did not return a draft list.',502)
   const found=list.find(pr=>pr.head?.sha===draft.candidate_sha&&pr.body?.includes(marker));return found?record(found):{state:'uncertain',message:'No matching PR is confirmed. Inspect the source repository; this attempt will not replay a write.'}
  }
- const claimed=await statement(env,"UPDATE vane_instrumentation_prs SET state='sending',updated_at=? WHERE fix_id=? AND state='prepared'",clock(),fix.id).run();insist(claimed.meta.changes===1,'github_busy','This draft is already being sent; reconcile its outcome instead.',409)
+ try {await atomic(env,actor,[statement(env,"INSERT INTO vane_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM vane_instrumentation_prs WHERE fix_id=? AND state='prepared') THEN 1 ELSE 0 END",fix.id),statement(env,"UPDATE vane_instrumentation_prs SET state='sending',updated_at=? WHERE fix_id=? AND state='prepared'",clock(),fix.id),auditStatement(env,actor.id,'agent.github.pr.begin',value.id,`${fix.id}: owner explicitly approved draft hand-off at source ${draft.base_sha}`)])}catch{throw new VaneError('github_busy','The draft could not be claimed; refresh and reconcile before retrying.',409)}
+ let didMutate=false
  try {
   await ensure();const ref=await call(c,token,branchPath(c));insist(ref.object?.sha===draft.base_sha,'github_stale','The source branch moved. Investigate and approve a new fix; nothing will be force-updated.',409)
   const changes=JSON.parse(fix.draft_json).changes as {page:string;before:string;after:string}[],mappings=JSON.parse(c.mappings_json) as Mapping[],files=[...new Set(changes.filter(x=>x.before==='No matching native script').map(x=>mappings.find(m=>m.path===x.page)?.file).filter(Boolean))] as string[]
@@ -98,12 +100,12 @@ export async function publishGitHubDraft(env:Env,actor:Actor,p:any) {
    tree.push({path:file,mode:entry.mode,type:'blob',content:html.slice(0,at)+snippet+'\n'+html.slice(at)})
   }
   await ensure();const stillCurrent=await call(c,token,branchPath(c));insist(stillCurrent.object?.sha===draft.base_sha,'github_stale','The source branch moved while its templates were read. No source write was made.',409)
-  await ensure();const createdTree=await call(c,token,repoPath(c)+'/git/trees','POST',{base_tree:commit.tree.sha,tree});insist(sha(createdTree.sha),'github_tree','GitHub did not return a candidate tree.',502)
+  await ensure();didMutate=true;const createdTree=await call(c,token,repoPath(c)+'/git/trees','POST',{base_tree:commit.tree.sha,tree});insist(sha(createdTree.sha),'github_tree','GitHub did not return a candidate tree.',502)
   await ensure();const createdCommit=await call(c,token,repoPath(c)+'/git/commits','POST',{message:marker,tree:createdTree.sha,parents:[draft.base_sha]});insist(sha(createdCommit.sha),'github_commit','GitHub did not return a candidate commit.',502)
   draft.candidate_sha=createdCommit.sha;await statement(env,'UPDATE vane_instrumentation_prs SET candidate_sha=?,updated_at=? WHERE fix_id=? AND generation=?',draft.candidate_sha,clock(),fix.id,c.generation).run()
   await ensure();await call(c,token,repoPath(c)+'/git/refs','POST',{ref:'refs/heads/'+draft.branch,sha:draft.candidate_sha})
   await ensure();const pr=await call(c,token,repoPath(c)+'/pulls','POST',{title:'Repair analytics instrumentation',head:draft.branch,base:c.base_branch,draft:true,body:marker+'\n\nOwner-approved script-only repair in the explicitly mapped HTML templates. The associated no-code selector change uses Vane’s normal owner approval. No metric, consent rule, identifier or collected field is widened. Review and deploy through your own repository workflow; Vane never merges or deploys this PR.'})
   insist(pr.draft===true,'github_pr','GitHub did not confirm a draft PR; reconcile the provider outcome.',502)
   return await record(pr)
- } catch(error){await statement(env,"UPDATE vane_instrumentation_prs SET state='uncertain',updated_at=? WHERE fix_id=? AND state='sending'",clock(),fix.id).run();throw error instanceof VaneError?error:new VaneError('github_unknown','The provider outcome is uncertain. Reconcile this draft; no mutation will be replayed automatically.',502)}
+ } catch(error){await statement(env,"UPDATE vane_instrumentation_prs SET state=?,updated_at=? WHERE fix_id=? AND state='sending'",didMutate?'uncertain':'blocked',clock(),fix.id).run();throw error instanceof VaneError?error:new VaneError('github_unknown','The provider outcome is uncertain. Reconcile this draft; no mutation will be replayed automatically.',502)}
 }

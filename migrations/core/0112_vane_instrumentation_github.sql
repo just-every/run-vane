@@ -8,7 +8,7 @@ CREATE TABLE vane_instrumentation_github (
 CREATE TABLE vane_instrumentation_prs (
  fix_id TEXT PRIMARY KEY, site_id TEXT NOT NULL REFERENCES vane_sites(id) ON DELETE CASCADE,
  generation TEXT NOT NULL, base_sha TEXT NOT NULL, branch TEXT NOT NULL,
- state TEXT NOT NULL CHECK(state IN ('prepared','sending','uncertain','published')),
+ state TEXT NOT NULL CHECK(state IN ('prepared','sending','blocked','uncertain','published')),
  candidate_sha TEXT, pr_url TEXT, pr_number INTEGER,
  created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
 );

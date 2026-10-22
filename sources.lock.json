@@ -107,7 +107,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "2f4ead31ab6153adcf39b966b8465fdabfbe136669fea461423c35a598ee344d",
+      "sha256": "948b4c60362e4a6aaa66f857b1593b7c33d6538a0e0989c06b8f0994e0daf283",
       "executable": false
     },
     "DEMO.md": {
@@ -163,7 +163,7 @@
       "executable": false
     },
     "docs/instrumentation.md": {
-      "sha256": "6167fbfe46cbeea28a55677c5cc1d7dbde7af34177afc14020389526a220e3a0",
+      "sha256": "1aa5d3c22f64a42e50d4b6790e3863c3b4ea62a853d6c596fda3b5664c5a6bf6",
       "executable": false
     },
     "docs/movement.md": {
@@ -579,7 +579,7 @@
       "executable": false
     },
     "migrations/core/0112_vane_instrumentation_github.sql": {
-      "sha256": "bb17221d884ae3f570519085209532f794738a74c164a8bcabaf2cd44fca538f",
+      "sha256": "94962561fddb6f8277c95f0a222b7e9342f7b236b9121f9c4b914a8bf6856795",
       "executable": false
     },
     "ONBOARDING.md": {
@@ -3295,7 +3295,7 @@
       "executable": false
     },
     "src/vane/instrumentation/github.ts": {
-      "sha256": "bacebbb6fcaa1807029c1935373f9cb4b0a8d12075a7f8093b11dedb4d8155bc",
+      "sha256": "15fbc42aaccc8e6d14ef7e5cca50c19676849c692b5a5d0f1824879e5adf2ed1",
       "executable": false
     },
     "src/vane/instrumentation/index.ts": {
@@ -3307,7 +3307,7 @@
       "executable": false
     },
     "src/vane/inventory.ts": {
-      "sha256": "b24a302dd460d312d3ccb55e87a08463772d322062419bc92b57d12eda6e2e62",
+      "sha256": "bf3f5c522ec8b9bac63786556be9d3643c5eff3bb646036eaf8b5610e8f3c09e",
       "executable": false
     },
     "src/vane/journeys.ts": {
@@ -3799,7 +3799,7 @@
       "executable": false
     },
     "src/vane/views/cutover.ts": {
-      "sha256": "a82fac2df49929a84ab8572db89f556e4265adf7e34759b24309ce2880387ae2",
+      "sha256": "85310e956ad3ece3506849b47f3ba18ed8feace93c80041f484dff529e0fca87",
       "executable": false
     },
     "src/vane/views/dashboard.ts": {
@@ -3859,7 +3859,7 @@
       "executable": false
     },
     "src/vane/views/instrumentation.ts": {
-      "sha256": "057a094da5c7f4d95745ca1806505822899a2e7c888e47e6efe3bc4996eac293",
+      "sha256": "1121c79baeb6685f1b8ef1919fd16054078113836b857cca659484354e446aef",
       "executable": false
     },
     "src/vane/views/locations.ts": {
@@ -4143,7 +4143,7 @@
       "executable": false
     },
     "tests/instrumentation.test.mjs": {
-      "sha256": "f30dda2ec7940a892c542ba22cae7517ec9c083899bbc297cf56497ba9b88dc4",
+      "sha256": "5ef0dd004b53309d437a0b0267b8c00bdc9d28820161feb5db53c94cba56c426",
       "executable": false
     },
     "tests/locations.journey.mjs": {
