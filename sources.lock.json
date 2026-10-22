@@ -514,6 +514,10 @@
       "sha256": "8fd1a07356f3342adbd989a4513b2688ae52e38bce0c29e57a1d3115dbee205d",
       "executable": false
     },
+    "migrations/core/0100_raw_group_token_prefix.sql": {
+      "sha256": "41b23aa69e8c75ed9948e513c39c70635334259f3ad6bb4697ac114251aba9f4",
+      "executable": false
+    },
     "ONBOARDING.md": {
       "sha256": "b28a79254e2278d81d877ffd5987972aaf135d85683ae285b52fd98cc44e608e",
       "executable": false
@@ -2891,7 +2895,7 @@
       "executable": false
     },
     "src/vane/analytics/visits/journeys.ts": {
-      "sha256": "dd34d8ab3fc85aa51194d5c8042c9b9ce960b02b36c2477575a2133e358e9817",
+      "sha256": "3c07ef81a020d1b3756047be7bf684d64b8bf7956e3361f0f1dbbaadaefb2965",
       "executable": false
     },
     "src/vane/analytics/visits/locations.ts": {
@@ -4063,7 +4067,7 @@
       "executable": false
     },
     "tests/visit-analytics.test.mjs": {
-      "sha256": "02ce7f262272d15fc90a7dac0034e06ce57adb7b81611506e680603acf81642c",
+      "sha256": "d423165a1d88660b286dcb0178560e35b605da4698860cfb97494c6365340e28",
       "executable": false
     },
     "tsconfig.json": {
