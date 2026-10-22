@@ -4111,7 +4111,7 @@
       "executable": false
     },
     "tests/site.test.mjs": {
-      "sha256": "3d5c255be62dd77904cc83aa927f4f0ae25fd7b66f11c7d48215abdc9292268e",
+      "sha256": "f1fe8667af99f313732c34a887417cee76d941add84e85ad37ccc4c0a544e9c2",
       "executable": false
     },
     "tests/sitemap-scan.test.mjs": {
