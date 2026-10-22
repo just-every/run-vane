@@ -3103,7 +3103,7 @@
       "executable": false
     },
     "src/vane/locations.ts": {
-      "sha256": "e1f5a5c0ca9d6bb29519034510019f831b9c3b1004f8912ea1e5f3a639d737f6",
+      "sha256": "85d8ef76369cd949589642d82340613acb1b6a5b5fd5625beeef4280ea506192",
       "executable": false
     },
     "src/vane/mail-events.ts": {
@@ -3691,7 +3691,7 @@
       "executable": false
     },
     "src/vane/visits.ts": {
-      "sha256": "af14ce5ee46519597ab643af2a012eeff96cc41ebc6180987e158daf54fb9a5e",
+      "sha256": "f0844a6c0f35eca8fc88394564015475f93088854e7144eb419c0c2fe2eb892c",
       "executable": false
     },
     "src/vane/warehouse.ts": {
