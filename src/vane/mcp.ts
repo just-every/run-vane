@@ -2,6 +2,7 @@ import { sites, VaneError, type Env } from './core'
 import { keySites, type ApiKey } from './api-keys'
 import { BREAKDOWNS, METRICS, statsV1 } from './stats-api'
 import { PERIODS } from './periods'
+import { ask } from './ask'
 // API-004: a Model Context Protocol endpoint (Streamable HTTP, stateless, JSON answers) at POST /api/v1/mcp. It takes
 // the same read-only Stats API key as /api/v1/stats, with the same site scope and rate limits, and its query tool
 // answers with exactly the Stats API's answer. Write tools need an agent grant (AGENT-003); until grants exist, every
@@ -14,6 +15,7 @@ const READ_TOOLS=[
   metrics:{type:'array',items:{type:'string',enum:Object.keys(METRICS)}},dimension:{type:'string',enum:Object.keys(BREAKDOWNS)},
   compare:{type:'string',enum:['previous','year','custom']},compare_from:{type:'string',format:'date'},compare_to:{type:'string',format:'date'},
   filters:{type:'array',items:{type:'string',description:'dimension:op:value, as the Stats API filter parameter'}},segment:{type:'string'}}},annotations:{readOnlyHint:true}},
+ {name:'ask_question',title:'Ask in plain English',description:'Answers one question about one site with a Stats API query Vane validates and runs itself, and returns the exact query beside the figures. Needs the owner to have turned questions on for the site; the question text goes to the deployment’s model provider and is not stored.',inputSchema:{type:'object',required:['site_id','question'],additionalProperties:false,properties:{site_id:{type:'string'},question:{type:'string',maxLength:300}}},annotations:{readOnlyHint:true}},
 ]
 const WRITE_TOOLS=[{name:'add_annotation',title:'Add a chart annotation',description:'Adds a note to a site’s charts. Needs an agent grant (AGENT-003); a Stats API key alone is refused.',inputSchema:{type:'object',required:['site_id','day','text'],additionalProperties:false,properties:{site_id:{type:'string'},day:{type:'string',format:'date'},text:{type:'string',maxLength:280}}},annotations:{readOnlyHint:false,destructiveHint:false}}]
 const result=(id:unknown,value:unknown)=>({jsonrpc:'2.0',id,result:value})
@@ -28,6 +30,7 @@ async function call(env:Env,key:ApiKey,origin:string,name:string,args:any) {
   for(const filter of Array.isArray(args.filters)?args.filters:[])url.searchParams.append('filter',String(filter))
   try{keySites(key,String(args.site_id??''));return tool(await statsV1(env,url))}catch(error){if(error instanceof VaneError)return tool({error:error.code,message:error.message},true);throw error}
  }
+ if(name==='ask_question'){try{keySites(key,String(args.site_id??''));return tool(await ask(env,{siteId:String(args.site_id),question:args.question,actor:'key:'+key.label}))}catch(error){if(error instanceof VaneError)return tool({error:error.code,message:error.message},true);throw error}}
  if(WRITE_TOOLS.some(t=>t.name===name))return tool({error:'grant_required',message:'Write tools need an agent grant (AGENT-003); this Stats API key is read-only, so nothing was changed.'},true)
  return null
 }

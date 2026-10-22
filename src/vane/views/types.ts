@@ -1,4 +1,5 @@
 export interface ViewData {
+  ask?:{setting:import('../ask/settings').AskSetting;result?:import('../ask').AskResult}
   heat?:import('../heat/report').HeatReport
   reportOrigin?:string
   agency?:Awaited<ReturnType<typeof import('../agency/service').agencyData>>

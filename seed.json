@@ -129,6 +129,16 @@
         "Goal and custom-property definitions and aggregate revenue currencies returned; no collected Vane visits sent"
       ],
       "adapters": []
+    },
+    {
+      "id": "models",
+      "required": false,
+      "why": "The owner-enabled plain-English questions (AGENT-007) go to the model provider the deployment configured through the Base ai module (AI_ENABLED)",
+      "data": [
+        "The question text, Vane's metric, breakdown and filter names, the site's goal names and its time zone and today's date",
+        "No figures, visitor fields, page values or identifiers"
+      ],
+      "adapters": []
     }
   ],
   "env": [],

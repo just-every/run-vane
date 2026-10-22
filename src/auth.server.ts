@@ -35,6 +35,13 @@ export interface Bindings {
  AUTH_LOCAL?: string
  RER_DEV_ORIGIN?: string
  /** Local runtimes only: the checkout's key gate and dev identity switch. Deploy refuses both. */
+ /** AGENT-007: the deployment's model provider for plain-English questions (Base ai module); off unless AI_ENABLED is 'true'. */
+ AI_ENABLED?: string
+ AI_API_KEY?: string
+ AI_BASE_URL?: string
+ AI_MODEL?: string
+ MODELS_SERVICE?: string
+ MODELS_KEY?: string
  RER_MODELS_SERVICE?: string
  RER_MODELS_KEY?: string
  RER_DEV_KEY?: string

@@ -1,4 +1,5 @@
 import { heatPage } from './heat'
+import { askPage } from './ask'
 import { heatScript } from '../heat'
 import { agencyPage } from './agency'
 import { themeFrame } from '../../base/theme-frame'
@@ -26,7 +27,7 @@ export type { ImportPreview } from './history'
 
 export async function renderApp(data: ViewData): Promise<Response> {
   const frame = data.reportFrame ?? await themeFrame({ href: '/rer-theme.css', productName: 'Vane' })
-  const section = ['report', 'settings', 'history', 'approvals', ...(data.site ? ['realtime','heat'] : ['audit', 'team', 'api', 'alerts', 'agency'])].includes(data.section ?? '') ? data.section! : 'report'
+  const section = ['report', 'settings', 'history', 'approvals', ...(data.site ? ['realtime','heat','ask'] : ['audit', 'team', 'api', 'alerts', 'agency'])].includes(data.section ?? '') ? data.section! : 'report'
   const site = data.site
   // DASH-002: a new site's time zone starts as the zone the owner's browser reports, such as America/Chicago.
   const zoneFill = !site && !data.rollup && section === 'report' && canPrepare(data.actor.role)
@@ -41,7 +42,7 @@ export async function renderApp(data: ViewData): Promise<Response> {
   const content = data.rollup
     ? rollupPage(data)
     : site
-    ? section === 'heat' ? `${heading('Heatmaps', 'Aggregate clicks and scroll reach on pages you choose.')}${heatPage(data)}` : section === 'realtime' ? `${heading('Real-time', 'Current visitors and pageviews per minute against 30 minutes earlier.')}${realtimePage(data.live)}` : section === 'settings' ? `${heading('Settings', 'Install the script, share the stats and choose what is counted.')}${settingsPage(data)}` : section === 'history' ? `${heading('History', 'Import, export, retention and erasure for this site.')}${historyPage(data)}` : section === 'approvals' ? `${heading('Approvals', 'Prepared changes take effect once the owner approves them.')}${approvalsPage(data)}` : reportPage(data)
+    ? section === 'ask' ? `${heading('Ask', 'Ask a question in plain English and see the exact Stats API query behind the answer.')}${askPage(data)}` : section === 'heat' ? `${heading('Heatmaps', 'Aggregate clicks and scroll reach on pages you choose.')}${heatPage(data)}` : section === 'realtime' ? `${heading('Real-time', 'Current visitors and pageviews per minute against 30 minutes earlier.')}${realtimePage(data.live)}` : section === 'settings' ? `${heading('Settings', 'Install the script, share the stats and choose what is counted.')}${settingsPage(data)}` : section === 'history' ? `${heading('History', 'Import, export, retention and erasure for this site.')}${historyPage(data)}` : section === 'approvals' ? `${heading('Approvals', 'Prepared changes take effect once the owner approves them.')}${approvalsPage(data)}` : reportPage(data)
     : section === 'agency' && data.agency ? `${heading('Agency clients')}${agencyPage(data)}` : section === 'history' ? `${heading('Data history')}${globalHistoryPage(data)}` : section === 'approvals' ? `${heading('Approvals')}${approvalsPage(data)}` : section === 'audit' ? `${heading('Audit history')}${auditPage(data)}` : section === 'alerts' ? `${heading('Browser alerts')}${pushPage(data)}` : section === 'api' && data.apiKeys ? `${heading('API keys')}${apiKeysPage(data)}` : section === 'team' && data.people ? `${heading('Team')}${teamPage(data)}` : sitesPage(data)
   const html = `<!doctype html><html lang="en"${frame.htmlClass}><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>${escape(site?.name ?? data.rollup?.name ?? (section === 'history' ? 'Data history' : section === 'approvals' ? 'Approvals' : section === 'audit' ? 'Audit history' : section === 'alerts' ? 'Browser alerts' : 'Sites'))} · Vane</title>${fontHead}${frame.head}<link rel="stylesheet" href="/vane.css"><link rel="manifest" href="/manifest.webmanifest"></head><body class="vane-app vane-shell${!site && section === 'report' && !data.sites.length ? ' vane-empty-sites' : ''}${(site || data.rollup) && section === 'report' ? ' vane-on-report' : ''}">${appRail(frame.brand, data, section)}<div class="vane-workspace"><main id="main" tabindex="-1">${data.store?.warn ? storeWarning(data.store) : ''}${data.notice ? `<div class="vane-notice" role="status">${escape(data.notice)}</div>` : ''}${data.error ? `<div class="vane-error" role="alert">${escape(data.error)}</div>` : ''}${content}</main>${appFooter}</div>${copyNonce ? `<script nonce="${copyNonce}">${heat ? heatScript : live ? realtimePoll : alerts ? pushScript : zoneFill ? browserZone : scriptCopy}</script>` : ''}</body></html>`
   return new Response(html, { headers: {

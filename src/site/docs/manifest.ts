@@ -1,6 +1,7 @@
 export const docsPages = [
   { slug: 'getting-started', title: 'Your first website', section: 'Start', source: 'docs/getting-started.md', summary: 'Run Vane, add your website, install the script and read your first report.' },
   { slug: 'collection', title: 'Collection and coverage', section: 'Use Vane', source: 'docs/collection.md', summary: 'What the script sends, consent, sampling and the limits behind the counts.' },
+  { slug: 'ask', title: 'Ask a question in plain English', section: 'Use Vane', source: 'docs/ask.md', summary: 'Turn on questions, see what the model provider receives and read the exact query behind each answer.' },
   { slug: 'agency', title: 'Agency clients and branding', section: 'Use Vane', source: 'docs/agency.md', summary: 'Create client workspaces and configure branding within each report’s existing access scope.' },
   { slug: 'collection-scale', title: 'Collection scale and proof', section: 'Reference', source: 'docs/collection-scale.md', summary: 'The analytical store, native batching, published capacity and remaining scale proof.' },
   { slug: 'first-party-proxy', title: 'Serve Vane through your domain', section: 'Use Vane', source: 'docs/first-party-proxy.md', summary: 'Connect an owner-managed first-party route, install the server setup and verify its coverage and privacy.' },
