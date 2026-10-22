@@ -46,12 +46,6 @@ test('native visit facts keep reverse arrivals, tied IDs, a late bridge, engagem
  // A retry neither adds a raw page nor duplicates any frequency population.
  assert.equal((await a.post('/api/vane/collect',loads.c,'',{origin,'cf-connecting-ip':'203.0.113.17','user-agent':'Synthetic Vane Browser 1'})).status,200)
  assert.equal((await summary()).pageviews,4)
- const archive=await a.archive(),b=await withApp(t)
- const restored=await b.post('/api/vane/restore',{archive},b.owner)
- assert.equal(restored.status,200,await restored.clone().text())
- const after=await summary(b)
- assert.deepEqual([after.visits,after.bounces,after.topPages,after.entryPages,after.exitPages,after.perf],[report.visits,report.bounces,report.topPages,report.entryPages,report.exitPages,report.perf])
- assert.deepEqual((await summary(b,'&journey=/tie')).journey,tiedJourney)
  // A historical opaque ID sorts before the packed UUIDs at the same instant.
  // Introducing it invalidates and rebuilds the chain; journeys still follow
  // logical IDs, including the three distinct pages after this first match.
@@ -59,6 +53,13 @@ test('native visit facts keep reverse arrivals, tied IDs, a late bridge, engagem
  const legacyJourney=(await summary(a,'&journey=/legacy')).journey
  assert.deepEqual(legacyJourney.next.map(r=>[r.steps,r.visits]),[[['/tie','/b','/c'],1]])
  assert.deepEqual(legacyJourney.previous.map(r=>[r.steps,r.visits]),[[['/a','(entrance)'],1]])
+ report=await summary()
+ const archive=await a.archive(),b=await withApp(t)
+ const restored=await b.post('/api/vane/restore',{archive},b.owner)
+ assert.equal(restored.status,200,await restored.clone().text())
+ const after=await summary(b)
+ assert.deepEqual([after.visits,after.bounces,after.topPages,after.entryPages,after.exitPages,after.perf],[report.visits,report.bounces,report.topPages,report.entryPages,report.exitPages,report.perf])
+ assert.deepEqual((await summary(b,'&journey=/legacy')).journey,legacyJourney)
  const proposal=await (await b.post('/api/vane/commands',{command:'history.erase',input:{siteId}},b.owner)).json()
  assert.equal((await b.form({operation:'proposal.approve',id:proposal.id},b.owner)).status,303)
  const erased=await summary(b)
