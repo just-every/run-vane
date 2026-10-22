@@ -62,7 +62,9 @@ export async function chrome(t, scratch, hostname, trackerHostname) {
   assert.ok(context, 'Use the fresh Chrome default context where the extension is installed')
   const filters=await extensionState(port,context)
   t.after(()=>filters.close())
-  const {selected,netFilterCount} = await filters.read()
+  await filters.update()
+  const {selected,netFilterCount,versions} = await filters.read()
   t.diagnostic('Chrome ' + browser.version() + '; uBlock Origin ' + manifest.version + '; active network filters: '+netFilterCount+'; default lists: ' + selected.join(', '))
-  return { context, filters, selected }
+  t.diagnostic('Default list versions: '+JSON.stringify(versions))
+  return { context, filters, selected, version:manifest.version, versions }
 }

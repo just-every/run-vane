@@ -34,8 +34,28 @@ export async function extensionState(port,context) {
   const selected=Object.entries(state.current).filter(([,entry])=>entry.off!==true).map(([key])=>key).sort();
   const easyprivacy=state.current.easyprivacy;
   assert.ok(selected.includes('easyprivacy')&&easyprivacy?.entryUsedCount>0,'Default EasyPrivacy must be selected and compiled');
-  return {selected,easyprivacy,netFilterCount:state.netFilterCount};
+  const versions={};
+  for(const key of selected){
+   const asset=await page.evaluate(key=>globalThis.vAPI.messaging.send('default',{what:'getAssetContent',url:key}),key);
+   assert.equal(typeof asset?.content,'string','Read the active list '+key);
+   const {createHash}=await import('node:crypto');
+   versions[key]={title:state.current[key].title,sha256:createHash('sha256').update(asset.content).digest('hex'),
+    sourceURL:asset.sourceURL??null,writeTime:state.cache?.[key]?.writeTime??null,
+    lastModified:asset.content.match(/^!\s*Last modified:\s*(.+)$/im)?.[1]??null,entries:state.current[key].entryUsedCount};
+  }
+  return {selected,easyprivacy,netFilterCount:state.netFilterCount,versions,isUpdating:state.isUpdating};
  };
- return {read,page,close:()=>page.close()};
+ // Refresh the selected defaults, without changing any filter, setting or list.
+ const update=async()=>{
+  await page.evaluate(async()=>{const state=await globalThis.vAPI.messaging.send('dashboard',{what:'getLists'});await globalThis.vAPI.messaging.send('dashboard',{what:'listsUpdateNow',assetKeys:Object.entries(state.current).filter(([key,value])=>value.off!==true&&key!==state.userFiltersPath).map(([key])=>key),preferOrigin:true})});
+  const deadline=Date.now()+90000;
+  while(Date.now()<deadline){
+   await delay(1000);
+   const state=await page.evaluate(()=>globalThis.vAPI.messaging.send('dashboard',{what:'getLists'}));
+   if(!state.isUpdating)return;
+  }
+  assert.fail('The current default lists must finish updating before the site loads');
+ };
+ return {read,update,page,close:()=>page.close()};
 }
 

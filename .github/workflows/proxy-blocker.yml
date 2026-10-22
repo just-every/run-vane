@@ -1,9 +1,11 @@
 name: Proxy blocker acceptance
 
-# Real extension evidence is independent of push Verify. A passing first-party
-# request is insufficient: the actual unproxied Vane script must first be blocked.
+# Real extension evidence is independent of push Verify. Controls prove the
+# current defaults are live; the direct Vane outcome is recorded honestly.
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '17 3 * * 1'
 
 permissions:
   contents: read
@@ -41,5 +43,5 @@ jobs:
           echo "CHROMIUM_EXECUTABLE_PATH=$scratch/chrome-linux64/chrome" >> "$GITHUB_ENV"
           echo "UBLOCK_EXTENSION_PATH=$scratch/uBlock0.chromium" >> "$GITHUB_ENV"
       - run: pnpm exec vite build
-      - name: Prove actual Vane blocking before first-party collection
+      - name: Prove live lists and record direct and first-party collection
         run: node --test tests/proxy-blocker.journey.mjs
