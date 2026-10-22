@@ -430,8 +430,8 @@ Judged from the code and tests at commit `7bf639684e6ebbc65ca8003aebb3ffbff3ed48
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 17 | 0 | 0 | 17 |
-| Target and push further | 66 | 13 | 13 | 92 |
-| All | 83 | 13 | 13 | 109 |
+| Target and push further | 67 | 12 | 13 | 92 |
+| All | 84 | 12 | 13 | 109 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -485,7 +485,7 @@ Judged from the code and tests at commit `7bf639684e6ebbc65ca8003aebb3ffbff3ed48
 | `DASH-013` | Hostnames and subdomains within one site | target | done | `src/vane/hosts.ts`; `src/vane/visits.ts`; `src/vane/reports.ts`; `src/vane/goals.ts`; `tests/vane.test.mjs` |  |
 | `DASH-014` | Named sources for referrer domains and app referrers | target | done | `src/vane/sources.ts`; `src/vane/channels.ts`; `src/vane/reports.ts`; `tests/vane.test.mjs` |  |
 | `PERF-001` | Page performance | target | done | `src/vane/performance.ts`; `src/vane/tracker.ts`; `src/vane/reports.ts`; `src/vane/views/report.ts`; `src/vane/methodology.ts`; `src/vane/inventory.ts`; `migrations/core/0030_vane_performance.sql`; `tests/vane.test.mjs` |  |
-| `HEAT-001` | Aggregate click and scroll maps | target | partial | `tests/heat.test.mjs` — “HEAT-001 real clicks aggregate at two buttons without text or identifiers; scroll reach is METRIC-006 and recorded geometry maps fit desktop and mobile” proves two real button concentrations, anonymous grid/geometry request and custody shape, denied consent and privacy signals, off-default owner-only audited controls, scroll equality with METRIC-006 and both recorded-geometry map pages at 1440/390. `tests/proxy-adapters.test.mjs` — “server proxy forwards every public tracker door over HTTP and strips untrusted identity and credentials” includes heat clicks. | Recorded-geometry map proof pending; ct approved defaults 22 Oct. Live native screenshots are carried by HEAT-002. |
+| `HEAT-001` | Aggregate click and scroll maps | target | done | `tests/heat.test.mjs` — “HEAT-001 real clicks aggregate at two buttons without text or identifiers; scroll reach is METRIC-006 and recorded geometry maps fit desktop and mobile” proves two real button concentrations, anonymous grid/geometry request and custody shape, denied consent and privacy signals, off-default owner-only audited controls, scroll equality with METRIC-006 and both recorded-geometry map pages at 1440/390. `tests/proxy-adapters.test.mjs` — “server proxy forwards every public tracker door over HTTP and strips untrusted identity and credentials” includes heat clicks. | Live native screenshots are carried by HEAT-002. |
 | `HEAT-002` | Heatmap over a live screenshot of the page | target | partial | `src/vane/heat/browser.ts`; `tests/heat.test.mjs`, explicit VANE_HEAT_CAPTURE=1 native mode. Harness exception approved ct 22 Oct 15:14Z: fresh throwaway user-data-dir in this run’s work directory, real HOME, current Playwright Chromium headless, mock keychain and basic password store, own process group, directory deleted on success or failure; never a real profile, fake stream or fake handle. | Native screenshot proof pending under the approved harness exception. |
 | `CONV-001` | Pageview goals with patterns and conversion rates | target | done | `src/vane/goals.ts`; `src/vane/privacy.ts`; `src/vane/collect.ts`; `src/vane/reports.ts`; `src/vane/views/report.ts`; `tests/vane.test.mjs` |  |
 | `CONV-002` | Custom events with properties | target | done | `src/vane/custom-events.ts`; `src/vane/properties.ts`; `src/vane/custom-reports.ts`; `src/vane/collect.ts`; `src/vane/tracker.ts`; `src/vane/segments.ts`; `src/vane/funnels.ts`; `src/vane/views/events.ts`; `migrations/core/0032_vane_custom_events.sql`; `tests/vane.test.mjs` |  |
