@@ -11,7 +11,7 @@ export const RAW_COLUMNS = [
  'load_ms','country','region','city','metro_code','consented_visitor','consented_created_at','consented_expires_at','transport',
 ] as const
 export const DETAIL_COLUMNS = ['engaged_at','scroll','lcp','inp','cls','load_ms'] as const
-export const RAW_TABLES = ['vane_raw_sites','vane_raw_identities','vane_raw_contexts','vane_raw_events','vane_raw_details'] as const
+export const RAW_TABLES = ['vane_raw_sites','vane_raw_identities','vane_raw_contexts','vane_raw_groups','vane_raw_occurrences','vane_raw_details'] as const
 export const dimensionsSql = (prefix='') => `json_array(${RAW_DIMENSIONS.map(name=>prefix+name).join(',')})`
 export const packedHashSql = (value:string) => `CASE WHEN length(${value})=64 AND ${value} NOT GLOB '*[^0-9a-f]*' THEN unhex(${value}) ELSE ${value} END`
 export const unpackedHashSql = (value:string) => `CASE WHEN typeof(${value})='blob' THEN lower(hex(${value})) ELSE ${value} END`

@@ -1,5 +1,5 @@
 import { site, statement, uid, VaneError, type Env } from '../core'
-import { encodeRawId, rawInsertManyStatement, rawNormalizeStatements, type RawRecord } from '../raw'
+import { encodeRawId, rawInsertManyStatement, rawNormalizeManyGroupsStatement, rawNormalizeStatements, type RawRecord } from '../raw'
 import { RAW_DIMENSIONS } from '../raw/schema'
 import { bulkOccurrences } from '../analytics/bulk'
 import { beginBulkVisits, finishBulkVisits } from '../analytics/visits/bulk'
@@ -80,6 +80,9 @@ export async function admitPageviews(request: Request, env: Env, validated: Vali
   WHERE NOT EXISTS(SELECT 1 FROM vane_raw_events WHERE site=${physicalSite} AND token=${tokenSql})
   GROUP BY json_extract(row.value,'$.site'),${tokenSql}`, batchId, checks))
  statements.push(...beginBulkVisits(env))
+ statements.push(rawNormalizeManyGroupsStatement(env, pages, {
+  sql: 'EXISTS(SELECT 1 FROM vane_collection_batch_admitted WHERE batch_id=? AND record_index=CAST(row.key AS INTEGER))', values: [batchId],
+ }))
  statements.push(rawInsertManyStatement(env, pages, {
   sql: 'EXISTS(SELECT 1 FROM vane_collection_batch_admitted WHERE batch_id=? AND record_index=CAST(row.key AS INTEGER))', values: [batchId],
  }))
