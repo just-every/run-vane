@@ -579,7 +579,7 @@
       "executable": false
     },
     "migrations/core/0112_vane_instrumentation_github.sql": {
-      "sha256": "4fa86cbd5b6b0acdca2a7b0784a68b6282111a7facc34566bcde3914e7f0d1f9",
+      "sha256": "bb17221d884ae3f570519085209532f794738a74c164a8bcabaf2cd44fca538f",
       "executable": false
     },
     "ONBOARDING.md": {
@@ -3295,7 +3295,7 @@
       "executable": false
     },
     "src/vane/instrumentation/github.ts": {
-      "sha256": "c16cad7a94ee28541b3975a13eaa1bf64746aa508c8a2d2e327e82798f2974db",
+      "sha256": "c8db3ec222647a102b33ba45a796db42650c58d65d9d90b868b85f37c2ad4a60",
       "executable": false
     },
     "src/vane/instrumentation/index.ts": {
@@ -3307,7 +3307,7 @@
       "executable": false
     },
     "src/vane/inventory.ts": {
-      "sha256": "982b3c0c73e501c0e34078b109daf68fad0b593aa5861fcbaf7538922c184735",
+      "sha256": "b24a302dd460d312d3ccb55e87a08463772d322062419bc92b57d12eda6e2e62",
       "executable": false
     },
     "src/vane/journeys.ts": {
@@ -4139,11 +4139,11 @@
       "executable": false
     },
     "tests/instrumentation-github-fixture.mjs": {
-      "sha256": "ba3c2c2e1838c49b09d159ce42d1b704c72c885f0fe3fe356856c917441516cd",
+      "sha256": "09ac2c023244b4574f16168599d8ea677da179da42290b872fb69d4ab6a7f05b",
       "executable": false
     },
     "tests/instrumentation.test.mjs": {
-      "sha256": "6f9380242241a6312f301ee341c8d4e776c77a9f52527247c29259d6bd369c98",
+      "sha256": "65bbf12a74e60975d2dfbf591abf57cff1296d6f08db9581bfebe4a27c850485",
       "executable": false
     },
     "tests/locations.journey.mjs": {

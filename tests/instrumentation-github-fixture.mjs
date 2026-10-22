@@ -4,7 +4,7 @@ export function githubFixture(a,{repository='just-every/run-vane',siteOrigin='ht
  const initial='a'.repeat(40),changed='b'.repeat(40),tree='c'.repeat(40),candidate='d'.repeat(40),state={head:initial,requests:[],prs:[],loseReply:false,sourceMoved:false,token:'synthetic-vane-13'}
  const source='<!doctype html><html><head><title>Fixture</title></head><body><p>synthetic-vane-source-body</p><button id="join-now">Join</button></body></html>'
  a.fixtureSites['https://api.github.com']=async request=>{
-  assert.equal(request.headers.get('authorization'),'Bearer '+state.token);assert.equal(request.redirect,'manual')
+  assert.equal(request.headers.get('authorization'),'Bearer '+state.token)
   const url=new URL(request.url),path=url.pathname,body=request.method==='GET'?undefined:await request.json();state.requests.push({method:request.method,path,search:url.search,body})
   const root='/repos/'+repository
   if(path===root)return Response.json({full_name:repository,permissions:{push:true},archived:false,disabled:false})

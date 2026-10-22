@@ -28,7 +28,7 @@ test('Instrumentation investigation compares a renamed signup control and missin
  const a=await installation();t.after(()=>a.close());const now=Date.now()+60000;await a.clock(now)
  const id=await a.addSite({origin,paths:[],goals:{},customGoals:{signup:{event:'Signup',revenue:false,currency:'USD'}},eventDefinitions:[{name:'Signup',kind:'click',target:'#signup'}],incumbentCompatibility:true})
  const state={broken:false},site=website(a,id,state),github=githubFixture(a),input={siteId:id,...windowOf(now),pageLimit:10}
- assert.equal((await a.post('/api/vane/instrumentation/github',{siteId:id,enabled:'on',confirm:'on',repository:'just-every/run-vane',branch:'main',token:github.state.token,mappings:'/pricing = public/pricing.html'},a.owner)).status,200)
+ await result(await a.post('/api/vane/instrumentation/github',{siteId:id,enabled:'on',confirm:'on',repository:'just-every/run-vane',branch:'main',token:github.state.token,mappings:'/pricing = public/pricing.html'},a.owner))
  const run=()=>a.post('/api/vane/instrumentation/run',input,a.owner)
  const baseline=await result(await run());assert.equal(baseline.problems.some(p=>p.kind==='missing-script'||p.kind==='missing-selector'),false)
  state.broken=true;github.state.head=github.changed;await newLoad(a,id,'/',now+1000,'SignUp')
@@ -148,7 +148,9 @@ test('GitHub hand-off is off-default, owner-approved, sealed and revocable; sour
  assert.equal((await a.post(endpoint,settings,admin)).status,403);assert.equal((await a.post(endpoint,settings,'')).status,401)
  assert.equal((await a.post(endpoint,{...settings,confirm:''},a.owner)).status,400);assert.equal(github.state.requests.length,0)
  for(const mappings of ['/pricing = ../private.html','/orders/1234567 = public/pricing.html','/pricing = /absolute.html'])assert.equal((await a.post(endpoint,{...settings,mappings},a.owner)).status,400)
- assert.equal((await a.post(endpoint,settings,a.owner)).status,200)
+ const realEdge=a.fixtureSites['https://api.github.com'];a.fixtureSites['https://api.github.com']=()=>new Response(null,{status:302,headers:{location:'https://github-redirect.example/credential-leak'}})
+ assert.equal((await a.post(endpoint,settings,a.owner)).status,502);assert.equal(a.egress.some(url=>new URL(url).hostname==='github-redirect.example'),false,'GitHub redirects are refused at the real fetch boundary')
+ a.fixtureSites['https://api.github.com']=realEdge;await result(await a.post(endpoint,settings,a.owner))
  const archive=await a.archive();assert.equal(archive.payload.tables.vane_instrumentation_github,undefined);assert.equal(archive.payload.tables.vane_instrumentation_prs,undefined);assert.equal(JSON.stringify(await a.dump()).includes(github.state.token),false)
  github.state.head=github.changed
  const investigate=()=>a.post('/api/vane/instrumentation/run',{siteId:id,...windowOf(now),pageLimit:10},a.owner)
@@ -165,4 +167,11 @@ test('GitHub hand-off is off-default, owner-approved, sealed and revocable; sour
  assert.equal(github.state.requests.filter(r=>r.method==='POST').length,mutations,'disconnect blocks the next external change')
  assert.ok(github.state.requests.filter(r=>r.method==='POST'&&r.path.endsWith('/git/refs')).every(r=>r.body.ref.startsWith('refs/heads/vane/instrumentation-')))
  assert.ok((await a.dump()).vane_audit.some(r=>r.action==='agent.github.pr'))
+ // A connect callback begun before disconnect must not resurrect its credential when the provider finally replies.
+ const edge=a.fixtureSites['https://api.github.com'];let release,started;const waiting=new Promise(resolve=>{release=resolve}),reached=new Promise(resolve=>{started=resolve})
+ a.fixtureSites['https://api.github.com']=async request=>{if(new URL(request.url).pathname==='/repos/just-every/run-vane'){started();await waiting}return edge(request)}
+ const connecting=a.post(endpoint,settings,a.owner);await reached
+ assert.equal((await a.post(endpoint,{siteId:id,enabled:'off'},a.owner)).status,200);release()
+ assert.equal((await connecting).status,409);assert.equal((await a.dump()).vane_instrumentation_github.length,0,'a delayed source callback cannot restore revoked authority')
+
 })
