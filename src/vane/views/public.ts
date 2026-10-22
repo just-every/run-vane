@@ -23,6 +23,6 @@ const importSwitch=(report:any)=>{
  const query=new URLSearchParams({from:report.from,to:report.to,...(report.importedOff?{}:{imported:'off'})})
  return `<p class="vane-help" data-imported-state="${report.importedOff?'off':'on'}">${report.importedOff?'Imported history is left out.':'Imported history is included and counts as unknown coverage.'} <a href="?${escape(query.toString())}" data-imported-switch>${report.importedOff?'Include imported history':'Leave imported history out'}</a></p>`
 }
-export function publicStats(site:{name:string},keys:string[],report:any):string {
- return `<h1>${escape(site.name)}</h1>${panel('Reporting period',`<p>${escape(report.from)} to ${escape(report.to)} (end exclusive, ${escape(report.timeZone)}).</p>${importSwitch(report)}${importRangeLabels(report)}`)}${keys.map(key=>sections[key]!(report)).join('')}<dl>${proxyCoverage(report.transport)}</dl><p class="vane-help">Counts come from Vane’s cookie-free collection: <a href="/methodology">how Vane measures</a>.</p>`
+export function publicStats(site:{name:string},keys:string[],report:any,installationOrigin=''):string {
+  return `<h1>${escape(site.name)}</h1>${panel('Reporting period',`<p>${escape(report.from)} to ${escape(report.to)} (end exclusive, ${escape(report.timeZone)}).</p>${importSwitch(report)}${importRangeLabels(report)}`)}${keys.map(key=>sections[key]!(report)).join('')}<dl>${proxyCoverage(report.transport)}</dl><p class="vane-help">Counts come from Vane’s cookie-free collection: <a href="${escape(installationOrigin)}/methodology">how Vane measures</a>.</p>`
 }

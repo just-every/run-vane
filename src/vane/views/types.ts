@@ -1,4 +1,7 @@
 export interface ViewData {
+  reportOrigin?:string
+  agency?:Awaited<ReturnType<typeof import('../agency/service').agencyData>>
+  reportFrame?:Awaited<ReturnType<typeof import('../agency/branding').reportFrame>>
   proxyConnections?:import('../proxy/types').ProxyConnection[]
   proxyCredential?:string
   proxySetup?:ReturnType<typeof import('../proxy/templates').generateProxySetup>

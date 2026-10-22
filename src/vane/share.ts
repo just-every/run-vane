@@ -1,4 +1,5 @@
-import { themeFrame } from '../base/theme-frame'
+import { reportFrame } from './agency/branding'
+import { shareOriginAllowed } from './agency/domains'
 import { fontHead } from '../base/font-head'
 import { digest, inScope, insist, role, rows, site, statement, uid, VaneError, type Actor, type Env, type Site } from './core'
 import { auditStatement } from './audit'
@@ -57,8 +58,8 @@ export async function revokeShareLink(env:Env,actor:Actor,id:string):Promise<str
  return found.site_id;
 }
 const notFound=()=>new Response('Not found',{status:404,headers:{'content-type':'text/plain; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}})
-async function document(value:Site,link:any,body:string,dark:boolean,status=200,extra:Record<string,string>={}):Promise<Response> {
- const frame=await themeFrame({href:'/rer-theme.css',productName:'Vane'}),ancestors=[value.origin,...(value.config.origins??[]),...JSON.parse(link.embed_origins_json)];
+async function document(env:Env,value:Site,link:any,body:string,dark:boolean,status=200,extra:Record<string,string>={}):Promise<Response> {
+ const frame=await reportFrame(env,value.id),ancestors=[value.origin,...(value.config.origins??[]),...JSON.parse(link.embed_origins_json)];
  const html=`<!doctype html><html lang="en"${frame.htmlClass}><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>${escape(value.name)} stats · Vane</title>${fontHead}${frame.head}<link rel="stylesheet" href="/vane.css"></head><body class="vane-app${dark?' vane-dark':''}"><main>${frame.brand}${body}</main></body></html>`;
  return new Response(html,{status,headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-store','x-robots-tag':'noindex, nofollow','content-security-policy':`default-src 'none'; ${frame.policy}; base-uri 'none'; form-action 'self'; frame-ancestors ${ancestors.join(' ')}`,'x-content-type-options':'nosniff','referrer-policy':'no-referrer',...extra}});
 }
@@ -73,22 +74,22 @@ export async function shareResponse(request:Request,env:Env):Promise<Response|nu
   const cookie=(request.headers.get('cookie')??'').split(/;\s*/).find(c=>c.startsWith(cookieName+'='))?.slice(cookieName.length+1)??'',[expires,mac]=cookie.split('.');
   const signedIn=Number(expires)>now&&mac===await signature(env,link,Number(expires));
   if(request.method==='POST') {
-   if(request.headers.get('origin')!==new URL(env.AUTH_ORIGIN).origin)return notFound();
+   if(!await shareOriginAllowed(request,env,value.id))return notFound();
    const windowOpen=link.failed_from!==null&&now-link.failed_from<FAILURE_WINDOW,failures=windowOpen?link.failures:0;
-   if(failures>=MAX_FAILURES)return document(value,link,passwordPage(value,'Too many wrong passwords. Try again in 15 minutes.'),dark,429);
+   if(failures>=MAX_FAILURES)return document(env,value,link,passwordPage(value,'Too many wrong passwords. Try again in 15 minutes.'),dark,429);
    const form=await request.formData(),given=String(form.get('password')??'');
    if(given.length>200||await passwordHash(given,link.password_salt)!==link.password_hash) {
     await env.DB.prepare('UPDATE vane_share_links SET failures=?,failed_from=? WHERE id=?').bind(failures+1,windowOpen?link.failed_from:now,link.id).run();
-    return document(value,link,passwordPage(value,'That password is not right.'),dark,401);
+    return document(env,value,link,passwordPage(value,'That password is not right.'),dark,401);
    }
    const until=now+COOKIE_AGE*1000;
    return new Response(null,{status:303,headers:{location:url.pathname+url.search,'cache-control':'no-store','set-cookie':`${cookieName}=${until}.${await signature(env,link,until)}; Path=${url.pathname}; Max-Age=${COOKIE_AGE}; HttpOnly; Secure; SameSite=None; Partitioned`}});
   }
-  if(!signedIn)return document(value,link,passwordPage(value),dark,401);
+  if(!signedIn)return document(env,value,link,passwordPage(value),dark,401);
  } else if(request.method==='POST')return notFound();
  try {
   const report=await createInsightsService(env,value,now,{from:url.searchParams.get('from'),to:url.searchParams.get('to'),segment:link.segment_id,imported:url.searchParams.get('imported')}).list();
-  const response=await document(value,link,`${link.segment_id?`<p class="vane-help">Segment: ${escape(report.segment?.name??'')}</p>`:''}${publicStats(value,JSON.parse(link.reports_json),report)}`,dark);
+  const response=await document(env,value,link,`${link.segment_id?`<p class="vane-help">Segment: ${escape(report.segment?.name??'')}</p>`:''}${publicStats(value,JSON.parse(link.reports_json),report,env.AUTH_ORIGIN)}`,dark);
   return request.method==='HEAD'?new Response(null,{headers:response.headers}):response;
  } catch(error) { if(error instanceof VaneError&&error.status===404)return notFound(); throw error }
 }

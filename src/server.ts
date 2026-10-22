@@ -1,4 +1,5 @@
 import { resolveProxy } from './vane/proxy/ingress'
+import { agencyHostResponse } from './vane/agency/domains'
 import { runChatReports } from './vane/chat/delivery'
 import { sync as syncBing } from './vane/bing'
 import { withDemo } from './modules/demo/index.mjs'
@@ -51,6 +52,8 @@ function noTransform(response: Response): Response {
 
 export default withDemo({
   async fetch(request, env, execution) {
+    const agency = await agencyHostResponse(request, runtimeBindings(env))
+    if (agency) return agency
     const proxied = await resolveProxy(request, runtimeBindings(env))
     if (proxied instanceof Response) return proxied
     if (proxied) request = proxied.request as typeof request

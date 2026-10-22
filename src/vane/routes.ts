@@ -1,3 +1,5 @@
+import { agencyAction, agencyData, uploadLogo } from './agency/service'
+import { reportFrame, reportOrigin } from './agency/branding'
 import { listConnections } from './proxy/connections'
 import { proxyCommand, proxySetup } from './proxy/management'
 import { resume } from './movein/resume'
@@ -72,7 +74,8 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
   const keys=!selected&&asked==='api'?await apiKeys(env,actor!):undefined;
   const push=!selected&&asked==='alerts'?{pushKey:await vapidKey(env),pushSubscriptions:await pushSubscriptions(env,actor!)}:{};
   const imports=selected&&actor!.role==='owner'?await rows(env,'SELECT j.id,j.state,(SELECT COUNT(*) FROM ik_provenance p WHERE p.job_id=j.id) AS count FROM ik_jobs j JOIN vane_import_approvals a ON a.job_id=j.id WHERE a.site_id=? ORDER BY a.approved_at DESC',selected.id):[];
-  const all=(await sites(env)).filter(s=>open(s.id)),list=!selected&&!extra.rollup&&!extra.error&&(url.searchParams.get('section')??'report')==='report'?await overview(env,all,clock(),{period:url.searchParams.get('period'),sort:url.searchParams.get('sort'),q:url.searchParams.get('q')}):undefined;
+  const agency=asked==='agency'?await agencyData(env,actor!):undefined;
+  const all=(await sites(env)).filter(s=>open(s.id)),list=!selected&&!extra.rollup&&!extra.error&&['report','agency'].includes(url.searchParams.get('section')??'report')?await overview(env,all,clock(),{period:url.searchParams.get('period'),sort:url.searchParams.get('sort'),q:url.searchParams.get('q')}):undefined;
   const live=selected&&url.searchParams.get('section')==='realtime';
   const settings=selected&&(extra.section??url.searchParams.get('section'))==='settings',metroTable=settings?await metroSetting(env,selected.id):undefined,hook=settings?(await rows<{created_at:number}>(env,'SELECT created_at FROM vane_annotation_hooks WHERE site_id=?',selected.id))[0]??null:undefined,github=settings?(await rows<{created_at:number}>(env,'SELECT created_at FROM vane_github_keys WHERE site_id=?',selected.id))[0]??null:undefined,warehouse=settings&&actor!.role==='owner'?await exportOf(env,selected.id):undefined,hooks=settings&&['owner','admin'].includes(actor!.role)?{webhooks:await webhooks(env,selected.id),webhookLog:await deliveryLog(env,selected.id)}:{},reports=settings?{reportSubscriptions:(await reportSubscriptions(env,selected.id)).filter(s=>['owner','admin'].includes(actor!.role)||s.operator_id===actor!.id),reportSends:['owner','admin'].includes(actor!.role)?await reportSends(env,selected.id):[],mailEvents:eventsConnected(env)}:{};if(reports.reportSubscriptions)(reports as any).mailStops=await mailStops(env,reports.reportSubscriptions.map(s=>s.email));if(settings&&(['owner','admin'].includes(actor!.role)||actor!.access==='analyst'))Object.assign(reports,{alerts:await siteAlerts(env,selected.id),alertLog:await alertLog(env,selected.id),health:await healthOf(env,selected.id),maintenance:await siteWindows(env,selected.id),closedDays:await closedDays(env,selected.id),followItems:await followItems(env,selected.id),followHistory:await followHistory(env,selected.id),followPolicy:await policyOf(env,selected.id),alertPeople:await sitePeople(env,selected.id)});
   const recovered=selected&&(extra.section??url.searchParams.get('section'))==='history'?await importedDefinitions(env,actor!,selected.id):undefined;
@@ -81,7 +84,7 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
   const bingReport=selected&&!live?await bing.report(env,actor!,selected.id,report!.from,report!.to):undefined;
   const search=selected&&!live?await searchConsole.report(env,actor!,selected.id,report!.from,report!.to):undefined;
   const proxyConnections=settings&&actor!.role==='owner'?await listConnections(env,actor!,selected.id):undefined,proxyPlatform=url.searchParams.get('proxyPlatform')??'nextjs',setup=settings&&actor!.role==='owner'&&url.searchParams.get('proxyId')?await proxySetup(env,actor!,selected.id,url.searchParams.get('proxyId')!,proxyPlatform):undefined;
-  return renderApp({proxyConnections,proxyPlatform,proxySetup:setup,metroTable,cutoverScans:settings?await scans(env,actor!,selected.id):undefined,actor:actor as ViewData['actor'],origin:env.AUTH_ORIGIN,store:await storeUse(env),sites:all,overview:list,rollups:(await rollups(env)).filter(r=>r.sites.every((s:any)=>open(s.id))),site:selected,hook,github,...hooks,...reports,warehouse:warehouse?{endpoint:warehouse.endpoint,bucket:warehouse.bucket,region:warehouse.region,prefix:warehouse.prefix,accessKeyId:warehouse.access_key_id,lastDay:warehouse.last_day,lastResult:warehouse.last_result,createdAt:warehouse.created_at}:warehouse,shares:settings?await shareLinks(env,selected.id):undefined,segments:selected&&!live?await segments(env,selected.id):undefined,live:live?await realtime(env,selected,clock()):undefined,liveVisitors:selected?await currentVisitors(env,selected,clock()):undefined,report,chat:chatData,bing:bingReport,bingKeywordPage:url.searchParams.get('bingKeywordPage'),searchConsole:search,googleKeywordPage:url.searchParams.get('googleKeywordPage'),proposals,imports,importDefinitions:recovered,audit,people,apiKeys:keys,...push,section:url.searchParams.get('section')??undefined,notice:url.searchParams.get('notice')??undefined,...extra});
+  return renderApp({agency,reportOrigin:selected?await reportOrigin(env,selected.id):undefined,reportFrame:selected&&(!asked||asked==='report')?await reportFrame(env,selected.id):undefined,proxyConnections,proxyPlatform,proxySetup:setup,metroTable,cutoverScans:settings?await scans(env,actor!,selected.id):undefined,actor:actor as ViewData['actor'],origin:env.AUTH_ORIGIN,store:await storeUse(env),sites:all,overview:list,rollups:(await rollups(env)).filter(r=>r.sites.every((s:any)=>open(s.id))),site:selected,hook,github,...hooks,...reports,warehouse:warehouse?{endpoint:warehouse.endpoint,bucket:warehouse.bucket,region:warehouse.region,prefix:warehouse.prefix,accessKeyId:warehouse.access_key_id,lastDay:warehouse.last_day,lastResult:warehouse.last_result,createdAt:warehouse.created_at}:warehouse,shares:settings?await shareLinks(env,selected.id):undefined,segments:selected&&!live?await segments(env,selected.id):undefined,live:live?await realtime(env,selected,clock()):undefined,liveVisitors:selected?await currentVisitors(env,selected,clock()):undefined,report,chat:chatData,bing:bingReport,bingKeywordPage:url.searchParams.get('bingKeywordPage'),searchConsole:search,googleKeywordPage:url.searchParams.get('googleKeywordPage'),proposals,imports,importDefinitions:recovered,audit,people,apiKeys:keys,...push,section:url.searchParams.get('section')??undefined,notice:url.searchParams.get('notice')??undefined,...extra});
  }
  try {
   const session=await operatorAuth(env).getSession(request);
@@ -90,6 +93,7 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
   if(request.method==='POST')insist(request.headers.get('origin')===env.AUTH_ORIGIN&&request.headers.get('sec-fetch-site')!=='cross-site','origin','Same-origin approval is required.',403);
   // TEAM-001: every door that names a site, by query, path or form, answers only for a site the person may open.
   const named=url.searchParams.get('siteId')??path.match(/^\/app\/sites\/([\w-]+)$/)?.[1];if(named)inScope(actor,named);
+  if(request.method==='POST'&&path==='/app/agency/logo'){await uploadLogo(env,actor,request);return redirect('/app?section=agency&notice=Logo+uploaded.')}
   if(request.method==='GET') {
    if(path==='/api/vane/proxy-connections')return json(await listConnections(env,actor,url.searchParams.get('siteId')??''));
    if(path==='/api/vane/proxy-setup')return json(await proxySetup(env,actor,url.searchParams.get('siteId')??'',url.searchParams.get('connectionId')??'',url.searchParams.get('platform')??'nextjs'));
@@ -107,6 +111,7 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
    }
    if(path==='/api/vane/cutover-scans')return json(await scans(env,actor,url.searchParams.get('siteId')??''));
    if(path==='/api/vane/import-definitions')return json(await importedDefinitions(env,actor,url.searchParams.get('siteId')??''));
+   if(path==='/api/vane/agency')return json(await agencyData(env,actor));
    if(path==='/api/vane/sites')return json((await sites(env)).filter(s=>open(s.id)));
    // DASH-005: an unnamed metro's observed place is drawn on the page only; these JSON doors never return it.
    if(path==='/api/vane/summary'&&url.searchParams.has('rollupId'))return json(withoutPlaces(await rollupReport(env,await scopedRollup(url.searchParams.get('rollupId')!),range,url.searchParams.get('split')==='site')));
@@ -129,6 +134,7 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
   if(request.method==='POST') {
    const p=await input(request);
    for(const id of [p.siteId,p.input?.siteId])if(id!==undefined&&id!=='')inScope(actor,String(id));
+   if(path==='/api/vane/agency'){await agencyAction(env,actor,request,p);return json({ok:true});}
    if(path==='/api/vane/commands')return json(await prepare(env,actor,p.command,p.input??{},'command API'),201);
    if(path==='/api/vane/proxy-connections')return json(await proxyCommand(env,actor,p));
    if(path==='/api/vane/parallel-run')return json(await parallelRun(env,actor,p));
@@ -146,6 +152,8 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
    if(path==='/api/vane/push/subscribe')return json(await subscribePush(env,actor,p),201);
    if(path==='/api/vane/push/unsubscribe')return json(await unsubscribePush(env,actor,p));
    if(path==='/app/action') {
+    if(p.operation?.startsWith('agency.')){await agencyAction(env,actor,request,p);return redirect('/app?section=agency&notice=Agency+settings+saved.')}
+
     // Approval has a deliberately separate human form surface. The command API
     // can prepare and inspect; it cannot apply pending configuration or erasure.
     if(p.operation?.startsWith('proposal.'))insist(request.headers.get('content-type')?.includes('application/x-www-form-urlencoded'),'approval','Review and approve the proposal using its form.');
@@ -215,7 +223,7 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
     // DASH-009: a new annotation secret is rendered once in this response, never put in a redirect URL.
     if(result.secret)return view(result.siteId,{section:result.section,notice:result.notice,secret:result.secret});
     // SHARE-001: a new shared link's URL is rendered once in this response, never put in a redirect URL.
-    if(result.sharePath)return view(result.siteId,{section:result.section,notice:result.notice,sharePath:result.sharePath});
+    if(result.sharePath)return view(result.siteId,{section:result.section,notice:result.notice,sharePath:result.sharePath,reportOrigin:await reportOrigin(env,result.siteId!)});
     return redirect((result.siteId?'/app/sites/'+encodeURIComponent(result.siteId):'/app')+'?'+query);
    }
   }

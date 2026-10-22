@@ -3,7 +3,7 @@ import { canPrepare, date, escape, field, hidden, operation, panel } from './htm
 import type { ViewData } from './types'
 // SHARE-001: create, list and revoke a site's shared links. A new link's URL and embed code are shown once.
 export function sharePanel(data: ViewData): string {
-  const site = data.site, manage = canPrepare(data.actor.role), base = data.origin.replace(/\/$/, '')
+  const site = data.site, manage = canPrepare(data.actor.role), base = (data.reportOrigin??data.origin).replace(/\/$/, '')
   const shown = data.sharePath ? `<p role="status">Copy this link now; it is not shown again.</p><p><code data-share-url>${escape(base + data.sharePath)}</code></p><p>Embed it:</p><p><code data-share-embed>${escape(`<iframe src="${base}${data.sharePath}?theme=light" title="${site.name} stats" width="100%" height="900" style="border:0"></iframe>`)}</code></p><p class="vane-help">Use <code>?theme=dark</code> for a dark embed.</p>` : ''
   const links = data.shares?.length ? `<ul data-share-links>${data.shares.map(link => `<li><strong>${escape(link.label)}</strong>: ${link.segmentName ? `segment ${escape(link.segmentName)}` : 'whole site'}; ${escape(link.reports.map(key => PUBLIC_REPORTS[key] ?? key).join(', '))}${link.password ? '; password-protected' : ''}; ${link.expiresAt ? `expires ${date(link.expiresAt)}` : 'no expiry'}; created ${date(link.createdAt)}${manage ? ` <form class="vane-inline-form" action="/app/action" method="post">${operation('share.revoke')}${hidden('id', link.id)}<button>Revoke</button></form>` : ''}</li>`).join('')}</ul>` : '<p>No shared links.</p>'
   const segments = (data.segments ?? []).map(s => `<option value="${escape(s.id)}">${escape(s.name)}</option>`).join('')

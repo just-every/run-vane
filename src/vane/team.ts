@@ -1,6 +1,7 @@
 import { insist, rows, sites, statement, type Access, type Actor, type Env } from './core'
 import { auditStatement } from './audit'
 import { operatorAuth } from '../auth.server'
+import { clientScope } from './agency/access'
 // TEAM-001: Vane's per-person access on top of Base's accounts. Base holds the person, the email invitation, the
 // account role (owner, admin or member), deactivation and the owner-only role change; Vane keeps, per operator, the
 // Vane role a member holds (analyst or viewer) and the sites an admin or member may open (NULL: every site).
@@ -8,6 +9,8 @@ import { operatorAuth } from '../auth.server'
 export interface Grant { operator_id:string; role:Access; site_ids:string|null }
 export async function teamActor(env:Env,operator:{id:string;role:string;displayName?:string}):Promise<Actor> {
  if(operator.role==='owner')return {...operator,access:'owner',sites:null};
+ const clientSites=await clientScope(env,operator.id);
+ if(clientSites!==null)return {...operator,access:'viewer',sites:clientSites};
  const grant=(await rows<Grant>(env,'SELECT * FROM vane_grants WHERE operator_id=?',operator.id))[0];
  const sites=grant?.site_ids?JSON.parse(grant.site_ids) as string[]:null;
  return {...operator,access:operator.role==='admin'?'admin':grant?.role==='analyst'?'analyst':'viewer',sites};
@@ -47,6 +50,7 @@ async function person(env:Env,actor:Actor,operatorId:string) {
 // A member's Vane role and sites change at once; an admin's sites change at once (the Base role stays as it is).
 export async function regrant(env:Env,actor:Actor,input:any) {
  const found=await person(env,actor,String(input.operatorId??'')),role=found.role==='admin'?'admin':String(input.role??'');
+ insist(await clientScope(env,found.id)===null,'client_access','Manage client membership in Agency clients; client users remain Viewers of their client’s sites.');
  insist(found.role==='admin'||role!=='admin','role','Make a member an admin through an invitation by the owner.');grantable(actor,role);
  const ids=await chosenSites(env,actor,input);
  await env.DB.batch([grantSql(env,actor,found.id,role,ids),auditStatement(env,actor.id,'team.grant',found.id,`${role} for ${scopeText(ids)}`)]);
@@ -72,6 +76,6 @@ export async function transferOwnership(env:Env,actor:Actor,request:Request,inpu
 export async function team(env:Env,actor:Actor) {
  insist(actor.access==='owner'||actor.access==='admin','forbidden','This page requires owner or admin.',403);
  const people=await rows<{id:string,email:string,display_name:string,role:string,status:string,grant_role:string|null,site_ids:string|null}>(env,"SELECT o.id,o.email,o.display_name,o.role,o.status,g.role AS grant_role,g.site_ids FROM oa_operators o LEFT JOIN vane_grants g ON g.operator_id=o.id WHERE o.status!='inactive' ORDER BY o.created_at,o.id");
- return people.map(p=>({id:p.id,email:p.email,name:p.display_name,status:p.status,access:(p.role==='owner'?'owner':p.role==='admin'?'admin':p.grant_role==='analyst'?'analyst':'viewer') as Access,sites:p.role==='owner'||!p.site_ids?null:JSON.parse(p.site_ids) as string[]}))
+ return (await Promise.all(people.map(async p=>{const actor=await teamActor(env,p);return {id:p.id,email:p.email,name:p.display_name,status:p.status,access:actor.access!,sites:actor.sites??null}})))
   .filter(p=>!actor.sites||p.access!=='owner'&&p.sites&&p.sites.every(id=>actor.sites!.includes(id)));
 }

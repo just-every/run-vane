@@ -8,6 +8,8 @@ import { moverText } from './explain'
 import { operatorMail } from '../mail.server.mjs'
 import { escape } from './views/html'
 import { mailStop, STOPS } from './mail-events'
+import { brandFor, emailBrand, reportOrigin } from './agency/branding'
+import { teamActor } from './team'
 // REPORT-001: daily, weekly and monthly email reports. Anyone who may open a site subscribes their own address; the
 // owner also adds external recipients. A report is due at the chosen hour in the site's time zone (daylight saving
 // included): daily ones every day for the day before, weekly ones on the chosen weekday (Monday by default) for the
@@ -77,6 +79,14 @@ function render(value:Site,s:Subscription,r:any,from:string,to:string,link:strin
  const text=lines.join('\n')
  return {subject:`${value.name}: ${FREQUENCIES[s.frequency].toLowerCase()} report, ${from} to ${shift(to,-1)}`,text,html:`<!doctype html><html><body><pre style="font:14px/1.5 system-ui,sans-serif;white-space:pre-wrap">${escape(text.replace(`Unsubscribe with one click: ${link}`,''))}</pre><p><a href="${escape(link)}">Unsubscribe with one click</a></p></body></html>`}
 }
+async function subscriptionAllowed(env:Env,s:Subscription) {
+ const operator=(await rows<{id:string;role:string;status:string}>(env,'SELECT id,role,status FROM oa_operators WHERE '+(s.operator_id?'id=?':'email=?'),s.operator_id??s.email))[0]
+ if(s.operator_id&&!operator||operator&&operator.status!=='active')return false
+ if(!operator)return true
+ // Even an external subscription to a known client address must respect its current client boundary.
+ const actor=await teamActor(env,operator)
+ return !actor.sites||actor.sites.includes(s.site_id)
+}
 async function deliver(env:Env,send:{id:string,subscription_id:string,site_id:string,email:string,period_from:string,period_to:string,attempts:number},now:number) {
  const s=(await rows<Subscription>(env,'SELECT * FROM vane_report_subscriptions WHERE id=?',send.subscription_id))[0]
  if(!s)return statement(env,"UPDATE vane_report_sends SET state='failed',reason=? WHERE id=?",'unsubscribed before it was sent',send.id).run()
@@ -84,9 +94,12 @@ async function deliver(env:Env,send:{id:string,subscription_id:string,site_id:st
  if(stop)return statement(env,"UPDATE vane_report_sends SET state='failed',next_at=?,reason=? WHERE id=?",now,`not sent: the mail provider reported an earlier report email to this address ${STOPS[stop.status]} on ${new Date(stop.occurred_at).toISOString().slice(0,10)}; reports to it stopped`,send.id).run()
  const value=await site(env,send.site_id),r=await createInsightsService(env,value,now,{from:send.period_from,to:send.period_to,compare:'previous',segment:s.segment_id}).list() as any
  // A fresh token per send keeps the link working while only its SHA-256 is stored.
- const token='vane_u_'+Array.from(crypto.getRandomValues(new Uint8Array(24)),b=>b.toString(16).padStart(2,'0')).join(''),link=`${env.AUTH_ORIGIN.replace(/\/$/,'')}/reports/unsubscribe/${token}`
+ if(!await subscriptionAllowed(env,s))return statement(env,"UPDATE vane_report_sends SET state='failed',reason=? WHERE id=?",'recipient no longer has access to this site; not sent',send.id).run()
+ const origin=await reportOrigin(env,send.site_id),brand=await brandFor(env,send.site_id)
+ const token='vane_u_'+Array.from(crypto.getRandomValues(new Uint8Array(24)),b=>b.toString(16).padStart(2,'0')).join(''),link=`${origin.replace(/\/$/,'')}/reports/unsubscribe/${token}`
  await statement(env,'UPDATE vane_report_subscriptions SET token_hash=? WHERE id=?',await digest(token),s.id).run()
  const message=render(value,s,r,send.period_from,send.period_to,link),mail=operatorMail(env)
+ message.html=emailBrand(brand,origin,message.html)
  let status='',code='',messageId:string|null=null
  try{if(!mail)throw new Error('mail');const result=await mail.send({deliveryId:send.id,from:env.MAIL_FROM!,to:[send.email],...message,headers:{},...(link.startsWith('https://')?{unsubscribe:{url:link,oneClick:true}}:{})} as any);status=result.status;code=result.code??'';messageId=result.providerMessageId??null}catch{status='invalid'}
  const attempt=send.attempts+1,sent=status==='accepted'||status==='development',temporary=status==='uncertain'||status==='rate_limited'
@@ -97,7 +110,7 @@ async function deliver(env:Env,send:{id:string,subscription_id:string,site_id:st
 export async function runReports(env:Env,now=clock()) {
  // Due subscriptions become sends (a removed member's own subscription ends instead).
  for(const s of await rows<Subscription&{status:string|null}>(env,'SELECT s.*,o.status FROM vane_report_subscriptions s LEFT JOIN oa_operators o ON o.id=s.operator_id WHERE s.next_at<=?',now)){
-  if(s.operator_id&&s.status!=='active'){await statement(env,'DELETE FROM vane_report_subscriptions WHERE id=?',s.id).run();continue}
+  if(s.operator_id&&s.status!=='active'||!await subscriptionAllowed(env,s)){await statement(env,'DELETE FROM vane_report_subscriptions WHERE id=?',s.id).run();continue}
   const value=await site(env,s.site_id),zone=value.config.timeZone??'UTC',[from,to]=period(s.frequency,localDay(s.next_at,zone))
   await env.DB.batch([statement(env,"INSERT INTO vane_report_sends(id,subscription_id,site_id,email,period_from,period_to,state,attempts,next_at,created_at) VALUES(?,?,?,?,?,?,'pending',0,?,?)",uid(),s.id,s.site_id,s.email,from,to,now,now),statement(env,'UPDATE vane_report_subscriptions SET next_at=? WHERE id=?',nextDue(s,zone,now),s.id)])
  }
