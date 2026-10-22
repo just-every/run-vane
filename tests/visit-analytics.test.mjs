@@ -52,6 +52,13 @@ test('native visit facts keep reverse arrivals, tied IDs, a late bridge, engagem
  const after=await summary(b)
  assert.deepEqual([after.visits,after.bounces,after.topPages,after.entryPages,after.exitPages,after.perf],[report.visits,report.bounces,report.topPages,report.entryPages,report.exitPages,report.perf])
  assert.deepEqual((await summary(b,'&journey=/tie')).journey,tiedJourney)
+ // A historical opaque ID sorts before the packed UUIDs at the same instant.
+ // Introducing it invalidates and rebuilds the chain; journeys still follow
+ // logical IDs, including the three distinct pages after this first match.
+ await load('legacy','10:25:00','-'.repeat(36))
+ const legacyJourney=(await summary(a,'&journey=/legacy')).journey
+ assert.deepEqual(legacyJourney.next.map(r=>[r.steps,r.visits]),[[['/tie','/b','/c'],1]])
+ assert.deepEqual(legacyJourney.previous.map(r=>[r.steps,r.visits]),[[['/a','(entrance)'],1]])
  const proposal=await (await b.post('/api/vane/commands',{command:'history.erase',input:{siteId}},b.owner)).json()
  assert.equal((await b.form({operation:'proposal.approve',id:proposal.id},b.owner)).status,303)
  const erased=await summary(b)
