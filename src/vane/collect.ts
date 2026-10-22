@@ -1,3 +1,5 @@
+import { collectHeat } from './heat/collect'
+import { heatPaths } from './heat/settings'
 import { isProxied } from './proxy/ingress'
 import { consentedIdentity, consentedPage } from './consented'
 import { paymentReferrer } from './revenue'
@@ -23,8 +25,8 @@ export async function collector(request:Request,env:Env):Promise<Response|null> 
  const signal=await signalResponse(request,env)??await declinedResponse(request,env);if(signal)return signal;
  if(url.pathname==='/vane.js')return new Response(request.method==='HEAD'?null:tracker,{headers:{'content-type':'application/javascript; charset=utf-8','cache-control':'public,max-age=300','x-content-type-options':'nosniff'}});
  const match=url.pathname.match(/^\/api\/vane\/config\/([\w-]+)$/);
- const engage=url.pathname==='/api/vane/engage';
- if(!match&&!engage&&url.pathname!=='/api/vane/collect')return null;
+ const engage=url.pathname==='/api/vane/engage',heat=url.pathname==='/api/vane/heat-click';
+ if(!match&&!engage&&!heat&&url.pathname!=='/api/vane/collect')return null;
  let cors:Record<string,string>={'vary':'Origin','cache-control':'no-store'},known:Site|null=null;
  try {
   let payload:any;
@@ -41,7 +43,8 @@ export async function collector(request:Request,env:Env):Promise<Response|null> 
   // The script's configuration door serves only what the script uses (PRIVACY-003: whether this visitor's region
   // requires consent, never the region itself, and the consent manager to read); the owner's excluded addresses and countries
   // (COLLECT-003), goals, funnels and other settings stay in the installation.
-  if(match) { insist(request.method==='GET','method','GET required.',405); const c=value.config; return Response.json({consent:consentRequired(c,request)?'required':'not-required',...(c.consentAdapter?{consentAdapter:c.consentAdapter}:{}),sampleRate:c.sampleRate,...(c.consentedVisitors?{consentedVisitors:true,consentLifetimeMonths:c.consentLifetimeMonths??13}:{}),...(c.declinedCounter?{declinedCounter:true}:{}),autoEvents:c.autoEvents??[],queryKeys:c.queryKeys??[],...(c.searchParam?{searchParam:c.searchParam}:{}),...(c.incumbentCompatibility?{incumbentCompatibility:true,currency:c.currency??'USD'}:{}),eventDefinitions:c.eventDefinitions??[]},{headers:cors}); }
+  if(match) { insist(request.method==='GET','method','GET required.',405); const c=value.config,pages=origin===value.origin?await heatPaths(env,value.id):[]; return Response.json({consent:consentRequired(c,request)?'required':'not-required',...(c.consentAdapter?{consentAdapter:c.consentAdapter}:{}),sampleRate:c.sampleRate,...(c.consentedVisitors?{consentedVisitors:true,consentLifetimeMonths:c.consentLifetimeMonths??13}:{}),...(c.declinedCounter?{declinedCounter:true}:{}),autoEvents:c.autoEvents??[],queryKeys:c.queryKeys??[],...(c.searchParam?{searchParam:c.searchParam}:{}),...(c.incumbentCompatibility?{incumbentCompatibility:true,currency:c.currency??'USD'}:{}),eventDefinitions:c.eventDefinitions??[],...(pages.length?{heatPaths:pages,heatCaptureOrigin:env.AUTH_ORIGIN}:{})},{headers:cors}); }
+  if(heat) {await collectHeat(request,env,value,payload);return Response.json({accepted:true},{status:202,headers:cors});}
   if(engage) {
    // METRIC-003: a ping names only the site and its own page load, at least 10 seconds and at most
    // 30 minutes after that load; the latest ping marks the page engaged and ends its time.
@@ -104,7 +107,7 @@ export async function collector(request:Request,env:Env):Promise<Response|null> 
   const e=error instanceof VaneError?error:new VaneError('invalid_event','Event could not be accepted.');
   // ALERT-002, COVERAGE-001: a page load of a known site refused as malformed, from an origin the site does not register,
   // or conflicting with an admitted page load or the daily admission limit is counted as a collection error (site, day, fixed reason class, count).
-  if(known&&!match&&!engage&&(e.status===400||e.status===413||['origin','conflict','admission'].includes(e.code)))await countExclusion(env,known.id,localDay(clock(),known.config.timeZone??'UTC'),'collection-error').run();
+  if(known&&!match&&!engage&&!heat&&(e.status===400||e.status===413||['origin','conflict','admission'].includes(e.code)))await countExclusion(env,known.id,localDay(clock(),known.config.timeZone??'UTC'),'collection-error').run();
   return Response.json({error:e.code,message:e.message},{status:e.status,headers:cors});
  }
 }

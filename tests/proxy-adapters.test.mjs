@@ -44,7 +44,7 @@ test('server proxy forwards every public tracker door over HTTP and strips untru
   const response=await proxy(new Request('http://127.0.0.1'+req.url,init),visitor)
   res.writeHead(response.status,Object.fromEntries(response.headers));res.end(Buffer.from(await response.arrayBuffer()))
  });t.after(front.close)
- const doors=[['script.js','GET'],['config/'+defaults.siteId,'GET'],...['collect','engage','custom','event','perf','exposure','signal/'+defaults.siteId,'declined/'+defaults.siteId,'ignored/'+defaults.siteId].map(path=>[path,'POST'])]
+ const doors=[['script.js','GET'],['config/'+defaults.siteId,'GET'],...['collect','engage','custom','event','perf','exposure','heat-click','signal/'+defaults.siteId,'declined/'+defaults.siteId,'ignored/'+defaults.siteId].map(path=>[path,'POST'])]
  for(const [path,method] of doors){
   const response=await fetch(front.origin+'/insights/'+path,{method,headers:{origin:defaults.siteOrigin,'user-agent':'Synthetic visitor',cookie:'browser-secret=untrusted',authorization:'Bearer browser-secret','x-vane-proxy-ip':'203.0.113.1','x-vane-proxy-country':'US',dnt:'1','sec-gpc':'1'},body:method==='POST'?JSON.stringify({siteId:defaults.siteId}):undefined})
   assert.equal(response.status,method==='POST'?202:200)

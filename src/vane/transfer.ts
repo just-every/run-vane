@@ -5,7 +5,7 @@ import { audit, auditStatement } from './audit'
 // It carries the site's own events, privacy-signal and exclusion counts, automatic events, deletion journal and
 // imported rows, chart annotations, saved segments and its US metro-name table (DASH-005). Daily salts never leave an installation, and an import's journal and undo stay
 // with the source installation's whole archive (ARCHIVE-001), so imported rows arrive settled.
-const TABLES=['vane_import_sources','vane_import_day_choices','vane_import_cutovers','vane_cutover_scans','vane_bing_rows','vane_search_days','vane_search_rows','vane_events','vane_signals','vane_exclusions','vane_auto_events','vane_deletions','vane_import_events','vane_import_reports','vane_annotations','vane_segments','vane_custom_events','vane_event_props','vane_ecommerce_lines','vane_exposures','vane_metro_names','vane_metro_tables'] as const
+const TABLES=['vane_heat_pages','vane_heat_clicks','vane_import_sources','vane_import_day_choices','vane_import_cutovers','vane_cutover_scans','vane_bing_rows','vane_search_days','vane_search_rows','vane_events','vane_signals','vane_exclusions','vane_auto_events','vane_deletions','vane_import_events','vane_import_reports','vane_annotations','vane_segments','vane_custom_events','vane_event_props','vane_ecommerce_lines','vane_exposures','vane_metro_names','vane_metro_tables'] as const
 interface Payload { format:'vane-site/1'; exportedAt:number; site:Record<string,any>; tables:Record<string,Record<string,any>[]> }
 interface SiteArchive { payload:Payload; sha256:string }
 

@@ -1,4 +1,5 @@
 export interface ViewData {
+  heat?:import('../heat/report').HeatReport
   reportOrigin?:string
   agency?:Awaited<ReturnType<typeof import('../agency/service').agencyData>>
   reportFrame?:Awaited<ReturnType<typeof import('../agency/branding').reportFrame>>
