@@ -18,16 +18,19 @@ const inRange = 'c.day>=?2 AND c.day<?3'
 const entryJoin = `CROSS JOIN vane_visit_facts f ON f.site=c.site AND f.day=c.day AND f.visitor=c.visitor
  JOIN vane_raw_events e ON e.raw_id=f.first_raw AND e.context=c.context`
 
-// Each context contributes at most one physical candidate. Ordering its ties by
-// the decoded logical ID preserves canonical UUID and historical text ordering
-// even when their physical tokens have different SQLite storage classes.
+// Each context contributes at most one physical candidate. Select its timestamp
+// through the context/time index, then order only that bucket's decoded logical
+// IDs, preserving canonical UUID and historical text ordering across storage classes.
 function touch(last: boolean) {
  const direction = last ? 'DESC' : 'ASC'
  return `(SELECT ${dimension('source', 'h')} FROM vane_raw_contexts h
  JOIN vane_raw_events he ON he.raw_id=(
   SELECT candidate.raw_id FROM vane_raw_events candidate
-  WHERE candidate.context=h.context AND candidate.at_offset<=c.at-COALESCE(unixepoch(h.day)*1000,0)
-  ORDER BY candidate.at_offset ${direction},${unpackedIdSql('candidate.token', 'c.site_id')} ${direction} LIMIT 1
+  WHERE candidate.context=h.context AND candidate.at_offset=(
+   SELECT bucket.at_offset FROM vane_raw_events bucket
+   WHERE bucket.context=h.context AND bucket.at_offset<=c.at-COALESCE(unixepoch(h.day)*1000,0)
+   ORDER BY bucket.at_offset ${direction} LIMIT 1)
+  ORDER BY ${unpackedIdSql('candidate.token', 'c.site_id')} ${direction} LIMIT 1
  ) WHERE h.site=c.site AND h.consented_visitor=c.consented_visitor AND h.kind='pageview'
  ${last ? `AND ${dimension('source', 'h')}<>'direct'` : ''}
  ORDER BY he.at_offset+COALESCE(unixepoch(h.day)*1000,0) ${direction},${unpackedIdSql('he.token', 'c.site_id')} ${direction} LIMIT 1)`
