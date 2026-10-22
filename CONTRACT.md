@@ -428,8 +428,8 @@ Judged from the code and tests at commit `7bf639684e6ebbc65ca8003aebb3ffbff3ed48
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 17 | 0 | 0 | 17 |
-| Target and push further | 65 | 9 | 17 | 91 |
-| All | 82 | 9 | 17 | 108 |
+| Target and push further | 66 | 8 | 17 | 91 |
+| All | 83 | 8 | 17 | 108 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -515,7 +515,7 @@ Judged from the code and tests at commit `7bf639684e6ebbc65ca8003aebb3ffbff3ed48
 | `SHARE-002` | Public dashboards | target | done | `src/vane/public.ts`; `src/vane/public-reports.ts`; `src/vane/views/public.ts`; `src/vane/privacy.ts`; `src/vane/views/settings.ts`; `src/server.ts`; `tests/vane.test.mjs` |  |
 | `TEAM-001` | Per-site roles and invitations | target | done | `src/vane/team.ts`; `src/vane/core.ts`; `src/vane/routes.ts`; `src/vane/commands.ts`; `src/vane/views/team.ts`; `migrations/core/0037_vane_team.sql`; `tests/vane.test.mjs` |  |
 | `TEAM-002` | Single sign-on and two-step sign-in | target | missing |  | No working SSO or second-step sign-in in Vane; the vendored Base OIDC module is not mounted. |
-| `AGENCY-001` | Agency client workspaces and branded reports | target | partial | `tests/agency.test.mjs` — “AGENCY-001 two clients isolate every site door; agency and client brands reach reports, shared links and weekly mail; custom hosts expose only public reports and unsubscribe” covers both client scopes, current site moves, weekly agency-logo email, private/public/shared branding, colors and custom-host boundaries. “AGENCY-001 owner manages two realistic client workspaces at 1440 and 390; client report uses the uploaded logo without overflow” covers the overview, branding form and rendered reports at both widths. | Conservative owner-only, off-default branding and bounded client-viewer/domain semantics ADOPTED pending ct. Both public journeys pass, including real HTTP multipart upload and native redirect, logo bytes, two-client isolation, current assignment changes, branded weekly mail, custom-host refusals and every new screen at 1440/390. Ct approval remains the unclosed policy dependency; DNS/TLS attachment stays the owner’s explicit configuration. |
+| `AGENCY-001` | Agency client workspaces and branded reports | target | done | `tests/agency.test.mjs` — “AGENCY-001 two clients isolate every site door; agency and client brands reach reports, shared links and weekly mail; custom hosts expose only public reports and unsubscribe” covers both client scopes, current site moves, weekly agency-logo email, private/public/shared branding, colors and custom-host boundaries. “AGENCY-001 owner manages two realistic client workspaces at 1440 and 390; client report uses the uploaded logo without overflow” covers the overview, branding form and rendered reports at both widths. Owner direction 22 Oct 11:07Z approves the landed conservative semantics by default; implementation landed at `643a7598e6604cdc523c7e0536f21aec6f3c4a41` and remains on main `775feef1adc5b4af6d1739946bfa0ad4cdb284d1`.  |  |
 | `API-001` | Stats API | target | done | `src/vane/api-door.ts`; `src/vane/api-keys.ts`; `src/vane/stats-api.ts`; `src/vane/provisioning.ts`; `src/vane/views/api-keys.ts`; `migrations/core/0038_vane_api_keys.sql`; `tests/vane.test.mjs` |  |
 | `API-002` | CSV, Looker Studio and warehouse export | target | done | `src/vane/csv.ts`; `src/vane/site-zip.ts`; `src/vane/zip.ts`; `src/vane/warehouse.ts`; `src/vane/sealed.ts`; `src/vane/views/export-settings.ts`; `connectors/looker-studio/Code.gs`; `migrations/core/0039_vane_exports.sql`; `tests/apps-script.mjs`; `tests/vane.test.mjs` |  |
 | `API-003` | Webhooks for goals, alerts and reports | target | done | `src/vane/webhooks.ts`; `src/vane/views/webhook-settings.ts`; `migrations/core/0041_vane_webhooks.sql`; `tests/vane.test.mjs` |  |
