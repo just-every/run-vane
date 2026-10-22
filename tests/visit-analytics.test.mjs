@@ -43,9 +43,6 @@ test('native visit facts keep reverse arrivals, tied IDs, a late bridge, engagem
  assert.deepEqual([report.pageviews,report.visits,report.averageDuration,report.medianDuration],[4,1,3012,3012])
  assert.equal(report.topPages.find(r=>r.path==='/c').averageScrollDepth,80)
  assert.deepEqual(report.perf.pages.map(r=>[r.label,r.measured,r.lcp,r.cls]),[['/c',1,3000,0.2]])
- // A retry neither adds a raw page nor duplicates any frequency population.
- assert.equal((await a.post('/api/vane/collect',loads.c,'',{origin,'cf-connecting-ip':'203.0.113.17','user-agent':'Synthetic Vane Browser 1'})).status,200)
- assert.equal((await summary()).pageviews,4)
  // A historical opaque ID sorts before the packed UUIDs at the same instant.
  // Introducing it invalidates and rebuilds the chain; journeys still follow
  // logical IDs, including the three distinct pages after this first match.
@@ -54,6 +51,9 @@ test('native visit facts keep reverse arrivals, tied IDs, a late bridge, engagem
  assert.deepEqual(legacyJourney.next.map(r=>[r.steps,r.visits]),[[['/tie','/b','/c'],1]])
  assert.deepEqual(legacyJourney.previous.map(r=>[r.steps,r.visits]),[[['/a','(entrance)'],1]])
  report=await summary()
+ // A retry neither adds a raw page nor duplicates any frequency population.
+ assert.equal((await a.post('/api/vane/collect',loads.c,'',{origin,'cf-connecting-ip':'203.0.113.17','user-agent':'Synthetic Vane Browser 1'})).status,200)
+ assert.equal((await summary()).pageviews,5)
  const archive=await a.archive(),b=await withApp(t)
  const restored=await b.post('/api/vane/restore',{archive},b.owner)
  assert.equal(restored.status,200,await restored.clone().text())
