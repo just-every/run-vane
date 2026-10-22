@@ -40,7 +40,8 @@ function values(data: ViewData, proposal: any): string {
   const current = site?.config ?? {}, keys = Object.keys(config), changed = proposal.command.includes('config') || proposal.command === 'site.configure' ? keys.filter(k => JSON.stringify(config[k]) !== JSON.stringify(current[k])) : []
   const list = (pairs: [string, string][]) => `<dl>${pairs.map(([k, v]) => `<dt>${escape(k)}</dt><dd>${escape(v)}</dd>`).join('')}</dl>`
   const evidence=(parsed.definitionEvidence??[]).map((d:any)=>`<h4>Call-site evidence for ${escape(d.name)}</h4>${d.callSites.map((c:any)=>`<p>${escape(c.kind)} on ${escape(c.url)} · ${escape(new Date(c.at).toISOString())}</p><pre class="vane-code"><code>${escape(c.rewrite)}</code></pre>`).join('')}`).join('');
-  const all = evidence+list([...rows, ...keys.map(k => [label(k), plain(k, config[k])] as [string, string])])
+  const source=parsed.instrumentationApproval?`<h4>Approved source diff</h4><p>Script-only edit in ${escape(parsed.instrumentationApproval.files.join(', '))}. Any diff change voids this approval.</p><pre class="vane-code"><code>SHA-256: ${escape(parsed.instrumentationApproval.diffHash)}</code></pre>`:''
+  const all = source+evidence+list([...rows, ...keys.map(k => [label(k), plain(k, config[k])] as [string, string])])
   return changed.length ? `${list(changed.map(k => [`${label(k)}`, `${plain(k, current[k])} → ${plain(k, config[k])}`]))}<details><summary>Every proposed setting</summary>${all}</details>` : all
 }
 

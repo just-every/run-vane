@@ -17,7 +17,7 @@ function analystChange(value:Site,input:any) {
  return {name:value.name,origin:value.origin,config};
 }
 // The command API is the agent door: proposals it prepares are audited as agent actions.
-export async function prepare(env:Env,actor:Actor,command:string,input:any,channel:'app'|'command API'|`key:${string}`,definitionEvidence?:{name:string;callSites:{url:string;at:number;kind:string;rewrite:string}[]}[]) {
+export async function prepare(env:Env,actor:Actor,command:string,input:any,channel:'app'|'command API'|`key:${string}`,definitionEvidence?:{name:string;callSites:{url:string;at:number;kind:string;rewrite:string}[]}[],instrumentationApproval?:{diffHash:string;files:string[]}) {
  allow(actor,'analyst');
  // DASH-005: a metro-name table is uploaded only on the site's settings page by a signed-in owner or administrator.
  insist(command!=='metro.names','forbidden','Metro names are uploaded on the site’s settings page by its owner or an administrator; the command API cannot prepare them.',403);
@@ -28,6 +28,7 @@ export async function prepare(env:Env,actor:Actor,command:string,input:any,chann
  let payload:any;
  if(command==='site.create')payload={...cleanSite(input),siteId:uid()};
  else { const value=await site(env,String(input.siteId)); payload={siteId:value.id,version:value.version,...(command==='site.configure'?cleanSite(actor.access==='analyst'?analystChange(value,input):input):{})}; }
+ if(instrumentationApproval){allow(actor,'owner');payload.instrumentationApproval=instrumentationApproval}
  if(definitionEvidence?.length)payload.definitionEvidence=definitionEvidence;
  const id=uid();
  await atomic(env,actor,[statement(env,"INSERT INTO vane_proposals(id,command,payload_json,state,prepared_by,created_at) VALUES(?,?,?,'pending',?,?)",id,command,JSON.stringify(payload),actor.id,Date.now()),auditStatement(env,actor.id,channel==='command API'?'agent.prepare':'proposal.prepare',id,`${command} for site ${payload.siteId} via ${channel}`)],actor.access==='analyst'?['owner','admin','member']:['owner','admin']);

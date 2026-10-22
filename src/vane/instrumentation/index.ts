@@ -1,5 +1,5 @@
 import { createInsightsService } from '../reports'
-import { readGitHubDiff, githubSetting, githubDrafts, githubObservationGuard, rememberGitHubHead, prepareGitHubDraft, type GitHubObservation } from './github'
+import { readGitHubDiff, githubSetting, githubDrafts, githubObservationGuard, rememberGitHubHead, prepareGitHubDraft, prepareGitHubSource, type GitHubObservation } from './github'
 import { agentHistoryStamp, agentCommitGuard } from '../agent-fence'
 import { allow, atomic, inScope, insist, rows, site, statement, uid, type Actor, type Env } from '../core'
 import { auditStatement } from '../audit'
@@ -94,9 +94,10 @@ export async function prepareInstrumentationFix(env:Env,actor:Actor,p:any) {
  const eventDefinitions=(value.config.eventDefinitions??[]).map(d=>({...d,target:replacements.get(d.target)??d.target}))
  insist(run.draft.changes.length>0,'fix','No concrete fix was found. Complete the missing evidence first.')
  // The normal, version-bound owner approval is the sole way this draft changes a collection setting.
- const proposal=await prepare(env,actor,'site.configure',{siteId:value.id,name:value.name,origin:value.origin,config:{...value.config,eventDefinitions}},'command API')
+ const sourceApproval=run.github&&run.draft.changes.some(c=>c.before==='No matching native script')?await prepareGitHubSource(env,actor,value.id,run.github,run.draft.changes):undefined
+ const proposal=await prepare(env,actor,'site.configure',{siteId:value.id,name:value.name,origin:value.origin,config:{...value.config,eventDefinitions}},'command API',undefined,sourceApproval)
  const id=uid(),at=clock()
- await atomic(env,actor,[agentCommitGuard(env,value,stamp),statement(env,'INSERT INTO vane_instrumentation_fixes(id,site_id,run_id,created_by,created_at,proposal_id,draft_json) VALUES(?,?,?,?,?,?,?)',id,value.id,run.id,actor.id,at,proposal.id,JSON.stringify({...run.draft,github:run.github,problems:run.problems,eventDefinitions})),...(run.github?[githubObservationGuard(env,value.id,run.github),prepareGitHubDraft(env,value.id,id,run.github)]:[]),auditStatement(env,actor.id,'agent.fix.prepare',value.id,`${id}: proposal ${proposal.id}; no outbound edit` )])
+ await atomic(env,actor,[agentCommitGuard(env,value,stamp),statement(env,'INSERT INTO vane_instrumentation_fixes(id,site_id,run_id,created_by,created_at,proposal_id,draft_json) VALUES(?,?,?,?,?,?,?)',id,value.id,run.id,actor.id,at,proposal.id,JSON.stringify({...run.draft,diffHash:sourceApproval?.diffHash,github:run.github,problems:run.problems,eventDefinitions})),...(run.github&&sourceApproval?[githubObservationGuard(env,value.id,run.github),prepareGitHubDraft(env,value.id,id,run.github)]:[]),auditStatement(env,actor.id,'agent.fix.prepare',value.id,`${id}: proposal ${proposal.id}; no outbound edit` )])
  return {id,proposalId:proposal.id,draft:run.draft,state:'awaiting-owner-approval'}
 }
 export async function verifyInstrumentationFix(env:Env,actor:Actor,p:any) {

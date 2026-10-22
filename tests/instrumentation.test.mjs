@@ -28,7 +28,7 @@ test('Instrumentation investigation compares a renamed signup control and missin
  const a=await installation();t.after(()=>a.close());const now=Date.now()+60000;await a.clock(now)
  const id=await a.addSite({origin,paths:[],goals:{},customGoals:{signup:{event:'Signup',revenue:false,currency:'USD'}},eventDefinitions:[{name:'Signup',kind:'click',target:'#signup'}],incumbentCompatibility:true})
  const state={broken:false},site=website(a,id,state),github=githubFixture(a),input={siteId:id,...windowOf(now),pageLimit:10}
- await result(await a.post('/api/vane/instrumentation/github',{siteId:id,enabled:'on',confirm:'on',repository:'just-every/run-vane',branch:'main',token:github.state.token,mappings:'/pricing = public/pricing.html'},a.owner))
+ await result(await a.post('/api/vane/instrumentation/github',{siteId:id,enabled:'on',confirm:'on',credentialKind:'fine-grained',scopeConfirm:'on',repository:'just-every/run-vane',branch:'main',token:github.state.token,mappings:'/pricing = public/pricing.html'},a.owner))
  const run=()=>a.post('/api/vane/instrumentation/run',input,a.owner)
  const baseline=await result(await run());assert.equal(baseline.problems.some(p=>p.kind==='missing-script'||p.kind==='missing-selector'),false)
  state.broken=true;github.state.head=github.changed;await newLoad(a,id,'/',now+1000,'SignUp')
@@ -71,6 +71,7 @@ test('Instrumentation investigation compares a renamed signup control and missin
  assert.ok(dump.vane_audit.some(r=>r.action==='agent.instrumentation'));assert.ok(dump.vane_audit.some(r=>r.action==='agent.fix.prepare'));assert.ok(dump.vane_audit.some(r=>r.action==='agent.fix.verify'))
  const custody=JSON.stringify({runs:dump.vane_instrumentation_runs,fixes:dump.vane_instrumentation_fixes,scans:dump.vane_cutover_scans})
  for(const sentinel of ['synthetic-vane-private-body','synthetic-vane-private-input','account123456','<h1>','synthetic-vane-source-body','synthetic-vane-private-unmapped',github.state.token])assert.equal(custody.includes(sentinel),false,sentinel+' is not retained')
+ assert.equal(github.state.requests.some(r=>r.path.includes('/compare/')),false,'unmapped source patches are never requested')
  assert.ok(site.requests.every(r=>!r.headers.cookie&&!r.headers.authorization),'the site never receives native authentication')
  // Review the evidence and verified fix through the unchanged Settings/Approvals components at both required widths.
  await context.addCookies(a.owner.split('; ').map(pair=>{const i=pair.indexOf('=');return {name:pair.slice(0,i),value:pair.slice(i+1),url:a.origin}}))
@@ -143,13 +144,18 @@ test('Instrumentation recognizes active approved proxy script tags, ignores cach
 test('GitHub hand-off is off-default, owner-approved, sealed and revocable; source drift and an uncertain provider reply never replay a mutation or touch a default branch',async t=>{
  const a=await installation();t.after(()=>a.close());const now=Date.now()+60000;await a.clock(now)
  const id=await a.addSite({origin,paths:[],goals:{}}),web={broken:true};website(a,id,web)
- const github=githubFixture(a),settings={siteId:id,enabled:'on',confirm:'on',repository:'just-every/run-vane',branch:'main',token:github.state.token,mappings:'/pricing = public/pricing.html'},endpoint='/api/vane/instrumentation/github'
+ const github=githubFixture(a),settings={siteId:id,enabled:'on',confirm:'on',credentialKind:'fine-grained',scopeConfirm:'on',repository:'just-every/run-vane',branch:'main',token:github.state.token,mappings:'/pricing = public/pricing.html'},endpoint='/api/vane/instrumentation/github'
  const admin=await a.invite('synthetic-vane-github-admin@example.test','admin')
  assert.equal((await a.post(endpoint,settings,admin)).status,403);assert.equal((await a.post(endpoint,settings,'')).status,401)
  assert.equal((await a.post(endpoint,{...settings,confirm:''},a.owner)).status,400);assert.equal(github.state.requests.length,0)
+ for(const extra of [{credentialKind:'classic'},{scopeConfirm:''}])assert.equal((await a.post(endpoint,{...settings,...extra},a.owner)).status,400)
+ for(const file of ['.env','public/.env.html','public/api-key.html','.github/workflows/build.html','deploy/index.html','package.json','pnpm-lock.yaml','certs/site.html'])assert.equal((await a.post(endpoint,{...settings,mappings:'/pricing = '+file},a.owner)).status,409)
+ assert.equal(github.state.requests.length,0,'sensitive and operational mappings are refused before any GitHub request')
  for(const mappings of ['/pricing = ../private.html','/orders/1234567 = public/pricing.html','/pricing = /absolute.html'])assert.equal((await a.post(endpoint,{...settings,mappings},a.owner)).status,400)
  const realEdge=a.fixtureSites['https://api.github.com'];a.fixtureSites['https://api.github.com']=()=>new Response(null,{status:302,headers:{location:'https://github-redirect.example/credential-leak'}})
  assert.equal((await a.post(endpoint,settings,a.owner)).status,502);assert.equal(a.egress.some(url=>new URL(url).hostname==='github-redirect.example'),false,'GitHub redirects are refused at the real fetch boundary')
+ a.fixtureSites['https://api.github.com']=()=>Response.json({},{headers:{'x-oauth-scopes':'repo, workflow'}})
+ assert.equal((await a.post(endpoint,settings,a.owner)).status,403,'classic OAuth scopes cannot be used for source authority')
  a.fixtureSites['https://api.github.com']=realEdge;await result(await a.post(endpoint,settings,a.owner))
  const archive=await a.archive();assert.equal(archive.payload.tables.vane_instrumentation_github,undefined);assert.equal(archive.payload.tables.vane_instrumentation_prs,undefined);assert.equal(JSON.stringify(await a.dump()).includes(github.state.token),false)
  github.state.head=github.changed
@@ -158,7 +164,11 @@ test('GitHub hand-off is off-default, owner-approved, sealed and revocable; sour
  const moved=await prepare();github.state.head='e'.repeat(40)
  assert.equal((await a.post('/api/vane/instrumentation/github-pr',{siteId:id,fixId:moved.id,confirm:'on'},a.owner)).status,409)
  assert.equal(github.state.requests.filter(r=>r.method==='POST').length,0,'a moved source branch causes no outbound write');assert.equal((await a.dump()).vane_instrumentation_prs.find(p=>p.fix_id===moved.id).state,'blocked','a known no-write preflight failure is not labelled an uncertain send')
- github.state.head=github.changed;const uncertain=await prepare();github.state.loseReply=true
+ github.state.head=github.changed
+ const changed=await prepare();github.state.sourceChanged=true
+ assert.equal((await a.post('/api/vane/instrumentation/github-pr',{siteId:id,fixId:changed.id,confirm:'on'},a.owner)).status,409,'changing the exact source diff voids the approval even if the source-head response is unchanged')
+ assert.equal(github.state.requests.filter(r=>r.method==='POST').length,0)
+ github.state.sourceChanged=false;const uncertain=await prepare();github.state.loseReply=true
  const publish=()=>a.post('/api/vane/instrumentation/github-pr',{siteId:id,fixId:uncertain.id,confirm:'on'},a.owner)
  const lost=await publish();assert.equal(lost.status,502);assert.equal((await lost.text()).includes('synthetic-vane-provider-detail'),false)
  const mutations=github.state.requests.filter(r=>r.method==='POST').length,reconciled=await result(await publish());assert.equal(reconciled.state,'published');assert.equal(github.state.requests.filter(r=>r.method==='POST').length,mutations,'reconciliation performs reads only')

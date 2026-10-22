@@ -107,7 +107,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "f0585155c16207f8476e99d3a10de4df92f18e930f1395f915206ed123ccd750",
+      "sha256": "64747c37d77b39281ef892c4549942ceeed660a66daa55a5e93cee298264e1c8",
       "executable": false
     },
     "DEMO.md": {
@@ -163,11 +163,11 @@
       "executable": false
     },
     "docs/instrumentation.md": {
-      "sha256": "76b17828b8c2f11484289e547f1109f43c45db736042da9e0fbd5d9b33819ac3",
+      "sha256": "c0d3c8a6b1394b5dea060a601643fd3555d9762eed49851e1f82fc6fee048c6f",
       "executable": false
     },
     "docs/movement.md": {
-      "sha256": "7e022f50c8eda24378c48fb175a07771f525672b51960e7f1c9f57052d074866",
+      "sha256": "d246c662ce28cd8f3f279da773073b7d318cff2ca0a2032a91d0901d9c6c41b1",
       "executable": false
     },
     "docs/sign-in-security.md": {
@@ -580,6 +580,10 @@
     },
     "migrations/core/0112_vane_instrumentation_github.sql": {
       "sha256": "94962561fddb6f8277c95f0a222b7e9342f7b236b9121f9c4b914a8bf6856795",
+      "executable": false
+    },
+    "migrations/core/0113_vane_github_credential_kind.sql": {
+      "sha256": "55b88d4ac53ae01ceeca1e01127fc01ffeb89dfc48e888b50cafb83d6b39ea43",
       "executable": false
     },
     "ONBOARDING.md": {
@@ -3151,7 +3155,7 @@
       "executable": false
     },
     "src/vane/commands.ts": {
-      "sha256": "b9c57b401c0e157201f311526884db121e5a5fd3f7e0583aec51c21074d59e38",
+      "sha256": "4b3b3e363cd939c876463ca0af6175ac997d26e8a9c478d4b36378bbbe6b0257",
       "executable": false
     },
     "src/vane/consent.ts": {
@@ -3294,12 +3298,16 @@
       "sha256": "9e03fd660814b7918459cfec838c4d76a73e52b697210badc18e058a950ca3e8",
       "executable": false
     },
+    "src/vane/instrumentation/github-source.ts": {
+      "sha256": "9523d428ab8344f1d4aaa4770cfb4aa2d497fda84f36403270d837b3df4ed792",
+      "executable": false
+    },
     "src/vane/instrumentation/github.ts": {
-      "sha256": "15fbc42aaccc8e6d14ef7e5cca50c19676849c692b5a5d0f1824879e5adf2ed1",
+      "sha256": "768c49ddf10395d592e44937c7ef1f273f3f0befb3b8bcbac4cc0ed9cca0190d",
       "executable": false
     },
     "src/vane/instrumentation/index.ts": {
-      "sha256": "32c76f9ce44bcb582ceacac0096b4357d9d3f43f3ebf548a8098c2e95ec9f42b",
+      "sha256": "b314673b331ccb735b9b7e7ab7a51f4046665a91760a27a9590d7bb48ea8e59c",
       "executable": false
     },
     "src/vane/instrumentation/page.ts": {
@@ -3307,7 +3315,7 @@
       "executable": false
     },
     "src/vane/inventory.ts": {
-      "sha256": "bf3f5c522ec8b9bac63786556be9d3643c5eff3bb646036eaf8b5610e8f3c09e",
+      "sha256": "13ac1747f2887b64b7490e4f5f75bccc77e7cefdc78535c23e064b8d8111549f",
       "executable": false
     },
     "src/vane/journeys.ts": {
@@ -3775,7 +3783,7 @@
       "executable": false
     },
     "src/vane/views/approvals.ts": {
-      "sha256": "1ddf9296931ead6bbc7fa8725e9d0b0372ab72ac81ee39a1b9f593faa4226a12",
+      "sha256": "113ff07897d79645a385332518a67d5ed946fd97af9b334d7e1bad13737a6329",
       "executable": false
     },
     "src/vane/views/ask.ts": {
@@ -3859,7 +3867,7 @@
       "executable": false
     },
     "src/vane/views/instrumentation.ts": {
-      "sha256": "edefea7c2d819b1e4169eb59508bed7aba3879c29c2a030b720b6a964685d34d",
+      "sha256": "b1d1fc5370df329be470603d0da66b0b36b0918f390434a3207861832f05884f",
       "executable": false
     },
     "src/vane/views/locations.ts": {
@@ -4139,11 +4147,11 @@
       "executable": false
     },
     "tests/instrumentation-github-fixture.mjs": {
-      "sha256": "f19099e53353bc2393ad14fca9a50ed2a207840b11069c6d4d6de3f365a6bc69",
+      "sha256": "909483849a2d4026f7ccff7b174046283bae2bd34f1e9ec2dfd2f110047347fb",
       "executable": false
     },
     "tests/instrumentation.test.mjs": {
-      "sha256": "be711255ee4e6bc6694ec3c5c8450f0ba4b735b67988cfd0e8a533e3876a76d8",
+      "sha256": "eca711dadcd8b77675c5b7c4ace3706d7b612cf1a3cf69a3e1d38d1dd7b77a15",
       "executable": false
     },
     "tests/locations.journey.mjs": {
