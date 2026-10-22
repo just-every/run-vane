@@ -2630,10 +2630,6 @@
       "sha256": "739808e5ad58b982d7d40a0ce2dc3836b90d57f515d8ce904cf6cf90965ed745",
       "executable": false
     },
-    "src/modules/operator-auth/page.d.mts": {
-      "sha256": "b55e281d096bb70266e2c60de850205dfc08464aa15497bd2cfdd11f30a564ef",
-      "executable": false
-    },
     "src/modules/operator-auth/page.mjs": {
       "sha256": "3fa120d55b8ff80c613e53d4df3fb4a249cadf508b2b3144f94fd89afbdd22e4",
       "executable": false
@@ -3590,6 +3586,10 @@
       "sha256": "9141beeb561141d78fb11fa8d240acb1dcd657de6051927af29b6ae44587d9bc",
       "executable": false
     },
+    "src/vane/security/frame.d.ts": {
+      "sha256": "9d067bdf3a4d275aecd32a963cb0193634a04c85fdb83f1695910affc3b87031",
+      "executable": false
+    },
     "src/vane/security/page.ts": {
       "sha256": "2960630961b6acc84be1923eae07545bd8c8ce33933b04e5509cc770fa7f8467",
       "executable": false
@@ -4091,7 +4091,7 @@
       "executable": false
     },
     "tests/security.test.mjs": {
-      "sha256": "5e743417d3fbd4336ae288a7acc77b8e3ff8b34802cbd39fdf66a358347a7239",
+      "sha256": "9f48528324284d719fb93b3c34f87565a6b2e2e8731923b9ed026c143bdd126c",
       "executable": false
     },
     "tests/site.test.mjs": {

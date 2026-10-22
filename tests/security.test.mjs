@@ -75,10 +75,13 @@ test('authenticator sign-in refuses wrong and replayed codes, consumes a recover
 })
 
 test('owner enforcement holds every account without a factor at enrollment, refuses private mutations and enrolls it before authenticator sign-in',async t=>{
- const a=await installation();t.after(()=>a.close());const member=await a.invite('member@example.test','member'),other=await a.invite('other@example.test','member')
+ const a=await installation();t.after(()=>a.close());const member=await a.invite('member@example.test','member'),other=await a.invite('other@example.test','admin')
+ const site=await a.addSite({name:'Fern Studio',paths:[]}),keyPage=await(await a.form({operation:'apikey.create',kind:'stats',label:'Team reporting',[`site_${site}`]:'on'},other)).text(),key=keyPage.match(/data-api-key>(vane_k_[0-9a-f]{64})</)[1]
+ const stats=()=>a.request(`/api/v1/stats?site_id=${site}`,{headers:{authorization:'Bearer '+key}});assert.equal((await stats()).status,200)
  assert.equal((await a.post('/auth/security/policy',{requireSecond:true},a.owner)).status,409)
  await enroll(a,a.owner);assert.equal((await a.post('/auth/security/policy',{requireSecond:true},a.owner)).status,303)
  for(const cookie of [member,other])for(const path of privateDoors){const r=await a.request(path,{headers:{cookie}});assert.ok([303,403].includes(r.status),path);if(r.status===303)assert.equal(r.headers.get('location'),'/auth/security/enroll')}
+ assert.equal((await stats()).status,403);await enroll(a,other);assert.equal((await stats()).status,200)
  assert.equal((await a.post('/app/action',{operation:'site.create'},member)).status,403)
  assert.equal((await a.post('/auth/security/identity',{},member)).status,303)
  const {secret}=await enroll(a,member);assert.equal((await a.request('/api/vane/sites',{headers:{cookie:member}})).status,200)
