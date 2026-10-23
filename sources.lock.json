@@ -4171,7 +4171,7 @@
       "executable": false
     },
     "tests/host-local.journey.mjs": {
-      "sha256": "ef96cb293e023458839facefc618ae545c711ecadcd24e68e62e61794707952a",
+      "sha256": "9293cbc2f4c8ecf7aee5ccb94f90a92a7828be63883e0da72113c2851f4ae3f8",
       "executable": false
     },
     "tests/import-export.test.mjs": {
