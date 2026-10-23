@@ -75,7 +75,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "ff5f80965cb88860e93c050cdfa6fd5417765a8df24a1f07d310cd91993eae3b",
+      "sha256": "59a4aba4082057ec27c2fc787da3c534fc9c1952023792d2b3895e387f476e8f",
       "executable": false
     },
     "AGENTS.md": {
@@ -107,7 +107,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "fb87cd725f11d20ee10850df3fe943fd695a3c7100177af7672667ebf5c61367",
+      "sha256": "1b8dd847943207d9ba310a97c61d47db9cad3b0da7229ada1f033d45df1a6cd0",
       "executable": false
     },
     "DEMO.md": {
@@ -4315,7 +4315,7 @@
       "executable": false
     },
     "tests/vane-report-settings.mjs": {
-      "sha256": "68dbe2e6f4969efc31f7fdef6ef6cacdf5f76814a1b6a04fc2829ca90fef8c85",
+      "sha256": "1c26a41f1c0fe47d3fd8a0326a265d339a062d8d831056af3edd8ef37f34e155",
       "executable": false
     },
     "tests/vane-reports.mjs": {

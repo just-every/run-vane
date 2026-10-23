@@ -348,6 +348,13 @@ test('HOST-001 real collection measures requests, D1 work and storage before pro
  assert.match(html,new RegExp('data-hosting-pageviews>'+count.toLocaleString('en-US')+'<'))
  const viewer=await a.invite('synthetic-vane-1@example.test','member')
  assert.ok(!(await (await a.request('/app?section=history',{headers:{cookie:viewer}})).text()).includes('data-hosting-cost'),'installation costs remain owner-only')
+ for(const [usageDay,requests] of [['2026-10-23','79999'],['2026-10-22','80000']]){
+  const b=await installation({vars:{VANE_WORKER_PLAN:'free',VANE_WORKER_DAILY_REQUESTS:requests,VANE_WORKER_USAGE_DAY:usageDay}})
+  try{await b.clock(Date.parse('2026-10-23T12:00:00Z'));const empty=await (await b.request('/app?section=history',{headers:{cookie:b.owner}})).text()
+   assert.ok(!empty.includes('Workers Free plan warning:'),'a below-limit or stale reported count does not warn')
+   assert.match(empty,/No pageviews yet/);if(usageDay!=='2026-10-23')assert.match(empty,/Reported daily Worker requests: not supplied/)
+  }finally{await b.close()}
+ }
  if(process.env.VANE_SCREEN_DIR){
   await mkdir(process.env.VANE_SCREEN_DIR,{recursive:true});const {context}=await browse(t,a)
   await context.addCookies(a.owner.split('; ').map(pair=>{const i=pair.indexOf('=');return {name:pair.slice(0,i),value:pair.slice(i+1),url:a.origin}}))
