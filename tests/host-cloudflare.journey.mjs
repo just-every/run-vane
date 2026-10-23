@@ -3,9 +3,10 @@ import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { readFile, mkdir } from 'node:fs/promises';
-import { join, resolve, dirname } from 'node:path';
+import { join, resolve, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomBytes } from 'node:crypto';
+import { redactedTail } from './host-local-processes.mjs';
 import { main as ownerMain, report } from '@runeditrun/rer/modules/deploy-kit/owner-cli';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -26,7 +27,10 @@ test('HOST-003 local rer archive restores the same fixture pageview into a fresh
  // The deploy kit deletes only resources recorded as created by this exact run.
  t.after(async () => {
   try { await browser?.close(); }
-  finally { await ownerMain(args('remove'), privateEnv, { cwd: root, notice: () => {} }); }
+  finally {
+   const held = await readFile(state, 'utf8').catch(error => { if (error.code === 'ENOENT') return null; throw error; });
+   if (held) await ownerMain(args('remove'), privateEnv, { cwd: root, notice: () => {} });
+  }
  });
  let deployed;
  try { deployed = await ownerMain(args('deploy'), privateEnv, { cwd: root, notice: () => {} }); }
@@ -44,12 +48,12 @@ test('HOST-003 local rer archive restores the same fixture pageview into a fresh
  const env = { ...privateEnv, VANE_REMOTE_DATABASE_ID: databases[0].id, VANE_REMOTE_TRANSFER_PAUSED: '1', WRANGLER_SEND_METRICS: 'false' };
  // Invoke the actual public command, including its confirmation and archive checks.
  try {
-  await execute(join(root, 'node_modules', '.bin', 'rer'), ['import', '--target', 'remote', '--input', archive, '--yes'], {
+  await execute(join(root, 'node_modules', '.bin', 'rer'), ['import', '--target', 'remote', '--input', relative(root, resolve(archive)), '--yes'], {
    cwd: root, env, timeout: 10 * 60_000, maxBuffer: 1024 * 1024,
   });
  } catch (error) {
   // CLI logs contain no provider credential, but keep all child output private.
-  throw new Error(`Public remote rer import failed (exit ${error.code ?? 'unknown'}).`);
+  throw new Error(`Public remote rer import failed (exit ${error.code ?? 'unknown'}): ${redactedTail(error.stdout ?? '', error.stderr ?? '')}`);
  }
  const signin = await ownerMain(args('signin'), privateEnv, { cwd: root, notice: () => {} });
  const { chromium, expect } = await import('@playwright/test');

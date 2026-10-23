@@ -111,7 +111,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "674a393a265024d4aded0c7188140efc8bb58f5999359e864db0fb1e48d880d7",
+      "sha256": "acbf6900d9fe4bab583f6a048b525e84f0b9ec6ecd44f782950a9e8ae4e6a892",
       "executable": false
     },
     "DEMO.md": {
@@ -951,7 +951,7 @@
       "executable": false
     },
     "RUN-LOCALLY.md": {
-      "sha256": "e1d9821e73929de421f3f821cf0f67854c5c6bd0a390daacd70f4dff1b33af65",
+      "sha256": "bdacc6dc9ca31066510b1db75f382d7ccb7f50557ab386cbbc9c715d5095d5ce",
       "executable": false
     },
     "scripts/edition-authoring/base-copies.mjs": {
@@ -4227,11 +4227,11 @@
       "executable": false
     },
     "tests/host-cloudflare.journey.mjs": {
-      "sha256": "107c43102476f3db78003c6fce24d95a2271924491470694fc88a1d6ae39992e",
+      "sha256": "5199d00c52a76ecc4e608d28cea18b7e31294513dba8368066eaa628de845352",
       "executable": false
     },
     "tests/host-local-processes.mjs": {
-      "sha256": "7ee56d3712350b22e043066de0b5667a512e669dfba975ce65ca166fa613ab15",
+      "sha256": "797f3c95c973f8baa35ace6ee0ce25cd4a79ca153e468784bea191ca4592e46f",
       "executable": false
     },
     "tests/host-local-ui.mjs": {

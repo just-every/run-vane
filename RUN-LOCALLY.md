@@ -214,8 +214,8 @@ operations and ambiguous or linked state.
 Local export creates a private archive with an integrity receipt and explicit
 exclusions. Import validates the archive and restores into an empty destination.
 After import, run setup to establish the owner and local configuration. Auth,
-outbox, private settings and transient runtime state are excluded. Remote
-transfer is unsupported by the maintained references and fails visibly.
+outbox, private settings and transient runtime state are excluded. Vane also supports the owner-operated local-to-Cloudflare move below.
+Hosted export remains unsupported and fails visibly.
 
 Real deployment uses the owner-account procedure and its private credentials.
 `rer deploy --dry-run` validates and builds locally without a
@@ -294,3 +294,34 @@ addresses). `rer door restart` drains and restarts the door: checkouts that
 were starting finish starting, and open tabs reconnect. After a reboot or logout the door needs `rer door start` (or any
 `rer dev` in a checkout that uses it); `rer door stop` and `rer door disable`
 stop it and opt this computer out.
+
+
+## Move a stopped local installation to Cloudflare
+
+`rer export --output exports/installation.rer` saves the complete local D1
+installation under the same policy used by local restore. Keep the source
+stopped and retain its archive until the destination report has been checked.
+Prepare a fresh Cloudflare deployment with this exact source and all its D1
+migrations, before owner bootstrap or other application writes. Restore refuses
+an occupied or incompatible destination; it never replaces an existing owner.
+
+Stop the destination Worker and its scheduled writers. In the private environment
+that holds its owner Cloudflare credential, set `CLOUDFLARE_ACCOUNT_ID`,
+`CLOUDFLARE_API_TOKEN`, `VANE_REMOTE_DATABASE_ID` and the explicit acknowledgement
+`VANE_REMOTE_TRANSFER_PAUSED=1`. Then run:
+
+```sh
+rer import --target remote --input exports/installation.rer --yes
+```
+
+The adapter accesses the chosen account's D1 binding directly. There is no public
+restore endpoint. It verifies archive integrity, applied migration history, the
+complete table inventory, erasure fences and destination emptiness through Base's
+streamed importer. Vane currently declares a single D1 binding; additional resource
+kinds require extending this adapter before hosted restore can proceed.
+
+Provision the destination's private runtime configuration separately, including
+its sign-in and sealing secrets. Private configuration is not transported in the
+archive. Open the destination through its ordinary owner sign-in, check that the
+fixture report matches the local source, then start its writers. The exact public
+command and fresh-deployment report are exercised by `tests/host-cloudflare.journey.mjs`.

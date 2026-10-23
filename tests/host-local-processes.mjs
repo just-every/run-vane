@@ -90,7 +90,7 @@ async function launch(cwd, env, processes, args) {
   while (!exited && Date.now() < deadline) { await processes.capture(); await delay(500) }
   assert.ok(exited, 'rer dev must finish installation and report readiness within twelve minutes')
   assert.equal(failed, false, 'The public rer executable must be available')
-  const safe = (output + errors).split('\n').filter(line => !/RER_OPEN|RER_SIGN_IN|RER_SIGNED_IN/.test(line)).slice(-40).join('\n').replace(/https?:\/\/[^\s"'<>]+/g, '[address]').replace(/[A-Za-z0-9_+/=-]{20,}/g, '[private]').replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+/gi, '[email]')
+  const safe = redactedTail(output, errors)
   assert.equal(code, 0, 'Public rer dev must launch successfully (credentials withheld): ' + safe)
   const line = name => output.match(new RegExp(`^${name} (\\S+)\\s*$`, 'm'))?.[1]
   const ready = line('RER_READY'), open = line('RER_OPEN')
@@ -114,5 +114,9 @@ async function signIn(page, installation) {
   await page.getByRole('heading', { name: 'Your sites', exact: true }).waitFor()
 }
 
+
+export function redactedTail(output, errors = '') {
+  return (output + errors).split('\n').filter(line => !/RER_OPEN|RER_SIGN_IN|RER_SIGNED_IN/.test(line)).slice(-40).join('\n').replace(/https?:\/\/[^\s"'<>]+/g, '[address]').replace(/[A-Za-z0-9_+/=-]{20,}/g, '[private]').replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+/gi, '[email]')
+}
 
 export { ownedProcesses, launch, signIn }
