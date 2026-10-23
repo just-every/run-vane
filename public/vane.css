@@ -4,3 +4,9 @@
 @import url('/ui/surfaces.css');
 @import url('/ui/overview.css');
 @import url('/ui/screens.css');
+
+/* Icon controls expose the same short help on hover and keyboard focus. */
+.vane-tip-control { position: relative; }
+.vane-tooltip { position: absolute; top: calc(100% + 6px); right: 0; z-index: 100; padding: 6px 9px; border-radius: 5px; background: #162b28; color: #fff; font: 13px/1.3 system-ui; white-space: nowrap; pointer-events: none; opacity: 0; visibility: hidden; transition: opacity 0s, visibility 0s; }
+.vane-tip-control:hover > .vane-tooltip { opacity: 1; visibility: visible; transition-delay: .3s; }
+.vane-tip-control:focus-visible > .vane-tooltip { opacity: 1; visibility: visible; transition-delay: 0s; }

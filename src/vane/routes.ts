@@ -1,3 +1,7 @@
+import { draftChange, refuseShipping, work as agentWork } from './agent/drafts'
+import { growthBrief, dismissOpportunity } from './agent/growth'
+import { measureChange } from './agent/results'
+import { pursueAnomaly } from './agent/pursuit'
 import { configureGitHub, publishGitHubDraft } from './instrumentation/github'
 import { investigateMovement, movementHistory } from './movement'
 import { configureEvidence, evidenceSetting, sourceEvidence } from './movement/evidence'
@@ -104,6 +108,7 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
   const named=url.searchParams.get('siteId')??path.match(/^\/app\/sites\/([\w-]+)$/)?.[1];if(named)inScope(actor,named);
   if(request.method==='POST'&&path==='/app/agency/logo'){await uploadLogo(env,actor,request);return redirect('/app?section=agency&notice=Logo+uploaded.')}
   if(request.method==='GET') {
+   if(path==='/api/vane/agent/work')return json(await agentWork(env,actor,url.searchParams.get('siteId')??'',url.searchParams.get('id')??undefined));
    if(path==='/api/vane/heat')return json(await heatReport(env,actor,{siteId:url.searchParams.get('siteId')??'',path:url.searchParams.get('path')??undefined,from:range.from??'',to:range.to??'',width:url.searchParams.has('width')?Number(url.searchParams.get('width')):undefined}));
    if(path==='/api/vane/proxy-connections')return json(await listConnections(env,actor,url.searchParams.get('siteId')??''));
    if(path==='/api/vane/proxy-setup')return json(await proxySetup(env,actor,url.searchParams.get('siteId')??'',url.searchParams.get('connectionId')??'',url.searchParams.get('platform')??'nextjs'));
@@ -147,6 +152,12 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
   if(request.method==='POST') {
    const p=await input(request);
    for(const id of [p.siteId,p.input?.siteId])if(id!==undefined&&id!=='')inScope(actor,String(id));
+   if(path==='/api/vane/agent/draft')return json(await draftChange(env,actor,p),201);
+   if(path==='/api/vane/agent/ship')return json(await refuseShipping(env,actor,p));
+   if(path==='/api/vane/agent/brief')return json(await growthBrief(env,actor,p));
+   if(path==='/api/vane/agent/dismiss')return json(await dismissOpportunity(env,actor,p));
+   if(path==='/api/vane/agent/measure')return json(await measureChange(env,actor,p));
+   if(path==='/api/vane/agent/pursue')return json(await pursueAnomaly(env,actor,p));
    if(path==='/api/vane/agency'){await agencyAction(env,actor,request,p);return json({ok:true});}
    if(path==='/api/vane/heat-settings')return json(await configureHeat(env,actor,p));
    if(path==='/api/vane/ask-settings')return json(await configureAsk(env,actor,p));
