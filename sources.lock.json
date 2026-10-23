@@ -4171,7 +4171,7 @@
       "executable": false
     },
     "tests/host-local.journey.mjs": {
-      "sha256": "ad12080677448aa2aa6a67795233d6d399ddc178bbfad025359164639d32af61",
+      "sha256": "ef96cb293e023458839facefc618ae545c711ecadcd24e68e62e61794707952a",
       "executable": false
     },
     "tests/import-export.test.mjs": {
@@ -4287,7 +4287,7 @@
       "executable": false
     },
     "tests/vane-conversions.mjs": {
-      "sha256": "aae2f62c82fe18a316e1bfc59315b5406b45d8ab05db63e5ebfd920409e85587",
+      "sha256": "16e1b9afddc55461f6b0c64be97801ff70415906f202aaafa0761854946dc519",
       "executable": false
     },
     "tests/vane-helpers.mjs": {

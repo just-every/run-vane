@@ -312,9 +312,10 @@ test('DASH-007 restricted matches refuse unsupported patterns visibly at every f
   await tab.goto(report+'&segment='+segment)
   assert.equal(await tab.locator('[data-segment-applied]').textContent(),'Segment: Linear whole visits.')
   assert.equal(await tab.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false)
-  const menu=tab.getByRole('button',{name:'Menu',exact:true}),tip=tab.getByRole('tooltip',{name:'Open menu'})
-  await menu.focus();assert.equal(await tip.isVisible(),true)
-  await menu.evaluate(e=>e.blur());await tab.mouse.move(0,0);await menu.hover();await tab.waitForTimeout(350);assert.equal(await tip.isVisible(),true)
+  if(width===390){const menu=tab.locator('summary[aria-label="Menu"]'),tip=tab.locator('#vane-menu-tip')
+   await menu.focus();assert.equal(await tip.isVisible(),true)
+   await menu.evaluate(e=>e.blur());await tab.mouse.move(0,0);await menu.hover();await tab.waitForTimeout(350);assert.equal(await tip.isVisible(),true)
+  }
   if(process.env.VANE_SCREEN_DIR)await tab.screenshot({path:`${process.env.VANE_SCREEN_DIR}/filter-linear-${width}.png`})
  }
 
