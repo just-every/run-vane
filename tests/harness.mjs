@@ -5,11 +5,27 @@ import { createRequire } from 'node:module'
 import { randomBytes } from 'node:crypto'
 import assert from 'node:assert/strict'
 const require=createRequire(import.meta.url),{unstable_splitSqlQuery:split}=require('wrangler')
-export async function installation({setup=true,vars:extra={},origin='http://127.0.0.1:8787'}={}) {
+export async function installation({setup=true,vars:extra={},origin='http://127.0.0.1:8787',meter=false}={}) {
  const root=resolve('dist/server'),config=JSON.parse(await readFile(join(root,'wrangler.json'),'utf8'))
  const paths=await readdir(root,{recursive:true})
  const entry=join(root,config.main)
  const modules=[entry,...paths.filter(p=>p.endsWith('.js')&&join(root,p)!==entry).map(p=>join(root,p))].map(path=>({type:'ESModule',path}))
+ // Optional observation of real D1 results for the hosting measurement; no data or answers are replaced.
+ if(meter)modules.unshift({type:'ESModule',path:join(root,'hosting-meter.mjs'),contents:`
+ import app from './index.js'; export * from './index.js';
+ let usage={requests:0,rowsRead:0,rowsWritten:0,elapsedMs:0};
+ const record=result=>{usage.rowsRead+=result.meta?.rows_read??0;usage.rowsWritten+=result.meta?.rows_written??0;return result};
+ export default {...app,async fetch(request,env,ctx){
+  if(new URL(request.url).pathname==='/__test/hosting-usage'){const result={...usage};if(request.method==='POST')usage={requests:0,rowsRead:0,rowsWritten:0,elapsedMs:0};return Response.json(result)}
+  const originals=new WeakMap(),wrap=statement=>{const wrapped={
+   bind:(...args)=>wrap(statement.bind(...args)),
+   all:async(...args)=>record(await statement.all(...args)),run:async(...args)=>record(await statement.run(...args)),
+   first:async column=>{const result=record(await statement.all()),row=result.results[0];return row?(column===undefined?row:row[column]):null},
+   raw:(...args)=>statement.raw(...args)
+  };originals.set(wrapped,statement);return wrapped};
+  const db={prepare:sql=>wrap(env.DB.prepare(sql)),batch:async statements=>(await env.DB.batch(statements.map(s=>originals.get(s)??s))).map(record)};
+  const start=performance.now();usage.requests++;try{return await app.fetch(request,{...env,DB:db},ctx)}finally{usage.elapsedMs+=performance.now()-start}
+ }};`})
  const vars={AUTH_LOCAL:'true',AUTH_ORIGIN:origin,OWNER_EMAIL:'owner@example.test',SESSION_SECRET:randomBytes(32).toString('hex'),SETUP_TOKEN:randomBytes(32).toString('hex'),RER_DEV_KEY:randomBytes(32).toString('hex'),MAIL_PROVIDER:'resend',MAIL_API_KEY:'test-only-network-edge',MAIL_FROM:'auth@localhost.test',...extra}
  const sentMail=[],egress=[],fixtureSites={}
  // The ingress passes the request's cf fields (bot score, ASN, as Cloudflare's edge sets them) through to the app.

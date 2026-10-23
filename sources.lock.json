@@ -4163,7 +4163,7 @@
       "executable": false
     },
     "tests/harness.mjs": {
-      "sha256": "b0eb36cb3764c3bb3a9b4621f16bd3236b28dbe6ee6404afff65541845b726b6",
+      "sha256": "38e8a72a5d337e22c598e1a40c2da8a3bbf6a2b9fed1477d36a5f390b59b790e",
       "executable": false
     },
     "tests/heat.test.mjs": {
@@ -4303,7 +4303,7 @@
       "executable": false
     },
     "tests/vane-report-settings.mjs": {
-      "sha256": "1ac264e774d36ebbeff71a801d08d2eb403c3f064e8751b82655965fe26fdadf",
+      "sha256": "671ba94cc407300f8a1a08fa1f80a0e3ec15d78c3274049f3442eb77e6633ca7",
       "executable": false
     },
     "tests/vane-reports.mjs": {

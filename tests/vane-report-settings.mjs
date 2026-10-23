@@ -326,3 +326,21 @@ test('DASH-009 a member\'s note, an approved settings change, a deploy webhook, 
  assert.equal((await a.form({operation:'annotation-hook.revoke',siteId:id},a.owner)).status,303);assert.equal((await hook({id:'after',kind:'deploy',at:Date.now(),title:'After revoke'})).status,401)
  const audit=JSON.stringify(await (await a.request('/api/vane/audit',owner)).json());for(const action of ['annotation.add','annotation.delete','annotation-hook.create','annotation-hook.revoke','annotation-github.create'])assert.ok(audit.includes(action),action)
 })
+
+
+test('HOST-001 real collection measures requests, D1 work and storage before projecting hosting cost',async t=>{
+ const a=await installation({meter:true});t.after(()=>a.close())
+ await a.clock(Date.parse('2026-10-23T12:00:00Z'))
+ const id=await a.addSite({paths:[],goals:{},retention:'forever'}),count=process.env.VANE_HOST_COST_MEASURE==='1'?100000:100
+ const before=Number((await a.inspectDb.prepare('SELECT 1').run()).meta.size_after)
+ await a.request('/__test/hosting-usage',{method:'POST'})
+ // Real distinct admissions through the native collection transport, not weighted records.
+ for(let first=0;first<count;first+=1000){const events=Array.from({length:Math.min(1000,count-first)},(_,i)=>a.event(id,{path:`/synthetic-vane-${(first+i)%10}`}))
+  const response=await a.post('/api/vane/collect-batch',{events},'',{origin:'https://fern.example','cf-connecting-ip':'203.0.113.10','user-agent':DESKTOP_CHROME})
+  assert.equal(response.status,202);assert.equal((await response.json()).accepted,events.length)
+ }
+ const measured=await (await a.request('/__test/hosting-usage')).json(),after=Number((await a.inspectDb.prepare('SELECT 1').run()).meta.size_after)
+ const report=await (await a.request(`/api/vane/summary?siteId=${id}&period=today`,{headers:{cookie:a.owner}})).json()
+ assert.equal(report.pageviews,count);assert.ok(measured.rowsRead>0&&measured.rowsWritten>0&&after>before)
+ t.diagnostic(JSON.stringify({pageviews:count,...measured,storeBeforeBytes:before,storeAfterBytes:after,storeGrowthBytes:after-before,scope:'local native batch collection only; elapsed time is not Worker CPU or provider billing'}))
+})
