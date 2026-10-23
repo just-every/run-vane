@@ -1,4 +1,5 @@
 export interface ViewData {
+  hosting?: Awaited<ReturnType<typeof import('../hosting').hostingUse>>
   movement?:import('../movement').MovementInvestigation[]
   agentEvidence?:Awaited<ReturnType<typeof import('../movement/evidence').evidenceSetting>>
   agentEvidenceToken?:string

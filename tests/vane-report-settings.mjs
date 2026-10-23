@@ -329,7 +329,7 @@ test('DASH-009 a member\'s note, an approved settings change, a deploy webhook, 
 
 
 test('HOST-001 real collection measures requests, D1 work and storage before projecting hosting cost',async t=>{
- const a=await installation({meter:true});t.after(()=>a.close())
+ const a=await installation({meter:true,vars:{VANE_WORKER_PLAN:'free',VANE_WORKER_DAILY_REQUESTS:'80000'}});t.after(()=>a.close())
  await a.clock(Date.parse('2026-10-23T12:00:00Z'))
  const id=await a.addSite({paths:[],goals:{},retention:'forever'}),count=process.env.VANE_HOST_COST_MEASURE==='1'?100000:100
  const before=Number((await a.inspectDb.prepare('SELECT 1').run()).meta.size_after)
@@ -343,4 +343,21 @@ test('HOST-001 real collection measures requests, D1 work and storage before pro
  const report=await (await a.request(`/api/vane/summary?siteId=${id}&period=today`,{headers:{cookie:a.owner}})).json()
  assert.equal(report.pageviews,count);assert.ok(measured.rowsRead>0&&measured.rowsWritten>0&&after>before)
  t.diagnostic(JSON.stringify({pageviews:count,...measured,storeBeforeBytes:before,storeAfterBytes:after,storeGrowthBytes:after-before,scope:'local native batch collection only; elapsed time is not Worker CPU or provider billing'}))
+ const history=await a.request('/app?section=history',{headers:{cookie:a.owner}}),html=await history.text()
+ assert.equal(history.status,200);assert.match(html,/Workers Free plan warning: 80,000 reported requests/);assert.match(html,/Workers Paid is required/);assert.match(html,/not measured/)
+ assert.match(html,new RegExp('data-hosting-pageviews>'+count.toLocaleString('en-US')+'<'))
+ const viewer=await a.invite('synthetic-vane-1@example.test','member')
+ assert.ok(!(await (await a.request('/app?section=history',{headers:{cookie:viewer}})).text()).includes('data-hosting-cost'),'installation costs remain owner-only')
+ if(process.env.VANE_SCREEN_DIR){
+  await mkdir(process.env.VANE_SCREEN_DIR,{recursive:true});const {context}=await browse(t,a)
+  await context.addCookies(a.owner.split('; ').map(pair=>{const i=pair.indexOf('=');return {name:pair.slice(0,i),value:pair.slice(i+1),url:a.origin}}))
+  const page=await context.newPage()
+  for(const width of [1440,390]){await page.setViewportSize({width,height:960});await page.goto(a.origin+'/app?section=history')
+   assert.equal(await page.getByRole('heading',{name:'Hosting cost',exact:true}).isVisible(),true)
+   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false)
+   if(width===390){const menu=page.locator('summary[aria-label="Menu"]');await menu.focus();assert.equal(await page.locator('#vane-menu-tip').isVisible(),true);await menu.evaluate(e=>e.blur());await page.mouse.move(0,0);await menu.hover();await page.waitForTimeout(350);assert.equal(await page.locator('#vane-menu-tip').isVisible(),true)}
+   await page.getByRole('heading',{name:'Hosting cost',exact:true}).scrollIntoViewIfNeeded();await page.screenshot({path:`${process.env.VANE_SCREEN_DIR}/hosting-cost-${width}.png`})
+  }
+ }
+
 })
