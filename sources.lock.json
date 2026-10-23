@@ -75,7 +75,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "bf7eb4f9d9460fd00ecba6349397d1f2f720d7ea94795037a4aaa542184d7640",
+      "sha256": "b88ecfeb3a1ea1fb4b1b29fd642a4659abe0d44894f4662a0330491889c2b837",
       "executable": false
     },
     "AGENTS.md": {
@@ -107,7 +107,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "2c27abbc3b63faee87e94bc582d11e0b9ee24b0912a4c6f0d0b4fb88ea135dc2",
+      "sha256": "2ca3b47ff55c0bfc8f92d423c76df55b32e68331b0d591aef5194f3e7aa1ae19",
       "executable": false
     },
     "DEMO.md": {
@@ -139,7 +139,7 @@
       "executable": false
     },
     "docs/collection-scale.md": {
-      "sha256": "894a55c82e12b9041104c8a7844a4be366d5b36ebbe157e5ea13cc541b0c7c71",
+      "sha256": "618bd79cdb7ca60490aee1a6076105a2a6d2c43d280823052e77fd1962ab0497",
       "executable": false
     },
     "docs/collection.md": {
@@ -2995,7 +2995,7 @@
       "executable": false
     },
     "src/vane/analytics/visits/read.ts": {
-      "sha256": "edda88f66d0fa23b78e5b21c261df00d7d7b02b9e39f593cd85c2ea1930ad054",
+      "sha256": "e7cf0ee345194af6671dc9b1e9702ca5cd680360a941246ecb0bd23cc527d4f2",
       "executable": false
     },
     "src/vane/analytics/visits/schema_notes.md": {
@@ -3011,7 +3011,7 @@
       "executable": false
     },
     "src/vane/analytics/visits/sql.ts": {
-      "sha256": "360b54e653920cfc70bb70223cf2d18bc15f44e0e85212d0a03d1fdae77f7581",
+      "sha256": "4b80b7cef35b7490d94658ad2b946b8db43f992e89c4d5efcd980e0d22469ce4",
       "executable": false
     },
     "src/vane/annotation-door.ts": {

@@ -10,7 +10,7 @@ export const contextIdentity = (context = 'c', site = 's') => `CASE WHEN ${conte
 // itself; callers must use timedFrom on their actual event set for that case.
 // Goals and money are read at their real network-edge cardinality, so late
 // custom/scroll goals and newly approved exchange rates are immediately exact.
-export const reportFrom = (revenue = 'NULL') => `WITH goal_counts AS (
+export const visitScope = (revenue = 'NULL') => `WITH goal_counts AS (
  SELECT pg.visit_id AS visit,1 AS converted FROM vane_raw_contexts gc JOIN vane_raw_sites s ON s.site=gc.site
  CROSS JOIN vane_raw_groups gg ON gg.context=gc.context
  CROSS JOIN vane_raw_occurrences go ON go.group_id=gg.group_id
@@ -29,10 +29,11 @@ export const reportFrom = (revenue = 'NULL') => `WITH goal_counts AS (
  COALESCE(g.converted,0) AS visit_converted,m.revenue AS visit_revenue
  FROM vane_visit_facts f JOIN vane_raw_sites s ON s.site=f.site LEFT JOIN goal_counts g ON g.visit=f.visit LEFT JOIN money m ON m.visit=f.visit
  WHERE ${rangePredicate}
-), q AS (
+)`
+export const reportFrom = (revenue = 'NULL', columns: readonly typeof ANALYTIC_DIMENSIONS[number][] = ANALYTIC_DIMENSIONS) => `${visitScope(revenue)}, q AS (
  SELECT v.visit,v.day,v.identity AS visit_identity,v.bounce,v.duration,v.visit_converted,v.visit_revenue,
  c.context,c.dimensions,${contextIdentity()} AS identity,p.n,p.on_page,NULLIF(p.scroll,-1) AS scroll,
- ${ANALYTIC_DIMENSIONS.map(name => `${dimension(name)} AS ${name}`).join(',')}
+ ${columns.map(name => `${dimension(name)} AS ${name}`).join(',')}
  FROM vane_visit_page_frequencies p JOIN v ON v.visit=p.visit JOIN vane_raw_contexts c ON c.context=p.context JOIN vane_raw_sites s ON s.site=c.site
 )`
 

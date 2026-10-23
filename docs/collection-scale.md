@@ -152,6 +152,34 @@ on the shared Mac. The RETENTION-002 public journey in
 `tests/vane-report-settings.mjs` covers the 80% warning threshold, both required
 choices and continued admission.
 
+## Complete-report latency at volume
+
+Full-volume attempt `20261022T112815186722Z-heavy-slot-2c8ff618` (commit
+`775feef1adc5b4af6d1739946bfa0ad4cdb284d1`) admitted 110,015,102 genuine
+pageviews through November, then the complete public report took 2,442.6 ms, above
+the unchanged two-second assertion. December and capacity did not run.
+
+Profiling the same Worker at 100,000, 1,000,000 and 8,000,000 pageviews in one
+month showed that analytical cells, raw contexts and visits stay at their
+site/day counts, while visit page-frequency rows grow with distinct time-on-page,
+scroll and timestamp values (392, 966 and 3,579 rows). The page and hostname
+tables derived all dimensions and the visitor identity from every frequency row and
+windowed over every one. They now derive the label and identity once per raw
+context, order only distinct time-on-page values for the weighted median (the
+same exact result), and return empty tables for a range with no visit facts, such
+as an unpopulated comparison period, without running the grouped queries. Counts,
+medians and filters keep their exact definitions.
+
+Measured on the changed code: the in-Worker visit-table queries for one month
+of 1,000,000 pageviews fell from about 15.5 ms to 6 ms per report call, while the
+complete public summary and dashboard HTML for one month of 8,000,000 pageviews
+(about 310 ms each) and for twelve months of 1,215,102 pageviews (about 500 ms)
+were not measurably different from the previous code. The cause of the 2,442.6 ms
+at 110,015,102 pageviews is therefore not isolated (larger-file page-cache cost on
+that runner and other readers of the raw tables remain candidates). No full 120M
+run has repeated on this change, so the complete-report latency, capacity and
+uniqueness at full volume stay unproved.
+
 ## Capacity remains workload-dependent and unproven
 
 The former estimate based on three repeated text values does not describe this
