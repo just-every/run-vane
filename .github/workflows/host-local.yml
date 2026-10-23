@@ -13,10 +13,13 @@ jobs:
       CI: 'true'
       WRANGLER_SEND_METRICS: 'false'
       VANE_HOST_LOCAL_JOURNEY: '1'
+      VANE_SCREEN_DIR: '${{ github.workspace }}/.cache/host-screens'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
+          fetch-depth: 0
+          filter: ''
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: '22.20.0'
@@ -24,5 +27,13 @@ jobs:
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
+      - name: Permit the isolated installed replay
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - name: HOST-002 public local installation journey
         run: pnpm exec node --test --test-concurrency=1 tests/host-local.journey.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: host-local-screens
+          path: .cache/host-screens
+          if-no-files-found: ignore
