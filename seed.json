@@ -150,6 +150,16 @@
         "No analytics figures, visitor fields or new collection fields are sent; credential and pending outbound authority are excluded from archives"
       ],
       "adapters": []
+    },
+    {
+      "id": "google-analytics",
+      "required": false,
+      "why": "Owner-connected read-only GA4 aggregate history and key events (IMPORT-002)",
+      "data": [
+        "OAuth credentials, selected property and inclusive date range to fixed official Google endpoints",
+        "Daily source aggregates and key-event definitions returned; no collected Vane visitor records sent"
+      ],
+      "adapters": []
     }
   ],
   "env": [],

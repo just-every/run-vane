@@ -88,7 +88,7 @@ fingerprints, authority fences, ordinary journals and per-job undo still apply.
 
 ## Google Analytics source documents
 
-`IMPORT-002` currently supports owner-uploaded daily source reports, with preview, exact-fingerprint approval, resumable application, journal and undo. Google OAuth and automatic Data/Admin API reads are not available yet. Export the source responses yourself; do not put OAuth codes or tokens in the document.
+`IMPORT-002` currently supports owner-uploaded daily source reports, with preview, exact-fingerprint approval, resumable application, journal and undo. The same reviewed import also accepts connected read-only Google reads, described below. Uploaded documents must never contain OAuth codes or tokens.
 
 For GA4, wrap complete [Data API `runReport` responses](https://developers.google.com/analytics/devguides/reporting/data/v1/rest/v1beta/properties/runReport) and optional [Admin API key events](https://developers.google.com/analytics/devguides/config/admin/v1/rest/v1beta/properties.keyEvents/list) in JSON:
 
@@ -103,7 +103,7 @@ For GA4, wrap complete [Data API `runReport` responses](https://developers.googl
 }
 ```
 
-Replace `reports` with your actual source responses, each including a `date` dimension, its headers, all rows and `rowCount`. Dates use the source property's local calendar and the inclusive range above. Each report grouping stays separate; preserve `metadata.currencyCode` for money and `metadata.timeZone` when provided. Incomplete report pagination is refused. Upload at most 500 sanitized report rows in one document; split larger exports into separately reviewed documents. Empty documents are refused.
+Replace `reports` with your actual source responses, each including a `date` dimension, its headers, all rows and `rowCount`. Dates use the source property's local calendar and the inclusive range above. Each report grouping stays separate; preserve `metadata.currencyCode` for money and `metadata.timeZone` when provided. Incomplete report pagination is refused. Upload at most 20,000 sanitized GA4 report rows and 8 MB in one document; split larger exports into separately reviewed documents. Empty documents are refused.
 
 GA4 users can span days and devices; they differ from Vane's daily cookie-free visitor estimates. Session and engagement rules remain GA4's, with bounce and engagement rates retained as fractions between 0 and 1. Source sampling, thresholding, restrictions and data-loss flags stay on the rows. The reports retain their source dimensions and metrics, never become invented visits, and do not add to native Vane totals. Any viewer can leave imported data out of a view with `imported=off` (the dashboard, a shared link, CSV tables, `/api/v1/stats` and `include.imports: false` on `/api/v2/query`), and an import by another source skips the days an earlier source's import already holds, listing them in its preview and journal. The reviewed cut-over date, live-data precedence, imported source labels and owner-only parallel comparison follow the rules under [Declaring a cut-over date](#declaring-a-cut-over-date).
 
@@ -176,3 +176,25 @@ For a new preview, leaving the field empty selects the day after the last normal
 Every whole-export preview requires `--cutover YYYY-MM-DD`, reviewed once for the entire export, and resumes only with that same date. Only normalized source dates strictly before it appear in reports; live collection wins each overlap day. The command retains the reviewed date across every page, including duplicate source events across pages.
 
 The streaming command saves each reviewed job ID. Continuations publish that immutable reviewed custody without uploading its source page again; they still require the same owner, fingerprint and exact reviewed site policy. After a policy change, review the source again before applying. A lost response can repeat the reviewed page safely without duplicating a committed record.
+
+## Connect Google Analytics 4
+
+In a site's History, choose **Connect GA4 read-only**. The deployment needs
+`GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`, with the installation origin and
+`/api/vane/ga4/callback` registered as its callback. The scope shown before
+connection is `https://www.googleapis.com/auth/analytics.readonly` only.
+Approval is single use, bound to the current owner session and expires after ten minutes.
+
+Choose a property from Google's Admin API list, then the first and last source
+local dates, both inclusive. **Preview Google history** reads all Data API offsets
+and Admin key-event pages before showing the ordinary reviewed import. Apply,
+journal and undo are the same as uploaded documents. GA4 measures and independent
+groupings retain their source definitions and never become native visitor totals.
+Each review accepts up to 8 MB and 20,000 sanitized rows. Larger ranges require
+separate reviewed documents; incomplete or changing source reports are refused.
+
+Credentials are encrypted in this installation and never archived. Disconnect
+removes local tokens first and asks Google to revoke the refresh token. Remote
+revocation failures are shown honestly. A refused refresh visibly stops further
+reads until the owner reconnects. Only fixed official Google endpoints receive
+credentials, property and dates; no collected Vane visitor records are sent.

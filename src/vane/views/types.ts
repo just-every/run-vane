@@ -60,6 +60,8 @@ export interface ViewData {
   proposals?: any[]
   /** DASH-005: the site's approved US metro-name table and the codes seen without a name. */
   metroTable?: import('../metro-names').MetroTable & { unnamedSeen: string[] }
+  growth?: any[]
+  ga4?: import('../ga4/types').Connection
   imports?: any[]
   notice?: string
   error?: string

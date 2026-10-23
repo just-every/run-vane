@@ -16,7 +16,7 @@ export function aggregateSource(document:unknown,site:ImportSite,policy:SitePoli
  const carry=input?.format==='vane-aggregate-preview/1'
  const parsed=carry?input.records:(normalizeGa4(input,site,policy)??normalizePlausibleHistory(input,site,policy)??normalizePlausible(input,site,policy)??normalizeMatomo(input,site,policy))
  if(parsed===null||parsed===undefined)return null
- if(!Array.isArray(parsed)||!parsed.length||parsed.length>500)throw new MoveinError('IMPORT_REQUIRES_1_TO_500_REPORT_ROWS')
+ if(!Array.isArray(parsed)||!parsed.length||parsed.length>(parsed.every((r:any)=>r?.provider==='ga4')?20000:500))throw new MoveinError('IMPORT_REQUIRES_1_TO_500_REPORT_ROWS')
  let records:AggregateRecord[]=parsed.map((r:any)=>{
   if(!r||!['matomo','plausible','ga4'].includes(r.provider)||!/^\d{4}-\d{2}-\d{2}$/.test(r.day)||!Number.isFinite(Date.parse(r.day))||new Date(r.day).toISOString().slice(0,10)!==r.day||!/^\w+\.\w+$/.test(r.report))throw new MoveinError('INVALID_AGGREGATE')
   // Re-run provider normalization on carries: the hidden form is untrusted too.

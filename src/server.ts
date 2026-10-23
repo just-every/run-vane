@@ -1,3 +1,4 @@
+import { runGrowthBriefs } from './vane/agent/growth'
 import { evidenceDoor } from './vane/movement/evidence'
 import { securityFence } from './vane/security/routes'
 import { rawOperatorAuth } from './auth.server'
@@ -125,6 +126,7 @@ export default withDemo({
     // ALERT-002: each site's daily tracking-health check at the owner's local time.
     await runHealth(runtimeBindings(env), clock())
     await runFollowUps(runtimeBindings(env), clock())
+    await runGrowthBriefs(runtimeBindings(env), clock())
     } finally {
       const results=await sourceResult;const failed=results.find(r=>r.status==='rejected');if(failed?.status==='rejected')throw failed.reason;
     }

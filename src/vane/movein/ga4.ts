@@ -6,7 +6,7 @@ import { csvRows } from './csv'
 import type { AggregateRecord, ImportedDefinition } from './aggregate-types'
 import type { ImportSite, SitePolicy } from './types'
 
-// Account-free source exports only. OAuth and token custody require a separate policy decision.
+// Uploaded and connected read-only source reports share privacy validation and reviewed custody.
 // Data API: https://developers.google.com/analytics/devguides/reporting/data/v1/api-schema
 // Admin: https://developers.google.com/analytics/devguides/config/admin/v1/rest/v1beta/properties.keyEvents
 const DIMENSIONS = new Set(('date pagePath landingPage pageReferrer browser browserVersion operatingSystem operatingSystemVersion deviceCategory screenResolution country region city sessionDefaultChannelGroup sessionPrimaryChannelGroup sessionSource sessionMedium sessionSourceMedium sessionCampaignName sessionCampaignId sessionManualSource sessionManualMedium sessionManualCampaignName sessionManualCampaignId sessionManualAdContent sessionManualTerm eventName').split(' '))
@@ -128,6 +128,6 @@ export function normalizeGa4(document:unknown,_site:ImportSite,policy:SitePolicy
  if(!input||!['vane-ga4-history/1','vane-ga4-normalized/1','vane-ua-csv/1'].includes(input.format))return null
  insist(new TextEncoder().encode(JSON.stringify(input)).length<=8_000_000,'ga4_size','Import source documents smaller than 8 MB.')
  const records=input.format==='vane-ga4-history/1'?ga4(input,policy):input.format==='vane-ua-csv/1'?ua(input,policy):(()=>{insist(Array.isArray(input.records),'ga4_document','Use normalized source rows.');return input.records.map((r:unknown)=>normalizeRecord(r,policy))})()
- insist(records.length>0&&records.length<=500,'ga4_rows','Import 1 to 500 source report rows per document. Split larger source exports into reviewed documents.')
+ insist(records.length>0&&records.length<=20000,'ga4_rows','Import 1 to 20,000 source report rows per reviewed document. Choose a smaller date range for larger exports.')
  return records
 }
