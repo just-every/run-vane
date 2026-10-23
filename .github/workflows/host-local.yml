@@ -13,7 +13,8 @@ jobs:
       CI: 'true'
       WRANGLER_SEND_METRICS: 'false'
       VANE_HOST_LOCAL_JOURNEY: '1'
-      VANE_SCREEN_DIR: '${{ github.workspace }}/.cache/host-screens'
+      VANE_SCREEN_DIR: '${{ github.workspace }}/.cache/host-artifacts/screens'
+      VANE_HOST_ARCHIVE: '${{ github.workspace }}/.cache/host-artifacts/local.rer'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -34,6 +35,7 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: host-local-screens
-          path: .cache/host-screens
+          name: host-local-artifacts
+          path: .cache/host-artifacts
+          retention-days: 1
           if-no-files-found: ignore

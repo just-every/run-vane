@@ -65,6 +65,13 @@ test('HOST-002 installed journey: empty-folder command, sign-in, real tracker, d
     cwd: source, env: childEnv, timeout: 12 * 60_000, maxBuffer: 1024 * 1024,
   })
   assert.match(replay.stdout, /Installed offline journey passed/)
+  if (process.env.VANE_HOST_ARCHIVE) {
+    await mkdir(dirname(process.env.VANE_HOST_ARCHIVE), { recursive: true })
+    await execute(process.env.VANE_HOST_RER || 'rer', ['export', '--output', process.env.VANE_HOST_ARCHIVE], {
+      cwd: checkout, env, timeout: 5 * 60_000, maxBuffer: 1024 * 1024,
+    })
+    t.diagnostic('Exported the fixture installation for the separate hosted-transfer journey.')
+  }
   t.diagnostic('Online installation, sign-in, tracker and durable report passed; the installed rer dev replay passed with only loopback and no external routes.')
 })
 

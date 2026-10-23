@@ -39,7 +39,7 @@
       "executable": false
     },
     ".github/workflows/host-local.yml": {
-      "sha256": "a19661cc01c8ce913ba58d73bae24bb6469bb85c474cd37d040c536a943444c3",
+      "sha256": "db535e3af8990ce5294221a3a9196194a5c53f06b479d60f9b258ebb22b9c575",
       "executable": false
     },
     ".github/workflows/import-scale.yml": {
@@ -1031,7 +1031,19 @@
       "executable": false
     },
     "scripts/installer/local.mjs": {
-      "sha256": "8f5cd4a33e94f1bce87c2351b712b50bec64a98dd849ecd5adae339d51ace207",
+      "sha256": "4040f8ffaa69769084598ce0c2a0b9850aa030a489700a5c0bdde90d662fed25",
+      "executable": false
+    },
+    "scripts/installer/portability-policy.mjs": {
+      "sha256": "17bdf84730bca9ecdd2e9d1733b61381d3f3a8760eba8e18e7a7c9b4ad294fc1",
+      "executable": false
+    },
+    "scripts/installer/portability.mjs": {
+      "sha256": "7a4b25bb77f89361e2b353cbd603ddeb63711e57a3798c3401013efd21c574be",
+      "executable": false
+    },
+    "scripts/installer/remote-import.mjs": {
+      "sha256": "a83ac0435c8b2f8267d5484fbd25a7b50321ea8e2003258563013e431f7cf78b",
       "executable": false
     },
     "scripts/installer/seed.mjs": {
@@ -4214,6 +4226,10 @@
       "sha256": "0aa95b24aa8858a28ea0b86a176e7af76fdcfdbad3ecd41ba03bd36480b7bb7b",
       "executable": false
     },
+    "tests/host-cloudflare.journey.mjs": {
+      "sha256": "107c43102476f3db78003c6fce24d95a2271924491470694fc88a1d6ae39992e",
+      "executable": false
+    },
     "tests/host-local-processes.mjs": {
       "sha256": "7ee56d3712350b22e043066de0b5667a512e669dfba975ce65ca166fa613ab15",
       "executable": false
@@ -4223,7 +4239,7 @@
       "executable": false
     },
     "tests/host-local.journey.mjs": {
-      "sha256": "57a8ce2776e26edcc2fe59a99b75a70423d5f41ff68e819241be20b599533656",
+      "sha256": "02a95fdca1f3e8855dc7aaafa1d967aa99bb137c77f4ccd1ec1a14c57d93407a",
       "executable": false
     },
     "tests/host-offline-replay.mjs": {
