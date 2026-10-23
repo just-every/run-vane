@@ -15,15 +15,13 @@ import { setTimeout as delay } from 'node:timers/promises'
 // The Node/browser process keeps the REAL HOME. Only rer gets the isolated HOME.
 // Public rer supports git file:// sources (global/cli/repository.mjs); cloning
 // this checkout tests local HEAD rather than whatever GitHub main becomes.
-// Linux repeats the installed journey in a network namespace with only loopback.
-// The runtime and browser both lose external network access; Cloudflare transfer
-// still requires the owner account.
+// This proves the online slice only. Network-denied replay and transfer to
+// Cloudflare remain explicit gaps; browser routing cannot prove runtime isolation.
 const execute = promisify(execFile)
 const source = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const screens = process.env.VANE_SCREEN_DIR
 const enabled = process.env.VANE_HOST_LOCAL_JOURNEY === '1'
 const push = process.env.GITHUB_EVENT_NAME === 'push'
-const offlineScratch = process.env.VANE_HOST_OFFLINE_SCRATCH
 
 // Read no arguments or environments from other processes. Birth checks protect
 // against PID reuse; only our child and our private registry grant ownership.
@@ -109,13 +107,6 @@ async function launch(cwd, env, processes, args) {
   while (!exited && Date.now() < deadline) { await processes.capture(); await delay(500) }
   assert.ok(exited, 'rer dev must finish installation and report readiness within twelve minutes')
   assert.equal(failed, false, 'The public rer executable must be available')
-  if(code!==0){for(const checkout of [cwd,join(cwd,'run-vane')]){try{
-   const directory=join(checkout,'.seed','installer'),logs=(await readdir(directory,{recursive:true})).filter(path=>path.endsWith('install.log'))
-   for(const path of logs){const log=await readFile(join(directory,path),'utf8');errors+='\n'+log.split('\n').filter(line=>!/RER_OPEN|RER_SIGN|binding|secret|token|password|email|vars/i.test(line)).slice(-20).join('\n')}
-  }catch{}}}
-  if(code!==0){try{const paths=await readdir(env.RER_SERVERS_DIR,{recursive:true});for(const path of paths.filter(path=>path.endsWith('launch.log'))){
-   const log=await readFile(join(env.RER_SERVERS_DIR,path),'utf8');errors+='\n'+log.split('\n').filter(line=>!/RER_OPEN|RER_SIGN|binding|secret|token|password|email|vars/i.test(line)).slice(-12).join('\n')
-  }}catch{}}
   const safe = (output + errors).split('\n').filter(line => !/RER_OPEN|RER_SIGN_IN|RER_SIGNED_IN/.test(line)).slice(-18).join('\n').replace(/https?:\/\/[^\s"'<>]+/g, '[address]').replace(/[A-Za-z0-9_+/=-]{20,}/g, '[private]').replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+/gi, '[email]')
   assert.equal(code, 0, 'Public rer dev must launch successfully (credentials withheld): ' + safe)
   const line = name => output.match(new RegExp(`^${name} (\\S+)\\s*$`, 'm'))?.[1]
@@ -140,11 +131,11 @@ async function signIn(page, installation) {
   await page.getByRole('heading', { name: 'Your sites', exact: true }).waitFor()
 }
 
-test('HOST-002 public installation, real tracker and durable reports repeat with runtime network denied', {
+test('HOST-002 online slice: one public command from an empty folder, owner approval, real tracker and durable local report', {
   skip: !enabled ? 'nightly/release only; set VANE_HOST_LOCAL_JOURNEY=1 explicitly' : push ? 'slow installer journey does not run on push' : false,
   timeout: 28 * 60_000,
 }, async t => {
-  const scratch = offlineScratch || await mkdtemp(join(tmpdir(), 'vane-host-local-'))
+  const scratch = await mkdtemp(join(tmpdir(), 'vane-host-local-'))
   const home = join(scratch, 'home'), empty = join(scratch, 'empty'), registry = join(scratch, 'servers')
   const processes = ownedProcesses(registry)
   let browser, fixture
@@ -152,28 +143,18 @@ test('HOST-002 public installation, real tracker and durable reports repeat with
     try { await browser?.close() }
     finally {
       try { if (fixture) await new Promise((done, reject) => { fixture.close(error => error ? reject(error) : done()); fixture.closeAllConnections() }) }
-      finally { await processes.stop(); if(!offlineScratch) await rm(scratch, { recursive: true, force: true }) }
+      finally { await processes.stop(); await rm(scratch, { recursive: true, force: true }) }
     }
   })
-  if(!offlineScratch){
-   await Promise.all([mkdir(home, { mode: 0o700 }), mkdir(empty, { mode: 0o700 })])
-   assert.deepEqual(await readdir(empty), [], 'The one-line command starts in an empty directory')
-  } else {
-   const interfaces=JSON.parse((await execute('ip',['-j','address'])).stdout)
-   assert.deepEqual(interfaces.map(row=>row.ifname),['lo'],'only loopback exists for the browser and runtime')
-   assert.equal((await execute('ip',['route','show'])).stdout.trim(),'','no external IPv4 route')
-   assert.equal((await execute('ip',['-6','route','show','default'])).stdout.trim(),'','no external IPv6 default route')
-  }
+  await Promise.all([mkdir(home, { mode: 0o700 }), mkdir(empty, { mode: 0o700 })])
+  assert.deepEqual(await readdir(empty), [], 'The one-line command starts in an empty directory')
   // No owner-account credentials are inherited by rer. PATH permits its normal
   // installed toolchain, while state, package stores and registry are private.
   const env = { HOME: home, PATH: process.env.PATH, TMPDIR: scratch, LANG: 'en_US.UTF-8',
     CI: 'true', WRANGLER_SEND_METRICS: 'false', RER_SERVERS_DIR: registry,
     RER_JOBS_DIR: join(scratch, 'jobs'), XDG_DATA_HOME: join(home, '.local/share'), XDG_CACHE_HOME: join(home, '.cache') }
-  // Keep the managed cloud proxy and CA configuration for initial acquisition.
-  // These cannot bypass the offline namespace, which has no external interface.
-  for(const key of ['HTTP_PROXY','HTTPS_PROXY','ALL_PROXY','NO_PROXY','NODE_EXTRA_CA_CERTS','SSL_CERT_FILE'])if(process.env[key])env[key]=process.env[key]
+  const installation = await launch(empty, env, processes, [pathToFileURL(source).href, '--dir', 'run-vane'])
   const checkout = join(empty, 'run-vane')
-  const installation = offlineScratch ? await launch(checkout, env, processes, []) : await launch(empty, env, processes, [pathToFileURL(source).href, '--dir', 'run-vane'])
   t.diagnostic('Public rer dev printed RER_READY and RER_OPEN; the sign-in credential is withheld.')
 
   let snippet = ''
@@ -181,13 +162,12 @@ test('HOST-002 public installation, real tracker and durable reports repeat with
     response.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' })
     response.end(`<!doctype html><html lang="en"><meta charset="utf-8"><title>Northline Coffee — subscriptions</title><h1>Fresh coffee, delivered weekly</h1><p>Choose a seasonal roast for your home or office.</p>${snippet}</html>`)
   })
-  await new Promise((done, reject) => { fixture.once('error', reject); fixture.listen(Number(process.env.VANE_HOST_OFFLINE_PORT || 0), '127.0.0.1', done) })
+  await new Promise((done, reject) => { fixture.once('error', reject); fixture.listen(0, '127.0.0.1', done) })
   const fixtureOrigin = `http://127.0.0.1:${fixture.address().port}`
   const { chromium, expect } = await import('@playwright/test')
   browser = await chromium.launch({ headless: true, args: ['--use-mock-keychain', '--password-store=basic'] })
   const owner = await browser.newContext(), page = await owner.newPage()
   await signIn(page, installation)
-  if(!offlineScratch){
   await page.getByLabel('Site name', { exact: true }).fill('Northline Coffee')
   await page.getByLabel('Website origin', { exact: true }).fill(fixtureOrigin)
   await page.getByLabel('Time zone', { exact: true }).fill('Australia/Brisbane')
@@ -197,7 +177,6 @@ test('HOST-002 public installation, real tracker and durable reports repeat with
   await expect(proposal).toContainText('Northline Coffee')
   await expect(proposal).toContainText(fixtureOrigin)
   await proposal.getByRole('button', { name: 'Approve change', exact: true }).click()
-  }
   await page.goto(installation.ready + '/app')
   await page.getByRole('link', { name: 'Northline Coffee', exact: true }).click()
   const reportURL = new URL(page.url()); reportURL.search = '?section=report'
@@ -211,7 +190,7 @@ test('HOST-002 public installation, real tracker and durable reports repeat with
   const userAgent = (await page.evaluate(() => navigator.userAgent)).replace('HeadlessChrome/', 'Chrome/')
   const visitor = await browser.newContext({ userAgent }), visit = await visitor.newPage()
   const collect = visit.waitForResponse(response => new URL(response.url()).pathname === '/api/vane/collect' && response.request().method() === 'POST')
-  await visit.goto(fixtureOrigin + (offlineScratch?'/offline-subscriptions':'/subscriptions'))
+  await visit.goto(fixtureOrigin + '/subscriptions')
   const accepted = await collect
   assert.equal(accepted.status(), 202, 'The real installed tracker must collect the fixture page')
   assert.equal((await accepted.json()).accepted, true)
@@ -220,7 +199,7 @@ test('HOST-002 public installation, real tracker and durable reports repeat with
     await page.goto(reportURL.href)
     await page.getByRole('heading', { name: 'Overview', exact: true, level: 1 }).waitFor()
     const pageviews = page.getByRole('heading', { name: 'Pageviews', exact: true }).locator('..')
-    await expect(pageviews.locator('.vane-metric')).toHaveText(offlineScratch?'2':'1')
+    await expect(pageviews.locator('.vane-metric')).toHaveText('1')
     await expect(page.locator('main')).toContainText('/subscriptions')
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false)
     if (screens) { await mkdir(screens, { recursive: true }); await page.screenshot({ path: join(screens, `host-local-report-${width}.png`) }) }
@@ -232,18 +211,46 @@ test('HOST-002 public installation, real tracker and durable reports repeat with
   const durableReport = new URL(reportURL.pathname + reportURL.search, restarted.ready)
   await page.goto(durableReport.href)
   const pageviews = page.getByRole('heading', { name: 'Pageviews', exact: true }).locator('..')
-  await expect(pageviews.locator('.vane-metric')).toHaveText(offlineScratch?'2':'1')
+  await expect(pageviews.locator('.vane-metric')).toHaveText('1')
   await expect(page.locator('main')).toContainText('/subscriptions')
-  const archive=await page.request.get(restarted.ready+'/api/vane/export')
-  assert.equal(archive.status(),200)
-  assert.equal((await archive.json()).payload.tables.vane_events.filter(row=>row.kind==='pageview').length,offlineScratch?2:1,'export works with the same durable pageviews')
-  if(!offlineScratch){
-   assert.equal(process.platform,'linux','network-denied replay requires Linux namespaces')
-   await browser.close();browser=undefined
-   await new Promise((done,reject)=>{fixture.close(error=>error?reject(error):done());fixture.closeAllConnections()});fixture=undefined
-   await processes.stop()
-   const replay=await execute('unshare',['--user','--map-root-user','--net','sh','-c','ip link set lo up && exec "$@"','vane-offline',process.execPath,'--test',fileURLToPath(import.meta.url)],{cwd:source,env:{...process.env,VANE_HOST_OFFLINE_SCRATCH:scratch,VANE_HOST_OFFLINE_PORT:new URL(fixtureOrigin).port},timeout:18*60_000,maxBuffer:4*1024*1024})
-   assert.match(replay.stdout,/# fail 0/,'isolated replay passes');t.diagnostic('Network namespace replay passed: only loopback, no external routes; restart, local sign-in, installed tracker, report and archive export.')
-  }
-  t.diagnostic('Local proof passed. Cloudflare deployment transfer still requires an owner account.')
+  t.diagnostic('Online launch, UI approval, tracker collection and report persistence passed. Network-denied replay and Cloudflare transfer remain uncovered.')
+})
+
+
+// Account-free runtime proof is separate from the slow public installer proof.
+// Linux isolates the real built Worker, database and browser together.
+test('HOST-002 network-denied runtime collects through the tracker and preserves reports, import and archive restore',{
+ skip:process.env.VANE_HOST_OFFLINE_JOURNEY!=='1'?'explicit local network-denied journey only':false,
+ timeout:120000,
+},async t=>{
+ if(process.env.VANE_HOST_OFFLINE_ISOLATED!=='1'){
+  const result=await execute('unshare',['--user','--map-root-user','--net','sh','-c','ip link set lo up && exec "$@"','vane-offline',process.execPath,'--test','--test-name-pattern=network-denied runtime',fileURLToPath(import.meta.url)],{cwd:source,env:{...process.env,VANE_HOST_OFFLINE_ISOLATED:'1'},timeout:110000,maxBuffer:1024*1024})
+  assert.match(result.stdout,/# fail 0/);t.diagnostic('Isolated runtime journey passed with only loopback and no external routes.');return
+ }
+ assert.deepEqual(JSON.parse((await execute('ip',['-j','address'])).stdout).map(row=>row.ifname),['lo'])
+ assert.equal((await execute('ip',['route','show'])).stdout.trim(),'')
+ assert.equal((await execute('ip',['-6','route','show','default'])).stdout.trim(),'')
+ const {installation,browse,movein}=await import('./vane-helpers.mjs')
+ const a=await installation();t.after(()=>a.close())
+ await a.clock(Date.parse('2026-10-23T12:00:00Z'))
+ const id=await a.addSite({paths:[]})
+ const {context}=await browse(t,a)
+ // The fixture origin must be registered just like a real site; use the site's actual origin.
+ await context.route('https://fern.example/',route=>route.fulfill({contentType:'text/html',body:`<!doctype html><title>Offline collection</title><script src="${a.origin}/vane.js" data-site="${id}"></script>`}))
+ const page=await context.newPage(),collected=page.waitForResponse(r=>new URL(r.url()).pathname==='/api/vane/collect'&&r.request().method()==='POST')
+ await page.goto('https://fern.example/');assert.equal((await collected).status(),202)
+ await context.addCookies(a.owner.split('; ').map(pair=>{const i=pair.indexOf('=');return {name:pair.slice(0,i),value:pair.slice(i+1),url:a.origin}}))
+ for(const width of [1440,390]){
+  await page.setViewportSize({width,height:960});await page.goto(a.origin+`/app/sites/${id}?period=today`)
+  assert.equal(await page.getByRole('heading',{name:'Pageviews',exact:true}).locator('..').locator('.vane-metric').textContent(),'1')
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false)
+  if(screens){await mkdir(screens,{recursive:true});await page.screenshot({path:join(screens,`host-offline-report-${width}.png`)})}
+ }
+ const imported=await movein(a,id);assert.equal(imported.applied.complete,true)
+ const archive=await a.archive(),b=await installation();t.after(()=>b.close());await b.clock(Date.parse('2026-10-23T12:00:00Z'))
+ const restored=await b.post('/api/vane/restore',{archive},b.owner);assert.equal(restored.status,200)
+ const summary=async app=>(await (await app.request(`/api/vane/summary?siteId=${id}&from=2020-01-01&to=2026-10-24`,{headers:{cookie:app.owner}})).json())
+ const before=await summary(a),after=await summary(b);assert.ok(before.pageviews>1,'imported history is readable offline');assert.equal(after.pageviews,before.pageviews)
+ assert.deepEqual((await b.archive()).payload.tables.vane_import_events,archive.payload.tables.vane_import_events)
+ assert.deepEqual(a.egress,[]);assert.deepEqual(b.egress,[])
 })

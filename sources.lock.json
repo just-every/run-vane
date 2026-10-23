@@ -4183,7 +4183,7 @@
       "executable": false
     },
     "tests/host-local.journey.mjs": {
-      "sha256": "7170b75d64acd8c6cb5d4c6160ff6487224c025c803064b46e0327f8a8a6fbbc",
+      "sha256": "939bee8c035960594f656378e2fb4e63a2ac3c966b128ef513d19c77f1f81a9e",
       "executable": false
     },
     "tests/import-export.test.mjs": {
