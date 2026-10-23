@@ -14,7 +14,7 @@ import { setTimeout as delay } from 'node:timers/promises'
 // VANE_HOST_LOCAL_JOURNEY=1 node --test --test-concurrency=1 tests/host-local.journey.mjs
 // The Node/browser process keeps the REAL HOME. Only rer gets the isolated HOME.
 // Public rer supports git file:// sources (global/cli/repository.mjs); cloning
-// this checkout tests local HEAD rather than whatever GitHub main becomes.
+// a full-object copy tests local HEAD rather than whatever GitHub main becomes.
 // This proves the online slice only. Network-denied replay and transfer to
 // Cloudflare remain explicit gaps; browser routing cannot prove runtime isolation.
 const execute = promisify(execFile)
@@ -153,7 +153,19 @@ test('HOST-002 online slice: one public command from an empty folder, owner appr
   const env = { HOME: home, PATH: process.env.PATH, TMPDIR: scratch, LANG: 'en_US.UTF-8',
     CI: 'true', WRANGLER_SEND_METRICS: 'false', RER_SERVERS_DIR: registry,
     RER_JOBS_DIR: join(scratch, 'jobs'), XDG_DATA_HOME: join(home, '.local/share'), XDG_CACHE_HOME: join(home, '.cache') }
-  const installation = await launch(empty, env, processes, [pathToFileURL(source).href, '--dir', 'run-vane'])
+  // Keep the session's network transport and CA trust without inheriting account keys.
+  for (const name of ['HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY', 'NO_PROXY', 'http_proxy', 'https_proxy', 'all_proxy', 'no_proxy', 'NODE_EXTRA_CA_CERTS', 'SSL_CERT_FILE', 'SSL_CERT_DIR']) {
+    if (process.env[name]) env[name] = process.env[name]
+  }
+  // A filtered local source can leave promisor objects unavailable to rer's
+  // isolated HOME. Materialize a full copy while normal Git access is available.
+  const localSource = join(scratch, 'source')
+  await execute('git', ['clone', '--no-local', '--no-filter', '--single-branch', pathToFileURL(source).href, localSource], { timeout: 120000, maxBuffer: 1024 * 1024 })
+  await execute('git', ['-C', localSource, 'config', 'user.name', 'Run Edit Run fleet'])
+  await execute('git', ['-C', localSource, 'config', 'user.email', 'fleet@runeditrun.com'])
+  const objects = await execute('git', ['-C', localSource, 'rev-list', '--objects', 'HEAD', '--missing=print'], { maxBuffer: 16 * 1024 * 1024 })
+  assert.doesNotMatch(objects.stdout, /^\?/m, 'The installer source must contain every reachable object')
+  const installation = await launch(empty, env, processes, [pathToFileURL(localSource).href, '--dir', 'run-vane'])
   const checkout = join(empty, 'run-vane')
   t.diagnostic('Public rer dev printed RER_READY and RER_OPEN; the sign-in credential is withheld.')
 
