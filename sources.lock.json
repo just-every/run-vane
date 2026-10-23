@@ -75,7 +75,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "59a4aba4082057ec27c2fc787da3c534fc9c1952023792d2b3895e387f476e8f",
+      "sha256": "8deb9bab16b336e1ba5403e22f6383516b0d1bcab7f28d685519a758f7eb6699",
       "executable": false
     },
     "AGENTS.md": {
@@ -107,7 +107,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "1b8dd847943207d9ba310a97c61d47db9cad3b0da7229ada1f033d45df1a6cd0",
+      "sha256": "89af0c80a70da46eb38a0e2007abe787c157c99f2f05169d7e73a37f3dc01b23",
       "executable": false
     },
     "DEMO.md": {
@@ -167,7 +167,7 @@
       "executable": false
     },
     "docs/hosting-cost.md": {
-      "sha256": "7ca4bb58e8a373bcea61de9f32b3bbf95a30554ad1d414c5989f325bf9883bf4",
+      "sha256": "374550fa43446fd3573cfd439f0973ff6210eae03f3384d078c09d772a17e02f",
       "executable": false
     },
     "docs/instrumentation.md": {
@@ -4183,7 +4183,7 @@
       "executable": false
     },
     "tests/host-local.journey.mjs": {
-      "sha256": "939bee8c035960594f656378e2fb4e63a2ac3c966b128ef513d19c77f1f81a9e",
+      "sha256": "c19beb3671b78e9df53c53830dc68954a24d1b894588c9beb53a11139ffa9e30",
       "executable": false
     },
     "tests/import-export.test.mjs": {
@@ -4315,7 +4315,7 @@
       "executable": false
     },
     "tests/vane-report-settings.mjs": {
-      "sha256": "1c26a41f1c0fe47d3fd8a0326a265d339a062d8d831056af3edd8ef37f34e155",
+      "sha256": "c363a546264933af9fed03f9679339170037befee6bacd19a87b3460fac9ccc4",
       "executable": false
     },
     "tests/vane-reports.mjs": {

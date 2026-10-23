@@ -331,7 +331,7 @@ test('DASH-009 a member\'s note, an approved settings change, a deploy webhook, 
 test('HOST-001 real collection measures requests, D1 work and storage before projecting hosting cost',async t=>{
  const a=await installation({meter:true,vars:{VANE_WORKER_PLAN:'free',VANE_WORKER_DAILY_REQUESTS:'80000',VANE_WORKER_USAGE_DAY:'2026-10-23'}});t.after(()=>a.close())
  await a.clock(Date.parse('2026-10-23T12:00:00Z'))
- const id=await a.addSite({paths:[],goals:{},retention:'forever'}),count=process.env.VANE_HOST_COST_MEASURE==='1'?100000:100
+ const id=await a.addSite({paths:[],goals:{},retention:'forever'}),count=process.env.VANE_HOST_COST_MEASURE==='1'?100000:10000
  const before=Number((await a.inspectDb.prepare('SELECT 1').run()).meta.size_after)
  await a.request('/__test/hosting-usage',{method:'POST'})
  // Real distinct admissions through the native collection transport, not weighted records.

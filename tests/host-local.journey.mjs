@@ -224,7 +224,8 @@ test('HOST-002 network-denied runtime collects through the tracker and preserves
  timeout:120000,
 },async t=>{
  if(process.env.VANE_HOST_OFFLINE_ISOLATED!=='1'){
-  const result=await execute('unshare',['--user','--map-root-user','--net','sh','-c','ip link set lo up && exec "$@"','vane-offline',process.execPath,'--test','--test-name-pattern=network-denied runtime',fileURLToPath(import.meta.url)],{cwd:source,env:{...process.env,VANE_HOST_OFFLINE_ISOLATED:'1'},timeout:110000,maxBuffer:1024*1024})
+  const childEnv={...process.env,VANE_HOST_OFFLINE_ISOLATED:'1'};delete childEnv.NODE_TEST_CONTEXT
+  const result=await execute('unshare',['--user','--map-root-user','--net','sh','-c','ip link set lo up && exec "$@"','vane-offline',process.execPath,'--test','--test-name-pattern=network-denied runtime',fileURLToPath(import.meta.url)],{cwd:source,env:childEnv,timeout:110000,maxBuffer:1024*1024})
   assert.match(result.stdout,/# fail 0/);t.diagnostic('Isolated runtime journey passed with only loopback and no external routes.');return
  }
  assert.deepEqual(JSON.parse((await execute('ip',['-j','address'])).stdout).map(row=>row.ifname),['lo'])

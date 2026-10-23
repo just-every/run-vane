@@ -77,3 +77,19 @@ VANE_HOST_COST_MEASURE=1 node --test --test-name-pattern='HOST-001' tests/vane-r
 
 Sources: [Workers pricing](https://developers.cloudflare.com/workers/platform/pricing/)
 and [D1 pricing](https://developers.cloudflare.com/d1/platform/pricing/).
+
+## Offline runtime proof
+
+The account-free runtime journey runs with only loopback networking in a Linux
+network namespace. It proves real tracker collection, reports at 1440 and 390,
+imported history and archive restoration without outside services:
+
+```sh
+VANE_HOST_OFFLINE_JOURNEY=1 node --test --test-name-pattern='network-denied runtime' tests/host-local.journey.mjs
+```
+
+It requires Linux user and network namespace support and the `ip` command.
+Build and install Chromium first. This does not replace the separate one-line
+installer acceptance. In the cloud VM, pinned rer 0.2.63 completed setup but
+exited before readiness; the complete installed offline replay remains unproved.
+Moving an installation to Cloudflare still requires an owner test account.
