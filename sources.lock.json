@@ -166,6 +166,10 @@
       "sha256": "dbdaf1ee66db565b5571d2dd4e65d4e1cae19314a54b7160a9eb7c9915fb3388",
       "executable": false
     },
+    "docs/hosting-cost.md": {
+      "sha256": "7ca4bb58e8a373bcea61de9f32b3bbf95a30554ad1d414c5989f325bf9883bf4",
+      "executable": false
+    },
     "docs/instrumentation.md": {
       "sha256": "a5fab6addc3ca5bfc536891223e35404408c9d2a5780544009b68ad95cd2461c",
       "executable": false
@@ -4179,7 +4183,7 @@
       "executable": false
     },
     "tests/host-local.journey.mjs": {
-      "sha256": "5a82573e3b439ff24fa8c235260dd2141de9303ace7c0baf49561a0954752a49",
+      "sha256": "7170b75d64acd8c6cb5d4c6160ff6487224c025c803064b46e0327f8a8a6fbbc",
       "executable": false
     },
     "tests/import-export.test.mjs": {
@@ -4311,7 +4315,7 @@
       "executable": false
     },
     "tests/vane-report-settings.mjs": {
-      "sha256": "f393411e61a7336fddc6650e985531c9be46a0d2ad5b27669e0c11e17d30b007",
+      "sha256": "68dbe2e6f4969efc31f7fdef6ef6cacdf5f76814a1b6a04fc2829ca90fef8c85",
       "executable": false
     },
     "tests/vane-reports.mjs": {

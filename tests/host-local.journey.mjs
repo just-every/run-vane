@@ -113,6 +113,9 @@ async function launch(cwd, env, processes, args) {
    const directory=join(checkout,'.seed','installer'),logs=(await readdir(directory,{recursive:true})).filter(path=>path.endsWith('install.log'))
    for(const path of logs){const log=await readFile(join(directory,path),'utf8');errors+='\n'+log.split('\n').filter(line=>!/RER_OPEN|RER_SIGN|binding|secret|token|password|email|vars/i.test(line)).slice(-20).join('\n')}
   }catch{}}}
+  if(code!==0){try{const paths=await readdir(env.RER_SERVERS_DIR,{recursive:true});for(const path of paths.filter(path=>path.endsWith('launch.log'))){
+   const log=await readFile(join(env.RER_SERVERS_DIR,path),'utf8');errors+='\n'+log.split('\n').filter(line=>!/RER_OPEN|RER_SIGN|binding|secret|token|password|email|vars/i.test(line)).slice(-12).join('\n')
+  }}catch{}}
   const safe = (output + errors).split('\n').filter(line => !/RER_OPEN|RER_SIGN_IN|RER_SIGNED_IN/.test(line)).slice(-18).join('\n').replace(/https?:\/\/[^\s"'<>]+/g, '[address]').replace(/[A-Za-z0-9_+/=-]{20,}/g, '[private]').replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+/gi, '[email]')
   assert.equal(code, 0, 'Public rer dev must launch successfully (credentials withheld): ' + safe)
   const line = name => output.match(new RegExp(`^${name} (\\S+)\\s*$`, 'm'))?.[1]

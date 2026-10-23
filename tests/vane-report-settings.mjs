@@ -356,7 +356,7 @@ test('HOST-001 real collection measures requests, D1 work and storage before pro
    assert.equal(await page.getByRole('heading',{name:'Hosting cost',exact:true}).isVisible(),true)
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false)
    if(width===390){const menu=page.locator('summary[aria-label="Menu"]');await menu.focus();assert.equal(await page.locator('#vane-menu-tip').isVisible(),true);await menu.evaluate(e=>e.blur());await page.mouse.move(0,0);await menu.hover();await page.waitForTimeout(350);assert.equal(await page.locator('#vane-menu-tip').isVisible(),true)}
-   await page.getByRole('heading',{name:'Hosting cost',exact:true}).scrollIntoViewIfNeeded();await page.screenshot({path:`${process.env.VANE_SCREEN_DIR}/hosting-cost-${width}.png`})
+   await page.getByRole('heading',{name:'Hosting cost',exact:true}).scrollIntoViewIfNeeded();await page.screenshot({path:`${process.env.VANE_SCREEN_DIR}/hosting-cost-${width}.png`});await page.getByRole('heading',{name:'Hosting cost',exact:true}).locator('..').screenshot({path:`${process.env.VANE_SCREEN_DIR}/hosting-cost-details-${width}.png`})
   }
  }
 
