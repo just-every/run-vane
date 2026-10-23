@@ -923,7 +923,7 @@
       "executable": false
     },
     "public/vane.css": {
-      "sha256": "ad341662694300c4c75a92292241ce9bd95e64bd33a6676665b313d7043f8b28",
+      "sha256": "4014b4487897c1f8a0b5a3ebdcb2c7c0eb2f355f510959228ca0fea72f6da070",
       "executable": false
     },
     "README.md": {
@@ -4043,7 +4043,7 @@
       "executable": false
     },
     "tests/agent-work.test.mjs": {
-      "sha256": "8926b3d471718c3f853cd2ba32d49fee90269f3a691f63b7c5cbd602431db73c",
+      "sha256": "09d56673f00d3c1e9c566b9d8fa1de8edfa325453bda88728a23d4ff66b147e2",
       "executable": false
     },
     "tests/apps-script.mjs": {
