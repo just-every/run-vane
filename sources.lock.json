@@ -1047,7 +1047,7 @@
       "executable": false
     },
     "src/auth.server.ts": {
-      "sha256": "09da9da8fd058933ce17122b97bd1d1e958a2bd448b042f6bf4b620f238a6f22",
+      "sha256": "cc447b0b36cdd4d1028fadf185ebfe75381335e7ca8d7a471a41627e21488a8d",
       "executable": false
     },
     "src/base/contract-filter.ts": {
@@ -3631,7 +3631,7 @@
       "executable": false
     },
     "src/vane/routes.ts": {
-      "sha256": "073ba90358052fb9dbff9cb4c91971d523982b8542fa8349bf846bd9e57f3445",
+      "sha256": "dc116a69f99bfbb6da637252e6646262a88996ae4c75a72fc901091908511106",
       "executable": false
     },
     "src/vane/sealed.ts": {
@@ -4279,7 +4279,7 @@
       "executable": false
     },
     "tests/vane-team-and-exports.mjs": {
-      "sha256": "604b07a3a728c34ca79f64a248a24052e0bbdb0e5432da4f91db1c73a044c75a",
+      "sha256": "63014fee81680231a402820efe2c167018d2b24caebccb12d90a2840ece09b52",
       "executable": false
     },
     "tests/vane.test.mjs": {
