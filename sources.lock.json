@@ -74,6 +74,10 @@
       "sha256": "a0e27aeeac42d6102f4ff2bce40d8fb011c07e5cb28eff3c9d77e68df29e5dd6",
       "executable": false
     },
+    ".publish-check/reviewed.json": {
+      "sha256": "3390f0ac331f0392e504bf515a93ea992374dc22790570cddd780f6461527436",
+      "executable": false
+    },
     "ACCEPTANCE.md": {
       "sha256": "8deb9bab16b336e1ba5403e22f6383516b0d1bcab7f28d685519a758f7eb6699",
       "executable": false
@@ -83,7 +87,7 @@
       "executable": false
     },
     "base-copies.json": {
-      "sha256": "c5a19feffb202b1b116452404e3a70f811f9aa20600b9d1cd9fb940df957472e",
+      "sha256": "8d1d6843b0158f2826eecd16ffd020e9827caad6e27b14dbdbd4b217513d4517",
       "executable": false
     },
     "CHANGELOG.md": {
@@ -667,7 +671,7 @@
       "executable": false
     },
     "public/fonts/fonts.css": {
-      "sha256": "80028201be764ecdc1d318d5ad07c11d32f16786697541d0552c475efa1df638",
+      "sha256": "882a1a1e3771bdd2b4f7524725e595a8adb639b1e32ca088adc095ab753425fa",
       "executable": false
     },
     "public/fonts/ibm-plex-mono/ibm-plex-mono-latin-400-normal.woff2": {
@@ -707,7 +711,7 @@
       "executable": false
     },
     "public/rer-theme.css": {
-      "sha256": "5cd875f3bcfdf49b385793b28d7e48f6ed580d4ac2a9e20362c57108a3b3ca20",
+      "sha256": "3a26818f0a8eddcb5855bed9e5fa6c567d27012e8c784e0df1d48ac25ad77e82",
       "executable": false
     },
     "public/site/art/closing-1152.avif": {
@@ -903,7 +907,7 @@
       "executable": false
     },
     "public/site/site.css": {
-      "sha256": "159377afa28d0ef85cb934378738d2c2fb0f9da4e299c544923c4f4618ddf50b",
+      "sha256": "fdc42c9f77d0535709c884ec18b3d1e5c9c5171c2b9d32336dcaf9dcb0f61164",
       "executable": false
     },
     "public/ui/overview.css": {
@@ -927,7 +931,7 @@
       "executable": false
     },
     "public/vane.css": {
-      "sha256": "4014b4487897c1f8a0b5a3ebdcb2c7c0eb2f355f510959228ca0fea72f6da070",
+      "sha256": "090db2ccd59988e03d8aadcd683fca4582b373dc89f74c1d1c905707357a7c7f",
       "executable": false
     },
     "README.md": {
@@ -2779,7 +2783,7 @@
       "executable": false
     },
     "src/server.dev.ts": {
-      "sha256": "4892545be3afaf55d1a45b99933f017baa43512d7152f56b21422010aa70b8a5",
+      "sha256": "79540e700d89d02af4df1297bd844c0e58f0a4758a647eda87d873a8b7109168",
       "executable": false
     },
     "src/server.ts": {
@@ -2871,7 +2875,7 @@
       "executable": false
     },
     "src/site/shell.ts": {
-      "sha256": "c522926df86245d7e75f6806abe8422cd1b1b36dc41be8278156036f906be5f1",
+      "sha256": "2d0c15603818dc9092a945acc3a265316854204edf4ec7f9376dca312f4912f6",
       "executable": false
     },
     "src/vane/actions.ts": {
@@ -2883,7 +2887,7 @@
       "executable": false
     },
     "src/vane/agency/branding.ts": {
-      "sha256": "a8ebc524d00ab0c1ffe7a093124fb99dccbb288fc116abb87a35975580148b0b",
+      "sha256": "f5b273d0abec1777b8eb365e0cb80ee694319748f2eeef94e853edf6c761c40e",
       "executable": false
     },
     "src/vane/agency/domains.ts": {
@@ -3727,7 +3731,7 @@
       "executable": false
     },
     "src/vane/security/page.ts": {
-      "sha256": "76dea64d96dfde359530d6afcebbfa2229e1f74345a8ba0f060a2d83a72144f9",
+      "sha256": "89c1f281a987c83da1767fe71c875b14987e3599683b9cefccf37e5daf77f1a3",
       "executable": false
     },
     "src/vane/security/policy.ts": {

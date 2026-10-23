@@ -1,7 +1,115 @@
-/* Self-hosted Inter Tight, Inter and IBM Plex Mono, SIL Open Font License 1.1. */
-@font-face{font-family:'Inter Tight';font-style:normal;font-weight:100 900;font-display:swap;src:url('/fonts/inter-tight/inter-tight-latin-wght-normal.woff2') format('woff2')}
-@font-face{font-family:Inter;font-style:normal;font-weight:100 900;font-display:swap;src:url('/fonts/inter/inter-latin-wght-normal.woff2') format('woff2')}
-@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:400;font-display:swap;src:url('/fonts/ibm-plex-mono/ibm-plex-mono-latin-400-normal.woff2') format('woff2')}
-@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:500;font-display:swap;src:url('/fonts/ibm-plex-mono/ibm-plex-mono-latin-500-normal.woff2') format('woff2')}
+/* Vane's look beside its theme. /rer-theme.css holds only what rer's theme reader takes (the --rer-* theme tokens
+   and the faces), so the rest is here: the page font, Base's other --rer-* names and Vane's own tokens, and the
+   rules that dress Base's sign-in, /setup and Lobby pages. The font head (src/base/font-head.ts), the edition
+   identity's fonts, the run site (src/site/shell.ts) and the sign-in security pages (src/vane/security/page.ts)
+   link this file right before the theme; Base's sign-in pages (src/auth.server.ts) and the development sign-in
+   and hand-off pages (src/server.dev.ts) add it after their own style. rer's demo host inlines this path and
+   the theme into the hosted demo's gate, and no other file. */
 :root{--font-body:Inter,Arial,sans-serif;font-family:var(--font-body)}
 button,input,select,textarea{font-family:inherit}
+:root {
+  --rer-font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --rer-chart: #1d58f0;
+  --rer-tint: #e9f0fe;
+  --rer-code: #eef2f7;
+  --rer-code-background: #12141b;
+  --rer-code-text: #e8ecf4;
+  --rer-danger: #b4233c;
+  --rer-button-radius: 14px;
+  --rer-shadow: 0 1px 2px rgba(16,32,72,.05), 0 18px 44px -18px rgba(16,32,72,.18);
+  --rer-wordmark-tracking: -.03em;
+
+  --paper: var(--rer-page);
+  --surface: var(--rer-surface);
+  --ink: var(--rer-text);
+  --body: var(--rer-muted);
+  --soft: #7a849c;
+  --faint: #a9b2c4;
+  --line: #e4eaf3;
+  --line-soft: #eef2f8;
+  --track: #e8edf5;
+  --blue: var(--rer-accent);
+  --blue-ink: #124ad6;
+  --blue-tint: var(--rer-tint);
+  --mark-blue: #1651c5;
+  --green: #1fa463;
+  --green-ink: #16884f;
+  --green-tint: #e3f5ec;
+  --coral: #f0506e;
+  --orange: #f7931e;
+  --orange-ink: #c8641a;
+  --orange-tint: #fdeee3;
+  --violet: #8b4fe0;
+  --apricot-glow: rgba(253, 216, 196, .55);
+  --button: #1b1c22;
+  --button-hover: #30323b;
+  --terminal: var(--rer-code-background);
+  --card-shadow: 0 1px 2px rgba(16,32,72,.04), 0 24px 48px -24px rgba(16,32,72,.20);
+  --chip-shadow: 0 1px 2px rgba(16,32,72,.04), 0 10px 26px -14px rgba(16,32,72,.22);
+  --font-head: var(--rer-font-heading);
+  --font-body: var(--rer-font-body);
+  --font-mono: var(--rer-font-mono);
+}
+html { color-scheme: light; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+html.rer-themed a { text-decoration-thickness: 1px; text-underline-offset: 3px; }
+html.rer-themed :focus-visible:not(:where(.secondary-link a)) { outline: 2px solid var(--rer-focus); outline-offset: 3px; }
+html.rer-themed body:has(>main>.brand), html.rer-themed body:has(>main>form[action="/setup"]) {
+  position: relative; isolation: isolate; display: flex; flex-direction: column; justify-content: center;
+  min-height: 100vh; min-height: 100dvh; padding: 80px 24px 220px; margin: 0;
+  font-family: var(--rer-font-body); color: var(--rer-text); background: var(--rer-page); line-height: 1.55;
+}
+html.rer-themed body:has(>main>.brand)::after, html.rer-themed body:has(>main>form[action="/setup"])::after {
+  content: ''; position: absolute; z-index: -1; inset: auto 0 0; height: 220px;
+  background: url('/brand/band.svg') center bottom / 100% auto no-repeat; opacity: .6; pointer-events: none;
+}
+html.rer-themed body:has(>main>.brand) main, html.rer-themed body:has(>main>form[action="/setup"]) main {
+  box-sizing: border-box; width: 100%; max-width: 510px; margin: 0 auto; padding: 44px;
+  border: 1px solid var(--rer-border); border-radius: var(--rer-radius); background: var(--rer-surface); box-shadow: var(--rer-shadow);
+}
+html.rer-themed body:has(>main>.brand) .brand, html.rer-themed body:has(>main>form[action="/setup"]) .rer-brand {
+  justify-content: center; gap: 12px; margin: 0 0 44px; color: var(--rer-text); font-size: 24px; font-weight: 600;
+}
+html.rer-themed body:has(>main>.brand) .brand::before, html.rer-themed body:has(>main>form[action="/setup"]) .rer-brand::before { width: 43px; height: 32px; }
+html.rer-themed body:has(>main>.brand) h1, html.rer-themed body:has(>main>form[action="/setup"]) h1 {
+  margin: 0 0 32px; color: var(--rer-text); font-size: 32px; font-weight: 600; line-height: 1.15; letter-spacing: -.02em;
+}
+html.rer-themed body:has(>main>.brand) h1 { text-align: center; }
+html.rer-themed body:has(>main>.brand) input, html.rer-themed body:has(>main>form[action="/setup"]) input:not([type=checkbox]):not([type=hidden]) {
+  min-height: 48px; padding: 10px 14px; border: 1px solid var(--rer-border); border-radius: 8px; background: var(--rer-surface); color: var(--rer-text); font: inherit;
+}
+html.rer-themed body:has(>main>.brand) label { margin-bottom: 8px; color: var(--rer-muted); font-weight: 400; }
+html.rer-themed body:has(>main>.brand) input { margin-bottom: 24px; }
+html.rer-themed body:has(>main>.brand) button, html.rer-themed body:has(>main>.brand) .action, html.rer-themed body:has(>main>form[action="/setup"]) button {
+  min-height: 48px; padding: 12px 24px; border: 1px solid transparent; border-radius: 999px; background: var(--rer-text); color: var(--rer-surface); font-weight: 500; box-shadow: none;
+}
+html.rer-themed body:has(>main>.brand) button:hover, html.rer-themed body:has(>main>form[action="/setup"]) button:hover { opacity: .9; box-shadow: none; }
+html.rer-themed body:has(>main>form[action="/setup"]) p { color: var(--rer-muted); margin: 0 0 24px; }
+html.rer-themed body:has(>main>form[action="/setup"]) .rer-brand { justify-content: flex-start; margin-bottom: 32px; }
+html.rer-themed body:has(>main>form[action="/setup"]) h1 { margin-bottom: 16px; }
+html.rer-themed body:has(>main>form[action="/setup"]) dl { grid-template-columns: 80px minmax(0,1fr); gap: 0; margin-bottom: 24px; }
+html.rer-themed body:has(>main>form[action="/setup"]) dt, html.rer-themed body:has(>main>form[action="/setup"]) dd { padding: 16px 0; border-top: 1px solid var(--rer-border); }
+html.rer-themed body:has(>main>form[action="/setup"]) dd:last-child, html.rer-themed body:has(>main>form[action="/setup"]) dt:nth-last-child(2) { border-bottom: 1px solid var(--rer-border); }
+html.rer-themed body:has(>main>form[action="/setup"]) form p { margin: 0; }
+html.rer-themed body:has(>main>form[action="/setup"]) label { font-weight: 400; font-size: 15px; }
+html.rer-themed body:has(>main>form[action="/setup"]) input[type=checkbox] { width: 24px; height: 24px; margin: 0; accent-color: var(--rer-accent); }
+html.rer-themed body:has(>main>.brand) .notice { border-color: var(--rer-accent); background: var(--rer-tint); }
+/* The installed Lobby shares the sign-in register and the quiet floor chart. */
+html body .door { background: var(--rer-page); padding-top: max(100px, 20vh); }
+html body .door-card { width: min(510px,100%); padding: 44px; border: 1px solid var(--rer-border); border-radius: var(--rer-radius); background: var(--rer-surface); box-shadow: var(--rer-shadow); }
+html body .door-card h1 { font-size: 32px; }
+html body .door-card .mark { width: 1.56em; height: 1.16em; }
+html body .door-card .line { font-size: 18px; margin-top: 24px; }
+html body .door-card .btn { min-height: 48px; padding: 0 28px; font-size: 16px; font-weight: 500; background: var(--rer-text); color: var(--rer-surface); box-shadow: none; }
+html body .door-card .credit { font-size: 13px; }
+html body .door-art { opacity: .6; height: 220px; }
+@media(max-width:680px) {
+  html.rer-themed body:has(>main>.brand), html.rer-themed body:has(>main>form[action="/setup"]) { padding: 64px 16px 180px; }
+  html.rer-themed body:has(>main>.brand) main, html.rer-themed body:has(>main>form[action="/setup"]) main { padding: 24px 20px; }
+  html.rer-themed body:has(>main>.brand) h1, html.rer-themed body:has(>main>form[action="/setup"]) h1 { font-size: 26px; line-height: 1.2; }
+  html.rer-themed body:has(>main>.brand) .brand, html.rer-themed body:has(>main>form[action="/setup"]) .rer-brand { font-size: 20px; margin-bottom: 28px; }
+  html.rer-themed body:has(>main>.brand) h1 { margin-bottom: 28px; }
+  html.rer-themed body:has(>main>.brand) button, html.rer-themed body:has(>main>form[action="/setup"]) button { min-height: 44px; }
+  html.rer-themed body:has(>main>form[action="/setup"]) dl { grid-template-columns: 64px minmax(0,1fr); font-size: 14px; }
+  html.rer-themed body:has(>main>.brand)::after, html.rer-themed body:has(>main>form[action="/setup"])::after { height: 160px; }
+  html body .door-card { padding: 28px 20px; }
+}

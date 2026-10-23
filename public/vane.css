@@ -1,5 +1,6 @@
-/* The signed-in app, the public stats page and shared links. Tokens come from /rer-theme.css; each file below owns
-   one part of the look picked on the design desk (17 Oct 2026): rail shell, shared surfaces, the Overview, screens. */
+/* The signed-in app, the public stats page and shared links. Tokens come from /fonts/fonts.css and /rer-theme.css;
+   each file below owns one part of the look picked on the design desk (17 Oct 2026): rail shell, shared surfaces,
+   the Overview, screens. */
 @import url('/ui/shell.css');
 @import url('/ui/surfaces.css');
 @import url('/ui/overview.css');

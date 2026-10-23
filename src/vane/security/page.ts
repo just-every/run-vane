@@ -4,6 +4,9 @@ import { escape, field } from '../views/html'
 import type { SecurityPolicy } from './policy'
 
 const branding={productName:product.name,accentColor:product.primaryColor,theme:'/rer-theme.css'}
+// Base's frame links only the theme; the page font, Vane's tokens and the rules that dress this frame are in
+// /fonts/fonts.css, linked right before the theme as on Base's other pages.
+const theme=`<link rel="stylesheet" href="${branding.theme}">`
 const submit=(action:string,label:string,body='')=>`<div class="stack"><form method="post" action="${action}">${body}<button type="submit">${label}</button></form></div>`
 const code=field('Authenticator or recovery code','code','','required autocomplete="one-time-code" maxlength="64"')
 export async function securityPage(input:{mode:'settings'|'enroll'|'challenge'|'recovery'|'sso'|'break-glass'|'scim-credential';owner?:boolean;enrolled?:boolean;policy?:SecurityPolicy;secret?:string;uri?:string;codes?:string[];error?:string;status?:number;providers?:boolean;saml?:boolean;factor?:boolean;credential?:string;issuers?:string[];scim?:{issuer:string;active:boolean;createdAt:number|null}[]}) {
@@ -39,5 +42,6 @@ export async function securityPage(input:{mode:'settings'|'enroll'|'challenge'|'
  }
  if(input.error)content=`<p class="notice" role="alert">${escape(input.error)}</p>`+content
  content+=submit('/auth/signout','Sign out')
- return pageResponse({branding,title,heading:title,content,status:input.status??200,referrer:'strict-origin'})
+ const page=await pageResponse({branding,title,heading:title,content,status:input.status??200,referrer:'strict-origin'})
+ return new Response((await page.text()).replace(theme,'<link rel="stylesheet" href="/fonts/fonts.css">'+theme),{status:page.status,headers:page.headers})
 }

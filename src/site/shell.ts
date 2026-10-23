@@ -27,6 +27,6 @@ export function document(title: string, description: string, body: string, optio
     + `<meta property="og:image" content="${share}"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta name="twitter:card" content="summary_large_image">`
     + '<link rel="icon" href="/favicon.ico" sizes="32x32"><link rel="icon" type="image/svg+xml" href="/brand/favicon-32.svg"><link rel="apple-touch-icon" href="/apple-touch-icon.png">'
     + '<link rel="preload" href="/fonts/inter-tight/inter-tight-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin><link rel="preload" href="/fonts/inter/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>'
-    + `<link rel="stylesheet" href="${identity.theme}">${['site', ...options.styles].map(name => `<link rel="stylesheet" href="/site/${name}.css">`).join('')}</head>`
+    + `<link rel="stylesheet" href="${identity.fonts}"><link rel="stylesheet" href="${identity.theme}">${['site', ...options.styles].map(name => `<link rel="stylesheet" href="/site/${name}.css">`).join('')}</head>`
     + `<body class="${options.bodyClass ?? 'site'}">${body}${options.script ? `<script>${options.script}</script>` : ''}</body></html>`
 }

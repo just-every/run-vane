@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "findings": [
+    {
+      "rule": "secret.assignment",
+      "path": "base-copies.json",
+      "blob": "1f5f8657480b59859ae4823749e898bbffbfe468",
+      "reason": "Not a credential. Every hexadecimal value the hex-api-key rule matches in this blob is a SHA-256 that base-copies.json records for a Base file at revision b70dbba0f53353eb6f3cdd2713f3cca0712b341b, and each equals that Base file's digest (checked against runeditrun/base) and the copy in this tree. The scan cannot prove the six matches in the src/modules/import-kit/src record against the tree because four other files of that record (d1/apply.ts, d1/budget.ts, d1/integrity.ts, d1/types.ts) were edited in this edition on 22 Oct, which leaves the whole record unproven; the same values were public at 889988e. This blob differs from main's only by dropping the src/server.dev.ts record, which the theme fix changes. Applies only to this rule, path and blob.",
+      "reviewer": "Claude br-theme-fix-vane builder (lane br)",
+      "date": "2026-10-23"
+    }
+  ]
+}

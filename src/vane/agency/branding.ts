@@ -20,7 +20,7 @@ export const brandMark=(brand:Brand,origin='')=>`<div class="vane-agency-mark" d
 export async function reportFrame(env:Env,siteId?:string) {
  const frame=await themeFrame({href:'/rer-theme.css',productName:'Vane'}),brand=siteId?await brandFor(env,siteId):null
  if(!brand)return frame
- const css=`.rer-themed{--rer-accent:${brand.accent};--rer-accent-text:${ink(brand.accent)};--rer-chart:${brand.accent};--rer-page:${brand.background};--rer-logo:none}.vane-agency-mark{display:flex;flex-wrap:wrap;align-items:center;gap:12px;max-width:100%;margin:0 0 20px}.vane-agency-mark img{display:block;max-width:160px;width:auto;height:64px;object-fit:contain}.vane-agency-mark strong{overflow-wrap:anywhere}.vane-brand .vane-agency-mark{font-size:16px}`
+ const css=`.rer-themed{--rer-accent:${brand.accent};--rer-accent-text:${ink(brand.accent)};--rer-focus:${brand.accent};--rer-chart:${brand.accent};--rer-page:${brand.background};--rer-logo:none}.vane-agency-mark{display:flex;flex-wrap:wrap;align-items:center;gap:12px;max-width:100%;margin:0 0 20px}.vane-agency-mark img{display:block;max-width:160px;width:auto;height:64px;object-fit:contain}.vane-agency-mark strong{overflow-wrap:anywhere}.vane-brand .vane-agency-mark{font-size:16px}`
  const hash=btoa(String.fromCharCode(...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(css)))))
  return {...frame,brand:brandMark(brand),head:frame.head+`<style>${css}</style>`,policy:frame.policy.replace("style-src 'self'",`style-src 'self' 'sha256-${hash}'`)}
 }
