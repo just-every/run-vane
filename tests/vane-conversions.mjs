@@ -259,3 +259,12 @@ test('CONV-009 a click on #book-demo, a contact form, a visible pricing table an
  assert.deepEqual(summary.customEvents.map(r=>[r.name,r.events]).sort(),[['Book demo',1],['Docs',1],['Lead',1],['Pricing seen',2]])
  assert.ok((await (await a.request(`/app/sites/${id}?section=settings`,owner)).text()).includes('Book demo = click #book-demo'))
 })
+test('the event selector preview loads only pages on the site\'s registered origins',async t=>{
+ const a=await withApp(t),id=await a.addSite({paths:[]})
+ a.fixtureSites['https://fern.example']=()=>new Response('<p id="note">Fern page</p>',{headers:{'content-type':'text/html'}})
+ a.fixtureSites['https://unregistered.example']=()=>new Response('<p id="note">Unregistered page</p>',{headers:{'content-type':'text/html'}})
+ const preview=path=>a.form({operation:'event.preview',siteId:id,selector:'#note',path},a.owner)
+ const own=await preview('/pricing');assert.equal(own.status,200);assert.ok((await own.text()).includes('Fern page'))
+ for(const path of ['//unregistered.example/private','/\\unregistered.example/private','/\\/unregistered.example/private']){const r=await preview(path);assert.equal(r.status,400,path);assert.ok(!(await r.text()).includes('Unregistered page'),path)}
+ assert.ok(a.egress.every(url=>new URL(url).hostname!=='unregistered.example'),'no request leaves for another host')
+})

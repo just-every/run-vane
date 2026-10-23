@@ -33,8 +33,10 @@ export interface Preview { selector:string; url:string; total:number; matched:{t
 export async function previewSelector(env:Env,actor:Actor,input:any):Promise<Preview> {
  allow(actor,'analyst');
  const value=await site(env,String(input.siteId)),selector=cleanSelector(input.selector),path=String(input.path||'/').trim(),origins=[value.origin,...(value.config.origins??[])];
- insist(/^\/[^\s#]{0,500}$/.test(path),'path','Preview a page by its path, such as /pricing.');
+ // A path, never another host: //host and /\host would resolve off the site, so the first request is checked too.
+ insist(/^\/(?![/\\])[^\s#\\]{0,500}$/.test(path),'path','Preview a page by its path, such as /pricing.');
  let url=new URL(path,value.origin),response:Response|undefined;
+ insist(origins.includes(url.origin),'path','Preview a page by its path, such as /pricing.');
  for(let hop=0;hop<=5;hop++){
   response=await fetch(url,{redirect:'manual',headers:{accept:'text/html','user-agent':'Vane event preview'},signal:AbortSignal.timeout(10000)}).catch(()=>{throw new VaneError('unreachable',`The page ${url.href} could not be loaded.`,502)});
   const next=response.headers.get('location');

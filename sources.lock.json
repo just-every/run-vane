@@ -3223,7 +3223,7 @@
       "executable": false
     },
     "src/vane/event-definitions.ts": {
-      "sha256": "16b2a45986b735f11f892b284429a39afc1f0f27f4db176a2670a07ca3ff7950",
+      "sha256": "7d9f5f769113ce1d56fcc27a062cc8c9fcd426f99add85d6ea35701313b26bd1",
       "executable": false
     },
     "src/vane/events-api.ts": {
@@ -4255,7 +4255,7 @@
       "executable": false
     },
     "tests/vane-conversions.mjs": {
-      "sha256": "d942f98df40fee35acb8bb4abe7ab0a245eba7b2ff989c39fbdffb9355ec53b4",
+      "sha256": "d9e4fdbeaa4efde07952601995e12af32cad9aede44ba81a8375bd86711f75de",
       "executable": false
     },
     "tests/vane-helpers.mjs": {
