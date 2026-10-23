@@ -268,3 +268,11 @@ test('the event selector preview loads only pages on the site\'s registered orig
  for(const path of ['//unregistered.example/private','/\\unregistered.example/private','/\\/unregistered.example/private']){const r=await preview(path);assert.equal(r.status,400,path);assert.ok(!(await r.text()).includes('Unregistered page'),path)}
  assert.ok(a.egress.every(url=>new URL(url).hostname!=='unregistered.example'),'no request leaves for another host')
 })
+test('a matches filter takes time linear in each page path, keeps the visits its regular expression names and refuses backreferences',async t=>{
+ const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({paths:[]})
+ for(const [n,path] of ['/'+'a'.repeat(40)+'!','/aaaaa','/blog/a1'].entries())assert.equal((await a.post('/api/vane/collect',a.event(id,{path}),'',{origin:'https://fern.example','cf-connecting-ip':'203.0.113.'+(n+1),'user-agent':DESKTOP_CHROME})).status,202)
+ // A backtracking engine takes exponential time on the long path for the first pattern; each request is bounded.
+ const summary=filter=>a.request(`/api/vane/summary?siteId=${id}&filter=${encodeURIComponent(filter)}`,{...owner,signal:AbortSignal.timeout(10000)})
+ for(const [filter,visits] of [['page:matches:^/(a+)+$',1],['page:matches:^/(a|aa)+!$',1],['page:matches:^/a{2,}',2],['page:matches:/blog/[a-z]\\d$',1],['page:matches:(?:a|b)1',1],['page:matches:^/$',0]]){const r=await summary(filter).catch(error=>assert.fail(`${filter} gave no answer within 10 s (${error.name})`));assert.equal(r.status,200,filter);assert.equal((await r.json()).visits,visits,filter)}
+ assert.equal((await summary('page:matches:^/(a)\\1')).status,400,'a backreference is refused')
+})

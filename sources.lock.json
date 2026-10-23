@@ -3330,6 +3330,10 @@
       "sha256": "9370929eb0d7ce9b925eb41637355ca2729c6fe5870f1ef3d050f33ca4ecfef8",
       "executable": false
     },
+    "src/vane/linear-regex.ts": {
+      "sha256": "21b87c9e93e7e091528aa7636d96be64962e028dde098c28d8c9cf4dd84c1d15",
+      "executable": false
+    },
     "src/vane/locations.ts": {
       "sha256": "85d8ef76369cd949589642d82340613acb1b6a5b5fd5625beeef4280ea506192",
       "executable": false
@@ -3719,7 +3723,7 @@
       "executable": false
     },
     "src/vane/segments.ts": {
-      "sha256": "5318b24c658f27b01ef1cad8b56b2218b656a2fa258f9f1cd4a9d6b2e824b7c8",
+      "sha256": "4d95fb73db2df8d52cd0a6147ad5891ae5a5bbe910ee107b3bc3891e776e799b",
       "executable": false
     },
     "src/vane/series.ts": {
@@ -4255,7 +4259,7 @@
       "executable": false
     },
     "tests/vane-conversions.mjs": {
-      "sha256": "d9e4fdbeaa4efde07952601995e12af32cad9aede44ba81a8375bd86711f75de",
+      "sha256": "5bf4264730f3bfa899e695f40eefd7b2a53e353e232505b93b10432fb47ff622",
       "executable": false
     },
     "tests/vane-helpers.mjs": {

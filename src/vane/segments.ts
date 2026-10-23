@@ -1,8 +1,9 @@
-import { allow, day, inScope, insist, rows, site, statement, uid, type Actor, type Env } from './core'
+import { allow, day, inScope, insist, rows, site, statement, uid, VaneError, type Actor, type Env } from './core'
 import { auditStatement } from './audit'
 import { clock } from './clock'
 import { gapSql } from './definitions'
 import { goalMatches } from './goals'
+import { linearPattern } from './linear-regex'
 import { sourceNameSql, type SourceRule } from './sources'
 // DASH-007: filters and saved segments. A filter keeps or drops whole visits, so every total, table, chart, funnel
 // and explanation of a filtered report is computed over the page loads (and their goal events) of the kept visits.
@@ -10,7 +11,8 @@ import { sourceNameSql, type SourceRule } from './sources'
 // page, hostname, site-search term and goal dimensions match a visit when any of its page loads matches (is, contains, matches) or when
 // none does (is not, does not contain). Filters combine with AND, with the Hostname filter (DASH-013) applied first.
 // is and is not compare exactly, and on Page and Entry page they take the goal wildcards (CONV-001); contains and
-// does not contain ignore ASCII case; matches is a JavaScript regular expression tested against each distinct value.
+// does not contain ignore ASCII case; matches is a JavaScript regular expression, without backreferences or lookaround,
+// tested against each distinct value in time linear in that value (linear-regex.ts).
 // Imported history has no visits and automatic events carry no visit, so a filtered report leaves both out.
 // Custom events and their properties, and pageview properties, are dimensions too (CONV-002): a visit matches when any
 // of its page loads, or a custom event on one, matches; alerts take a segment with ALERT-001 and the
@@ -40,10 +42,13 @@ export function parseFilters(input:unknown):Filter[] {
  const filters=list.map(text=>{
   const [dimension='',op='',...rest]=text.split(':'),value=rest.join(':').trim();
   insist(dimensionOf(dimension)!==undefined&&Object.hasOwn(FILTER_OPS,op)&&value.length>0&&value.length<=200&&!/[\u0000-\u001f\u007f]/.test(value),'filter','Filter by a listed dimension with is, is not, contains, does not contain or matches, and a value of up to 200 characters.');
-  if(op==='matches'){let valid=true;try{new RegExp(value)}catch{valid=false}insist(valid,'filter','Write matches as a valid regular expression, such as ^/blog/.');}
+  if(op==='matches')matcher(value);
   return {dimension,op:op as Op,value};
  });
  return [...new Map(filters.map(f=>[encodeFilter(f),f])).values()];
+}
+function matcher(value:string) {
+ try{new RegExp(value);return linearPattern(value)}catch{throw new VaneError('filter','Write matches as a valid regular expression without backreferences or lookaround, such as ^/blog/.',400)}
 }
 const literal=(value:string)=>`'${value.replace(/'/g,"''")}'`
 // A wildcard is or is not on a page, and every matches, is decided in code over the distinct values in the window.
@@ -59,7 +64,7 @@ export async function keptVisits(env:Env,scope:string,filters:Filter[],from:stri
   if(f.op==='contains'||f.op==='not_contains')return `instr(lower(${e}),lower(${literal(f.value)}))>0`;
   if(!resolved(f))return `${e}=${literal(f.value)}`;
   const d=dimensionOf(f.dimension)!,values=(await rows<{v:string|null}>(env,d.scope==='event'?`SELECT DISTINCT x.name AS v FROM vane_custom_events x WHERE ${sites('x')} AND ${days('x')}`:d.scope==='prop'?`SELECT DISTINCT x.value AS v FROM vane_event_props x WHERE ${sites('x')} AND ${days('x')} AND x.key=${literal(d.key!)}`:`SELECT DISTINCT ${expr(f,'x')} AS v FROM ${base} x WHERE ${sites('x')} AND ${days('x')} AND x.kind${f.dimension==='goal'?'<>':'='}'pageview'`)).map(r=>r.v).filter((v):v is string=>v!==null);
-  const pattern=f.op==='matches'?new RegExp(f.value):null,kept=values.filter(v=>pattern?pattern.test(v):goalMatches(f.value,v));
+  const pattern=f.op==='matches'?matcher(f.value):null,kept=values.filter(v=>pattern?pattern.test(v):goalMatches(f.value,v));
   insist(kept.length<=MAX_MATCHED_VALUES,'filter',`The filter matches more than ${MAX_MATCHED_VALUES} values; narrow it.`);
   return kept.length?`${e} IN (${kept.map(literal).join(',')})`:'0';
  };
