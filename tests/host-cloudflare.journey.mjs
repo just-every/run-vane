@@ -3,9 +3,10 @@ import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { readFile, mkdir } from 'node:fs/promises';
-import { join, resolve, dirname, relative } from 'node:path';
+import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomBytes } from 'node:crypto';
+import { transferSource } from './host-transfer-source.mjs';
 import { redactedTail } from './host-local-processes.mjs';
 import { main as ownerMain, report } from '@runeditrun/rer/modules/deploy-kit/owner-cli';
 
@@ -14,10 +15,9 @@ const execute = promisify(execFile);
 
 test('HOST-003 local rer archive restores the same fixture pageview into a fresh Cloudflare deployment', {
  skip: process.env.VANE_HOST_CLOUDFLARE_JOURNEY !== '1' ? 'explicit held-account journey only' : false,
- timeout: 25 * 60_000,
+ timeout: 40 * 60_000,
 }, async t => {
- const archive = process.env.VANE_HOST_ARCHIVE;
- assert.ok(archive, 'Supply the archive exported by the installed local journey');
+ const archive = await transferSource(t, root);
  const environment = 'host-transfer-c45';
  const state = join(root, '.rer', 'deploy', `${environment}.json`);
  const args = command => [command, '--declaration', 'deploy.json', '--environment', environment, '--product', '', '--state', state];
@@ -46,7 +46,7 @@ test('HOST-003 local rer archive restores the same fixture pageview into a fresh
  const paused = await (await fetch(schedules, { headers })).json();
  assert.equal(paused.success, true); assert.equal(paused.result.schedules?.length ?? paused.result.length, 0);
  const env = { ...privateEnv, VANE_REMOTE_DATABASE_ID: databases[0].id, VANE_REMOTE_TRANSFER_PAUSED: '1', WRANGLER_SEND_METRICS: 'false' };
- const invocation = ['import', '--target', 'remote', '--input', relative(root, resolve(archive)), '--yes'];
+ const invocation = ['import', '--target', 'remote', '--input', archive, '--yes'];
  const runner = join(root, 'node_modules', '.bin', 'rer');
  const noCredential = { ...env }; delete noCredential.CLOUDFLARE_API_TOKEN;
  await assert.rejects(execute(runner, invocation, { cwd: root, env: noCredential, timeout: 60_000 }),

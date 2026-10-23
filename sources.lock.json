@@ -39,7 +39,7 @@
       "executable": false
     },
     ".github/workflows/host-local.yml": {
-      "sha256": "db535e3af8990ce5294221a3a9196194a5c53f06b479d60f9b258ebb22b9c575",
+      "sha256": "40ff4c506cf98c7754167c9c991b9663107bd400708c9d64e7dce2261d454a10",
       "executable": false
     },
     ".github/workflows/import-scale.yml": {
@@ -4227,7 +4227,7 @@
       "executable": false
     },
     "tests/host-cloudflare.journey.mjs": {
-      "sha256": "e8ee747bff548d26a010ec21720e642da6d8f0779a60309f8d9bf26938a5001d",
+      "sha256": "f979424b9a8d4be5a4a5b5d782e19248e8a8e686fdec4c45f92aeb38a45db8c4",
       "executable": false
     },
     "tests/host-local-processes.mjs": {
@@ -4239,11 +4239,15 @@
       "executable": false
     },
     "tests/host-local.journey.mjs": {
-      "sha256": "02a95fdca1f3e8855dc7aaafa1d967aa99bb137c77f4ccd1ec1a14c57d93407a",
+      "sha256": "57a8ce2776e26edcc2fe59a99b75a70423d5f41ff68e819241be20b599533656",
       "executable": false
     },
     "tests/host-offline-replay.mjs": {
       "sha256": "a8c22f21e1fe7f8498e0a7e533941be1aaeb36579a1414eb6482d0f7356526af",
+      "executable": false
+    },
+    "tests/host-transfer-source.mjs": {
+      "sha256": "c46da311e7166a6af51754d126c2cd7e6f199a60935980579efd64a122cc12f4",
       "executable": false
     },
     "tests/import-export.test.mjs": {
