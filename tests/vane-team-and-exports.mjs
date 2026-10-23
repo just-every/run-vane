@@ -234,3 +234,23 @@ test('API-002 a whole-site ZIP in Plausible\'s layout, the Looker Studio connect
  refuse=false;await a.clock(Date.parse('2026-03-12T02:01:00Z'));await a.scheduled();assert.ok(objects[`${prefix}/events/2026-03-11.csv`],'retried after an hour')
  assert.ok(a.egress.slice(before).every(url=>url.startsWith('https://acct.r2.fixture.example/')),'the export talks only to the owner\'s bucket')
 })
+test('a site-scoped administrator changes the team only through the team page and within their sites; Base\'s account doors refuse them and write nothing',async t=>{
+ const a=await withApp(t),A=await a.addSite(),B=await a.addSite({name:'Oak Store',origin:'https://oak.example'})
+ const invite=(email,role,site,cookie=a.owner)=>a.form({operation:'team.invite',email,role,scope:'chosen',['site_'+site]:'on'},cookie)
+ for(const [email,role,site] of [['fern-admin@example.test','admin',A],['oak-viewer@example.test','viewer',B],['oak-pending@example.test','viewer',B],['oak-removed@example.test','viewer',B]])assert.equal((await invite(email,role,site)).status,303,email)
+ const admin=await a.accept('fern-admin@example.test'),oak=await a.accept('oak-viewer@example.test');await a.accept('oak-removed@example.test')
+ const people=await (await a.request('/auth/operators',{headers:{cookie:a.owner}})).json(),id=email=>people.find(p=>p.email===email).id
+ assert.equal((await a.form({operation:'team.remove',operatorId:id('oak-removed@example.test')},a.owner)).status,303)
+ const oakSessions=await a.request('/auth/sessions',{headers:{cookie:oak}});assert.equal(oakSessions.status,200,'a person lists their own sessions');const oakSession=(await oakSessions.json())[0].id
+ // Base's doors know people but not sites: an invitation there would open every site, and the others reach people outside the admin's sites.
+ const before=(await a.dump()).oa_operators
+ assert.equal((await a.post('/auth/invite',{email:'unscoped@example.test',role:'member',displayName:'Unscoped'},admin)).status,403)
+ for(const [path,body] of [['/auth/invite/cancel',{operatorId:id('oak-pending@example.test')}],['/auth/operator/status',{operatorId:id('oak-viewer@example.test'),status:'inactive'}],['/auth/operator/status',{operatorId:id('oak-removed@example.test'),status:'active'}],['/auth/operator/role',{operatorId:id('oak-viewer@example.test'),role:'member'}],['/auth/session/revoke',{sessionId:oakSession}]])assert.equal((await a.post(path,body,admin)).status,403,`${path} ${body.status??''}`)
+ for(const path of ['/auth/operators','/auth/sessions?operatorId='+id('oak-viewer@example.test')])assert.equal((await a.request(path,{headers:{cookie:admin}})).status,403,path)
+ assert.deepEqual((await a.dump()).oa_operators,before,'no refused call wrote anything')
+ assert.equal((await a.request('/api/vane/sites',{headers:{cookie:oak}})).status,200,'the other site\'s viewer stays signed in')
+ assert.equal((await a.request('/auth/sessions',{headers:{cookie:admin}})).status,200,'the admin still lists their own sessions')
+ // The team page still invites within the admin's own sites.
+ assert.equal((await invite('fern-viewer@example.test','viewer',A,admin)).status,303)
+ assert.deepEqual((await (await a.request('/api/vane/sites',{headers:{cookie:await a.accept('fern-viewer@example.test')}})).json()).map(s=>s.id),[A])
+})
