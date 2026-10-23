@@ -33,10 +33,13 @@ test('Weekly local opportunities cite exact native figures and linked drafts and
  const erased=await json(await a.post('/api/vane/commands',{command:'history.erase',input:{siteId:id}},a.owner),201);assert.equal((await a.form({operation:'proposal.approve',id:erased.id},a.owner)).status,303)
  assert.equal((await a.dump()).vane_agent_work.length,0);assert.equal((await a.dump()).vane_agent_dismissals.length,1)
 })
-test('Result assessment refuses drafts as shipped changes and anomaly pursuit refuses absent follow-ups without inventing recovery',async t=>{
+test('Result assessment refuses local drafts as shipped changes',async t=>{
  const a=await installation();t.after(()=>a.close());const id=await a.addSite();await a.clock(Date.parse('2026-10-20T12:00:00Z'))
  const made=await json(await a.post('/api/vane/agent/draft',draft(id),a.owner),201)
  const r=await json(await a.post('/api/vane/agent/measure',{siteId:id,fixId:made.id,from:'2026-10-12',to:'2026-10-19',comparedFrom:'2026-10-05',comparedTo:'2026-10-12'},a.owner),409);assert.equal(r.error,'change')
+})
+test('Anomaly pursuit attaches movement evidence, preserves the open item and waits for a person to confirm expected traffic',async t=>{
+ const a=await installation();t.after(()=>a.close());const id=await a.addSite(),made={id:'synthetic-vane-3'}
  assert.equal((await a.post('/api/vane/agent/pursue',{siteId:id,itemId:made.id},a.owner)).status,404)
  assert.equal((await a.dump()).vane_follow_items.length,0)
  await a.clock(Date.parse('2026-10-19T10:00:00Z'))
@@ -49,7 +52,7 @@ test('Result assessment refuses drafts as shipped changes and anomaly pursuit re
  assert.ok((await a.dump()).vane_follow_events.some(e=>e.item_id===item.id&&e.detail.includes(pursued.id)))
  const {context}=await browse(t,a);await context.addCookies(a.owner.split('; ').map(pair=>{const i=pair.indexOf('=');return {name:pair.slice(0,i),value:pair.slice(i+1),url:a.origin}}));const page=await context.newPage()
  const dir=process.env.VANE_SCREENSHOT_DIR;if(dir)await mkdir(dir,{recursive:true})
- for(const width of [1440,390]){await page.setViewportSize({width,height:1000});await page.goto(`${a.origin}/app/sites/${id}?section=settings`);await page.locator('#follow-up').scrollIntoViewIfNeeded();assert.ok((await page.locator('#follow-up').innerText()).includes(pursued.id));assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);const menu=page.locator('summary[aria-label=Menu]');if(await menu.isVisible()){await menu.focus();assert.equal(await page.locator('#vane-menu-tip').evaluate(e=>getComputedStyle(e).visibility),'visible');await menu.blur()}if(dir)await page.screenshot({path:join(dir,`agent-pursuit-${width}.png`)})}
+ for(const width of [1440,390]){await page.setViewportSize({width,height:1000});await page.goto(`${a.origin}/app/sites/${id}?section=settings`);await page.locator('#follow-up').scrollIntoViewIfNeeded();await page.evaluate(()=>scrollBy(0,-110));assert.ok((await page.locator('#follow-up').innerText()).includes(pursued.id));assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);const menu=page.locator('summary[aria-label=Menu]');if(await menu.isVisible()){await menu.focus();assert.equal(await page.locator('#vane-menu-tip').evaluate(e=>getComputedStyle(e).visibility),'visible');await menu.blur();await menu.hover();await page.waitForTimeout(100);assert.equal(await page.locator('#vane-menu-tip').evaluate(e=>getComputedStyle(e).visibility),'hidden');await page.waitForTimeout(250);assert.equal(await page.locator('#vane-menu-tip').evaluate(e=>getComputedStyle(e).visibility),'visible')}if(dir)await page.screenshot({path:join(dir,`agent-pursuit-${width}.png`)})}
  assert.equal((await a.form({operation:'follow.resolve',id:item.id,outcome:'expected'},a.owner)).status,303)
  assert.equal((await a.dump()).vane_follow_items.find(i=>i.id===item.id).outcome,'expected')
 })
