@@ -1,4 +1,5 @@
 import test from 'node:test'
+import { mkdir } from 'node:fs/promises'
 import { assert, readFile, createHash, createHmac, crc32, createRequire, installation, appsScript, fixture, unlinked, withApp, DESKTOP_CHROME, browse, movein } from './vane-helpers.mjs'
 
 test('CONV-005 the funnel product → cart → checkout → purchase counts entrants, conversion, drop-off and median time per step against the compared day, the hostname filter recomputes it, and a drop-off opens the journeys',async t=>{
@@ -268,11 +269,53 @@ test('the event selector preview loads only pages on the site\'s registered orig
  for(const path of ['//unregistered.example/private','/\\unregistered.example/private','/\\/unregistered.example/private']){const r=await preview(path);assert.equal(r.status,400,path);assert.ok(!(await r.text()).includes('Unregistered page'),path)}
  assert.ok(a.egress.every(url=>new URL(url).hostname!=='unregistered.example'),'no request leaves for another host')
 })
-test('matches and wildcard page filters take time linear in each page path, keep the visits they name, and a backreference is refused',async t=>{
+test('DASH-007 restricted matches refuse unsupported patterns visibly at every filter door and keep whole visits',async t=>{
  const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite({paths:[]})
  for(const [n,path] of ['/'+'a'.repeat(40)+'!','/aaaaa','/blog/a1'].entries())assert.equal((await a.post('/api/vane/collect',a.event(id,{path}),'',{origin:'https://fern.example','cf-connecting-ip':'203.0.113.'+(n+1),'user-agent':DESKTOP_CHROME})).status,202)
  // A backtracking engine takes exponential time on the long path for the first pattern and each long wildcard; each request is bounded.
  const summary=filter=>a.request(`/api/vane/summary?siteId=${id}&filter=${encodeURIComponent(filter)}`,{...owner,signal:AbortSignal.timeout(10000)})
  for(const [filter,visits] of [['page:matches:^/(a+)+$',1],['page:matches:^/(a|aa)+!$',1],['page:matches:^/a{2,}',2],['page:matches:/blog/[a-z]\\d$',1],['page:matches:(?:a|b)1',1],['page:matches:^/$',0],['page:is:/aa*',2],['page:is:/*a*a*a*a*a*a*a*a*a*a*b',0],['page:is_not:/*a*a*a*a*a*a*a*a*a*a*b',3],['page:is:/**a**a**a**a**a**a**a**a**a**a**b',0]]){const r=await summary(filter).catch(error=>assert.fail(`${filter} gave no answer within 10 s (${error.name})`));assert.equal(r.status,200,filter);assert.equal((await r.json()).visits,visits,filter)}
- assert.equal((await summary('page:matches:^/(a)\\1')).status,400,'a backreference is refused')
+ const reason='Write matches as a valid regular expression without backreferences or lookaround, such as ^/blog/.'
+ const valid='page:matches:^/(a+)+$',{context}=await browse(t,a)
+ await context.addCookies(a.owner.split('; ').map(pair=>{const i=pair.indexOf('=');return {name:pair.slice(0,i),value:pair.slice(i+1),url:a.origin}}))
+ const tab=await context.newPage(),report=`${a.origin}/app/sites/${id}?section=report`
+ // A matching page keeps the other page of its visit, not merely matching rows.
+ assert.equal((await a.post('/api/vane/collect',a.event(id,{path:'/kept-companion'}),'',{origin:'https://fern.example','cf-connecting-ip':'203.0.113.2','user-agent':DESKTOP_CHROME})).status,202)
+ assert.deepEqual(await (await summary(valid)).json().then(r=>[r.visits,r.pageviews,r.pages.map(p=>p.label).sort()]),[1,2,['/aaaaa','/kept-companion']])
+ for(const width of [1440,390]){
+  await tab.setViewportSize({width,height:960})
+  for(const [name,pattern] of [['backreference','^/(a)\\1'],['lookaround','^/a(?=a)']]){
+   const filter='page:matches:'+pattern,api=await summary(filter)
+   assert.equal(api.status,400);assert.equal((await api.json()).message,reason)
+   const before=await a.archive()
+   await tab.goto(report)
+   await tab.getByLabel('Filter dimension').selectOption('page');await tab.getByLabel('Filter comparison').selectOption('matches');await tab.getByLabel('Filter value').fill(pattern)
+   const [refused]=await Promise.all([tab.waitForResponse(r=>r.request().isNavigationRequest()),tab.getByRole('button',{name:'Add filter',exact:true}).click()])
+   assert.equal(refused.status(),400);assert.equal(await tab.getByRole('alert').textContent(),reason)
+   if(process.env.VANE_SCREEN_DIR){await mkdir(process.env.VANE_SCREEN_DIR,{recursive:true});await tab.screenshot({path:`${process.env.VANE_SCREEN_DIR}/filter-${name}-${width}.png`})}
+   await tab.goto(report+'&filter='+encodeURIComponent(valid))
+   await tab.getByLabel('Segment name').fill('Refused pattern')
+   // Submit the real save form with an unsupported value, as a stale client could.
+   await tab.locator('form:has(button:text-is("Save as segment")) input[name="filters"]').evaluate((input,value)=>{input.value=value},filter)
+   const [save]=await Promise.all([tab.waitForResponse(r=>r.request().method()==='POST'),tab.getByRole('button',{name:'Save as segment',exact:true}).click()])
+   assert.equal(save.status(),400);assert.equal(await tab.getByRole('alert').textContent(),reason)
+   assert.deepEqual((await a.archive()).payload.tables.vane_segments,before.payload.tables.vane_segments,'refusal saves no segment')
+   if(process.env.VANE_SCREEN_DIR)await tab.screenshot({path:`${process.env.VANE_SCREEN_DIR}/segment-${name}-${width}.png`})
+  }
+  await tab.goto(report+'&filter='+encodeURIComponent(valid))
+  await tab.getByLabel('Segment name').fill('Linear whole visits')
+  const [saved]=await Promise.all([tab.waitForResponse(r=>r.request().method()==='POST'),tab.getByRole('button',{name:'Save as segment',exact:true}).click()])
+  assert.equal(saved.status(),303)
+  const segment=new URL(saved.headers().location,a.origin).searchParams.get('segment')
+  const r=await (await a.request(`/api/vane/summary?siteId=${id}&segment=${segment}`,owner)).json()
+  assert.deepEqual([r.visits,r.pageviews],[1,2])
+  await tab.goto(report+'&segment='+segment)
+  assert.equal(await tab.locator('[data-segment-applied]').textContent(),'Segment: Linear whole visits.')
+  assert.equal(await tab.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false)
+  const menu=tab.getByRole('button',{name:'Menu',exact:true}),tip=tab.getByRole('tooltip',{name:'Open menu'})
+  await menu.focus();assert.equal(await tip.isVisible(),true)
+  await menu.evaluate(e=>e.blur());await tab.mouse.move(0,0);await menu.hover();await tab.waitForTimeout(350);assert.equal(await tip.isVisible(),true)
+  if(process.env.VANE_SCREEN_DIR)await tab.screenshot({path:`${process.env.VANE_SCREEN_DIR}/filter-linear-${width}.png`})
+ }
+
 })

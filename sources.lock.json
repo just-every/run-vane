@@ -3863,7 +3863,7 @@
       "executable": false
     },
     "src/vane/views/filters.ts": {
-      "sha256": "1dbfb2383f421c772373c7ee4ea4fa810789adea84d7664ab43da3ce21921f94",
+      "sha256": "d978cdb1e0c58dc571aa5ff7926c865d85a5ed2e175d76d2aadb27dd5e6f82f9",
       "executable": false
     },
     "src/vane/views/follow-settings.ts": {
@@ -4287,7 +4287,7 @@
       "executable": false
     },
     "tests/vane-conversions.mjs": {
-      "sha256": "197281b221fed9550bae96ba13f1401deee5dd131a9fdb604d1a27465265a142",
+      "sha256": "aae2f62c82fe18a316e1bfc59315b5406b45d8ab05db63e5ebfd920409e85587",
       "executable": false
     },
     "tests/vane-helpers.mjs": {
