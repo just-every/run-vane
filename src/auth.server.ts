@@ -63,6 +63,7 @@ export interface Bindings {
  MAIL_WEBHOOK_KEY?: string
  /** Vane's published store capacity in MB (RETENTION-002); unset means D1's 10,240 MB limit on Workers Paid. */
  VANE_STORE_LIMIT_MB?: string
+ VANE_WORKER_USAGE_DAY?: string
  VANE_WORKER_PLAN?: string
  VANE_WORKER_DAILY_REQUESTS?: string
 }

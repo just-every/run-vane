@@ -110,8 +110,8 @@ async function launch(cwd, env, processes, args) {
   assert.ok(exited, 'rer dev must finish installation and report readiness within twelve minutes')
   assert.equal(failed, false, 'The public rer executable must be available')
   if(code!==0){for(const checkout of [cwd,join(cwd,'run-vane')]){try{
-   const log=await readFile(join(checkout,'.seed','installer','install.log'),'utf8')
-   errors+='\n'+log.split('\n').filter(line=>/error|failed|ERR_|cannot|timed out|listen|EACCES|SyntaxError/i.test(line)).slice(-20).join('\n')
+   const directory=join(checkout,'.seed','installer'),logs=(await readdir(directory,{recursive:true})).filter(path=>path.endsWith('install.log'))
+   for(const path of logs){const log=await readFile(join(directory,path),'utf8');errors+='\n'+log.split('\n').filter(line=>!/RER_OPEN|RER_SIGN|binding|secret|token|password|email|vars/i.test(line)).slice(-20).join('\n')}
   }catch{}}}
   const safe = (output + errors).split('\n').filter(line => !/RER_OPEN|RER_SIGN_IN|RER_SIGNED_IN/.test(line)).slice(-18).join('\n').replace(/https?:\/\/[^\s"'<>]+/g, '[address]').replace(/[A-Za-z0-9_+/=-]{20,}/g, '[private]').replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+/gi, '[email]')
   assert.equal(code, 0, 'Public rer dev must launch successfully (credentials withheld): ' + safe)
