@@ -2,7 +2,7 @@ import { allow, day, inScope, insist, rows, site, statement, uid, VaneError, typ
 import { auditStatement } from './audit'
 import { clock } from './clock'
 import { gapSql } from './definitions'
-import { goalMatches } from './goals'
+import { goalSource } from './goals'
 import { linearPattern } from './linear-regex'
 import { sourceNameSql, type SourceRule } from './sources'
 // DASH-007: filters and saved segments. A filter keeps or drops whole visits, so every total, table, chart, funnel
@@ -51,7 +51,8 @@ function matcher(value:string) {
  try{new RegExp(value);return linearPattern(value)}catch{throw new VaneError('filter','Write matches as a valid regular expression without backreferences or lookaround, such as ^/blog/.',400)}
 }
 const literal=(value:string)=>`'${value.replace(/'/g,"''")}'`
-// A wildcard is or is not on a page, and every matches, is decided in code over the distinct values in the window.
+// A wildcard is or is not on a page, and every matches, is decided in code over the distinct values in the window,
+// on the linear-time matcher, since any viewer writes the pattern.
 const resolved=(f:Filter)=>f.op==='matches'||(f.op==='is'||f.op==='is_not')&&(f.dimension==='page'||f.dimension==='entry')&&f.value.includes('*')
 // The event set of the kept visits over local days [from, to), drawn from `base` (the hostname-filtered events).
 // The kept visits are found once per report: the IDs of their page loads and goal events are written to vane_report_kept
@@ -64,7 +65,7 @@ export async function keptVisits(env:Env,scope:string,filters:Filter[],from:stri
   if(f.op==='contains'||f.op==='not_contains')return `instr(lower(${e}),lower(${literal(f.value)}))>0`;
   if(!resolved(f))return `${e}=${literal(f.value)}`;
   const d=dimensionOf(f.dimension)!,values=(await rows<{v:string|null}>(env,d.scope==='event'?`SELECT DISTINCT x.name AS v FROM vane_custom_events x WHERE ${sites('x')} AND ${days('x')}`:d.scope==='prop'?`SELECT DISTINCT x.value AS v FROM vane_event_props x WHERE ${sites('x')} AND ${days('x')} AND x.key=${literal(d.key!)}`:`SELECT DISTINCT ${expr(f,'x')} AS v FROM ${base} x WHERE ${sites('x')} AND ${days('x')} AND x.kind${f.dimension==='goal'?'<>':'='}'pageview'`)).map(r=>r.v).filter((v):v is string=>v!==null);
-  const pattern=f.op==='matches'?matcher(f.value):null,kept=values.filter(v=>pattern?pattern.test(v):goalMatches(f.value,v));
+  const pattern=matcher(f.op==='matches'?f.value:goalSource(f.value)),kept=values.filter(v=>pattern.test(v));
   insist(kept.length<=MAX_MATCHED_VALUES,'filter',`The filter matches more than ${MAX_MATCHED_VALUES} values; narrow it.`);
   return kept.length?`${e} IN (${kept.map(literal).join(',')})`:'0';
  };

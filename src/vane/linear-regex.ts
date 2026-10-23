@@ -1,4 +1,4 @@
-// DASH-007's matches filter, run in time linear in each value. Any viewer writes the pattern, so JavaScript's
+// DASH-007's matches and wildcard filters, run in time linear in each value. Any viewer writes the pattern, so JavaScript's
 // backtracking engine, exponential on patterns such as ^/(a+)+$, never runs it: the pattern is read with
 // JavaScript's syntax (no flags) and run as a Thompson automaton, one pass over the value in which each state is
 // visited at most once per character. Backreferences and lookaround have no such form and are refused, as Plausible's
