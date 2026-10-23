@@ -72,6 +72,8 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
  const visibleProposals=(list:any[])=>list.filter(p=>open(JSON.parse(p.payload_json).siteId));
  const scopedRollup=async(id:string)=>{const r=await rollup(env,id);for(const s of r.sites)inScope(actor!,s.id);return r};
  async function view(siteId?:string,extra:Partial<ViewData>={}) {
+  // The site a page renders is itself in scope, whatever siteId the query names.
+  if(siteId)inScope(actor!,siteId);
   const selected=siteId?await site(env,siteId):undefined;
   const proposals=actor!.role==='member'?[]:visibleProposals(await rows(env,'SELECT p.*,po.display_name AS prepared_name,ao.display_name AS approved_name FROM vane_proposals p LEFT JOIN oa_operators po ON po.id=p.prepared_by LEFT JOIN oa_operators ao ON ao.id=p.approved_by ORDER BY p.created_at DESC LIMIT 100'));
   // An error page passes section undefined, so a refused section is not rendered again.

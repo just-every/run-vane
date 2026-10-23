@@ -254,3 +254,13 @@ test('a site-scoped administrator changes the team only through the team page an
  assert.equal((await invite('fern-viewer@example.test','viewer',A,admin)).status,303)
  assert.deepEqual((await (await a.request('/api/vane/sites',{headers:{cookie:await a.accept('fern-viewer@example.test')}})).json()).map(s=>s.id),[A])
 })
+test('a site page answers only for a person who may open that site, whatever siteId its query names',async t=>{
+ const a=await withApp(t),A=await a.addSite(),B=await a.addSite({name:'Oak Store',origin:'https://oak.example',paths:[]})
+ assert.equal((await a.collect(a.event(B,{path:'/oak-private'}),'https://oak.example')).status,202)
+ assert.equal((await a.form({operation:'team.invite',email:'viewer@example.test',role:'viewer',scope:'chosen',['site_'+A]:'on'},a.owner)).status,303);const viewer={headers:{cookie:await a.accept('viewer@example.test')}}
+ for(const section of ['realtime','report','settings'])assert.equal((await a.request(`/app/sites/${A}?section=${section}`,viewer)).status,200,section)
+ for(const section of ['realtime','report','settings'])for(const query of ['','&siteId=',`&siteId=${A}`]){
+  const r=await a.request(`/app/sites/${B}?section=${section}${query}`,viewer),body=await r.text()
+  assert.equal(r.status,403,section+query);assert.ok(!body.includes('/oak-private'),section+query)
+ }
+})
