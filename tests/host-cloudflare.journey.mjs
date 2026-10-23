@@ -46,15 +46,22 @@ test('HOST-003 local rer archive restores the same fixture pageview into a fresh
  const paused = await (await fetch(schedules, { headers })).json();
  assert.equal(paused.success, true); assert.equal(paused.result.schedules?.length ?? paused.result.length, 0);
  const env = { ...privateEnv, VANE_REMOTE_DATABASE_ID: databases[0].id, VANE_REMOTE_TRANSFER_PAUSED: '1', WRANGLER_SEND_METRICS: 'false' };
+ const invocation = ['import', '--target', 'remote', '--input', relative(root, resolve(archive)), '--yes'];
+ const runner = join(root, 'node_modules', '.bin', 'rer');
+ const noCredential = { ...env }; delete noCredential.CLOUDFLARE_API_TOKEN;
+ await assert.rejects(execute(runner, invocation, { cwd: root, env: noCredential, timeout: 60_000 }),
+  error => error.code === 4, 'Missing destination authority refuses before any transfer');
  // Invoke the actual public command, including its confirmation and archive checks.
  try {
-  await execute(join(root, 'node_modules', '.bin', 'rer'), ['import', '--target', 'remote', '--input', relative(root, resolve(archive)), '--yes'], {
+  await execute(runner, invocation, {
    cwd: root, env, timeout: 10 * 60_000, maxBuffer: 1024 * 1024,
   });
  } catch (error) {
   // CLI logs contain no provider credential, but keep all child output private.
   throw new Error(`Public remote rer import failed (exit ${error.code ?? 'unknown'}): ${redactedTail(error.stdout ?? '', error.stderr ?? '')}`);
  }
+ await assert.rejects(execute(runner, invocation, { cwd: root, env, timeout: 10 * 60_000, maxBuffer: 1024 * 1024 }),
+  error => error.code === 4, 'A populated destination refuses a second full restore');
  const signin = await ownerMain(args('signin'), privateEnv, { cwd: root, notice: () => {} });
  const { chromium, expect } = await import('@playwright/test');
  browser = await chromium.launch({ headless: true, args: ['--use-mock-keychain', '--password-store=basic'] });
