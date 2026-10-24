@@ -43,8 +43,9 @@ export async function installedUI(t, installation, { screens, label }) {
   const collect = visit.waitForResponse(response => new URL(response.url()).pathname === '/api/vane/collect' && response.request().method() === 'POST')
   await visit.goto(fixtureOrigin + '/subscriptions')
   const accepted = await collect
-  assert.equal(accepted.status(), 202, 'The real installed tracker must collect the fixture page')
-  assert.equal((await accepted.json()).accepted, true)
+  const result = await accepted.json()
+  assert.equal(accepted.status(), 202, 'The real installed tracker must collect the fixture page: ' + JSON.stringify(result))
+  assert.equal(result.accepted, true)
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 960 })
     await page.goto(reportURL.href)

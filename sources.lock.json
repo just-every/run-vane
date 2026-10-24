@@ -4235,7 +4235,7 @@
       "executable": false
     },
     "tests/host-local-ui.mjs": {
-      "sha256": "2002bc61160ef28e4de6ca40cbe48d5f7880430f6ea9c0e18a5e38e5951a1411",
+      "sha256": "f44969de370440a57f723cb809f939480383a56c97ff595bd671d6073452ec04",
       "executable": false
     },
     "tests/host-local.journey.mjs": {
@@ -4407,7 +4407,7 @@
       "executable": false
     },
     "vite.config.ts": {
-      "sha256": "babbe4e7946cabf168f718289ffadaa62c69c8890f35acca5cbf2160f25c0b11",
+      "sha256": "7ae71c6a48cf8181c014ddc48f784967f683d4947714b16c3998575cb47c8a29",
       "executable": false
     },
     "wrangler.jsonc": {
