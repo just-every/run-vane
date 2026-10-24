@@ -2,10 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { readFile, mkdir } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomBytes } from 'node:crypto';
+import { captureReport } from './host-local-ui.mjs';
 import { transferSource } from './host-transfer-source.mjs';
 import { redactedTail } from './host-local-processes.mjs';
 import { main as ownerMain, report } from '@runeditrun/rer/modules/deploy-kit/owner-cli';
@@ -77,10 +78,7 @@ test('HOST-003 local rer archive restores the same fixture pageview into a fresh
   await expect(page.getByRole('heading', { name: 'Pageviews', exact: true }).locator('..').locator('.vane-metric')).toHaveText('1');
   await expect(page.locator('main')).toContainText('/subscriptions');
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
-  if (process.env.VANE_SCREEN_DIR) {
-   await mkdir(process.env.VANE_SCREEN_DIR, { recursive: true });
-   await page.screenshot({ path: join(process.env.VANE_SCREEN_DIR, `host-cloudflare-report-${width}.png`) });
-  }
+  await captureReport(page, process.env.VANE_SCREEN_DIR, 'cloudflare', width);
  }
  t.diagnostic('The public rer import restored the exported local fixture pageview into a fresh held-account deployment; both report widths passed.');
 });

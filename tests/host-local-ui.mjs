@@ -53,8 +53,27 @@ export async function installedUI(t, installation, { screens, label }) {
     await expect(pageviews.locator('.vane-metric')).toHaveText('1')
     await expect(page.locator('main')).toContainText('/subscriptions')
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false)
-    if (screens) { await mkdir(screens, { recursive: true }); await page.screenshot({ path: join(screens, `host-${label}-report-${width}.png`) }) }
+    await captureReport(page, screens, label, width)
   }
   await visitor.close()
   return { page, reportURL }
+}
+
+export async function captureReport(page, screens, label, width) {
+  if (!screens) return
+  const { expect } = await import('@playwright/test')
+  await mkdir(screens, { recursive: true })
+  await page.screenshot({ path: join(screens, `host-${label}-report-${width}.png`) })
+  if (width === 390) {
+    const menu = page.locator('.vane-menu > summary')
+    const tooltip = menu.getByRole('tooltip')
+    await page.keyboard.press('Tab')
+    await menu.focus()
+    await expect(tooltip).toBeVisible()
+    await page.screenshot({ path: join(screens, `host-${label}-menu-focus-${width}.png`) })
+    await page.getByRole('heading', { name: 'Overview', exact: true, level: 1 }).click()
+    await menu.hover()
+    await expect(tooltip).toBeVisible()
+    await page.screenshot({ path: join(screens, `host-${label}-menu-hover-${width}.png`) })
+  }
 }

@@ -4227,7 +4227,7 @@
       "executable": false
     },
     "tests/host-cloudflare.journey.mjs": {
-      "sha256": "f979424b9a8d4be5a4a5b5d782e19248e8a8e686fdec4c45f92aeb38a45db8c4",
+      "sha256": "6a87c19ca088228d91c5fb28848a00ea659680a5d60a25b7b8d13fef098fcbfa",
       "executable": false
     },
     "tests/host-local-processes.mjs": {
@@ -4235,7 +4235,7 @@
       "executable": false
     },
     "tests/host-local-ui.mjs": {
-      "sha256": "200772fd7681b0ce32728531998e14dcfae85165e4f8ee561f903e6b0e9100a0",
+      "sha256": "0d2c0a795f15ea1fc14cf5a4d7b4497cbffefeb88eaf74c4c63b24b6ae1fdeac",
       "executable": false
     },
     "tests/host-local.journey.mjs": {
