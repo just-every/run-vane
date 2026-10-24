@@ -1399,7 +1399,7 @@
       "executable": false
     },
     "src/mail.server.mjs": {
-      "sha256": "11145ef4f77b5bb708b4041f07fa3ef7417f334aac46d10b0056bde8baa0f34a",
+      "sha256": "9186dd320bafef65c202fdadbedc5b6409a37ca4d330f5c478a511da8f822454",
       "executable": false
     },
     "src/modules/ai/client.mjs": {
