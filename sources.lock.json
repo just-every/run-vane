@@ -79,7 +79,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "8843cde3465ac9a9fada4d5e7ae4751f78fd996cfa5f83baf610631f8c7073e6",
+      "sha256": "a0aba989884ed6b363735bf0dc315eaaafe9361e615fbc141a56e94216f57e4a",
       "executable": false
     },
     "AGENTS.md": {
@@ -111,7 +111,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "6b4ed40af84403593d3d1052f56fefb16d68e5778e577ff49463b0e2587de5d3",
+      "sha256": "9a2d5223c9d317b0bc6a94e12f03deee1bfe3b4ddcc97d5bb17b02649c4b8354",
       "executable": false
     },
     "DEMO.md": {
@@ -3031,7 +3031,7 @@
       "executable": false
     },
     "src/vane/analytics/visits/journeys.ts": {
-      "sha256": "28f2197e7b75750863c6e2491a0b1432f2dff0be55f41d4afcdb309304dfafe8",
+      "sha256": "358de53faf2bee013ec341c870b60e09387cd57b2afd6d305ec0a13cacfcef59",
       "executable": false
     },
     "src/vane/analytics/visits/locations.ts": {
@@ -4399,7 +4399,7 @@
       "executable": false
     },
     "tests/visit-analytics.test.mjs": {
-      "sha256": "d8da474cca0d86fa0c21bfbe4e9f00a0cf669860f4487049cc506a5a68612f7f",
+      "sha256": "41421c3be3d92c37924b889a3af5215d6360982ab9dd4f60029258cf65fa1347",
       "executable": false
     },
     "tsconfig.json": {

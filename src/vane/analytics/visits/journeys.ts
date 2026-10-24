@@ -9,19 +9,36 @@ export interface JourneyRow {
  n:number
 }
 
+// Resolve full-token order only inside one indexed prefix. For a relative
+// lookup, exhaust the anchor prefix first, then seek the strict neighboring
+// prefix. This avoids filtering every later occurrence by its full token.
+function canonicalOccurrence(point:string,after:boolean,relative:boolean) {
+ const direction=after?'ASC':'DESC',comparison=after?'>':'<'
+ const prefix='substr(occurrence.token,1,4)',anchor=`substr(${point}.token,1,4)`
+ const group='occurrence.group_id=g.group_id'
+ const nextPrefix=`(SELECT ${prefix} FROM vane_raw_occurrences occurrence
+  WHERE ${group} ${relative?`AND ${prefix}${comparison}${anchor}`:''}
+  ORDER BY ${prefix} ${direction} LIMIT 1)`
+ const next=`(SELECT occurrence.raw_id FROM vane_raw_occurrences occurrence
+  WHERE ${group} AND ${prefix}=${nextPrefix}
+  ORDER BY occurrence.token ${direction} LIMIT 1)`
+ return relative?`COALESCE((SELECT occurrence.raw_id FROM vane_raw_occurrences occurrence
+  WHERE ${group} AND ${prefix}=${anchor} AND occurrence.token${comparison}${point}.token
+  ORDER BY occurrence.token ${direction} LIMIT 1),${next})`:next
+}
+
 // Fetch one candidate per metadata group before ordering across groups. A
 // canonical chain seeks the indexed four-byte token prefix, then resolves every
 // prefix tie using the full token. Legacy chains use decoded logical-ID order.
 function candidate(point:string,after:boolean,canonical:boolean,timestamp:string,relative=false,path=false) {
  const direction=after?'ASC':'DESC',comparison=after?'>':'<'
  const key=(alias:string)=>canonical?`${alias}.token`:unpackedIdSql(`${alias}.token`,`${point}.site_id`)
- const order=(alias:string)=>canonical?`substr(${alias}.token,1,4) ${direction},${alias}.token ${direction}`:`${key(alias)} ${direction}`
+ const occurrence=canonical?canonicalOccurrence(point,after,relative):`(SELECT occurrence.raw_id FROM vane_raw_occurrences occurrence
+  WHERE occurrence.group_id=g.group_id ${relative?`AND ${key('occurrence')}${comparison}${point}.id`:''}
+  ORDER BY ${key('occurrence')} ${direction} LIMIT 1)`
  return `(SELECT e.raw_id FROM vane_raw_groups g
   ${path?'CROSS JOIN vane_raw_contexts c ON c.context=g.context':''}
-  CROSS JOIN vane_raw_occurrences e ON e.raw_id=(
-   SELECT occurrence.raw_id FROM vane_raw_occurrences occurrence WHERE occurrence.group_id=g.group_id
-   ${relative?`${canonical?`AND substr(occurrence.token,1,4)${comparison}=substr(${point}.token,1,4)`:''} AND ${key('occurrence')}${comparison}${point}.${canonical?'token':'id'}`:''}
-   ORDER BY ${order('occurrence')} LIMIT 1)
+  CROSS JOIN vane_raw_occurrences e ON e.raw_id=${occurrence}
   WHERE g.visit_id=${point}.visit AND g.at_offset=${timestamp} ${path?`AND ${dimension('path')}=?4`:''}
   ORDER BY ${key('e')} ${direction} LIMIT 1)`
 }

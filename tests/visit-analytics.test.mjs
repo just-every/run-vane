@@ -1,5 +1,6 @@
 import test from 'node:test'
-import { assert, withApp } from './vane-helpers.mjs'
+import { mkdir } from 'node:fs/promises'
+import { assert, withApp, browse } from './vane-helpers.mjs'
 
 test('native visit facts keep reverse arrivals, tied IDs, a late bridge, engagement, performance replacement, restore and erasure exact through the summary door',async t=>{
  const a=await withApp(t),headers={cookie:a.owner},date='2026-06-01',origin='https://fern.example'
@@ -66,4 +67,58 @@ test('native visit facts keep reverse arrivals, tied IDs, a late bridge, engagem
  assert.equal((await b.form({operation:'proposal.approve',id:proposal.id},b.owner)).status,303)
  const erased=await summary(b)
  assert.deepEqual([erased.pageviews,erased.visits,erased.bounces,erased.topPages,erased.perf.pages],[0,0,0,[],[]])
+ // Refill through the native door with colliding prefixes across metadata
+ // groups and strict prefix transitions at one instant, in reverse arrival
+ // order. Check every anchor in both directions, including time boundaries.
+ const sequence=[
+  ['00000000-0000-4000-8000-000000000001','09:59:00'],
+  ['00000000-0000-4000-8000-000000000002','10:00:00'],
+  ['00000000-0000-4000-8000-000000000003','10:00:00'],
+  ['00000001-0000-4000-8000-000000000001','10:00:00'],
+  ['00000001-0000-4000-8000-000000000002','10:00:00'],
+  ['ffffffff-ffff-4fff-8fff-ffffffffffff','10:00:00'],
+  ['00000000-0000-4000-8000-000000000004','10:01:00'],
+ ].map(([id,time],index)=>({id,time,path:`/prefix-${[2,4].includes(index)?1:index}`}))
+ for(const time of ['10:01:00','10:00:00','09:59:00']){
+  await b.clock(Date.parse(date+'T'+time+'Z'))
+  const events=sequence.filter(event=>event.time===time).reverse().map(event=>b.event(siteId,{id:event.id,path:event.path,campaign:event.path}))
+  const response=await b.post('/api/vane/collect-batch',{events},'',{origin,'cf-connecting-ip':'203.0.113.17','user-agent':'Synthetic Vane Browser 1'})
+  assert.equal(response.status,202,await response.clone().text())
+ }
+ for(const [index,event] of sequence.entries()){
+  if(sequence.findIndex(row=>row.path===event.path)!==index)continue
+  const journey=(await summary(b,'&journey='+event.path)).journey
+  const next=sequence.slice(index+1,index+4).map(row=>row.path)
+  if(next.length<3)next.push('(exit)')
+  const previous=sequence.slice(Math.max(0,index-3),index).reverse().map(row=>row.path)
+  if(previous.length<3)previous.push('(entrance)')
+  assert.deepEqual(journey.next.map(row=>[row.steps,row.visits]),[[next,1]],event.path)
+  assert.deepEqual(journey.previous.map(row=>[row.steps,row.visits]),[[previous,1]],event.path)
+ }
+ const entry=(await summary(b,'&journey=/prefix-0&journeyMode=entry')).journey
+ assert.equal(entry.visits,1)
+ assert.equal((await summary(b,'&journey=/prefix-3&journeyMode=entry')).journey.visits,0)
+ if(process.env.VANE_SCREEN_DIR){
+  await mkdir(process.env.VANE_SCREEN_DIR,{recursive:true})
+  const {context}=await browse(t,b)
+  await context.addCookies(b.owner.split('; ').map(pair=>{const i=pair.indexOf('=');return {name:pair.slice(0,i),value:pair.slice(i+1),url:b.origin}}))
+  const page=await context.newPage()
+  for(const width of [1440,390]){
+   await page.setViewportSize({width,height:960})
+   await page.goto(`${b.origin}/app/sites/${siteId}?section=report&from=${date}&to=2026-06-02&journey=/prefix-3`)
+   await page.getByRole('heading',{name:'Journeys',exact:true}).scrollIntoViewIfNeeded()
+   assert.equal(await page.getByRole('region',{name:'Next steps from /prefix-3',exact:true}).isVisible(),true)
+   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false)
+   await page.screenshot({path:`${process.env.VANE_SCREEN_DIR}/canonical-journey-${width}.png`})
+   if(width===390){
+    const menu=page.locator('summary[aria-label=Menu]')
+    await menu.focus();assert.equal(await page.getByRole('tooltip',{name:'Open menu'}).isVisible(),true)
+    await page.screenshot({path:`${process.env.VANE_SCREEN_DIR}/canonical-tooltip-focus-${width}.png`})
+    await menu.evaluate(element=>element.blur());await menu.hover();await page.waitForTimeout(350)
+    assert.equal(await page.getByRole('tooltip',{name:'Open menu'}).isVisible(),true)
+    await page.screenshot({path:`${process.env.VANE_SCREEN_DIR}/canonical-tooltip-hover-${width}.png`})
+   }
+  }
+ }
+
 })
