@@ -12,6 +12,7 @@ permissions:
 
 jobs:
   umami-publication:
+    name: Full Umami publication and custody
     runs-on: ubuntu-24.04
     timeout-minutes: 240
     env:

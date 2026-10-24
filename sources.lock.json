@@ -107,11 +107,11 @@
       "executable": false
     },
     ".github/workflows/host-local.yml": {
-      "sha256": "d81f69d96db81ddba22435bf7f07f2e56dc38d5bd51ecff6ddca48dab48857c7",
+      "sha256": "d4e617868604643e8832124fde18d17a28a79aaed7c93011e7cd5a6cce36da90",
       "executable": false
     },
     ".github/workflows/import-scale.yml": {
-      "sha256": "ea195d2d30657d7eb01f8e8df0b8db038f619767c5665ddf9cd3b46dde74b4dc",
+      "sha256": "6ce9861f7cd7556d98b05d417a90c2d167ad2fb0ce3e3d17adfa9606fc7acc7b",
       "executable": false
     },
     ".github/workflows/proxy-blocker.yml": {
@@ -183,7 +183,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "444118909866749679b5ddc45d438d0462f9c93b0c3ddc2ae5bfe72c8c626a8b",
+      "sha256": "d56c98fc3dcdb6f3cb503e9cf5943ac63e9c8a977196f9dd69821fa4f50d6484",
       "executable": false
     },
     "DEMO.md": {

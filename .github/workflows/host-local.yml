@@ -9,6 +9,7 @@ permissions:
   contents: read
 jobs:
   host-local:
+    name: Local installation and network-cut runtime
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     env:
