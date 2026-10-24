@@ -433,9 +433,9 @@ Judged from the code and tests at commit `c0271cc7262225ab077ea7e8387ed47eeed89d
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Published | 16 | 1 | 0 | 17 |
-| Target and push further | 71 | 13 | 9 | 93 |
-| All | 87 | 14 | 9 | 110 |
+| Published | 17 | 0 | 0 | 17 |
+| Target and push further | 72 | 12 | 9 | 93 |
+| All | 89 | 12 | 9 | 110 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -455,7 +455,7 @@ Judged from the code and tests at commit `c0271cc7262225ab077ea7e8387ed47eeed89d
 | `DOCS-001` | Documentation built from repository Markdown | published | done | `src/site/docs/render.ts`; `src/site/docs/pages.ts`; `tests/site.test.mjs` |  |
 | `HOME-001` | The approved homepage in the shared theme | published | done | `src/site/landing/page.ts` and its section files in `src/site/landing/`; `tests/site.test.mjs` |  |
 | `LOBBY-001` | The installed Lobby and real sign-in stay intact | published | done | `src/base/lobby.ts`; `tests/harness.mjs`; `tests/vane.test.mjs`; `tests/email-link.mjs` |  |
-| `DEPLOY-001` | Run-site deployment stays behind its switch | published | partial | `.github/workflows/run-site.yml`; `wrangler.jsonc` | The unset RUN_SITE_DEPLOY workflow execution has no passing public-door probe cited. Existing identifier declarations are preserved; no permanent configuration-shape test is added. |
+| `DEPLOY-001` | Run-site deployment stays behind its switch | published | done | `.github/workflows/run-site.yml`, Run site workflow 40142096805 on e92c624a68c66d1000bee594f83a92066d510a70: the manual prove_unset_switch input unsets the effective RUN_SITE_DEPLOY variable for this execution without changing the repository variable. Job deployment-switch completed successfully and job deploy completed skipped. The same resolved-switch output gates normal runs; only the exact value true enables deployment. `wrangler.jsonc`, `package.json` and `edition.json` are byte-for-byte unchanged from starting main 35d45430bc9fb50ba944e45d5dfece89f1777ca5, preserving all edition, package, Worker and database identifiers. No permanent configuration-shape test was added. |  |
 | `INSTALL-001` | One script tag with live install verification | target | done | `src/vane/install-check.ts`; `src/vane/actions.ts`; `src/vane/views/settings.ts`; `src/vane/views/script-copy.ts`; `tests/vane.test.mjs` |  |
 | `INSTALL-002` | WordPress and WooCommerce plugin | target | missing |  | No WordPress or WooCommerce plugin. |
 | `INSTALL-003` | Shopify app with checkout tracking | target | missing |  | No Shopify app, web pixel or order reconciliation. |
