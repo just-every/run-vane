@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "parent": null,
   "edition": "analytics/vane",
-  "manifest": "6583de92e2f4f69484a603ef77e64d7bfe1f667f45026b7d67d753b8c0e512b4",
+  "manifest": "e43c1dfa19ea57bdf0d7b902784e683e23db513da61de752c78e3f7ab7d826c3",
   "toolchain": {
     "id": "runeditrun/edition-authoring",
     "version": "1.1.0",
@@ -18,7 +18,8 @@
           "src/modules",
           "src/auth.server.ts",
           "src/mail.server.mjs",
-          "src/mail.server.d.mts"
+          "src/mail.server.d.mts",
+          "scripts/installer/local.mjs"
         ],
         "origin": {
           "repository": "runeditrun/base",
@@ -27,7 +28,8 @@
             "modules/import-kit/src/d1",
             "foundation/template/src/auth.server.ts",
             "foundation/template/src/mail.server.mjs",
-            "foundation/template/src/mail.server.d.mts"
+            "foundation/template/src/mail.server.d.mts",
+            "foundation/template/scripts/installer/local.mjs"
           ]
         },
         "mappings": [
@@ -46,13 +48,17 @@
           {
             "path": "src/mail.server.d.mts",
             "originPath": "foundation/template/src/mail.server.d.mts"
+          },
+          {
+            "path": "scripts/installer/local.mjs",
+            "originPath": "foundation/template/scripts/installer/local.mjs"
           }
         ]
       },
       "baseline": {
-        "key": "2adad39d5b1784b30c739c63e6e84b9e9702313d65cfe19390f03e14a8941f41",
-        "digest": "1909b4b5480e2966ec7044f4d027b35d164d57b8c4c97b9dcae075eee68aa707",
-        "sha256": "2255cbece23a1dca36e276ebf6bdb6557fd7ce75c139ef9f5aee2d5cace656a4"
+        "key": "ac52a61a46a7577019a538e2601502b2bd24b3bd6f31053c39f0348ece7e5282",
+        "digest": "e3b78064db983b1158771ad0b0ce04027dcb9270a5f0b60cbee71b93ab891e76",
+        "sha256": "1f94dea2c97329de8f9a1be9117def98ccae29e12e4fda122d4dff015b7f7fdf"
       }
     },
     {
@@ -257,7 +263,7 @@
       "executable": false
     },
     "edition.json": {
-      "sha256": "6583de92e2f4f69484a603ef77e64d7bfe1f667f45026b7d67d753b8c0e512b4",
+      "sha256": "e43c1dfa19ea57bdf0d7b902784e683e23db513da61de752c78e3f7ab7d826c3",
       "executable": false
     },
     "HOMEPAGE-VARIANTS.md": {
@@ -1021,11 +1027,11 @@
       "executable": false
     },
     "rer-project.json": {
-      "sha256": "b0adca9deabbe946e950835c1d3c4e9786b0720ec557b2d3d6b4b5b4400414aa",
+      "sha256": "ec0c15683d6698cb39c0bce2abd3bf512b8ec15a7badff7826cbcbaa613000ca",
       "executable": false
     },
     "rer-setup.json": {
-      "sha256": "614e0ddbb4f5c68d3a188415526a1df98f28393c4d97184a63173ec159c09a52",
+      "sha256": "2c1c3177521ffbccf2487165d58c3e8acb21a29fef1f1e156c12a736b897bbb1",
       "executable": false
     },
     "RUN-LOCALLY.md": {
@@ -1213,7 +1219,7 @@
       "executable": false
     },
     "scripts/installer/local.mjs": {
-      "sha256": "4040f8ffaa69769084598ce0c2a0b9850aa030a489700a5c0bdde90d662fed25",
+      "sha256": "4f5ebccabf784d468e9f697aa3485b042a8d98cd08e932a76ad081a39d6bd1b4",
       "executable": false
     },
     "scripts/installer/portability-policy.mjs": {

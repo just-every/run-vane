@@ -87,6 +87,10 @@
         {
           "value": "cloudflare",
           "label": "Cloudflare Email Sending"
+        },
+        {
+          "value": "development",
+          "label": "Local development (no email)"
         }
       ]
     },
