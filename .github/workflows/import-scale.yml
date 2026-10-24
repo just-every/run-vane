@@ -4,6 +4,8 @@ name: Import scale
 # separately from the ordinary verification shards, including on candidate branches.
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '43 19 * * *'
 
 permissions:
   contents: read
