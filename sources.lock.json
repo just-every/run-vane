@@ -4227,7 +4227,7 @@
       "executable": false
     },
     "tests/host-cloudflare.journey.mjs": {
-      "sha256": "0a590dc05f0bd52685510a8af958ab00bc92e700c603f2a13dbcb1fd3e54d5af",
+      "sha256": "58b953e973c420e03eb2fef1742b8d8ea8b0c06665aa98b59563422e7e390f51",
       "executable": false
     },
     "tests/host-local-processes.mjs": {
