@@ -20,7 +20,7 @@ export default {
   async fetch(request, env, execution) {
     // Local requests did not cross Cloudflare's edge. The emulator's host or
     // default metadata is not visitor geography or a visitor network signal.
-    const localRequest = new Request(request, { cf: {} })
+    const localRequest = new Request(request, { cf: {} }) as typeof request
     const response = await dev.fetch!(localRequest, env, execution)
     if (!['/signin', '/__dev/key'].includes(new URL(request.url).pathname) || (await response.clone().text()).includes(look)) return response
     return (await fontDocumentResponse(response))!
