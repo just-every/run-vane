@@ -1,5 +1,27 @@
 {
   "schema": 1,
   "projectId": "analytics/vane",
-  "sourceRepository": "https://github.com/just-every/run-vane"
+  "name": "Vane",
+  "sourceRepository": "https://github.com/just-every/run-vane",
+  "license": "MIT",
+  "deployment": {
+    "target": "cloudflare-workers",
+    "artifactFile": "vane-worker-artifact.json"
+  },
+  "operations": {
+    "setup": "pnpm install --frozen-lockfile",
+    "build": "pnpm run build",
+    "verify": "pnpm run check:deployment-spec && pnpm run verify",
+    "artifact": "node scripts/delivery/base/cli.mjs artifact --config packaging.json",
+    "recovery": "Follow OPERATIONS.md: stop collection, report schedules and imports; export the stopped installation with rer export, retain source and private configuration, restore with rer import into an empty installation, and verify owner access, site history and a re-export before routing traffic. Preserve every applied migration name and byte."
+  },
+  "verification": {
+    "migrationDirectories": [
+      "migrations/core"
+    ]
+  },
+  "setup": {
+    "path": "rer-setup.json",
+    "sha256": "614e0ddbb4f5c68d3a188415526a1df98f28393c4d97184a63173ec159c09a52"
+  }
 }

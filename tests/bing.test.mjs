@@ -9,7 +9,7 @@ const T=Date.parse('2026-10-19T12:00:00Z'),DAY=86400000
 test('SEARCH-002 verified Bing connection, source keyword/page figures beside Google, organic landing filter, private credentials and scoped public doors',async t=>{
  const a=await installation({vars:{GOOGLE_CLIENT_ID:'fixture-google-client',GOOGLE_CLIENT_SECRET:'fixture-google-secret'}});t.after(()=>a.close())
  const id=await a.addSite({paths:[],goals:{},retainForever:true}),other=await a.addSite({origin:'https://other.example',paths:[],goals:{}})
- const owner={headers:{cookie:a.owner}},apiKey='fixture-bing-key-private-to-network-edge',property='https://fern.example/'
+ const owner={headers:{cookie:a.owner}},apiKey='synthetic-vane-1',property='https://fern.example/'
  await a.clock(Date.parse('2026-10-16T12:00:00Z'))
  for(const [i,path,source] of [[1,'/guide','bing.com'],[2,'/guide','bing.com'],[3,'/shop','bing.com'],[4,'/guide','direct']]){
   const response=await a.post('/api/vane/collect',a.event(id,{path,source}),'',{origin:'https://fern.example','cf-connecting-ip':`198.51.100.${i}`})
@@ -54,7 +54,7 @@ test('SEARCH-002 verified Bing connection, source keyword/page figures beside Go
  assert.equal((await a.request(reportURL(),{headers:{cookie:scoped}})).status,403)
  assert.equal(providerCalls,0,'refused public-door requests cannot reach Bing')
  assert.equal((await op('search.bing.connect',{property:'https://fern.example/not-verified/',apiKey})).status,400,'a returned but unverified property cannot connect')
- a.fixtureSites['https://oauth2.googleapis.com']=()=>Response.json({access_token:'fixture-google-access',refresh_token:'fixture-google-refresh',expires_in:3600,token_type:'Bearer',scope:'https://www.googleapis.com/auth/webmasters.readonly'});
+ a.fixtureSites['https://oauth2.googleapis.com']=()=>Response.json({access_token:'synthetic-vane-2',refresh_token:'synthetic-vane-3',expires_in:3600,token_type:'Bearer',scope:'https://www.googleapis.com/auth/webmasters.readonly'});
  a.fixtureSites['https://www.googleapis.com']=async request=>{const url=new URL(request.url);if(url.pathname==='/webmasters/v3/sites')return Response.json({siteEntry:[{siteUrl:property,permissionLevel:'siteOwner'}]});const q=await request.json(),keys=q.dimensions.map(key=>key==='date'?'2026-10-16':key==='query'?'pour over':property+'shop');return Response.json({rows:[{keys,clicks:4,impressions:40,ctr:0.1,position:6}]})};
  const googleBegin=await op('search.google.begin'),googleState=new URL(googleBegin.headers.get('location')).searchParams.get('state');assert.equal((await a.request('/api/vane/search-console/callback?'+new URLSearchParams({state:googleState,code:'fixture-code'}),owner)).status,303);assert.equal((await op('search.google.property',{property})).status,303);
  assert.equal((await op('search.bing.connect',{property,apiKey})).status,303)

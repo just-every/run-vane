@@ -7,7 +7,9 @@
     "nodejs_compat"
   ],
   "triggers": {
-    "crons": ["*/5 * * * *"]
+    "crons": [
+      "*/5 * * * *"
+    ]
   },
   "d1_databases": [
     {
@@ -16,5 +18,14 @@
       "database_id": "local-foundation-only",
       "migrations_dir": "migrations/core"
     }
-  ]
+  ],
+  "vars": {
+    "AUTH_ORIGIN": "",
+    "OWNER_EMAIL": "",
+    "IDENTITY_PROVIDER": "",
+    "MAIL_PROVIDER": "",
+    "MAIL_FROM": "",
+    "MAIL_RELAY_URL": "",
+    "MAIL_ACCOUNT_ID": ""
+  }
 }

@@ -64,7 +64,7 @@
     {
       "id": "matomo",
       "required": false,
-      "why": "Owner-initiated read-only Matomo Reporting API history import (IMPORT-005)",
+      "why": "Owner-initiated read-only Reporting API history import (IMPORT-005)",
       "data": [
         "Selected source site ID and day; one-use API token",
         "Aggregate traffic, goal and ecommerce reports; no visitor logs"
@@ -154,7 +154,7 @@
     {
       "id": "google-analytics",
       "required": false,
-      "why": "Owner-connected read-only GA4 aggregate history and key events (IMPORT-002)",
+      "why": "Owner-connected read-only property aggregate history and key events (IMPORT-002)",
       "data": [
         "OAuth credentials, selected property and inclusive date range to fixed official Google endpoints",
         "Daily source aggregates and key-event definitions returned; no collected Vane visitor records sent"

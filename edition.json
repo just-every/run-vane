@@ -14,7 +14,38 @@
         "kind": "local",
         "paths": [
           "src/base",
-          "src/modules"
+          "src/modules",
+          "src/auth.server.ts",
+          "src/mail.server.mjs",
+          "src/mail.server.d.mts"
+        ],
+        "origin": {
+          "repository": "runeditrun/base",
+          "revision": "b70dbba0f53353eb6f3cdd2713f3cca0712b341b",
+          "paths": [
+            "modules/import-kit/src/d1",
+            "foundation/template/src/auth.server.ts",
+            "foundation/template/src/mail.server.mjs",
+            "foundation/template/src/mail.server.d.mts"
+          ]
+        },
+        "mappings": [
+          {
+            "path": "src/modules/import-kit/src/d1",
+            "originPath": "modules/import-kit/src/d1"
+          },
+          {
+            "path": "src/auth.server.ts",
+            "originPath": "foundation/template/src/auth.server.ts"
+          },
+          {
+            "path": "src/mail.server.mjs",
+            "originPath": "foundation/template/src/mail.server.mjs"
+          },
+          {
+            "path": "src/mail.server.d.mts",
+            "originPath": "foundation/template/src/mail.server.d.mts"
+          }
         ]
       }
     },
@@ -27,6 +58,29 @@
           "src/vane",
           "src/demo.ts",
           "package.json"
+        ]
+      }
+    },
+    {
+      "id": "analytics/vane-delivery",
+      "role": "module",
+      "source": {
+        "kind": "local",
+        "paths": [
+          "scripts/delivery/base/setup-manifest.mjs"
+        ],
+        "origin": {
+          "repository": "runeditrun/base",
+          "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
+          "paths": [
+            "modules/delivery-producer/setup-manifest.mjs"
+          ]
+        },
+        "mappings": [
+          {
+            "path": "scripts/delivery/base/setup-manifest.mjs",
+            "originPath": "modules/delivery-producer/setup-manifest.mjs"
+          }
         ]
       }
     }

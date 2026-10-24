@@ -9,7 +9,7 @@ test('REPORT-002 Slack OAuth, Teams workflow and Nook NOOK-079: weekly filtered 
  const id=await a.addSite({paths:[],goals:{signup:'/thanks'},timeZone:'America/New_York',retainForever:true}),other=await a.addSite({origin:'https://other.example',paths:[],goals:{}})
  const op=(operation,p={},cookie=a.owner)=>a.form({operation,siteId:id,...p},cookie),owner={headers:{cookie:a.owner}}
  const generated=[];a.fixtureSites['https://hooks.example']=async request=>{assert.ok(request.headers.get('vane-signature'));generated.push(await request.json());return new Response('ok')}
- const endpoint='https://workflow.example/trigger/private-workflow?sig=fixture-private-signature',token='xoxb-fixture-private-bot-token',sent=[],revokes=[];let revoked=false,workflowStatus=202,nookStatus=201,authCalls=0
+ const endpoint='https://workflow.example/trigger/private-workflow?sig=fixture-private-signature',token='synthetic-vane-4',sent=[],revokes=[];let revoked=false,workflowStatus=202,nookStatus=201,authCalls=0
  a.fixtureSites['https://slack.com']=async request=>{
   const url=new URL(request.url);assert.equal(request.method,'POST')
   if(url.pathname==='/api/oauth.v2.access'){
@@ -21,7 +21,7 @@ test('REPORT-002 Slack OAuth, Teams workflow and Nook NOOK-079: weekly filtered 
   assert.equal(url.pathname,'/api/chat.postMessage');const body=await request.json();assert.equal(body.channel,'C0123456789');sent.push({provider:'slack',body});return Response.json(revoked?{ok:false,error:'token_revoked'}:{ok:true,ts:'123.4'})
  }
  a.fixtureSites['https://workflow.example']=async request=>{assert.equal(request.url,endpoint);const body=await request.json();assert.equal(body.type,'message');assert.equal(body.attachments[0].contentType,'application/vnd.microsoft.card.adaptive');sent.push({provider:'teams',body});return new Response('',{status:workflowStatus,headers:workflowStatus===302?{location:'https://redirect.example/secret'}:{}})}
- const nookToken='nookit_fixture_private_integration_token',nookChannel='channel-marketing',nookKeys=new Set()
+ const nookToken=`nookit_${'synthetic-vane-5'.padEnd(24,'0')}`,nookChannel='channel-marketing',nookKeys=new Set()
  a.fixtureSites['https://nook.example']=async request=>{assert.equal(new URL(request.url).pathname,'/api/conversations/'+nookChannel+'/messages');assert.equal(request.method,'POST');assert.equal(request.headers.get('authorization'),'Bearer '+nookToken);const key=request.headers.get('idempotency-key');assert.match(key,/^[A-Za-z0-9._:-]{1,64}$/);assert.equal(nookKeys.has(key),false,'every report or alert has one stable identity');nookKeys.add(key);const body=await request.json();assert.deepEqual(Object.keys(body),['body']);sent.push({provider:'nook',body});return new Response('',{status:nookStatus,headers:nookStatus===302?{location:'https://redirect.example/secret'}:{}})}
  const authorization=async response=>{assert.equal(response.status,200,await response.clone().text());const html=await response.text(),url=html.match(/data-slack-authorize href="([^"]+)"/)?.[1];assert.ok(url);return new URL(url.replaceAll('&amp;','&'))}
  const now=Date.parse('2026-10-25T12:00:00Z');await a.clock(now)
