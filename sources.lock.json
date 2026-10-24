@@ -79,7 +79,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "884b960c40862b9003ac83462a21a9bc83f1b9a540647f0efcca141cf45c96ab",
+      "sha256": "384b27ef87160ccd2aab9d9b4f8fdec8e1d4253a8b8cd5ef5b2158ee7bb42343",
       "executable": false
     },
     "AGENTS.md": {
@@ -111,7 +111,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "acbf6900d9fe4bab583f6a048b525e84f0b9ec6ecd44f782950a9e8ae4e6a892",
+      "sha256": "b750ac2c296ec125c32d9df8d74f56589fa239229c1458fa4cb71ae4a97ecb6b",
       "executable": false
     },
     "DEMO.md": {
@@ -171,7 +171,7 @@
       "executable": false
     },
     "docs/hosting-cost.md": {
-      "sha256": "ac8bb594d8f21711e90dd965a68a3e2fd2d984fc57e86631b5cdbee48f9fb000",
+      "sha256": "b2959f757356af147ebf39276878f917f4382bee6a576820d0e0ca1ecfa3fc8e",
       "executable": false
     },
     "docs/instrumentation.md": {

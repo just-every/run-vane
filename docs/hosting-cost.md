@@ -90,6 +90,6 @@ VANE_HOST_OFFLINE_JOURNEY=1 node --test --test-name-pattern='network-denied runt
 
 It requires Linux user and network namespace support and the `ip` command.
 Build and install Chromium first. This does not replace the separate one-line
-installer acceptance. In the cloud VM, pinned rer 0.2.79 exited during cloning because the filtered source could
-not supply a required Git object; the complete installed offline replay remains unproved.
+installer acceptance. The complete-source journey uses pinned rer 0.2.79. The full installed offline
+replay remains unproved until the Local installation journey workflow passes.
 Moving an installation to Cloudflare still requires an owner test account.
