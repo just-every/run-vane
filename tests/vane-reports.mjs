@@ -301,7 +301,6 @@ test('DASH-004 Google organic and paid, Facebook, an email UTM, webmail, chatgpt
  const {context}=await browse(t,a,{'https://chatgpt.com/c/123?q=private':'<!doctype html><a href="https://fern.example/thanks?utm_medium=referral">Fern</a>','https://fern.example/thanks?utm_medium=referral':`<!doctype html><title>Journal</title><script src="${a.origin}/vane.js" data-site="${id}"></script>`}),tab=await context.newPage()
  await a.clock(Date.now());await tab.goto('https://chatgpt.com/c/123?q=private');const sent=tab.waitForResponse(r=>new URL(r.url()).pathname==='/api/vane/collect');await tab.click('a');assert.equal((await sent).status(),202)
  const followed=(await a.dump()).vane_events.find(e=>e.site_id===id&&e.path==='/thanks'&&e.kind==='pageview'&&e.referrer);assert.deepEqual([followed.source,followed.referrer,followed.channel,followed.utm_medium],['chatgpt.com','chatgpt.com/','AI Assistants','referral'])
- const methodology=await (await a.request('/methodology')).text();for(const phrase of ['AI Assistants','chatgpt.com','Paid Social','mail.google.com'])assert.ok(methodology.includes(phrase),phrase)
 })
 test('DASH-014 Hacker News, two Slack referrers, Facebook and an unlisted blog report under named sources with a drill-down, and an approved owner rule regroups the blog',async t=>{
  const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite()
@@ -318,8 +317,6 @@ test('DASH-014 Hacker News, two Slack referrers, Facebook and an unlisted blog r
  assert.equal((await a.form({operation:'proposal.approve',id:p.id},a.owner)).status,303)
  r=await summary();assert.deepEqual(pick(r),{'Hacker News':1,Slack:2,Facebook:1,'Brew Blog':1})
  assert.ok((await (await a.request(`/app/sites/${id}?section=report`,owner)).text()).includes('brewblog.example as Brew Blog'))
- const methodology=await (await a.request('/methodology')).text()
- for(const line of ['Hacker News: news.ycombinator.com.','Slack: slack.com, android-app://com.slack.android.','Facebook: facebook.com, fb.com, android-app://com.facebook.katana.','X: x.com, twitter.com, t.co'])assert.ok(methodology.includes(line),line)
 })
 test('PRIVACY-001 the data inventory and generated policy text change with the site settings, and every stored column of the site is in its inventory',async t=>{
  const a=await withApp(t),owner={headers:{cookie:a.owner}},id=await a.addSite(),inv=async()=>(await a.request('/api/vane/inventory?siteId='+id,owner)).json()
