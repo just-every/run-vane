@@ -90,8 +90,16 @@ VANE_HOST_OFFLINE_JOURNEY=1 node --test --test-name-pattern='network-denied runt
 
 It requires Linux user and network namespace support and the `ip` command.
 Build and install Chromium first. This does not replace the separate one-line
-installer acceptance. The complete-source journey uses pinned rer 0.2.79. The full installed offline
-replay remains unproved until the Local installation journey workflow passes.
+installer acceptance. The complete-source journey uses pinned rer 0.2.79. Local installation journey
+workflow 40050422780 passed on bdbcf6377f3a8c04f58b671fb01c321749dfd6a2 on 24 October 2026.
+The installed journey in `tests/host-local.journey.mjs` starts from an empty
+folder, signs in, approves a site, collects a real tracker pageview and reads its
+report at 1440 and 390. It restarts the installed checkout to prove durability,
+then restarts it again inside a Linux network namespace with only loopback and
+no external routes. A real external connection fails before the complete
+sign-in, site approval, collection and report journey passes again offline.
+Both journeys use the same installed checkout and commit; the mobile menu
+tooltip appears on keyboard focus and hover.
 The separate hosted-transfer proof below uses the held RunEditRun test account.
 
 
@@ -106,5 +114,5 @@ account. The owner used the normal sign-in grant and destination first-run form.
 The hosted report still showed that one pageview at 1440 and 390. Missing
 authority and an occupied destination were refused. The created Worker and
 database were removed after the run. Private provider credentials never entered
-the archive or output. This proves HOST-003; the installed offline acceptance of
-HOST-002 still requires its separate complete-source workflow run.
+the archive or output. This proves HOST-003. The separate installed offline acceptance of
+HOST-002 is proved by workflow 40050422780 above.
