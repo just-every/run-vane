@@ -65,6 +65,8 @@ export async function captureReport(page, screens, label, width) {
   await mkdir(screens, { recursive: true })
   await page.screenshot({ path: join(screens, `host-${label}-report-${width}.png`) })
   if (width === 390) {
+    await page.getByRole('heading', { name: 'Pageviews', exact: true }).scrollIntoViewIfNeeded()
+    await page.screenshot({ path: join(screens, `host-${label}-pageviews-${width}.png`) })
     const menu = page.locator('.vane-menu > summary')
     const tooltip = menu.getByRole('tooltip')
     await page.keyboard.press('Tab')

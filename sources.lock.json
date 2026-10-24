@@ -1035,7 +1035,7 @@
       "executable": false
     },
     "scripts/installer/portability-policy.mjs": {
-      "sha256": "17bdf84730bca9ecdd2e9d1733b61381d3f3a8760eba8e18e7a7c9b4ad294fc1",
+      "sha256": "f043e1e62e454140a01f96b1ff5355475db2ce2abeb4c4762e4fc002478407e5",
       "executable": false
     },
     "scripts/installer/portability.mjs": {
@@ -4235,7 +4235,7 @@
       "executable": false
     },
     "tests/host-local-ui.mjs": {
-      "sha256": "0d2c0a795f15ea1fc14cf5a4d7b4497cbffefeb88eaf74c4c63b24b6ae1fdeac",
+      "sha256": "2002bc61160ef28e4de6ca40cbe48d5f7880430f6ea9c0e18a5e38e5951a1411",
       "executable": false
     },
     "tests/host-local.journey.mjs": {
