@@ -72,7 +72,7 @@ test('Umami dry run retains no raw identifiers; exact reviewed import is idempot
  const undone=await a.post('/api/vane/import-undo',{siteId:id,jobId:first.applied.job.id},a.owner);assert.equal(undone.status,200,await undone.clone().text());assert.equal((await a.archive()).payload.tables.vane_import_events.length,0)
 })
 test('complete history restores atomically into an empty installation, rejects corruption and preserves import undo',async t=>{
- const a=await withApp(t),b=await withApp(t),id=await a.addSite();await a.collect(a.event(id));const imported=await movein(a,id),archive=await a.archive()
+ const a=await withApp(t),b=await withApp(t),id=await a.addSite({signalCounter:true});await a.collect(a.event(id));assert.equal((await a.post('/api/vane/signal/'+id,undefined,'',{origin:'https://fern.example'})).status,202);const imported=await movein(a,id),archive=await a.archive()
  const before=await b.dump(),corrupt=structuredClone(archive);corrupt.payload.tables.vane_events[0].path='/changed'
  assert.equal((await b.post('/api/vane/restore',{archive:corrupt},b.owner)).status,400)
  assert.deepEqual(await b.dump(),before,'a corrupt restore changes no row in any destination table')
@@ -90,6 +90,9 @@ test('complete history restores atomically into an empty installation, rejects c
  assert.equal((await b.post('/api/vane/restore',{archive},b.owner)).status,409)
  const undone=await b.post('/api/vane/import-undo',{siteId:id,jobId:imported.applied.job.id},b.owner);assert.equal(undone.status,200,await undone.clone().text())
  assert.equal((await b.archive()).payload.tables.vane_import_events.length,0)
+ const legacy=await withApp(t),earlier=structuredClone(archive);delete earlier.payload.tables.vane_signals;delete earlier.payload.tables.vane_audit;earlier.sha256=createHash('sha256').update(JSON.stringify(earlier.payload)).digest('hex')
+ assert.equal((await legacy.post('/api/vane/restore',{archive:earlier},legacy.owner)).status,200)
+ assert.deepEqual((await legacy.archive()).payload.tables.vane_events,archive.payload.tables.vane_events)
 })
 test('owner erasure removes live and imported custody and later journals fence old backups',async t=>{
  const a=await withApp(t),b=await withApp(t),id=await a.addSite();await a.collect(a.event(id));await movein(a,id);const old=await a.archive()

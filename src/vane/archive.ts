@@ -54,7 +54,8 @@ export async function restoreHistory(env:Env,actor:Actor,input:any,journal?:any)
  // their own forward references; defer those checks until the atomic batch ends.
  inserts.push(statement(env,'PRAGMA defer_foreign_keys = ON'));
  inserts.push(...triggers.map(t=>statement(env,`DROP TRIGGER "${t.name}"`)));
- for(const name of ordered.filter(name=>!name.startsWith('vane_analytics_')))for(const record of data[name]) { const columns=Object.keys(record); inserts.push(statement(env,`INSERT INTO "${name}" (${columns.map(c=>'"'+c+'"').join(',')}) VALUES(${columns.map(()=>'?').join(',')})`,...columns.map(c=>decodeCell(record[c])))); }
+ // Recover JSON numbers through SQLite JSON parsing so integer dimensions keep their exact cell keys.
+ for(const name of ordered.filter(name=>!name.startsWith('vane_analytics_')))for(const record of data[name]) { const columns=Object.keys(record); inserts.push(statement(env,`INSERT INTO "${name}" (${columns.map(c=>'"'+c+'"').join(',')}) VALUES(${columns.map(c=>typeof record[c]==='number'?"json_extract(?,'$')":'?').join(',')})`,...columns.map(c=>typeof record[c]==='number'?JSON.stringify(record[c]):decodeCell(record[c])))); }
  inserts.push(...rebuildAnalyticsStatements(env),...rebuildVisitFactsStatements(env));
  inserts.push(statement(env,'INSERT INTO vane_restore(id,digest,restored_by,at) VALUES(?,?,?,?)',uid(),archive.sha256,actor.id,Date.now()));
  inserts.push(...triggers.map(t=>statement(env,t.sql)));
