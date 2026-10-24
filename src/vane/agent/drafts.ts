@@ -1,10 +1,17 @@
+import { visibleBrief } from './brief-view'
 import { allow, atomic, inScope, insist, rows, site, statement, uid, type Actor, type Env, type Site } from '../core'
 import { auditStatement } from '../audit'
 import { clock } from '../clock'
 import { plainText, localDate } from '../annotations'
 import { agentCommitGuard, agentHistoryStamp } from '../agent-fence'
 export async function agentSite(env:Env,actor:Actor,id:string){allow(actor,'owner');inScope(actor,id);return site(env,id)}
-export async function work(env:Env,actor:Actor,siteId:string,id?:string){await agentSite(env,actor,siteId);return (await rows<any>(env,'SELECT * FROM vane_agent_work WHERE site_id=? AND (? IS NULL OR id=?) ORDER BY at DESC,id LIMIT 100',siteId,id??null,id??null)).map(({payload_json,...r})=>({...r,...JSON.parse(payload_json)}))}
+export async function work(env:Env,actor:Actor,siteId:string,id?:string){
+ await agentSite(env,actor,siteId)
+ const records=(await rows<any>(env,'SELECT * FROM vane_agent_work WHERE site_id=? AND (? IS NULL OR id=?) ORDER BY at DESC,id LIMIT 100',siteId,id??null,id??null)).map(({payload_json,...r})=>({...r,...JSON.parse(payload_json)}))
+ if(!records.some(r=>r.kind==='brief'))return records
+ const dismissed=new Set((await rows<{type:string}>(env,'SELECT type FROM vane_agent_dismissals WHERE site_id=?',siteId)).map(r=>r.type))
+ return records.map(r=>r.kind==='brief'?visibleBrief(r,dismissed):r)
+}
 export async function saveWork(env:Env,actor:Actor,p:{siteId:string;kind:string;from:string;to:string;payload:any},id=uid(),fence?:{value:Site;stamp:number}) {
  const value=fence?.value??await agentSite(env,actor,p.siteId),stamp=fence?.stamp??await agentHistoryStamp(env,value.id)
  await atomic(env,actor,[agentCommitGuard(env,value,stamp),statement(env,'INSERT INTO vane_agent_work(id,site_id,kind,from_day,to_day,payload_json,created_by,at) VALUES(?,?,?,?,?,?,?,?)',id,p.siteId,p.kind,p.from,p.to,JSON.stringify(p.payload),actor.id,clock()),auditStatement(env,actor.id,'agent.'+p.kind,p.siteId,id)])

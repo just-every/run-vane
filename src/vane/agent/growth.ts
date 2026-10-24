@@ -1,3 +1,4 @@
+import { visibleBrief } from './brief-view'
 import { report as searchReport } from '../search-console/report'
 import { agentHistoryStamp } from '../agent-fence'
 import { atomic, day, uid, insist, rows, statement, type Actor, type Env } from '../core'
@@ -16,7 +17,7 @@ export async function growthBrief(env:Env,actor:Actor,p:any){
  const dismissed=new Set((await rows<{type:string}>(env,'SELECT type FROM vane_agent_dismissals WHERE site_id=?',value.id)).map(r=>r.type))
  const saved=(await rows<any>(env,"SELECT * FROM vane_agent_work WHERE site_id=? AND kind='brief' AND from_day=? AND to_day=? ORDER BY at,id LIMIT 1",value.id,from,to))[0]
  const prior=saved?{...saved,...JSON.parse(saved.payload_json)}:undefined
- if(prior)return {...prior,opportunities:prior.opportunities.filter((o:any)=>!dismissed.has(o.type))}
+ if(prior)return visibleBrief(prior,dismissed)
  const r=await createInsightsService(env,value,clock(),{from,to,imported:'off'}).list(),candidates:{type:string;title:string;figures:Record<string,number>;evidence:string}[]=[]
  const channels=(r as typeof r & {channels:{visits:number;conversions:number}[]}).channels??[],siteConversions=channels.reduce((n,c)=>n+c.conversions,0),siteRate=r.visits?Math.round(siteConversions/r.visits*1000)/10:0
  const evidence=`/app/sites/${value.id}?${new URLSearchParams({from,to,imported:'off'})}`

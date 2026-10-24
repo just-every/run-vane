@@ -79,7 +79,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "a0aba989884ed6b363735bf0dc315eaaafe9361e615fbc141a56e94216f57e4a",
+      "sha256": "7c98e1c9313b185236392a017823a109d745ac03f11f4df0e3aba86c943df5ed",
       "executable": false
     },
     "AGENTS.md": {
@@ -111,7 +111,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "9a2d5223c9d317b0bc6a94e12f03deee1bfe3b4ddcc97d5bb17b02649c4b8354",
+      "sha256": "60e67d95aaa0b375a70624e1ee6c8164ad4dac130455088af7f8e45009fab8b2",
       "executable": false
     },
     "DEMO.md": {
@@ -135,7 +135,7 @@
       "executable": false
     },
     "docs/agents.md": {
-      "sha256": "8bcacf7a3d586b3a5a53340520e754b49b583bbb24ad81491a0705ee5fbc5a27",
+      "sha256": "97204be7ab0898f8b0260e6bd48c8d5c4a5b704d4e049bcbbdf6cb47ba25d2db",
       "executable": false
     },
     "docs/approvals.md": {
@@ -2918,12 +2918,16 @@
       "sha256": "3a1d8410a5552623cb0da2036e0a9133e352b2c373feeaad8f1373e57962c1d4",
       "executable": false
     },
+    "src/vane/agent/brief-view.ts": {
+      "sha256": "a60bb4294c9f71dd1e66973fd4e1240c474ad79af06ef87aaae3d9ccc495244d",
+      "executable": false
+    },
     "src/vane/agent/drafts.ts": {
-      "sha256": "6f6d2ec8e058cdc8cc08365c66e7d55c795d852b8bc0f8c5629970146ec5076e",
+      "sha256": "74b52553ab0012d793faacd1492b972d67b9516710a2b0fe5a086199cdc73ad4",
       "executable": false
     },
     "src/vane/agent/growth.ts": {
-      "sha256": "5d59c18b50d0d49e182cbb462a5ce4de47cbc1d2c1e1d9033fe920300467b6ce",
+      "sha256": "4ca5491facdee66f6165e95ce6d97fee4d03da00c7185617b3e5ebb7ae901c4c",
       "executable": false
     },
     "src/vane/agent/pursuit.ts": {
@@ -4107,7 +4111,7 @@
       "executable": false
     },
     "tests/agent-work.test.mjs": {
-      "sha256": "1c71e6273d9ff7717a35b3936d67e2e00fba53809cf3e60a42eed0e7cf51c93b",
+      "sha256": "516f1e42c186d133734a0b3198f70fe7e072882ad0ff23ccade3d93229c92e77",
       "executable": false
     },
     "tests/apps-script.mjs": {

@@ -57,7 +57,7 @@ test('Anomaly pursuit attaches movement evidence, preserves the open item and wa
  assert.equal((await a.dump()).vane_follow_items.find(i=>i.id===item.id).outcome,'expected')
 })
 
-test('Scheduled ended-week briefs review all five opportunity types with exact figures and suppress every dismissed type next week',async t=>{
+test('Scheduled ended-week briefs review all five opportunity types with exact figures and suppress dismissed types in saved briefs and next week',async t=>{
  const a=await installation({vars:{GOOGLE_CLIENT_ID:'synthetic-vane-1',GOOGLE_CLIENT_SECRET:'synthetic-vane-2'}});t.after(()=>a.close());await a.clock(Date.parse('2026-10-20T12:00:00Z'))
  const id=await a.addSite({paths:[],retainForever:true,goals:{signup:'/thanks'},funnels:[{name:'stalled',steps:['/stall','/missing']}]})
  a.fixtureSites['https://oauth2.googleapis.com']=async()=>Response.json({access_token:'synthetic-vane-3',refresh_token:'synthetic-vane-4',expires_in:3600,scope:'https://www.googleapis.com/auth/webmasters.readonly'})
@@ -74,5 +74,28 @@ test('Scheduled ended-week briefs review all five opportunity types with exact f
  await a.scheduled();work=await json(await a.request('/api/vane/agent/work?siteId='+id,{headers:{cookie:a.owner}}));assert.equal(work.filter(w=>w.kind==='brief'&&w.to_day==='2026-10-12').length,1)
  const {context}=await browse(t,a);await context.addCookies(a.owner.split('; ').map(pair=>{const i=pair.indexOf('=');return {name:pair.slice(0,i),value:pair.slice(i+1),url:a.origin}}));const page=await context.newPage(),dir=process.env.VANE_SCREEN_DIR;if(dir)await mkdir(dir,{recursive:true});
  for(const width of [1440,390]){await page.setViewportSize({width,height:1000});await page.goto(`${a.origin}/app/sites/${id}?section=settings`);await page.getByRole('heading',{name:'Weekly growth briefs',exact:true}).scrollIntoViewIfNeeded();for(const type of ['entry-exit','campaign','slow-page','search','funnel'])assert.equal(await page.getByRole('button',{name:'Dismiss '+type,exact:true}).count(),1);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);if(dir)await page.screenshot({path:join(dir,`growth-all-${width}.png`)});for(const title of brief.opportunities.map(o=>o.title)){await page.getByRole('heading',{name:title,exact:true}).scrollIntoViewIfNeeded();if(dir)await page.screenshot({path:join(dir,`growth-${brief.opportunities.find(o=>o.title===title).type}-${width}.png`)})}}
- for(const type of ['entry-exit','campaign','slow-page','search','funnel'])await json(await a.post('/api/vane/agent/dismiss',{siteId:id,type},a.owner));await a.clock(Date.parse('2026-10-19T12:00:00Z'));await a.scheduled();work=await json(await a.request('/api/vane/agent/work?siteId='+id,{headers:{cookie:a.owner}}));brief=work.find(w=>w.kind==='brief'&&w.to_day==='2026-10-19');assert.deepEqual(brief.opportunities,[]);assert.match(brief.shortfall,/Fewer than three/)
+ const briefId=brief.id, originalDrafts=brief.opportunities.map(o=>o.draftId)
+ // The Settings form must stop raising dismissed types even in an already saved week.
+ for(const [index,type] of ['entry-exit','campaign','slow-page','search','funnel'].entries()){
+  assert.equal((await a.form({operation:'agent.dismiss',siteId:id,type},a.owner)).status,303)
+  const saved=await json(await a.request('/api/vane/agent/work?'+new URLSearchParams({siteId:id,id:briefId}),{headers:{cookie:a.owner}}))
+  assert.equal(saved[0].opportunities.length,4-index);assert.equal(saved[0].opportunities.some(o=>o.type===type),false)
+  if(index>=2)assert.match(saved[0].shortfall,/Fewer than three/)
+  else assert.equal(saved[0].shortfall,null)
+ }
+ const repeated=await json(await a.post('/api/vane/agent/brief',{siteId:id,to:'2026-10-12'},a.owner));assert.equal(repeated.id,briefId);assert.deepEqual(repeated.opportunities,[]);assert.match(repeated.shortfall,/Fewer than three/)
+ for(const width of [1440,390]){
+  await page.setViewportSize({width,height:1000});await page.goto(`${a.origin}/app/sites/${id}?section=settings`);await page.getByRole('heading',{name:'Weekly growth briefs',exact:true}).scrollIntoViewIfNeeded()
+  for(const type of ['entry-exit','campaign','slow-page','search','funnel'])assert.equal(await page.getByRole('button',{name:'Dismiss '+type,exact:true}).count(),0)
+  assert.equal(await page.getByText(/Fewer than three supported opportunities/).count(),1)
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true)
+  if(dir)await page.screenshot({path:join(dir,`growth-dismissed-${width}.png`)})
+  const menu=page.locator('summary[aria-label=Menu]')
+  if(await menu.isVisible()){
+   await menu.focus();assert.equal(await page.locator('#vane-menu-tip').evaluate(e=>getComputedStyle(e).visibility),'visible');if(dir)await page.screenshot({path:join(dir,`growth-menu-focus-${width}.png`)})
+   await menu.blur();await menu.hover();await page.waitForTimeout(100);assert.equal(await page.locator('#vane-menu-tip').evaluate(e=>getComputedStyle(e).visibility),'hidden');await page.waitForTimeout(250);assert.equal(await page.locator('#vane-menu-tip').evaluate(e=>getComputedStyle(e).visibility),'visible');if(dir)await page.screenshot({path:join(dir,`growth-menu-hover-${width}.png`)})
+  }
+ }
+ const stored=(await a.dump()).vane_agent_work;assert.equal(JSON.parse(stored.find(w=>w.id===briefId).payload_json).opportunities.length,5);for(const draftId of originalDrafts)assert.ok(stored.some(w=>w.id===draftId))
+ await a.clock(Date.parse('2026-10-19T12:00:00Z'));await a.scheduled();work=await json(await a.request('/api/vane/agent/work?siteId='+id,{headers:{cookie:a.owner}}));brief=work.find(w=>w.kind==='brief'&&w.to_day==='2026-10-19');assert.deepEqual(brief.opportunities,[]);assert.match(brief.shortfall,/Fewer than three/)
 })
