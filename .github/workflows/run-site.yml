@@ -4,14 +4,38 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      prove_unset_switch:
+        description: 'Prove deployment skips with the effective switch unset'
+        type: boolean
+        required: false
+        default: false
 permissions:
   contents: read
 concurrency:
   group: run-site
   cancel-in-progress: false
 jobs:
+  deployment-switch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    outputs:
+      run_site_deploy: ${{ steps.switch.outputs.run_site_deploy }}
+    steps:
+      - name: Resolve the effective deployment switch
+        id: switch
+        env:
+          RUN_SITE_DEPLOY: ${{ vars.RUN_SITE_DEPLOY }}
+          PROVE_UNSET_SWITCH: ${{ inputs.prove_unset_switch }}
+        run: |
+          if [ "$PROVE_UNSET_SWITCH" = true ]; then
+            unset RUN_SITE_DEPLOY
+            echo 'Run-site switch unset for this dispatch.'
+          fi
+          echo "run_site_deploy=${RUN_SITE_DEPLOY-}" >> "$GITHUB_OUTPUT"
   deploy:
-    if: vars.RUN_SITE_DEPLOY == 'true'
+    needs: deployment-switch
+    if: needs.deployment-switch.outputs.run_site_deploy == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     environment: run-site

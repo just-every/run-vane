@@ -1,7 +1,10 @@
 name: Collection scale
 
-# Explicit, expensive acceptance journey. Never part of push Verify.
+# Expensive weekly acceptance journey, also available by explicit dispatch.
+# Never part of push Verify.
 on:
+  schedule:
+    - cron: '29 20 * * 0'
   workflow_dispatch:
     inputs:
       monthly_pageviews:
@@ -27,9 +30,9 @@ jobs:
     env:
       CI: 'true'
       WRANGLER_SEND_METRICS: 'false'
-      VANE_COLLECTION_SCALE_MONTHLY: ${{ inputs.monthly_pageviews }}
-      VANE_COLLECTION_SCALE_MONTHS: ${{ inputs.months }}
-      VANE_COLLECTION_SCALE_CONCURRENCY: ${{ inputs.concurrency }}
+      VANE_COLLECTION_SCALE_MONTHLY: ${{ inputs.monthly_pageviews || '10000000' }}
+      VANE_COLLECTION_SCALE_MONTHS: ${{ inputs.months || '12' }}
+      VANE_COLLECTION_SCALE_CONCURRENCY: ${{ inputs.concurrency || '32' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
