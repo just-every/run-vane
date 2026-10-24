@@ -92,4 +92,19 @@ It requires Linux user and network namespace support and the `ip` command.
 Build and install Chromium first. This does not replace the separate one-line
 installer acceptance. The complete-source journey uses pinned rer 0.2.79. The full installed offline
 replay remains unproved until the Local installation journey workflow passes.
-Moving an installation to Cloudflare still requires an owner test account.
+The separate hosted-transfer proof below uses the held RunEditRun test account.
+
+
+## Hosted transfer sandbox proof
+
+On 24 October 2026, the explicit live journey in `tests/host-cloudflare.journey.mjs`
+passed on 91b226f5906b8828f4795b88b3c7637dc45cc3c8 (local run sx-vane-c45-r1.live-transfer-5). It installed a real
+local fixture from an empty folder, collected one `/subscriptions` pageview,
+exported it with `rer export`, and restored the complete archive with
+`rer import --target remote` into a fresh deployment in the held RunEditRun
+account. The owner used the normal sign-in grant and destination first-run form.
+The hosted report still showed that one pageview at 1440 and 390. Missing
+authority and an occupied destination were refused. The created Worker and
+database were removed after the run. Private provider credentials never entered
+the archive or output. This proves HOST-003; the installed offline acceptance of
+HOST-002 still requires its separate complete-source workflow run.
