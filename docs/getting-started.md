@@ -4,7 +4,15 @@ Vane counts page loads, sources, campaigns and goals. Start with one website and
 
 ## Run Vane
 
-Follow the [Run page](/run) to get Vane on your computer: `npx -y @runeditrun/rer dev just-every/run-vane`. Open the private sign-in link printed by `rer dev`, confirm the owner on **Finish setup**, then open **Your sites**. Keep that link private.
+Open a terminal and run this line to get Vane on your computer:
+
+```sh
+curl -fsSL https://runeditrun.com/install.sh | sh -s -- dev just-every/run-vane
+```
+
+Git is required; rer brings Node and pnpm. Already have Node 22 or later? `npx -y @runeditrun/rer dev just-every/run-vane` does the same. The line clones Vane into `run-vane`, installs everything and starts it. Open the private sign-in link it prints, confirm the owner on **Finish setup**, then open **Your sites**. Keep that link private.
+
+If the installer prints a line that puts `rer` on your PATH, run that line too. To start Vane again later, run the same line from the same folder, or `cd run-vane && rer dev`.
 
 Vane starts empty. It never loads sample analytics into your installation.
 
