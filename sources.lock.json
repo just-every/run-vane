@@ -4239,7 +4239,7 @@
       "executable": false
     },
     "tests/host-local-ui.mjs": {
-      "sha256": "f9ca35b21f04545662794b3b09b33b9c660584ec856381e8099d48d6da256eb0",
+      "sha256": "e2cdbf16d10224edb3ed39a1cbbf50d9e0de67a5cf4e02ea4110c0efd3a892d6",
       "executable": false
     },
     "tests/host-local.journey.mjs": {

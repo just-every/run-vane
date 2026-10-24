@@ -76,7 +76,7 @@ export async function captureReport(page, screens, label, width) {
     await menu.focus()
     await expect(tooltip).toBeVisible()
     await page.screenshot({ path: join(screens, `host-${label}-menu-focus-${width}.png`) })
-    await page.getByRole('heading', { name: 'Overview', exact: true, level: 1 }).click()
+    await page.getByRole('heading', { level: 1 }).click()
     await menu.hover()
     await expect(tooltip).toBeVisible()
     await page.screenshot({ path: join(screens, `host-${label}-menu-hover-${width}.png`) })
