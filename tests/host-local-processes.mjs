@@ -106,14 +106,18 @@ async function signIn(page, installation) {
     await page.goto(installation.open)
     await page.waitForURL(url => !url.hash && !url.pathname.startsWith('/__dev/') && !url.pathname.startsWith('/auth/dev/'))
   } catch { throw new Error('The browser could not consume the private local sign-in link') }
-  if (new URL(page.url()).pathname === '/setup') {
-    await page.getByLabel('I confirm this owner account is ready to use.').check()
-    await page.getByRole('button', { name: 'Finish setup', exact: true }).click()
-  }
+  await finishSetup(page)
   await page.goto(installation.ready + '/app')
   await page.getByRole('heading', { name: 'Your sites', exact: true }).waitFor()
 }
 
+
+export async function finishSetup(page) {
+  if (new URL(page.url()).pathname === '/setup') {
+    await page.getByLabel('I confirm this owner account is ready to use.').check()
+    await page.getByRole('button', { name: 'Finish setup', exact: true }).click()
+  }
+}
 
 export function redactedTail(output, errors = '') {
   return (output + errors).split('\n').filter(line => !/RER_OPEN|RER_SIGN_IN|RER_SIGNED_IN/.test(line)).slice(-40).join('\n').replace(/https?:\/\/[^\s"'<>]+/g, '[address]').replace(/[A-Za-z0-9_+/=-]{20,}/g, '[private]').replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+/gi, '[email]')

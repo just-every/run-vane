@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { randomBytes } from 'node:crypto';
 import { captureReport } from './host-local-ui.mjs';
 import { transferSource } from './host-transfer-source.mjs';
-import { redactedTail } from './host-local-processes.mjs';
+import { redactedTail, finishSetup } from './host-local-processes.mjs';
 import { main as ownerMain, report } from '@runeditrun/rer/modules/deploy-kit/owner-cli';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -18,11 +18,11 @@ test('HOST-003 local rer archive restores the same fixture pageview into a fresh
  skip: process.env.VANE_HOST_CLOUDFLARE_JOURNEY !== '1' ? 'explicit held-account journey only' : false,
  timeout: 40 * 60_000,
 }, async t => {
- const archive = await transferSource(t, root);
+ const { archive, ownerEmail } = await transferSource(t, root);
  const environment = 'host-transfer-c45';
  const state = join(root, '.rer', 'deploy', `${environment}.json`);
  const args = command => [command, '--declaration', 'deploy.json', '--environment', environment, '--product', '', '--state', state];
- const privateEnv = { ...process.env, OWNER_EMAIL: 'owner@example.test', SESSION_SECRET: randomBytes(32).toString('hex'),
+ const privateEnv = { ...process.env, OWNER_EMAIL: ownerEmail, SESSION_SECRET: randomBytes(32).toString('hex'),
   SETUP_TOKEN: randomBytes(32).toString('hex'), MAIL_API_KEY: 'synthetic-vane-1' };
  let browser;
  // The deploy kit deletes only resources recorded as created by this exact run.
@@ -71,6 +71,10 @@ test('HOST-003 local rer archive restores the same fixture pageview into a fresh
  catch { throw new Error('The private hosted owner sign-in link could not be opened'); }
  await page.getByRole('button', { name: /Confirm/ }).click();
  await page.goto(deployed.origin + '/app');
+ // First-run confirmation is destination state, deliberately outside the archive.
+ await finishSetup(page);
+ await page.goto(deployed.origin + '/app');
+ assert.equal(new URL(page.url()).pathname, '/app', 'The restored owner reaches the site list');
  await page.getByRole('link', { name: 'Northline Coffee', exact: true }).click();
  const url = new URL(page.url()); url.search = '?section=report';
  for (const width of [1440, 390]) {
