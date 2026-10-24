@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { spawn, execFile } from 'node:child_process'
 import { readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 import { setTimeout as delay } from 'node:timers/promises'
 const execute = promisify(execFile)
@@ -78,7 +79,7 @@ function ownedProcesses(registry) {
 async function launch(cwd, env, processes, args) {
   // No inherited stdio: RER_OPEN is a credential, including on failure. Keep
   // output in memory and use only generic assertions in the test reporter.
-  const runner = process.env.VANE_HOST_RER || 'rer'
+  const runner = process.env.VANE_HOST_RER || fileURLToPath(new URL('../node_modules/.bin/rer', import.meta.url))
   const child = spawn(runner, ['dev', ...args, '--detach'], { cwd, env, stdio: ['ignore', 'pipe', 'pipe'] })
   let output = '', errors = '', exited = false, code, failed = false
   child.stdout.on('data', chunk => { output = (output + chunk.toString()).slice(-262144) })

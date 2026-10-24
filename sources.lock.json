@@ -4231,7 +4231,7 @@
       "executable": false
     },
     "tests/host-local-processes.mjs": {
-      "sha256": "5715cf2447a24c204c1406f58a9cecc09996021a30695e71b0a5a39364b2d3b0",
+      "sha256": "2e9a69b9c090bccae7939f8c2d0078cd69e343ab003201ec4a923ca3cd92783e",
       "executable": false
     },
     "tests/host-local-ui.mjs": {
