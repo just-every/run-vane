@@ -103,7 +103,8 @@
     "migrations/core/0113_vane_github_credential_kind.sql",
     "migrations/core/0114_vane_heat_geometry.sql",
     "migrations/core/0115_vane_agent_work.sql",
-    "migrations/core/0116_vane_ga4.sql"
+    "migrations/core/0116_vane_ga4.sql",
+    "migrations/core/0117_dependency_keys_sealed.sql"
   ],
   "breaking": false,
   "agentUpdateInstructions": "Install dependencies with the pinned toolchain, build, check the deployment specification and run verification. Configure mail through the selected provider. Preserve the analytics project identity and existing migration bytes."

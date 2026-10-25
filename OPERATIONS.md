@@ -63,3 +63,5 @@ instructions under `node_modules/@runeditrun/rer/modules/deploy-kit`; account sc
 resource ownership, migrations, receipt and health checks are defined there.
 Local validation does not prove hosted acceptance, provider delivery or remote
 health.
+
+Dependency signing keys use the generated `INSTALLATION_KEY` for encryption at rest. Retain this key with private deployment configuration and set it as a deployment secret. Losing it prevents reading existing dependency signing keys. Never place its value in source control or an archive.

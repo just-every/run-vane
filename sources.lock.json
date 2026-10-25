@@ -163,7 +163,7 @@
       "executable": false
     },
     "base-copies.json": {
-      "sha256": "b614ef39fec810f9f998d8f98923b9f9c630a8d3fc2d52caa0d62ad41cd45b20",
+      "sha256": "1f3dd4bf7b17a4e71b358983bdd01c3b7f70b82e87c52fecf2eda609fa5555dc",
       "executable": false
     },
     "CHANGELOG.md": {
@@ -203,7 +203,7 @@
       "executable": false
     },
     "deploy.json": {
-      "sha256": "983f359858edf2a5ce1d58f7d0ac92d4ae467f546be778228ef0c189511f3601",
+      "sha256": "1069ba0484a9c8119d84d5ac4cab66b65b49503d3911644a0e65dc7fba464e4e",
       "executable": false
     },
     "docs/agency.md": {
@@ -279,7 +279,7 @@
       "executable": false
     },
     "management/integration/deployment-spec.json": {
-      "sha256": "5602fc7a1749a2a375bfcf302d4ea1456f412bbb976ab558bc81649a9327df62",
+      "sha256": "edae4ed3461d0a36460479c9ee950999ce7a1b9a5e4fe298055faeeae14f3064",
       "executable": false
     },
     "migrations/core/0001_owner.sql": {
@@ -699,7 +699,7 @@
       "executable": false
     },
     "OPERATIONS.md": {
-      "sha256": "7298fc1cc9c644f28efa7989b6266a446f531092616efa43b9f5679b7ac90ecf",
+      "sha256": "a6e27f588eca0aac997ad7aa405a89ae80e80b3bafd16862b36726240f326a60",
       "executable": false
     },
     "package.json": {
@@ -707,7 +707,7 @@
       "executable": false
     },
     "packaging.json": {
-      "sha256": "065fdee44400b1075e30877c37dde2d68dbefaddf15be4b962553e4fd876d944",
+      "sha256": "c1e82f6e014b4312032081476523effd4141b293a270d5d49e4876910c411ac8",
       "executable": false
     },
     "pnpm-lock.yaml": {
@@ -1027,15 +1027,15 @@
       "executable": false
     },
     "RELEASE.json": {
-      "sha256": "73762fc79fecd7879a8de15e568dade2e44149538eafa49c976c6745d3508959",
+      "sha256": "c9308b7bdab31f7cdc9480d3d5142cf744d7722718a600adf16381d67b56a17c",
       "executable": false
     },
     "rer-project.json": {
-      "sha256": "ec0c15683d6698cb39c0bce2abd3bf512b8ec15a7badff7826cbcbaa613000ca",
+      "sha256": "a6f4738caa5b4acd8c44e8e8c00202e95695bd55bda1cf6a24f0b4223b245e54",
       "executable": false
     },
     "rer-setup.json": {
-      "sha256": "2c1c3177521ffbccf2487165d58c3e8acb21a29fef1f1e156c12a736b897bbb1",
+      "sha256": "76d7cdf632b108bdaee972d30fcd611ca44d40eebca27178aa318fe234949347",
       "executable": false
     },
     "RUN-LOCALLY.md": {
@@ -1103,7 +1103,7 @@
       "executable": false
     },
     "scripts/delivery/base/packaging.json": {
-      "sha256": "065fdee44400b1075e30877c37dde2d68dbefaddf15be4b962553e4fd876d944",
+      "sha256": "c1e82f6e014b4312032081476523effd4141b293a270d5d49e4876910c411ac8",
       "executable": false
     },
     "scripts/delivery/base/paths.mjs": {
@@ -1295,7 +1295,7 @@
       "executable": false
     },
     "src/auth.server.ts": {
-      "sha256": "c754ecf809a5a7c7cf3df073fb470b8d02a6628aaaf26075b94f0d0eaa5fc3f9",
+      "sha256": "4a1774840f9d5e1cf022eae43c08de61c80e6ef07981050ec59c18e08cd0bed5",
       "executable": false
     },
     "src/base/contract-filter.ts": {
@@ -2887,7 +2887,7 @@
       "executable": false
     },
     "src/modules/operator-auth/docs/vite-spa.md": {
-      "sha256": "0c9cb19046087f55390368e9983be52a24ce8804cda0a621c7f74d12b90288b6",
+      "sha256": "37e2d7aab9fd1987c7c381c7c0a91724109e2e1a6c0af7f4fbbb528e2b603f3b",
       "executable": false
     },
     "src/modules/operator-auth/errors.mjs": {
@@ -3035,7 +3035,7 @@
       "executable": false
     },
     "src/modules/operator-auth/README.md": {
-      "sha256": "92caf2ef770ff8c1c1e31d3849c6337d5a7b58601e8433c7d53ab631d075437e",
+      "sha256": "ce65e011c97d7c234c00e1363f1ac43a6137b88c00f8dcfcda6675db55a8310c",
       "executable": false
     },
     "src/modules/operator-auth/rejected-response.mjs": {
@@ -3043,7 +3043,7 @@
       "executable": false
     },
     "src/modules/operator-auth/representation.mjs": {
-      "sha256": "4dc602fe73ce6fa83ade350ca4bd8a1b86dfa96e743598eb7379d2382de8445f",
+      "sha256": "206c3ae542e00687c2ee6c09a2e3466827c7eb58a97d10779cbeca1af945dcb3",
       "executable": false
     },
     "src/modules/operator-auth/routes.mjs": {
@@ -3051,7 +3051,7 @@
       "executable": false
     },
     "src/modules/operator-auth/SCHEDULED-POLICY.md": {
-      "sha256": "0c28f9be024760cd4be63aac2bee277283381e6ab647cb1fe058dda7d2332356",
+      "sha256": "59c8fb08ab84dbcb720086fce458ef07b94933737c5777e07b79909d95b27862",
       "executable": false
     },
     "src/modules/operator-auth/scheduled/definition.mjs": {

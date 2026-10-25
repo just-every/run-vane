@@ -167,6 +167,17 @@
       }
     },
     {
+      "path": "migrations/core/0117_dependency_keys_sealed.sql",
+      "originPath": "default-seed/migrations/core/0032_dependency_keys_sealed.sql",
+      "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
+      "files": {
+        "migrations/core/0117_dependency_keys_sealed.sql": "9c8fa5f94c48a230f326cd4d666cbc2bd1e7d5a18327b89e65b339ac6a533d9a"
+      },
+      "modes": {
+        "migrations/core/0117_dependency_keys_sealed.sql": "100644"
+      }
+    },
+    {
       "path": "ONBOARDING.md",
       "originPath": "foundation/template/ONBOARDING.md",
       "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
@@ -3120,30 +3131,6 @@
         "src/modules/operator-auth/signin/index.d.mts": "100644",
         "src/modules/operator-auth/signin/index.mjs": "100644",
         "src/modules/operator-auth/signin/one-click.mjs": "100644"
-      },
-      "adapted": {
-        "src/modules/operator-auth/README.md": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
-        "src/modules/operator-auth/SCHEDULED-POLICY.md": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
-        "src/modules/operator-auth/docs/vite-spa.md": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
-        "src/modules/operator-auth/representation.mjs": "11f94fec479228d71ba6d7dd6ea7796c0d42c544"
-      },
-      "acknowledged": {
-        "src/modules/operator-auth/README.md": {
-          "sha256": "92caf2ef770ff8c1c1e31d3849c6337d5a7b58601e8433c7d53ab631d075437e",
-          "mode": "100644"
-        },
-        "src/modules/operator-auth/SCHEDULED-POLICY.md": {
-          "sha256": "0c28f9be024760cd4be63aac2bee277283381e6ab647cb1fe058dda7d2332356",
-          "mode": "100644"
-        },
-        "src/modules/operator-auth/docs/vite-spa.md": {
-          "sha256": "0c9cb19046087f55390368e9983be52a24ce8804cda0a621c7f74d12b90288b6",
-          "mode": "100644"
-        },
-        "src/modules/operator-auth/representation.mjs": {
-          "sha256": "4dc602fe73ce6fa83ade350ca4bd8a1b86dfa96e743598eb7379d2382de8445f",
-          "mode": "100644"
-        }
       }
     },
     {

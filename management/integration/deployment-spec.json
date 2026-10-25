@@ -618,6 +618,12 @@
       "name": "0116_vane_ga4.sql",
       "sha256": "58b683b43c9b1d416fd9f974cdbef82834aa060cf895488245c1ad32629ec668",
       "sql": "-- Installation-local GA4 credentials and single-use approvals. Never archived.\nCREATE TABLE vane_ga4_connections (\n site_id TEXT PRIMARY KEY REFERENCES vane_sites(id) ON DELETE CASCADE,\n generation TEXT NOT NULL, sealed_tokens TEXT NOT NULL,\n property TEXT, properties_json TEXT NOT NULL DEFAULT '[]',\n connected_by TEXT NOT NULL, connected_at INTEGER NOT NULL,\n last_sync INTEGER, next_sync INTEGER NOT NULL, last_error TEXT,\n lock_id TEXT, lock_until INTEGER\n);\nCREATE TABLE vane_ga4_oauth_states (\n state_hash TEXT PRIMARY KEY, site_id TEXT NOT NULL REFERENCES vane_sites(id) ON DELETE CASCADE,\n actor_id TEXT NOT NULL, session_hash TEXT NOT NULL,\n redirect_uri TEXT NOT NULL, expires_at INTEGER NOT NULL, consumed_at INTEGER\n);\nCREATE INDEX vane_ga4_oauth_expiry ON vane_ga4_oauth_states(expires_at);\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0117_dependency_keys_sealed.sql",
+      "sha256": "9c8fa5f94c48a230f326cd4d666cbc2bd1e7d5a18327b89e65b339ac6a533d9a",
+      "sql": "ALTER TABLE rer_dependency_installation ADD COLUMN keys_sealed INTEGER NOT NULL DEFAULT 0 CHECK(keys_sealed IN (0,1));\n-- Nonsecret version history lets restored rows name an unavailable retired key\n-- without confusing ciphertext tampering or a wrong current secret with restore.\nALTER TABLE rer_dependency_installation ADD COLUMN key_ids TEXT NOT NULL DEFAULT '[]' CHECK(json_valid(key_ids) AND json_type(key_ids)='array');\n"
     }
   ],
   "compatibilityDate": "2026-09-08",
@@ -637,7 +643,8 @@
   },
   "secretNames": [
     "SESSION_SECRET",
-    "SETUP_TOKEN"
+    "SETUP_TOKEN",
+    "INSTALLATION_KEY"
   ],
   "optionalSecretNames": [
     "MAIL_API_KEY",
@@ -649,7 +656,8 @@
     "AI_API_KEY",
     "OIDC_TRANSACTION_SECRET",
     "VANE_OIDC_PROVIDERS",
-    "VANE_SAML_CONFIG"
+    "VANE_SAML_CONFIG",
+    "INSTALLATION_KEY_PREVIOUS"
   ],
   "schedules": [
     "*/5 * * * *"
