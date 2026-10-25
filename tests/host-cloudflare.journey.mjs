@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { readFile } from 'node:fs/promises';
+import { requireCloudflareAuthority, removeTransfer } from './host-cloudflare-cleanup.mjs';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomBytes } from 'node:crypto';
@@ -15,24 +16,24 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const execute = promisify(execFile);
 
 test('HOST-003 local rer archive restores the same fixture pageview into a fresh Cloudflare deployment', {
- skip: process.env.VANE_HOST_CLOUDFLARE_JOURNEY !== '1' ? 'explicit held-account journey only' : false,
+ skip: process.env.VANE_HOST_CLOUDFLARE_JOURNEY !== '1' && process.env.GITHUB_EVENT_NAME !== 'schedule' ? 'explicit held-account journey only' : false,
  timeout: 40 * 60_000,
 }, async t => {
- const { archive, ownerEmail } = await transferSource(t, root);
+ requireCloudflareAuthority(process.env);
  const environment = 'host-transfer-c45';
  const state = join(root, '.rer', 'deploy', `${environment}.json`);
  const args = command => [command, '--declaration', 'deploy.json', '--environment', environment, '--product', '', '--state', state];
- const privateEnv = { ...process.env, OWNER_EMAIL: ownerEmail, SESSION_SECRET: randomBytes(32).toString('hex'),
+ const privateEnv = { ...process.env, SESSION_SECRET: randomBytes(32).toString('hex'),
   SETUP_TOKEN: randomBytes(32).toString('hex'), MAIL_API_KEY: 'synthetic-vane-1' };
- let browser;
- // The deploy kit deletes only resources recorded as created by this exact run.
- t.after(async () => {
+ let browser, passed = false, cleanupPromise;
+ const cleanup = () => cleanupPromise ??= (async () => {
   try { await browser?.close(); }
-  finally {
-   const held = await readFile(state, 'utf8').catch(error => { if (error.code === 'ENOENT') return null; throw error; });
-   if (held) await ownerMain(args('remove'), privateEnv, { cwd: root, notice: () => {} });
-  }
- });
+  finally { await removeTransfer({ state, env: privateEnv, root, args, passed }); }
+ })();
+ t.after(cleanup);
+ try {
+ const { archive, ownerEmail } = await transferSource(t, root);
+ privateEnv.OWNER_EMAIL = ownerEmail;
  let deployed;
  try { deployed = await ownerMain(args('deploy'), privateEnv, { cwd: root, notice: () => {} }); }
  catch (error) { throw new Error('Fresh test deployment failed: ' + JSON.stringify(report(error))); }
@@ -92,5 +93,7 @@ test('HOST-003 local rer archive restores the same fixture pageview into a fresh
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
   await captureReport(page, process.env.VANE_SCREEN_DIR, 'cloudflare', width);
  }
+ passed = true;
  t.diagnostic('The public rer import restored the exported local fixture pageview into a fresh held-account deployment; both report widths passed.');
+ } finally { await cleanup(); }
 });

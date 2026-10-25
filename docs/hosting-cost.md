@@ -116,3 +116,24 @@ authority and an occupied destination were refused. The created Worker and
 database were removed after the run. Private provider credentials never entered
 the archive or output. This proves HOST-003. The separate installed offline acceptance of
 HOST-002 is proved by workflow 40050422780 above.
+
+
+## Weekly hosted transfer
+
+The named **Cloudflare installation transfer** workflow in
+`.github/workflows/host-cloudflare.yml` runs job `host-cloudflare` every Sunday
+at 19:37 UTC, or by explicit manual dispatch. It requires the repository Actions
+secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`; missing authority
+fails the run before installation. The token is limited to the RunEditRun
+account, with Workers Scripts Write, D1 Write and Account Settings Read,
+and no zone permissions.
+
+The job runs `tests/host-cloudflare.journey.mjs` with
+`VANE_HOST_CLOUDFLARE_JOURNEY=1`, including public `rer import --target remote`.
+Its finally path removes only resources owned by this run, even if transfer
+fails. Fresh account Worker and D1 listings independently assert their absence.
+The retained artifact contains the journey log, reports at 1440 and 390, and
+`cleanup.json` with the candidate SHA, run ID, result and final resource listings.
+Credentials, private sign-in links, archives and deployment state are excluded.
+Concurrency is serialized without automatic cancellation so cleanup can finish.
+The first scheduled-workflow dispatch receipt remains pending.

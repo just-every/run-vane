@@ -1,0 +1,60 @@
+name: Cloudflare installation transfer
+on:
+  schedule:
+    - cron: '37 19 * * 0'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: host-cloudflare-transfer
+  cancel-in-progress: false
+jobs:
+  host-cloudflare:
+    name: Local archive to fresh Cloudflare deployment
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    env:
+      CI: 'true'
+      WRANGLER_SEND_METRICS: 'false'
+      VANE_HOST_CLOUDFLARE_JOURNEY: '1'
+      VANE_SCREEN_DIR: '${{ github.workspace }}/.cache/host-cloudflare-artifacts/screens'
+      VANE_HOST_RECEIPT_DIR: '${{ github.workspace }}/.cache/host-cloudflare-artifacts'
+    steps:
+      - name: Require RunEditRun account authority
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo '::error::CLOUDFLARE_API_TOKEN is required'; exit 1; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo '::error::CLOUDFLARE_ACCOUNT_ID is required'; exit 1; }
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+          filter: ''
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '22.20.0'
+          package-manager-cache: false
+      - run: npm install --global pnpm@10.12.4
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm exec vite build
+      - name: Permit the installed source fixture
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - name: HOST-003 public export and remote import with verified cleanup
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p "$VANE_HOST_RECEIPT_DIR"
+          pnpm exec node --test --test-concurrency=1 tests/host-cloudflare.journey.mjs 2>&1 | tee "$VANE_HOST_RECEIPT_DIR/journey.log"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: host-cloudflare-${{ github.sha }}
+          path: .cache/host-cloudflare-artifacts
+          retention-days: 90
+          if-no-files-found: warn
