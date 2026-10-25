@@ -136,4 +136,12 @@ The retained artifact contains the journey log, reports at 1440 and 390, and
 `cleanup.json` with the candidate SHA, run ID, result and final resource listings.
 Credentials, private sign-in links, archives and deployment state are excluded.
 Concurrency is serialized without automatic cancellation so cleanup can finish.
-The first scheduled-workflow dispatch receipt remains pending.
+The single candidate dispatch, [run 40185411652](https://github.com/just-every/run-vane/actions/runs/40185411652), passed on
+fdbb065e3796dea09720cdf306e375f3ecefe69b on 25 October 2026. Its
+[retained artifact](https://github.com/just-every/run-vane/actions/runs/40185411652/artifacts/12595818007)
+expires on 23 January 2027 and is also retained by the campaign outside the clone.
+The cleanup receipt records transfer and cleanup passed: the final account
+listings contain 242 Workers and 78 D1 databases, with the owned test Worker
+and D1 absent. Both the installed local report and the hosted report show the
+same one `/subscriptions` pageview at 1440 and 390, including mobile menu
+focus and hover tooltips. HOST-003 is DONE.
