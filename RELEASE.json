@@ -1,6 +1,6 @@
 {
   "version": "0.1.0",
-  "publicReleaseNotes": "Prepare Vane for hosted installation with a generated delivery descriptor, Managed mail relay support, source provenance and synthetic integration fixtures.",
+  "publicReleaseNotes": "Prepare Vane for hosted installation with rer 0.2.80, a generated delivery descriptor, Managed mail relay support, verified Base provenance and synthetic integration fixtures. Preserve the analytics project identity and applied migration history.",
   "migrations": [
     "migrations/core/0001_owner.sql",
     "migrations/core/0002_outbox.sql",
