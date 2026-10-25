@@ -4427,7 +4427,7 @@
       "executable": false
     },
     "tests/host-cloudflare-cleanup.mjs": {
-      "sha256": "1d67a18e389af6c9f33becf2f78ef569d0512f9676773f5d37dd6b3d060aed23",
+      "sha256": "0d79e454426854067f5b4c1397e6ead70c28b6ac448a8e30231ed392ad48a006",
       "executable": false
     },
     "tests/host-cloudflare.journey.mjs": {

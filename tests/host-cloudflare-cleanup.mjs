@@ -16,7 +16,7 @@ async function listAccount(env, resource) {
  const rows = [];
  for (let page = 1;; page++) {
   const url = new URL(`https://api.cloudflare.com/client/v4/accounts/${env.CLOUDFLARE_ACCOUNT_ID}${resource}`);
-  url.search = new URLSearchParams({ page: String(page), per_page: '100' }).toString();
+  if (resource !== '/workers/scripts') url.search = new URLSearchParams({ page: String(page), per_page: '100' }).toString();
   const response = await fetch(url, {
    headers: { authorization: `Bearer ${env.CLOUDFLARE_API_TOKEN}` },
    signal: AbortSignal.timeout(30_000),
@@ -26,6 +26,7 @@ async function listAccount(env, resource) {
   assert.equal(body.success, true, 'Cloudflare cleanup inventory refused');
   assert.ok(Array.isArray(body.result), 'Cloudflare cleanup inventory must be complete');
   rows.push(...body.result);
+  if (resource === '/workers/scripts') return rows;
   const info = body.result_info;
   if (info?.total_pages !== undefined) {
    if (page >= info.total_pages) return rows;
