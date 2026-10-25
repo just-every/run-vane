@@ -450,6 +450,15 @@
       },
       "modes": {
         "scripts/edition-authoring/adopt.mjs": "100644"
+      },
+      "adapted": {
+        "scripts/edition-authoring/adopt.mjs": "11f94fec479228d71ba6d7dd6ea7796c0d42c544"
+      },
+      "acknowledged": {
+        "scripts/edition-authoring/adopt.mjs": {
+          "sha256": "5371f1877e82035acdb668e1e50508130a3c224b2dfe88768cf39aeadcf48490",
+          "mode": "100644"
+        }
       }
     },
     {
@@ -516,6 +525,15 @@
       },
       "modes": {
         "scripts/edition-authoring/lock.mjs": "100644"
+      },
+      "adapted": {
+        "scripts/edition-authoring/lock.mjs": "11f94fec479228d71ba6d7dd6ea7796c0d42c544"
+      },
+      "acknowledged": {
+        "scripts/edition-authoring/lock.mjs": {
+          "sha256": "8d86371c5c120c9ede3051d2ee4a145bc6badc850e22c6ea716deca7b3bd3e90",
+          "mode": "100644"
+        }
       }
     },
     {
@@ -994,6 +1012,25 @@
         "src/modules/dependencies/schema/keys-sealed.sql": "100644",
         "src/modules/dependencies/sealing.mjs": "100644",
         "src/modules/dependencies/store.mjs": "100644"
+      },
+      "adapted": {
+        "src/modules/dependencies/README.md": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
+        "src/modules/dependencies/sealing.mjs": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
+        "src/modules/dependencies/store.mjs": "11f94fec479228d71ba6d7dd6ea7796c0d42c544"
+      },
+      "acknowledged": {
+        "src/modules/dependencies/README.md": {
+          "sha256": "dc7c4d047c2ddb5ffcf34abe9b22010ccea2dcec4ef75ff0a784e4b80412e604",
+          "mode": "100644"
+        },
+        "src/modules/dependencies/sealing.mjs": {
+          "sha256": "7aa68327ba58af910f14b8208249eee3ba5f781af08e86b65a2a8ac992f912d3",
+          "mode": "100644"
+        },
+        "src/modules/dependencies/store.mjs": {
+          "sha256": "f155429e03fa2756241ef2d4d5c796aea06305adf4a58fcce4eed974e5844fd5",
+          "mode": "100644"
+        }
       }
     },
     {
@@ -1832,6 +1869,15 @@
       },
       "modes": {
         "src/modules/import-kit/src/d1/README.md": "100644"
+      },
+      "adapted": {
+        "src/modules/import-kit/src/d1/README.md": "11f94fec479228d71ba6d7dd6ea7796c0d42c544"
+      },
+      "acknowledged": {
+        "src/modules/import-kit/src/d1/README.md": {
+          "sha256": "b8ae1554fec294fc0cf67e7811662b049c63ac6b7ac9365b684bc83e46456419",
+          "mode": "100644"
+        }
       }
     },
     {
@@ -2019,6 +2065,15 @@
       },
       "modes": {
         "src/modules/import-kit/src/d1/reversal-journal.ts": "100644"
+      },
+      "adapted": {
+        "src/modules/import-kit/src/d1/reversal-journal.ts": "11f94fec479228d71ba6d7dd6ea7796c0d42c544"
+      },
+      "acknowledged": {
+        "src/modules/import-kit/src/d1/reversal-journal.ts": {
+          "sha256": "821935278e59fd1d399b31473b8179ae1ae223794ec9dd6804506e36080a97bc",
+          "mode": "100644"
+        }
       }
     },
     {
@@ -2497,6 +2552,20 @@
         "src/modules/import-kit/src/door/store.ts": "100644",
         "src/modules/import-kit/src/door/types.ts": "100644",
         "src/modules/import-kit/src/door/uploads.ts": "100644"
+      },
+      "adapted": {
+        "src/modules/import-kit/src/door/ADOPTING.md": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
+        "src/modules/import-kit/src/door/refusals.ts": "11f94fec479228d71ba6d7dd6ea7796c0d42c544"
+      },
+      "acknowledged": {
+        "src/modules/import-kit/src/door/ADOPTING.md": {
+          "sha256": "dc391d550e19d50a6c539bae7c5c09b08127ccad4b47fee241876683e395d950",
+          "mode": "100644"
+        },
+        "src/modules/import-kit/src/door/refusals.ts": {
+          "sha256": "341acb876cf6f5111d316fd4208ce5028330db9bae8e3f9d11bd00934d69a381",
+          "mode": "100644"
+        }
       }
     },
     {
@@ -2582,6 +2651,15 @@
         "src/modules/import-kit/src/provenance/numeric-credentials.ts": "100644",
         "src/modules/import-kit/src/provenance/resumable-sha256.ts": "100644",
         "src/modules/import-kit/src/provenance/validate-json.ts": "100644"
+      },
+      "adapted": {
+        "src/modules/import-kit/src/provenance/credentials.ts": "11f94fec479228d71ba6d7dd6ea7796c0d42c544"
+      },
+      "acknowledged": {
+        "src/modules/import-kit/src/provenance/credentials.ts": {
+          "sha256": "30be6c565ec868c0fbf5c08be50a3c5b890996a7b3d19d9f3232c799286e2b93",
+          "mode": "100644"
+        }
       }
     },
     {
@@ -2814,6 +2892,15 @@
         "src/modules/mail/src/sendgrid-email/index.d.mts": "100644",
         "src/modules/mail/src/sendgrid-email/index.mjs": "100644",
         "src/modules/mail/src/unsubscribe/index.mjs": "100644"
+      },
+      "adapted": {
+        "src/modules/mail/README.md": "11f94fec479228d71ba6d7dd6ea7796c0d42c544"
+      },
+      "acknowledged": {
+        "src/modules/mail/README.md": {
+          "sha256": "b92c7ddfe8dda01cb6c5615d8f0cbf1d6955bf48b2e95a083e3e11985312d725",
+          "mode": "100644"
+        }
       }
     },
     {
@@ -3033,6 +3120,30 @@
         "src/modules/operator-auth/signin/index.d.mts": "100644",
         "src/modules/operator-auth/signin/index.mjs": "100644",
         "src/modules/operator-auth/signin/one-click.mjs": "100644"
+      },
+      "adapted": {
+        "src/modules/operator-auth/README.md": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
+        "src/modules/operator-auth/SCHEDULED-POLICY.md": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
+        "src/modules/operator-auth/docs/vite-spa.md": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
+        "src/modules/operator-auth/representation.mjs": "11f94fec479228d71ba6d7dd6ea7796c0d42c544"
+      },
+      "acknowledged": {
+        "src/modules/operator-auth/README.md": {
+          "sha256": "92caf2ef770ff8c1c1e31d3849c6337d5a7b58601e8433c7d53ab631d075437e",
+          "mode": "100644"
+        },
+        "src/modules/operator-auth/SCHEDULED-POLICY.md": {
+          "sha256": "0c28f9be024760cd4be63aac2bee277283381e6ab647cb1fe058dda7d2332356",
+          "mode": "100644"
+        },
+        "src/modules/operator-auth/docs/vite-spa.md": {
+          "sha256": "0c9cb19046087f55390368e9983be52a24ce8804cda0a621c7f74d12b90288b6",
+          "mode": "100644"
+        },
+        "src/modules/operator-auth/representation.mjs": {
+          "sha256": "4dc602fe73ce6fa83ade350ca4bd8a1b86dfa96e743598eb7379d2382de8445f",
+          "mode": "100644"
+        }
       }
     },
     {
@@ -3095,6 +3206,15 @@
       },
       "modes": {
         "VERIFY-WORKFLOW.md": "100644"
+      },
+      "adapted": {
+        "VERIFY-WORKFLOW.md": "11f94fec479228d71ba6d7dd6ea7796c0d42c544"
+      },
+      "acknowledged": {
+        "VERIFY-WORKFLOW.md": {
+          "sha256": "a9a21f39f2b8ce484541f8352bceb70f342e681cf5b18aaf4080e91b88268d90",
+          "mode": "100644"
+        }
       }
     }
   ]
