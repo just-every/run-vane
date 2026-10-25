@@ -1,6 +1,6 @@
 {
   "version": "0.1.0",
-  "publicReleaseNotes": "Prepare Vane for hosted installation with a generated delivery descriptor, Managed mail relay support, source provenance and synthetic integration fixtures.",
+  "publicReleaseNotes": "Prepare Vane for hosted installation with rer 0.2.80, a generated delivery descriptor, Managed mail relay support, preserved source provenance and synthetic integration fixtures.",
   "migrations": [
     "migrations/core/0001_owner.sql",
     "migrations/core/0002_outbox.sql",
@@ -103,7 +103,14 @@
     "migrations/core/0113_vane_github_credential_kind.sql",
     "migrations/core/0114_vane_heat_geometry.sql",
     "migrations/core/0115_vane_agent_work.sql",
-    "migrations/core/0116_vane_ga4.sql"
+    "migrations/core/0116_vane_ga4.sql",
+    "migrations/core/0117_import_erasure_progress.sql",
+    "migrations/core/0118_import_door.sql",
+    "migrations/core/0119_import_door_archive.sql",
+    "migrations/core/0120_scheduled_policy.sql",
+    "migrations/core/0121_scheduled_policy_hardening.sql",
+    "migrations/core/0122_last_signin.sql",
+    "migrations/core/0123_dependency_keys_sealed.sql"
   ],
   "breaking": false,
   "agentUpdateInstructions": "Install dependencies with the pinned toolchain, build, check the deployment specification and run verification. Configure mail through the selected provider. Preserve the analytics project identity and existing migration bytes."
