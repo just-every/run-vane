@@ -3,13 +3,13 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { main as ownerMain } from '@runeditrun/rer/modules/deploy-kit/owner-cli';
 
-export function requireCloudflareAuthority(env) {
+export function requireCloudflareAuthority(env, flag = 'VANE_HOST_CLOUDFLARE_JOURNEY') {
  for (const name of ['CLOUDFLARE_API_TOKEN', 'CLOUDFLARE_ACCOUNT_ID']) {
   assert.ok(env[name]?.trim(), `${name} is required for the live Cloudflare journey; refusing to skip`);
  }
  assert.equal(env.CLOUDFLARE_ACCOUNT_ID === 'b20c0ca9cab0c2b70e13d7cf724b89bd', true,
   'The live journey is restricted to the RunEditRun account');
- assert.equal(env.VANE_HOST_CLOUDFLARE_JOURNEY, '1', 'The scheduled live journey must be enabled');
+ assert.equal(env[flag], '1', 'The live journey must be enabled');
 }
 
 async function listAccount(env, resource) {
@@ -74,5 +74,5 @@ export async function removeTransfer({ state, env, root, args, passed }) {
   await writeFile(join(env.VANE_HOST_RECEIPT_DIR, 'cleanup.json'), JSON.stringify(receipt, null, 2) + '\n');
  }
  assert.equal(failures.length, 0, failures.join('; '));
- console.log('HOST-003 cleanup passed: fresh account Worker and D1 listings contain none of this journey resources.');
+ console.log('Cleanup passed: fresh account Worker and D1 listings contain none of this journey resources.');
 }
