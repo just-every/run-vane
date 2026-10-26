@@ -73,8 +73,8 @@ export async function accountUsage(env, { worker, database, from, to }) {
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-/** Analytics arrive minutes after the traffic: wait until the counts reach the traffic and stop changing. */
-export async function settledUsage(env, scope, { expectRequests, minutes = 20 }) {
+/** Workers analytics arrive twenty minutes or more after the traffic: wait until the counts reach it and stop changing. */
+export async function settledUsage(env, scope, { expectRequests, minutes = 45 }) {
  let last, steady = 0;
  for (const deadline = Date.now() + minutes * 60_000; Date.now() < deadline; await sleep(30_000)) {
   const usage = await accountUsage(env, { ...scope, to: new Date() });

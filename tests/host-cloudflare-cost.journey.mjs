@@ -4,6 +4,7 @@ import { readFile, readdir, mkdir, writeFile } from 'node:fs/promises';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomBytes } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import { requireCloudflareAuthority, removeTransfer } from './host-cloudflare-cleanup.mjs';
 import { inventory, difference, bindingsOf, settledUsage } from './host-cloudflare-usage.mjs';
 import { HOSTING_SAMPLE, monthlyCost, usageCost, sampleUse } from '../src/vane/hosting-cost.ts';
@@ -35,17 +36,17 @@ test('HOST-001 a deployed Vane Worker under real native load costs what the pane
  const args = command => [command, '--declaration', 'deploy.json', '--environment', environment, '--product', '', '--state', state];
  const privateEnv = { ...process.env, OWNER_EMAIL: 'synthetic-vane-1@example.test', SESSION_SECRET: randomBytes(32).toString('hex'),
   SETUP_TOKEN: randomBytes(32).toString('hex'), MAIL_API_KEY: 'synthetic-vane-1', WRANGLER_SEND_METRICS: 'false' };
- let passed = false, cleanupPromise;
+ let passed = false, cleanupPromise, before;
  const cleanup = () => cleanupPromise ??= removeTransfer({ state, env: privateEnv, root, args, passed });
  t.after(cleanup);
- const receipt = { sha: process.env.GITHUB_SHA ?? null, startedAt: new Date().toISOString(), target: { first: FIRST, total: TOTAL } };
+ const receipt = { sha: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(), startedAt: new Date().toISOString(), target: { first: FIRST, total: TOTAL } };
  const saveReceipt = async () => {
   if (!process.env.VANE_HOST_RECEIPT_DIR) return;
   await mkdir(process.env.VANE_HOST_RECEIPT_DIR, { recursive: true });
   await writeFile(join(process.env.VANE_HOST_RECEIPT_DIR, 'host-cost.json'), JSON.stringify(receipt, null, 2) + '\n');
  };
  try {
-  const before = await inventory(privateEnv);
+  before = await inventory(privateEnv);
   const from = new Date(Date.now() - 60_000);
   let deployed;
   try { deployed = await ownerMain(args('deploy'), privateEnv, { cwd: root, notice: () => {} }); }
@@ -126,5 +127,6 @@ test('HOST-001 a deployed Vane Worker under real native load costs what the pane
   passed = true;
  } finally { await cleanup(); }
  // Removal leaves the account exactly as the journey found it.
- receipt.finishedAt = new Date().toISOString(); await saveReceipt();
+ assert.deepEqual(difference(before, await inventory(privateEnv)), Object.fromEntries(Object.keys(before).map(kind => [kind, { added: [], removed: [] }])), 'The account is back to its inventory before deployment');
+ receipt.accountAfterCleanup = 'identical to before'; receipt.finishedAt = new Date().toISOString(); await saveReceipt();
 });

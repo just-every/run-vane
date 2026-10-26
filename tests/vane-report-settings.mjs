@@ -344,7 +344,7 @@ test('HOST-001 real collection measures requests, D1 work and storage before pro
  assert.equal(report.pageviews,count);assert.ok(measured.rowsRead>0&&measured.rowsWritten>0&&after>before)
  t.diagnostic(JSON.stringify({pageviews:count,...measured,storeBeforeBytes:before,storeAfterBytes:after,storeGrowthBytes:after-before,scope:'local native batch collection only; elapsed time is not Worker CPU or provider billing'}))
  const history=await a.request('/app?section=history',{headers:{cookie:a.owner}}),html=await history.text()
- assert.equal(history.status,200);assert.match(html,/Workers Free plan warning: 80,000 reported requests/);assert.match(html,/Workers Paid is required/);assert.match(html,/not measured/);assert.match(html,/Known component monthly estimate \(USD\)<\/dt><dd>\$5\.00<\/dd>/)
+ assert.equal(history.status,200);assert.match(html,/Workers Free plan warning: 80,000 reported requests/);assert.match(html,/Workers Paid is required/);assert.match(html,/Vane does not read your Cloudflare bill/);assert.match(html,/Known component monthly estimate \(USD\)<\/dt><dd>\$5\.00<\/dd>/)
  assert.match(html,new RegExp('data-hosting-pageviews>'+count.toLocaleString('en-US')+'<'))
  const viewer=await a.invite('synthetic-vane-1@example.test','member')
  assert.ok(!(await (await a.request('/app?section=history',{headers:{cookie:viewer}})).text()).includes('data-hosting-cost'),'installation costs remain owner-only')
