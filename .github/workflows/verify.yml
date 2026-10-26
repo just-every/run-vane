@@ -66,18 +66,15 @@ jobs:
           fi
           echo "skip=$skip" >> "$GITHUB_OUTPUT"
 
-  shards:
+  foundation:
+    name: shards (foundation)
     needs: plan
     if: needs.plan.outputs.skip != 'true'
-    name: shards (${{ matrix.shard }})
     runs-on: ubuntu-24.04
     timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [foundation, product-1, product-2, product-3, integrations-1, integrations-2, integrations-3, integrations-4]
     env:
-      VANE_VERIFY_SHARD: ${{ matrix.shard }}
+      VANE_VERIFY_SHARD: foundation
+      VANE_VERIFY_BUILD_ARCHIVE: .cache/vane-build.tar
       CI: 'true'
       WRANGLER_SEND_METRICS: 'false'
     steps:
@@ -89,14 +86,29 @@ jobs:
           node-version: '22.20.0'
           package-manager-cache: false
       - name: Check edition source lock freshness
-        # Technical foundation exports use composition.lock.json or reference-export.json.
-        # Edition-owned seeds must commit both edition.json and sources.lock.json.
-        if: ${{ matrix.shard == 'foundation' && hashFiles('edition.json', 'sources.lock.json') != '' }}
+        if: ${{ hashFiles('edition.json', 'sources.lock.json') != '' }}
         run: node scripts/edition-authoring/cli.mjs check
+      - name: Reclaim SDKs only if the build needs disk
+        run: |
+          for sdk in /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL; do
+            available=$(df -Pk . | awk 'NR == 2 {print $4}')
+            if [ "$available" -ge 20971520 ]; then break; fi
+            sudo rm -rf -- "$sdk"
+          done
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec rer check --profile first-party
-        if: matrix.shard == 'foundation'
+      - name: Build the app once for verification
+        run: |
+          pnpm run build
+          mkdir -p .cache
+          tar -cf "$VANE_VERIFY_BUILD_ARCHIVE" dist .wrangler/deploy/config.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: vane-build
+          path: .cache/vane-build.tar
+          retention-days: 1
+          if-no-files-found: error
       - name: Install Chromium
         run: |
           set -euo pipefail
@@ -107,15 +119,27 @@ jobs:
             node scripts/ci/chromium-probe.mjs
           }
       - run: pnpm run verify
+      - name: Set up the checkout's own owner and data
+        run: |
+          mkdir -p .cache
+          (umask 077; printf '{"OWNER_EMAIL":"owner@example.test"}' > .cache/setup-answers.json)
+          pnpm exec rer setup --answers .cache/setup-answers.json --non-interactive
+      - name: DEMO-001 journey
+        run: node --test tests/demo.journey.mjs
 
-  # DEMO-001: starts `rer demo` on the checkout's own set-up data, walks the demo in a browser and stops
-  # it. It runs only here: shared development machines never run `rer demo --stop`.
-  demo:
-    needs: plan
+  shards:
+    needs: [plan, foundation]
     if: needs.plan.outputs.skip != 'true'
+    name: shards (${{ matrix.shard }})
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [product-1, product-2, product-3, integrations-1, integrations-2, integrations-3, integrations-4]
     env:
+      VANE_VERIFY_SHARD: ${{ matrix.shard }}
+      VANE_VERIFY_BUILD_ARCHIVE: .cache/vane-build.tar
       CI: 'true'
       WRANGLER_SEND_METRICS: 'false'
     steps:
@@ -137,17 +161,15 @@ jobs:
             timeout 420 pnpm exec playwright install-deps chromium
             node scripts/ci/chromium-probe.mjs
           }
-      - name: Set up the checkout's own owner and data
-        run: |
-          mkdir -p .cache
-          (umask 077; printf '{"OWNER_EMAIL":"owner@example.test"}' > .cache/setup-answers.json)
-          pnpm exec rer setup --answers .cache/setup-answers.json --non-interactive
-      - name: DEMO-001 journey
-        run: node --test tests/demo.journey.mjs
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: vane-build
+          path: .cache
+      - run: pnpm run verify
 
   # Keep the required check stable and require a successful plan before reusing a run.
   verify:
-    needs: [plan, shards, demo]
+    needs: [plan, foundation, shards]
     if: ${{ always() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 1

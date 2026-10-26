@@ -1,9 +1,10 @@
 import { spawnSync } from 'node:child_process'
 import { vaneTests } from './vane-tests.mjs'
+import { restoreCiBuild } from './ci/verify-build.mjs'
 
 const shard = process.env.VANE_VERIFY_SHARD
 if (shard && shard !== 'foundation' && !Object.hasOwn(vaneTests, shard)) throw Error(`Unknown verification shard: ${shard}`)
-const commands = [['run', 'build']]
+const commands = restoreCiBuild() ? [] : [['run', 'build']]
 if (!shard || shard === 'foundation') commands.push(['exec', 'rer', 'build', '--site'], ['run', 'test:site'], ['run', 'typecheck'])
 if (!shard) commands.push(['run', 'test:vane'])
 else if (shard !== 'foundation') commands.push(['exec', 'node', 'scripts/vane-tests.mjs', shard])
