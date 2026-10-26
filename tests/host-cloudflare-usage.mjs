@@ -60,7 +60,7 @@ export async function accountUsage(env, { worker, database, from, to }) {
    from: from.toISOString(), to: to.toISOString(), fromDay: from.toISOString().slice(0, 10), toDay: to.toISOString().slice(0, 10) } }),
  });
  const body = await response.json();
- assert.equal(body.errors, undefined, 'Cloudflare analytics refused: ' + JSON.stringify(body.errors));
+ assert.ok(!body.errors, 'Cloudflare analytics refused: ' + JSON.stringify(body.errors));
  const account = body.data.viewer.accounts[0];
  const sum = (rows, name) => rows.reduce((total, row) => total + (row.sum[name] ?? 0), 0);
  return {

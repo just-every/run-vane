@@ -4,7 +4,8 @@
   "groups": [
     {
       "id": "application",
-      "label": "Your application"
+      "label": "Your application",
+      "help": "Vane runs in your own Cloudflare account. Workers Free suits a trial or a small site (100,000 Worker requests a day); a busier installation needs Workers Paid, from US$5 a month. Hosting cost on History shows the plan your volume needs."
     },
     {
       "id": "owner",
