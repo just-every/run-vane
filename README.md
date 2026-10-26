@@ -161,6 +161,12 @@ Stop dev and commit changes, then validate with no provider calls:
 rer deploy --dry-run
 ```
 
+Choose the Cloudflare plan first. Workers Free suits a trial or a small site, but
+its limit of 100,000 Worker requests a day is far below a busy installation, which
+needs Workers Paid (US$5 a month minimum). Setup and the Hosting cost panel on
+History name the plan your measured volume needs and warn at 80% of the Free limit;
+[Hosting cost](docs/hosting-cost.md) publishes the measured cost per 100,000 pageviews.
+
 For a real deploy, use a Cloudflare account with a workers.dev subdomain and a
 Workers/D1 management token, plus a verified Resend sender. Set `MAIL_FROM` in
 `deploy.json` to that sender and commit. Supply `CLOUDFLARE_ACCOUNT_ID`,
@@ -182,8 +188,9 @@ Deploy builds, creates D1, applies migrations and checks health/setup. It runs n
 tests. Back up private `.rer/deploy/` resource-ownership records. Open the hosted
 address, sign in through your mailbox, finish setup and register your website.
 Identity is `analytics/vane`, Worker `vane-production`, D1 `vane-production-db`;
-do not rename these. Domain purchase is unnecessary. This round validates local
-hosting and dry run, with no live provider calls.
+do not rename these. Domain purchase is unnecessary. The deployment is one Worker
+and the bindings `deploy.json` declares; `rer deploy` adds only the kit's static
+assets, version metadata and deployment markers.
 
 ## Development
 

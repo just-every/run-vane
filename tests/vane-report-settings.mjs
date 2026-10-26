@@ -348,6 +348,10 @@ test('HOST-001 real collection measures requests, D1 work and storage before pro
  assert.match(html,new RegExp('data-hosting-pageviews>'+count.toLocaleString('en-US')+'<'))
  const viewer=await a.invite('synthetic-vane-1@example.test','member')
  assert.ok(!(await (await a.request('/app?section=history',{headers:{cookie:viewer}})).text()).includes('data-hosting-cost'),'installation costs remain owner-only')
+ // The plan is named before setup: the owner's setup questions, read by rer's own manifest reader, carry it.
+ const {readSetupManifestBytes,createInstallerModel}=await import('@runeditrun/rer/setup-manifest')
+ const setupGroups=createInstallerModel(readSetupManifestBytes(await readFile('rer-setup.json'),await readFile(createRequire(import.meta.url).resolve('@runeditrun/rer/setup-schema')))).setupGroups
+ assert.match(setupGroups.find(group=>group.id==='application').help,/Workers Free.*100,000 Worker requests a day.*Workers Paid/)
  for(const [usageDay,requests] of [['2026-10-23','79999'],['2026-10-22','80000']]){
   const b=await installation({vars:{VANE_WORKER_PLAN:'free',VANE_WORKER_DAILY_REQUESTS:requests,VANE_WORKER_USAGE_DAY:usageDay}})
   try{await b.clock(Date.parse('2026-10-23T12:00:00Z'));const empty=await (await b.request('/app?section=history',{headers:{cookie:b.owner}})).text()

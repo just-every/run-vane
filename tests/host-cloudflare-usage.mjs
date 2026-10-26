@@ -80,6 +80,7 @@ export async function settledUsage(env, scope, { expectRequests, minutes = 15 })
   const usage = await accountUsage(env, { ...scope, to: new Date() });
   steady = last && usage.requests === last.requests && usage.rowsWritten === last.rowsWritten ? steady + 1 : 0;
   last = usage;
+  console.log(new Date().toISOString(), 'analytics', JSON.stringify(usage));
   if (usage.requests >= expectRequests && steady >= 2) return usage;
  }
  throw new Error('Cloudflare analytics did not settle: ' + JSON.stringify(last));
