@@ -1050,6 +1050,10 @@
       "sha256": "c57c6ab541b0c9eb2a10896da3d027b4400f15744063acfd16d7faeb00c02110",
       "executable": false
     },
+    "scripts/ci/verify-build.mjs": {
+      "sha256": "216611b26c9643be46eac99d324ba4a07609cbef697f5456caf622c374f7d807",
+      "executable": false
+    },
     "scripts/delivery/base/artifact.mjs": {
       "sha256": "129f210f1556e816ba94ffe74359ac553cd26466aaf8c6c299765e9cea29aa07",
       "executable": false
