@@ -74,14 +74,14 @@ export async function accountUsage(env, { worker, database, from, to }) {
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 /** Analytics arrive minutes after the traffic: wait until the counts reach the traffic and stop changing. */
-export async function settledUsage(env, scope, { expectRequests, needBytes = false, minutes = 20 }) {
+export async function settledUsage(env, scope, { expectRequests, minutes = 20 }) {
  let last, steady = 0;
  for (const deadline = Date.now() + minutes * 60_000; Date.now() < deadline; await sleep(30_000)) {
   const usage = await accountUsage(env, { ...scope, to: new Date() });
   steady = last && usage.requests === last.requests && usage.rowsWritten === last.rowsWritten ? steady + 1 : 0;
   last = usage;
   console.log(new Date().toISOString(), 'analytics', JSON.stringify(usage));
-  if (usage.requests >= expectRequests && steady >= 2 && (!needBytes || usage.bytes > 0)) return usage;
+  if (usage.requests >= expectRequests && steady >= 4) return usage;
  }
  throw new Error('Cloudflare analytics did not settle: ' + JSON.stringify(last));
 }

@@ -12,10 +12,10 @@ export const HOSTING_RATES = {
  gigabytes: { included: 5, perMonth: 0.75 },
 }
 
-// Usage per 100,000 pageviews of one native collection load through the real batch door. Requests, rows and
-// storage first came from a local Miniflare run (23 October 2026) and were confirmed on a deployed Worker and D1
-// database in the RunEditRun account (docs/hosting-cost.md); Worker CPU can only be measured on the account.
-export const HOSTING_SAMPLE = { pageviews: 100_000, requests: 100, cpuMs: 0, rowsRead: 3_812_803, rowsWritten: 750_643, growthBytes: 7_512_064 }
+// Usage per 100,000 pageviews: Cloudflare's own account analytics for a deployed Worker and D1 database that
+// collected 1,000,000 native pageviews through the real batch door (docs/hosting-cost.md), all requests and D1
+// work in the window included. Storage growth is the database size D1 reports to the app.
+export const HOSTING_SAMPLE = { pageviews: 100_000, requests: 102.6, cpuMs: 3100.4, rowsRead: 3_962_652, rowsWritten: 793_151, growthBytes: 7_640_860 }
 
 export function sampleUse(pageviews: number, bytes: number): HostingUse {
  const scale = pageviews / HOSTING_SAMPLE.pageviews

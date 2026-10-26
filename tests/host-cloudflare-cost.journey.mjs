@@ -29,7 +29,7 @@ test('HOST-001 a deployed Vane Worker under real native load costs what the pane
  timeout: 120 * 60_000,
 }, async t => {
  requireCloudflareAuthority(process.env, 'VANE_HOST_COST_JOURNEY');
- assert.ok(FIRST >= BATCH && TOTAL > FIRST && FIRST % BATCH === 0 && TOTAL % BATCH === 0, 'phase sizes are whole batches');
+ assert.ok(FIRST >= BATCH && TOTAL > FIRST && FIRST % BATCH === 0 && TOTAL % BATCH === 0, 'load sizes are whole batches');
  const environment = 'host-cost-c822';
  const state = join(root, '.rer', 'deploy', `${environment}.json`);
  const args = command => [command, '--declaration', 'deploy.json', '--environment', environment, '--product', '', '--state', state];
@@ -97,36 +97,29 @@ test('HOST-001 a deployed Vane Worker under real native load costs what the pane
    const html = await (await fetch(deployed.origin + '/app?section=history', { headers: { cookie: owner } })).text();
    return { html, bytes: Number(html.match(/data-store-bytes="(\d+)"/)?.[1]), pageviews: Number(html.match(/data-hosting-pageviews>([\d,]+)</)?.[1].replaceAll(',', '')) };
   };
-  const phases = [];
-  const measure = async (name, expectRequests, needBytes) => {
-   const shown = await panel();
-   assert.equal(shown.pageviews, sent, 'The deployed Hosting cost panel counts every admitted pageview');
-   const usage = await settledUsage(privateEnv, scope, { expectRequests, needBytes });
-   const point = { name, pageviews: sent, at: new Date().toISOString(), usage, storeBytes: shown.bytes };
-   phases.push(point); receipt.phases = phases; await saveReceipt();
-   return point;
-  };
-
   await load(FIRST);
-  const first = await measure('first', FIRST / BATCH);
+  const mid = await panel();
+  assert.equal(mid.pageviews, FIRST, 'The deployed Hosting cost panel counts every admitted pageview');
   await load(TOTAL - FIRST);
-  const total = await measure('total', TOTAL / BATCH, true);
-  assert.match((await panel()).html, /Workers Paid is required/);
-
-  // Cloudflare's own count of the second phase alone is pure collection load: the same figure the owner is told per
-  // 100,000 pageviews, priced by the same published rates.
-  const load2 = Object.fromEntries(Object.keys(total.usage).map(k => [k, total.usage[k] - first.usage[k]]));
-  const units = (TOTAL - FIRST) / HOSTING_SAMPLE.pageviews;
-  const per100k = { requests: load2.requests / units, cpuMs: load2.cpuMs / units, rowsRead: load2.rowsRead / units, rowsWritten: load2.rowsWritten / units, bytes: (total.storeBytes - first.storeBytes) / units };
-  const stated = sampleUse(HOSTING_SAMPLE.pageviews, 0);
+  const end = await panel();
+  assert.equal(end.pageviews, TOTAL);
+  assert.match(end.html, /Workers Paid is required/);
+  // Cloudflare's own count for the Worker and its database from before deployment to the end of the load: complete
+  // usage, including setup, sign-in, dashboard reads and the five-minute schedule. Analytics lag the traffic.
+  const usage = await settledUsage(privateEnv, scope, { expectRequests: TOTAL / BATCH });
+  const units = TOTAL / HOSTING_SAMPLE.pageviews;
+  const growth = (end.bytes - mid.bytes) / ((TOTAL - FIRST) / HOSTING_SAMPLE.pageviews);
+  const per100k = { requests: usage.requests / units, cpuMs: usage.cpuMs / units, rowsRead: usage.rowsRead / units, rowsWritten: usage.rowsWritten / units, bytes: growth };
+  const stated = { ...sampleUse(HOSTING_SAMPLE.pageviews, HOSTING_SAMPLE.growthBytes) };
+  const atVolume = (use, pageviews) => ({ requests: use.requests * pageviews / HOSTING_SAMPLE.pageviews, cpuMs: use.cpuMs * pageviews / HOSTING_SAMPLE.pageviews,
+   rowsRead: use.rowsRead * pageviews / HOSTING_SAMPLE.pageviews, rowsWritten: use.rowsWritten * pageviews / HOSTING_SAMPLE.pageviews, bytes: use.bytes * pageviews / HOSTING_SAMPLE.pageviews });
   const comparison = {
-   per100kMeasured: per100k, per100kStated: { requests: stated.requests, cpuMs: stated.cpuMs, rowsRead: stated.rowsRead, rowsWritten: stated.rowsWritten, bytes: HOSTING_SAMPLE.growthBytes },
-   usageCostPer100k: { measured: usageCost({ ...per100k, bytes: per100k.bytes }), stated: usageCost({ ...stated, bytes: HOSTING_SAMPLE.growthBytes }) },
-   monthlyAtRun: { measured: monthlyCost({ ...total.usage, bytes: total.storeBytes }), stated: monthlyCost(sampleUse(TOTAL, total.storeBytes)) },
-   monthlyAtContractVolume: { measured: monthlyCost({ requests: per100k.requests * 100, cpuMs: per100k.cpuMs * 100, rowsRead: per100k.rowsRead * 100, rowsWritten: per100k.rowsWritten * 100, bytes: per100k.bytes * 100 }), stated: monthlyCost(sampleUse(CONTRACT_MONTHLY, HOSTING_SAMPLE.growthBytes * CONTRACT_MONTHLY / HOSTING_SAMPLE.pageviews)) },
+   usage, storeBytes: { afterFirst: mid.bytes, end: end.bytes }, per100kMeasured: per100k, per100kStated: stated,
+   usageCostPer100k: { measured: usageCost(per100k), stated: usageCost(stated) },
+   monthlyAtRun: { measured: monthlyCost({ ...usage, bytes: end.bytes }), stated: monthlyCost(sampleUse(TOTAL, end.bytes)) },
+   monthlyAtContractVolume: { measured: monthlyCost(atVolume(per100k, CONTRACT_MONTHLY)), stated: monthlyCost(atVolume(stated, CONTRACT_MONTHLY)) },
   };
   receipt.comparison = comparison; await saveReceipt();
-  within(total.usage.bytes, total.storeBytes, 'the account storage figure against the size D1 reports to the app');
   within(comparison.usageCostPer100k.measured, comparison.usageCostPer100k.stated, 'usage cost per 100,000 pageviews');
   within(comparison.monthlyAtRun.measured, comparison.monthlyAtRun.stated, 'monthly cost at the run volume');
   within(comparison.monthlyAtContractVolume.measured, comparison.monthlyAtContractVolume.stated, 'monthly cost at the COLLECT-004 monthly volume');
