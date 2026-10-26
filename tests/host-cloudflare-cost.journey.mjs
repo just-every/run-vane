@@ -15,11 +15,13 @@ const FIRST = Number(process.env.VANE_HOST_COST_FIRST ?? 100_000), TOTAL = Numbe
 const PARALLEL = 6, BATCH = 1000, CONTRACT_MONTHLY = 10_000_000;
 const within = (actual, expected, label) => assert.ok(Math.abs(actual - expected) <= expected * 0.1, `${label}: measured ${actual} is not within 10% of stated ${expected}`);
 
-// What deploy.json promises, as binding name and type, the way the provider lists them.
+// What deploy.json promises, plus the four bindings the rer deploy kit adds to every Worker (static assets, version
+// metadata, deployment fingerprint and source), as binding name and type the way the provider lists them.
+const KIT_BINDINGS = ['ASSETS:assets', 'RER_VERSION:version_metadata', 'RER_DEPLOY_FINGERPRINT:plain_text', 'RER_DEPLOY_SOURCE:plain_text'];
 async function declaredBindings() {
  const declaration = JSON.parse(await readFile(join(root, 'deploy.json'), 'utf8'));
  return [...declaration.d1.map(d => `${d.binding}:d1`), ...Object.keys(declaration.vars).map(name => `${name}:plain_text`),
-  `${declaration.originVar}:plain_text`, ...declaration.secrets.map(s => `${s.binding}:secret_text`)].sort();
+  `${declaration.originVar}:plain_text`, ...declaration.secrets.map(s => `${s.binding}:secret_text`), ...KIT_BINDINGS].sort();
 }
 
 test('HOST-001 a deployed Vane Worker under real native load costs what the panel states, within 10% of Cloudflare\'s own account usage', {
