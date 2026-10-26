@@ -93,44 +93,40 @@ test('HOST-001 a deployed Vane Worker under real native load costs what the pane
    }));
    sent += count;
   }
-  const summary = async () => {
-   const response = await fetch(`${deployed.origin}/api/vane/summary?siteId=${siteId}&period=today`, { headers: { cookie: owner } });
-   return (await response.json()).pageviews;
-  };
   const panel = async () => {
    const html = await (await fetch(deployed.origin + '/app?section=history', { headers: { cookie: owner } })).text();
-   return { html, bytes: Number(html.match(/data-store-bytes="(\d+)"/)?.[1]) };
+   return { html, bytes: Number(html.match(/data-store-bytes="(\d+)"/)?.[1]), pageviews: Number(html.match(/data-hosting-pageviews>([\d,]+)</)?.[1].replaceAll(',', '')) };
   };
   const phases = [];
-  const measure = async (name, expectRequests) => {
-   const usage = await settledUsage(privateEnv, scope, { expectRequests });
-   const point = { name, pageviews: sent, at: new Date().toISOString(), usage };
+  const measure = async (name, expectRequests, needBytes) => {
+   const shown = await panel();
+   assert.equal(shown.pageviews, sent, 'The deployed Hosting cost panel counts every admitted pageview');
+   const usage = await settledUsage(privateEnv, scope, { expectRequests, needBytes });
+   const point = { name, pageviews: sent, at: new Date().toISOString(), usage, storeBytes: shown.bytes };
    phases.push(point); receipt.phases = phases; await saveReceipt();
    return point;
   };
 
   await load(FIRST);
-  assert.equal(await summary(), FIRST, 'The deployed report counts every admitted pageview');
   const first = await measure('first', FIRST / BATCH);
   await load(TOTAL - FIRST);
-  assert.equal(await summary(), TOTAL);
-  const total = await measure('total', TOTAL / BATCH);
-  const shown = await panel();
-  assert.match(shown.html, /Workers Paid is required/);
+  const total = await measure('total', TOTAL / BATCH, true);
+  assert.match((await panel()).html, /Workers Paid is required/);
 
   // Cloudflare's own count of the second phase alone is pure collection load: the same figure the owner is told per
   // 100,000 pageviews, priced by the same published rates.
   const load2 = Object.fromEntries(Object.keys(total.usage).map(k => [k, total.usage[k] - first.usage[k]]));
   const units = (TOTAL - FIRST) / HOSTING_SAMPLE.pageviews;
-  const per100k = { requests: load2.requests / units, cpuMs: load2.cpuMs / units, rowsRead: load2.rowsRead / units, rowsWritten: load2.rowsWritten / units, bytes: load2.bytes / units };
+  const per100k = { requests: load2.requests / units, cpuMs: load2.cpuMs / units, rowsRead: load2.rowsRead / units, rowsWritten: load2.rowsWritten / units, bytes: (total.storeBytes - first.storeBytes) / units };
   const stated = sampleUse(HOSTING_SAMPLE.pageviews, 0);
   const comparison = {
    per100kMeasured: per100k, per100kStated: { requests: stated.requests, cpuMs: stated.cpuMs, rowsRead: stated.rowsRead, rowsWritten: stated.rowsWritten, bytes: HOSTING_SAMPLE.growthBytes },
    usageCostPer100k: { measured: usageCost({ ...per100k, bytes: per100k.bytes }), stated: usageCost({ ...stated, bytes: HOSTING_SAMPLE.growthBytes }) },
-   monthlyAtRun: { measured: monthlyCost(total.usage), stated: monthlyCost(sampleUse(TOTAL, total.usage.bytes)) },
+   monthlyAtRun: { measured: monthlyCost({ ...total.usage, bytes: total.storeBytes }), stated: monthlyCost(sampleUse(TOTAL, total.storeBytes)) },
    monthlyAtContractVolume: { measured: monthlyCost({ requests: per100k.requests * 100, cpuMs: per100k.cpuMs * 100, rowsRead: per100k.rowsRead * 100, rowsWritten: per100k.rowsWritten * 100, bytes: per100k.bytes * 100 }), stated: monthlyCost(sampleUse(CONTRACT_MONTHLY, HOSTING_SAMPLE.growthBytes * CONTRACT_MONTHLY / HOSTING_SAMPLE.pageviews)) },
   };
-  receipt.comparison = comparison; receipt.panelStoreBytes = shown.bytes; await saveReceipt();
+  receipt.comparison = comparison; await saveReceipt();
+  within(total.usage.bytes, total.storeBytes, 'the account storage figure against the size D1 reports to the app');
   within(comparison.usageCostPer100k.measured, comparison.usageCostPer100k.stated, 'usage cost per 100,000 pageviews');
   within(comparison.monthlyAtRun.measured, comparison.monthlyAtRun.stated, 'monthly cost at the run volume');
   within(comparison.monthlyAtContractVolume.measured, comparison.monthlyAtContractVolume.stated, 'monthly cost at the COLLECT-004 monthly volume');
