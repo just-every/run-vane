@@ -1,16 +1,90 @@
-# Hosting cost and local measurement
+# Hosting cost and measurement
 
 Vane deploys one Worker and its D1 binding, as declared in `deploy.json`.
-Workers Free permits 100,000 Worker requests a day; pageviews, engagement,
-configuration and dashboard requests are different counts. The collection
-load-test volume requires Workers Paid. An owner sees Hosting cost on History.
+The Cloudflare plan is named before setup: the setup questions, the Deploy
+section of the README and this page say that Workers Free suits a trial or a
+small site, and that a busier installation needs Workers Paid (USD 5 a month
+minimum). Workers Free permits 100,000 Worker requests a day; pageviews,
+engagement, configuration and dashboard requests are different counts. The
+collection load-test volume requires Workers Paid. An owner sees Hosting cost
+on History, which names the plan the stored volume needs and warns at 80% of
+the Free daily request limit.
 
-The panel is a **known component estimate**, not a measured Cloudflare bill.
-HOST-001 remains partial. A Cloudflare test account, the full COLLECT-004 run,
-resource reconciliation and a billing comparison within 10% are still required.
-The plan notice before setup is also pending.
+The panel is a **projection from measured usage**, not a read of your
+Cloudflare bill. The usage per 100,000 pageviews comes from Cloudflare's own
+account analytics for a deployed Worker and D1 database, as the next section
+records. The tables after it keep the earlier local run as an independent
+cross-check.
 
-## Measured local collection
+## Measured on a deployed Cloudflare account
+
+The explicit journey `tests/host-cloudflare-cost.journey.mjs` deploys Vane with
+the public `rer deploy` command into the held RunEditRun test account, claims
+the owner with the setup token, approves a site and submits genuine pageviews
+through the native batch door (`POST /api/vane/collect-batch`, 1,000 distinct
+pageviews a request, the transport of the `COLLECT-004` load test) from one
+machine. It then reads Cloudflare's own account analytics for that Worker and
+database, prices them at the published rates below and compares the result with
+the figures the panel states. Removal always runs afterwards.
+
+Reconciliation before any load: the account inventory (Workers, D1 databases,
+KV namespaces, R2 buckets and queues) gained exactly one Worker and one D1
+database, and the Worker's bindings were exactly those `deploy.json` declares
+(the D1 binding `DB`, the plain variables, the four secrets and the origin
+variable) plus the four the rer deploy kit adds to every Worker: static assets
+(`ASSETS`), version metadata (`RER_VERSION`) and the two deployment markers
+(`RER_DEPLOY_FINGERPRINT`, `RER_DEPLOY_SOURCE`). After removal the account
+inventory was identical to the one before.
+
+| Per 100,000 pageviews | Calibration run | Verification run | Panel states |
+| --- | ---: | ---: | ---: |
+| Worker requests (all, incl. setup and schedule) | 102.6 | 100.5 | 102.6 |
+| Worker CPU, milliseconds | 3,100 | 2,749 | 3,100 |
+| D1 rows read | 3,962,652 | 3,967,468 | 3,962,652 |
+| D1 rows written | 793,151 | 794,252 | 793,151 |
+| Storage growth, bytes | 7,640,860 | 7,627,207 | 7,640,860 |
+| Usage cost at list rates, no allowances (USD) | 0.803 | 0.804 | 0.803 |
+| Monthly cost at 10,000,000 pageviews (USD) | 34.32 | 34.43 | 34.32 |
+
+Each run loaded 1,000,000 pageviews into a fresh deployment, counted from
+before deployment to the end of the load. Cloudflare's figures for the Worker
+and database include setup, owner sign-in, dashboard reads and the five-minute
+schedule, so this is complete usage, not only batch requests. The calibration
+run (source commit e498027) produced the figures the panel states; a repeat
+deployment between the two wrote 792,668 rows per 100,000 pageviews, within
+0.1% of it, and Cloudflare's storage figure for that repeat, 78,544,900 bytes,
+matched the 78,544,896 bytes the app showed. Receipts are kept with the campaign. The verification run, on
+6e3124d34ceaa082d70db9285be6555ef33b825c on 26 October 2026, was a second fresh
+deployment: its usage cost per 100,000 pageviews and its monthly cost at the
+`COLLECT-004` volume of 10,000,000 monthly pageviews are within 0.4% of the
+stated values, and every comparison the journey asserts is within 10%. Worker
+analytics arrived about twenty minutes after the traffic, so the journey waits
+for them; the verification run measured storage as the size D1 reports to the
+app, because the account's daily storage figure had not yet arrived. At 1,000,000 pageviews a month the account minimum dominates: USD 5.00.
+
+The load is 1,000,000 pageviews on one deployment, not the full twelve-month
+120,000,000-pageview run of `COLLECT-004`. That run would bill roughly USD 850
+of D1 writes beyond the included 50 million, take more than two days at the
+measured rate and exceed what one D1 database holds on the way to its 10 GB
+limit, so it stays an in-runtime proof (`tests/collection-scale.journey.mjs`).
+The deployed run establishes the cost per 100,000 pageviews, and the monthly
+figure at the stated volume follows from it by the published rates. The first
+100,000 pageviews wrote about 4% fewer rows per 100,000 than the
+1,000,000-pageview average the panel states, so a small installation costs no
+more than stated.
+
+Reproduce with the held test token (it needs Workers Scripts Write, D1 Write,
+Account Analytics Read, Account Settings Read, Workers KV Storage Read and
+Workers R2 Storage Read, and no zone permission):
+
+```sh
+VANE_HOST_COST_JOURNEY=1 CLOUDFLARE_API_TOKEN=... CLOUDFLARE_ACCOUNT_ID=... \
+  node --test --test-concurrency=1 tests/host-cloudflare-cost.journey.mjs
+```
+
+The run takes about half an hour and costs a few cents.
+
+## Local cross-check
 
 On 23 October 2026 the committed public journey in
 `tests/vane-report-settings.mjs`, “HOST-001 real collection measures requests,
@@ -38,24 +112,25 @@ from the collection counters. Repeated runs can differ because of index layout.
 Elapsed time includes waiting and **is not Worker CPU time**. A single-event
 browser workload, more distinct visitors and more dimensions can cost more.
 
-At this measured volume, the published Workers Paid minimum and known D1 and
-request components project to **USD 5.00 per month, or USD 5.00 per 100,000
-pageviews**. This assumes this is the account's only workload and its included
-allowances are available. It excludes Worker CPU, engagement, dashboard reads,
-mail, other services and taxes; it is not an observed provider charge. No paid
-account or provider billing measurement was used.
+At this local volume the Workers Paid minimum dominates: the local run alone
+projects USD 5.00 a month. This run measured no Worker CPU and used no account;
+the deployed measurement above supplies the figures the panel states, and
+counted about 6% more rows written (793,151 against 750,643 per 100,000
+pageviews); the local run does not isolate the difference, and the panel states
+the larger deployed figure.
 
 ## Projection and warning
 
 Published rates read on 23 October 2026 from Cloudflare's pricing documentation:
 
 - Workers Paid: USD 5 monthly account minimum; 10 million included requests,
-  then USD 0.30 per additional million. CPU is excluded from this projection.
+  then USD 0.30 per additional million; 30 million included CPU milliseconds,
+  then USD 0.02 per additional million.
 - D1: 25 billion included monthly reads, then USD 0.001 per million; 50 million
   included writes, then USD 1 per million; 5 GB included storage, then USD 0.75
   per GB-month.
 
-The panel scales the measured request and D1 operation counts linearly to the
+The panel scales the measured request, CPU and D1 operation counts linearly to the
 installation's stored native pageviews for the current calendar month. Each
 site's stored reporting date is used. It prices the current database size as
 though retained for one month; it does not forecast retention growth. This is
