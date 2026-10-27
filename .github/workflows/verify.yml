@@ -108,6 +108,7 @@ jobs:
           name: vane-build
           path: .cache/vane-build.tar
           retention-days: 1
+          include-hidden-files: true
           if-no-files-found: error
       - name: Install Chromium
         run: |
