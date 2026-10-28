@@ -24,7 +24,7 @@ const evidence=['visitors','visits','pageviews','sourceVisitors'].map(metric=>({
 const json=async response=>{assert.equal(response.status,200,await response.clone().text());return response.json()}
 const domainTables=async a=>Object.fromEntries(Object.entries(await a.dump()).filter(([name])=>/^(vane_|ik_)/.test(name)))
 
-test('IMPORT-007 owner compares 14 live overlap days with paginated Plausible queries and an export, attributes measured bot differences only to owner evidence, saves nothing, and uses history forms at 1440 and 390',async t=>{
+test('IMPORT-010 owner compares 14 live overlap days with paginated Plausible queries and an export, attributes measured bot differences only to owner evidence, saves nothing, and uses history forms at 1440 and 390',async t=>{
  let a,browser
  const server=createServer(async(req,res)=>{try{
   const chunks=[];for await(const chunk of req)chunks.push(chunk)

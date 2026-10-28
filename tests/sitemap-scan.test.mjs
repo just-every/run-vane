@@ -24,7 +24,7 @@ async function browserPage(a) {
  return {browser,page:await context.newPage()};
 }
 
-test('IMPORT-008 / PRIVACY-005 explicit owner/admin scan obeys robots, same-origin sitemap/page boundary, credentials and selected limit; stores only findings and attaches matching definitions',async t=>{
+test('IMPORT-011 / PRIVACY-005 explicit owner/admin scan obeys robots, same-origin sitemap/page boundary, credentials and selected limit; stores only findings and attaches matching definitions',async t=>{
  const a=await installation();t.after(()=>a.close());const siteId=await a.addSite({origin,paths:[],goals:{}}),recorded=edge(a),owner={headers:{cookie:a.owner}};
  const get=path=>a.request(path,owner),start=(pageLimit,cookie=a.owner)=>a.post('/api/vane/cutover-scan',{siteId,pageLimit},cookie);
  await get('/app/sites/'+siteId+'?section=settings');await a.scheduled();assert.equal(recorded.length,0,'reading settings and cron must not start a scan');
@@ -49,7 +49,7 @@ test('IMPORT-008 / PRIVACY-005 explicit owner/admin scan obeys robots, same-orig
  const other=await a.addSite({origin:offsite});assert.equal((await a.form({operation:'team.invite',email:'scoped-scan@example.test',role:'admin',scope:'selected',['site_'+other]:'on'},a.owner)).status,303);const scoped=await a.accept('scoped-scan@example.test');assert.equal((await start(1,scoped)).status,403);
 });
 
-test('IMPORT-008 static sitemap fallback, fail-closed robots, native rewrite execution and owner Settings journey at 1440 and 390',async t=>{
+test('IMPORT-011 static sitemap fallback, fail-closed robots, native rewrite execution and owner Settings journey at 1440 and 390',async t=>{
  const a=await installation();t.after(()=>a.close());const siteId=await a.addSite({origin,paths:[],goals:{},incumbentCompatibility:true}),mode={robotsStatus:404,pages:[origin+'/pricing']},recorded=edge(a,mode);
  const {browser,page}=await browserPage(a);t.after(()=>browser.close());const screens=process.env.SCAN_SCREENSHOTS;if(screens)await mkdir(screens,{recursive:true});
  for(const width of [1440,390]){

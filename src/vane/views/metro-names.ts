@@ -1,7 +1,7 @@
 import { canPrepare, count, date, escape, field, operation, panel } from './html'
 import { METRO_LIMITS, METRO_STATEMENT, placeText, unnamedMetro, type Place } from '../metro-names'
 import type { ViewData } from './types'
-// DASH-005: the site's US metro-name table on its settings page. Vane ships no names; an owner or an administrator
+// DASH-016: the site's US metro-name table on its settings page. Vane ships no names; an owner or an administrator
 // uploads a table the site has the right to use, and the owner approves it under Approvals.
 export function metroNamesPanel(data: ViewData): string {
   const site = data.site, table = data.metroTable

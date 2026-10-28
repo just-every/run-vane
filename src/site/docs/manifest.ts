@@ -14,6 +14,7 @@ export const docsPages = [
   { slug: 'history', title: 'Back up and restore', section: 'Keep your data', source: 'docs/history.md', summary: 'Download an archive, restore it, keep history for as long as you choose, or erase it.' },
   { slug: 'agents', title: 'Local agent work', section: 'Reference', source: 'docs/agents.md', summary: 'Prepare local drafts, inspect weekly evidence and understand the remaining shipping and recovery boundaries.' },
   { slug: 'commands', title: 'Agent commands', section: 'Reference', source: 'docs/commands.md', summary: 'Prepare changes through the authenticated command protocol.' },
+  { slug: 'CLAIMS', title: 'Homepage claims', section: 'Reference', source: 'docs/CLAIMS.md', summary: 'Each homepage claim with the contract clauses behind it and their status, generated from the contract.' },
 ] as const
 export type DocsPage = typeof docsPages[number]
 export const docHref = (slug: string) => `/docs/${slug}`

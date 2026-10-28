@@ -88,6 +88,8 @@ jobs:
       - name: Check edition source lock freshness
         if: ${{ hashFiles('edition.json', 'sources.lock.json') != '' }}
         run: node scripts/edition-authoring/cli.mjs check
+      - name: Check generated contract documents
+        run: node src/base/contract-docs.mjs check
       - name: Reclaim SDKs only if the build needs disk
         run: |
           for sdk in /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL; do

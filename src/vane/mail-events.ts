@@ -2,7 +2,7 @@ import { createD1EventStore, createDeliveryEventIntake, verifyWebhook, type Deli
 import { rows, statement, type Env } from './core'
 import { auditStatement } from './audit'
 import { clock } from './clock'
-// REPORT-001: the installation mail provider's signed delivery events (Resend or SendGrid, keyed by MAIL_WEBHOOK_KEY)
+// REPORT-004: the installation mail provider's signed delivery events (Resend or SendGrid, keyed by MAIL_WEBHOOK_KEY)
 // for report emails. Base's intake checks the signature, the event schema and its identity, and keeps every receipt and
 // each recipient's newest state in D1; Vane accepts an event only for a report send it holds, to that send's address.
 // A permanent bounce, a spam complaint or a provider suppression shows on the send and stops further report email to

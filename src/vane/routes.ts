@@ -138,7 +138,7 @@ export async function vaneResponse(request:Request,original:Bindings):Promise<Re
    if(path==='/api/vane/import-definitions')return json(await importedDefinitions(env,actor,url.searchParams.get('siteId')??''));
    if(path==='/api/vane/agency')return json(await agencyData(env,actor));
    if(path==='/api/vane/sites')return json((await sites(env)).filter(s=>open(s.id)));
-   // DASH-005: an unnamed metro's observed place is drawn on the page only; these JSON doors never return it.
+   // DASH-015: an unnamed metro's observed place is drawn on the page only; these JSON doors never return it.
    if(path==='/api/vane/summary'&&url.searchParams.has('rollupId'))return json(withoutPlaces(await rollupReport(env,await scopedRollup(url.searchParams.get('rollupId')!),range,url.searchParams.get('split')==='site')));
    if(path==='/api/vane/summary')return json(withoutPlaces(await createInsightsService(env,await site(env,url.searchParams.get('siteId')??''),clock(),range).list()));
    // API-002: one report table as CSV, with the dashboard's range, comparison, filters and segment.

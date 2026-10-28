@@ -58,7 +58,7 @@ export interface ViewData {
   sharePath?: string
   segments?: { id: string; name: string; filters: { dimension: string; op: string; value: string }[] }[]
   proposals?: any[]
-  /** DASH-005: the site's approved US metro-name table and the codes seen without a name. */
+  /** DASH-016: the site's approved US metro-name table and the codes seen without a name. */
   metroTable?: import('../metro-names').MetroTable & { unnamedSeen: string[] }
   growth?: any[]
   ga4?: import('../ga4/types').Connection

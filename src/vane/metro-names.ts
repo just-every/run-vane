@@ -1,6 +1,6 @@
 import { allow, atomic, inScope, insist, rows, site, statement, uid, type Actor, type Env } from './core'
 import { auditStatement } from './audit'
-// DASH-005 (ct ruling 20 Oct 2026 22:31Z, Outcome B): Vane ships no US metro-area (DMA) code-to-name table, because no
+// DASH-016 (RULINGS.md RL-1; ct ruling 20 Oct 2026 22:31Z, Outcome B): Vane ships no US metro-area (DMA) code-to-name table, because no
 // published source licenses one for this MIT repository. A site's metro names come only from its own table: a
 // signed-in owner or administrator uploads a UTF-8 CSV with the header metro_code,metro_name (at most 1,000 rows and
 // 262,144 bytes) with a source label and the owner's statement; it waits as a proposal, and only the owner's approval

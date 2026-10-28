@@ -136,3 +136,17 @@ their maintenance.
 
 Pinned reference: https://github.com/runeditrun/base/blob/fc0e1041efa55771142bbb57c4ab4743147e264d/TANSTACK-START-MIGRATION.md
 Native-session/runtime evidence: https://github.com/runeditrun/base/tree/fc0e1041efa55771142bbb57c4ab4743147e264d/default-seed
+
+## Contract
+
+`CONTRACT.md` follows the RER contract standard and is the only acceptance text
+and status. `ACCEPTANCE.md`, `docs/CLAIMS.md` and the Status summary rows are
+generated from it: after any change to `CONTRACT.md`, run
+`node src/base/contract-docs.mjs write`, then
+`node src/base/contract-docs.mjs check`, and relock last. Rulings are in
+`RULINGS.md`, history in `CHANGELOG.md`, mechanism in `docs/contract/rules.md`
+and `docs/contract/data-flows.md`, and the cleanup's maps and carried-done audit
+in `docs/contract/`.
+
+Lander-Regenerate: node src/base/contract-docs.mjs write
+Lander-Regenerate: node scripts/edition-authoring/cli.mjs lock

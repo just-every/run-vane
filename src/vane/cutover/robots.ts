@@ -1,4 +1,4 @@
-// IMPORT-008: select the most specific matching user-agent groups, then the
+// IMPORT-011: select the most specific matching user-agent groups, then the
 // longest matching rule; Allow wins a tie. Empty Disallow allows everything.
 export function robots(text:string) {
  const groups:{agents:string[],rules:{allow:boolean,path:string}[]}[]=[],sitemaps:string[]=[];

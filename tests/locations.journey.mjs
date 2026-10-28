@@ -5,7 +5,7 @@ import { inflateRawSync } from 'node:zlib'
 import { chromium } from '@playwright/test'
 import { installation } from './harness.mjs'
 
-// DASH-005 (ct ruling 20 Oct 2026 22:31Z): Vane ships no US metro-area names. Codes are Cloudflare's own example (635,
+// DASH-015 and DASH-016 (RULINGS.md RL-1; ct ruling 20 Oct 2026 22:31Z): Vane ships no US metro-area names. Codes are Cloudflare's own example (635,
 // Austin, Texas) and synthetic codes and places; names come only from a synthetic owner-approved table.
 const json=async response=>{assert.equal(response.status,200,await response.clone().text());return response.json()}
 const austin={country:'US',region:'Texas',regionCode:'TX',city:'Austin',metroCode:'635'}
@@ -24,7 +24,7 @@ async function multipart(a,body,headers){const encoded=new Response(body);return
 function visitor(a,siteId){let n=0;return async(cf,at,paths=['/'])=>{const ip='198.51.100.'+(++n)
  for(const [i,path] of paths.entries()){await a.clock(at+i*20000);const response=await a.request('/api/vane/collect',{method:'POST',headers:{origin:'https://fern.example','content-type':'application/json','user-agent':'Synthetic Browser','cf-connecting-ip':ip},body:JSON.stringify(a.event(siteId,{path})),cf:{...cf,postalCode:'RAW_POSTAL_SENTINEL',latitude:'RAW_LATITUDE_SENTINEL',longitude:'RAW_LONGITUDE_SENTINEL',timezone:'RAW_TIMEZONE_SENTINEL'}});assert.equal(response.status,202,await response.clone().text())}}}
 
-test('DASH-005 COLLECT-003 PRIVACY-003 US metro codes keyed on the code with unnamed labels and observed places across reports, segments, APIs, exports, public folding, live expiry and portable history',async t=>{
+test('DASH-015 COLLECT-003 PRIVACY-003 US metro codes keyed on the code with unnamed labels and observed places across reports, segments, APIs, exports, public folding, live expiry and portable history',async t=>{
  let active=await installation();t.after(()=>active.close())
  const a=active,id=await a.addSite({paths:[],retainForever:true,publicReports:['locations']}),owner={headers:{cookie:a.owner}},visit=visitor(a,id)
  const prior=Date.parse('2026-03-03T15:00:00Z'),now=Date.parse('2026-03-10T15:00:00Z')
@@ -44,9 +44,9 @@ test('DASH-005 COLLECT-003 PRIVACY-003 US metro codes keyed on the code with unn
  assert.ok(report.metros.filter(r=>r.metro_code).every(r=>r.label.includes(r.metro_code)&&r.metro_name===null),'an unnamed code is labelled by its code, never by a guessed name')
  assert.match(report.metros[3].label,/unknown metro area/i);assert.equal(report.visitors,27)
  const us=report.countries.find(r=>r.label==='United States')
- assert.equal(report.metros.reduce((sum,r)=>sum+r.visits,0),us.visits,'DASH-005: coded and Unknown metro rows sum to all US visits before public folding')
- assert.equal(report.metros.reduce((sum,r)=>sum+r.visitors,0),us.visitors,'DASH-005: no non-US or unknown-country visitor enters the US metro table')
- assert.equal(report.metros.find(r=>r.metro_code===null).visits,2,'DASH-005: both US loads without a valid metro code remain in the explicit Unknown metro row')
+ assert.equal(report.metros.reduce((sum,r)=>sum+r.visits,0),us.visits,'DASH-015: coded and Unknown metro rows sum to all US visits before public folding')
+ assert.equal(report.metros.reduce((sum,r)=>sum+r.visitors,0),us.visitors,'DASH-015: no non-US or unknown-country visitor enters the US metro table')
+ assert.equal(report.metros.find(r=>r.metro_code===null).visits,2,'DASH-015: both US loads without a valid metro code remain in the explicit Unknown metro row')
  assert.equal(report.countries.find(r=>r.label==='Unknown location')?.visitors,3,'loads without geolocation stay in the Unknown location row')
  assert.equal(Object.hasOwn(report,'metroPlaces'),false,'the observed place never leaves through the summary door')
  // Filters, saved segments and movers key on the code.
@@ -141,7 +141,7 @@ test('DASH-005 COLLECT-003 PRIVACY-003 US metro codes keyed on the code with unn
  for(const [path,label] of [[sharedPath,'shared'],[publicPath,'public']])await capture(path,label,metroTable,async()=>{
   const text=await metroTable().innerText();assert.ok(text.includes('635')&&text.includes('Austin, Texas'));assert.ok(text.includes('Other metro areas'));assert.equal(text.includes('999'),false)
   const totals=await metroTable().locator('tbody tr').evaluateAll(rows=>rows.reduce((sum,row)=>{const cells=row.querySelectorAll('td');return [sum[0]+Number(cells[0].textContent),sum[1]+Number(cells[1].textContent)]},[0,0]))
-  assert.deepEqual(totals,[us.visitors,us.visits],'DASH-005: public folding preserves all US totals, including the Unknown metro row')
+  assert.deepEqual(totals,[us.visitors,us.visits],'DASH-015: public folding preserves all US totals, including the Unknown metro row')
   assert.equal(/Marfa|Fixture Town/.test(await tab.locator('body').innerText()),false)
  })
  await capture('/methodology','methodology',()=>tab.getByRole('heading',{name:'Location',exact:true}),async()=>{
@@ -165,7 +165,7 @@ test('DASH-005 COLLECT-003 PRIVACY-003 US metro codes keyed on the code with unn
  assert.equal((await b.archive()).payload.tables.vane_events.length,0)
 })
 
-test('DASH-005 APPROVE-001 AUDIT-001 ARCHIVE-001 the owner-approved metro-name table: an administrator uploads, the owner approves, names reach every surface and public pages only when chosen, refusals change nothing, and clear, erasure, archive and transfer keep the rules',async t=>{
+test('DASH-016 APPROVE-001 AUDIT-001 ARCHIVE-001 the owner-approved metro-name table: an administrator uploads, the owner approves, names reach every surface and public pages only when chosen, refusals change nothing, and clear, erasure, archive and transfer keep the rules',async t=>{
  let a=await installation();const opened=[a];t.after(()=>Promise.all(opened.map(app=>app.close())))
  const id=await a.addSite({paths:[],publicReports:['locations']}),owner={headers:{cookie:a.owner}},visit=visitor(a,id),day=Date.parse('2026-03-10T15:00:00Z')
  for(let n=0;n<6;n++)await visit(austin,day+n*60000)

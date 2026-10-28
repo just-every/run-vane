@@ -15,7 +15,8 @@ export function renderDocs(root = process.cwd()): Article[] {
   return docsPages.map(page => {
     const headings: Heading[] = []
     const used = new Map<string, number>()
-    const markdown = readFileSync(resolve(root, page.source), 'utf8').replace(/^# .+\r?\n/, '')
+    // Generated files open with a whole-line HTML comment marker; it is dropped, never shown as text.
+    const markdown = readFileSync(resolve(root, page.source), 'utf8').replace(/^[ \t]*<!--[\s\S]*?-->[ \t]*\r?\n/gm, '').replace(/^\s+/, '').replace(/^# .+\r?\n/, '')
     const marked = new Marked({ gfm: true, renderer: {
       heading({ tokens, depth }) {
         const text = this.parser.parseInline(tokens, this.parser.textRenderer)

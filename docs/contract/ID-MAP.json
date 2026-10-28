@@ -123,9 +123,11 @@
       ]
     },
     "INSTALL-004": {
-      "how": "kept",
+      "how": "split",
       "to": [
-        "INSTALL-004"
+        "INSTALL-004",
+        "INSTALL-009",
+        "INSTALL-010"
       ]
     },
     "INSTALL-005": {
@@ -237,9 +239,11 @@
       ]
     },
     "DASH-005": {
-      "how": "kept",
+      "how": "split",
       "to": [
-        "DASH-005"
+        "DASH-005",
+        "DASH-015",
+        "DASH-016"
       ]
     },
     "DASH-006": {
@@ -423,27 +427,31 @@
       ]
     },
     "IMPORT-007": {
-      "how": "kept",
+      "how": "split",
       "to": [
-        "IMPORT-007"
+        "IMPORT-007",
+        "IMPORT-010"
       ]
     },
     "IMPORT-008": {
-      "how": "kept",
+      "how": "split",
       "to": [
-        "IMPORT-008"
+        "IMPORT-008",
+        "IMPORT-011"
       ]
     },
     "IMPORT-009": {
-      "how": "kept",
+      "how": "split",
       "to": [
-        "IMPORT-009"
+        "IMPORT-009",
+        "IMPORT-012"
       ]
     },
     "REPORT-001": {
-      "how": "kept",
+      "how": "split",
       "to": [
-        "REPORT-001"
+        "REPORT-001",
+        "REPORT-004"
       ]
     },
     "REPORT-002": {
@@ -495,9 +503,11 @@
       ]
     },
     "TEAM-002": {
-      "how": "kept",
+      "how": "split",
       "to": [
-        "TEAM-002"
+        "TEAM-002",
+        "TEAM-003",
+        "TEAM-004"
       ]
     },
     "AGENCY-001": {
@@ -657,9 +667,10 @@
       ]
     },
     "AGENT-007": {
-      "how": "kept",
+      "how": "split",
       "to": [
-        "AGENT-007"
+        "AGENT-007",
+        "AGENT-008"
       ]
     }
   }

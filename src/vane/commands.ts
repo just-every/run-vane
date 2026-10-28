@@ -19,7 +19,7 @@ function analystChange(value:Site,input:any) {
 // The command API is the agent door: proposals it prepares are audited as agent actions.
 export async function prepare(env:Env,actor:Actor,command:string,input:any,channel:'app'|'command API'|`key:${string}`,definitionEvidence?:{name:string;callSites:{url:string;at:number;kind:string;rewrite:string}[]}[],instrumentationApproval?:{diffHash:string;files:string[]}) {
  allow(actor,'analyst');
- // DASH-005: a metro-name table is uploaded only on the site's settings page by a signed-in owner or administrator.
+ // DASH-016: a metro-name table is uploaded only on the site's settings page by a signed-in owner or administrator.
  insist(command!=='metro.names','forbidden','Metro names are uploaded on the site’s settings page by its owner or an administrator; the command API cannot prepare them.',403);
  insist(['site.create','site.configure','history.erase','site.delete'].includes(command),'command','Unknown preparation command.');
  // TEAM-001: an analyst prepares only settings changes, and a new site needs installation-wide access.

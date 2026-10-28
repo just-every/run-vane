@@ -6,7 +6,7 @@ import { nativePageJoinSql } from './raw/page-joins'
 // (1 to 100), an optional category (1 to 100), a whole quantity from 1 to 10,000 and a unit price from 0 to
 // 1,000,000,000, kept in the currency's minor units (rounded half up, so 19.999 USD is 20.00). Text is plain (no
 // control characters or < >); a line with an email address refuses the event, as a property does. Other events
-// carry no lines. WooCommerce (INSTALL-002), Shopify (INSTALL-003) and Stall (INSTALL-004) send these same events.
+// carry no lines. WooCommerce (INSTALL-002), Shopify (INSTALL-003) and Stall (INSTALL-010) send these same events.
 export const ECOMMERCE=['Product view','Add to cart','Begin checkout','Purchase'] as const
 // The ready-made funnel over them, within one visit (CONV-005), shown on a site that sent any of them.
 export const ECOMMERCE_FUNNEL:Funnel={name:'Ecommerce',steps:ECOMMERCE.map(name=>'event:'+name)}

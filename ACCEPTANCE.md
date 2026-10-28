@@ -2,18 +2,18 @@
 
 # Accept a Vane installation
 
-The primary journey: Exercise the capabilities and acceptance journeys below.
+The primary journey: a US business owner adds one script or a platform path, brings the incumbent's history, tracking calls and goals across, reads cookie-free visitors, sources, goals and revenue the same day, gets a weekly report and alerts that are followed through, and has an agent explain what moved and keep the tracking honest.
 
 ## Progress
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 92 | 9 | 9 | 110 |
-| Agent surface | 0 | 0 | 0 | 0 |
-| Later | 0 | 0 | 0 | 0 |
-| Full target | 92 | 9 | 9 | 110 |
+| Core | 83 | 22 | 10 | 115 |
+| Agent surface | 0 | 0 | 7 | 7 |
+| Later | 3 | 1 | 2 | 6 |
+| Full target | 86 | 23 | 19 | 128 |
 
-Judged from the code and tests at commit `c0271cc7262225ab077ea7e8387ed47eeed89d96` (22 October 2026). Field proof register: 0 rows; 0 passed, 0 failed, 0 not run.
+Judged from the code and tests at commit `c0271cc7262225ab077ea7e8387ed47eeed89d96` (22 October 2026). Field proof register: 10 rows; 0 passed, 0 failed, 10 not run.
 
 ## Core
 
@@ -21,65 +21,65 @@ Judged from the code and tests at commit `c0271cc7262225ab077ea7e8387ed47eeed89d
 
 #### HTTP-001 — One Worker with honest public and private doors
 
-Core · published · **done**
+Core · published · **done** · Cites BASE-ACCESS-003, BASE-OPS-001
 
-**Requirement.** One Cloudflare Worker serves the installed instance. The Lobby is at `/`, with `/health`, `/signin` and `/setup`. The collection script is at `/vane.js`, with its collection and configuration endpoints. Private `/app` and `/api/vane/*` routes are behind native sessions, and unknown paths return real 404 responses. The public run site is a separate static surface.
+**Requirement.** One Cloudflare Worker serves the installed instance. The Lobby is at `/`, with `/health`, `/signin` and `/setup`. The collection script is at `/vane.js`, with its collection and configuration endpoints. Private app and API routes are behind native sessions, and unknown paths return real 404 responses. The public run site is a separate static surface.
 
 **Acceptance.**
 1. Request `/health`, `/vane.js`, an unknown path and every private route signed out on a built Worker.
-2. Health answers, the script is served, unknown paths return 404, and private routes return 401 or redirect to sign-in (`tests/vane.test.mjs`).
+2. Health answers, the script is served, unknown paths return 404, and private routes return 401 or redirect to sign-in.
 
 **Evidence.** `src/server.ts`; `src/vane/collect.ts`; `src/vane/routes.ts`; `tests/vane.test.mjs`
 **Gap.** None.
 
 #### ACCESS-001 — Owners approve, administrators prepare, members read
 
-Core · published · **done**
+Core · published · **done** · Cites BASE-ROLE-001, BASE-ACCESS-004
 
-**Requirement.** Roles come from the native operator accounts. Members read sites and reports; `TEAM-001` makes each member a Viewer, who reads and adds notes, or an Analyst, who also prepares goal, funnel and no-code event changes; no member prepares a site, other settings or erasure. Administrators also prepare site, settings and erasure proposals. Only the owner approves proposals, imports, restores and exports history. A revoked operator loses access on their next request.
+**Requirement.** Roles come from the native operator accounts. Members read sites and reports; `TEAM-001` makes each member a Viewer, who reads and adds notes, or an Analyst, who also prepares goal, funnel and no-code event changes; no member prepares a site, other settings or erasure. Administrators also prepare site, settings and erasure proposals. Only the owner approves proposals, imports, restores and exports history.
 
 **Acceptance.**
 1. Invite an administrator and a member.
-2. The member cannot prepare a site, the administrator cannot approve or import, export is owner-only, and revoking the administrator ends their session (`tests/vane.test.mjs`).
+2. The member cannot prepare a site, the administrator cannot approve or import, export is owner-only, and revoking the administrator ends their session.
 
 **Evidence.** `tests/vane-access.mjs` — “administrator prepares, owner approves once, members neither prepare sites nor export, and revoked operators lose access”: native invitations create administrator and member; the member is refused site preparation; the administrator is refused approval, import and restore; both are refused the whole-history archive download while the owner succeeds; owner approval succeeds once and records distinct preparer and approver; native revocation ends the administrator session on the next request. Runner: `.github/workflows/verify.yml` product-1 → `package.json` verify → rer verify → `scripts/installer/local.mjs` → `scripts/verify-app.mjs` → `scripts/vane-tests.mjs` product-1 → Node test runner → `tests/vane-access.mjs`. `tests/vane.test.mjs` also imports the module. Requests use `tests/vane-helpers.mjs` and `tests/harness.mjs` against the built Worker with real D1 migrations; only declared network edges are faked.
 **Gap.** None.
 
 #### ACCESS-002 — Private doors refuse signed-out and cross-origin requests
 
-Core · published · **done**
+Core · published · **done** · Cites BASE-ACCESS-002
 
-**Requirement.** Every private read and mutation needs a native session, and every mutation needs the configured same origin. A direct transport call gets the same refusal as a browser route.
+**Requirement.** Every mutation through a private door also needs the configured same origin. A direct transport call gets the same refusal as a browser route.
 
 **Acceptance.**
 1. Call every private GET and POST door signed out, signed out after sign-out, and with a foreign Origin.
-2. Each is refused with no write (`tests/vane.test.mjs`).
+2. Each is refused.
 
 **Evidence.** `src/vane/routes.ts`; `tests/vane.test.mjs`
 **Gap.** None.
 
 #### APPROVE-001 — Prepared changes apply only on the owner's recorded approval
 
-Core · published · **done**
+Core · published · **done** · Cites BASE-AGENT-008
 
-**Requirement.** A site, a settings change or a history erasure can be prepared in the UI or through the agent command API. Each change waits as a proposal until the owner approves it once through the approval form. The approver, the preparer and the time are recorded. Approval refuses a proposal whose site version has changed. The command API can prepare and read proposals but can never approve them. The one exception is the owner's provisioning key (`API-001`): the owner's standing approval, under which each site, goal or shared link it asks for is prepared and approved at once in the owner's name and audited via `key:<label>`.
+**Requirement.** A site, a settings change or a history erasure that an administrator prepares in the UI waits as a proposal until the owner approves it once through the approval form; a change an agent prepares through the command API carries the class of that change, which the company's policy decides. The approver, the preparer and the time are recorded. Approval refuses a proposal whose site version has changed. An approval comes only from the owner's own signed-in session, so a command-API call can prepare and read a proposal and never records the owner's approval. The one exception is the owner's provisioning key (`API-001`): each site, goal or shared link it asks for is prepared and approved at once in the owner's name and audited via `key:<label>`.
 
 **Acceptance.**
 1. Prepare as an administrator, approve as the owner, then approve again; the second approval gets 409.
-2. Inspect the proposal for distinct preparer and approver (`tests/vane.test.mjs`).
+2. Inspect the proposal for distinct preparer and approver.
 
 **Evidence.** `tests/vane-access.mjs` — “administrator prepares, owner approves once, members neither prepare sites nor export, and revoked operators lose access”. Prepare as administrator → site.create at line 34; approve as owner then approve again → 303 and 409 at lines 39–40; distinct preparer and approver → public proposal response comparison at line 41. Runner: `.github/workflows/verify.yml` product-1 → `package.json` verify → rer verify → `scripts/installer/local.mjs` → `scripts/verify-app.mjs` → `scripts/vane-tests.mjs` product-1 → Node test runner → `tests/vane-access.mjs`; `tests/vane.test.mjs` also imports that module. Public requests use `tests/vane-helpers.mjs` → `tests/harness.mjs` → built Worker with real D1 migrations; only mail and declared network edges are faked. Executed log: [Verify 40094473707, product-1 job 120873735698, step Run pnpm run verify](https://github.com/just-every/run-vane/actions/runs/40094473707/job/120873735698), passing title exactly as quoted above, 36 of 36 passed on b8f1ca0e07bfe2784a12633592bad9b716eb6073. Current assertions and loader chain are unchanged from that SHA.
 **Gap.** None.
 
 #### COLLECT-001 — A cookie-free script that sends only declared anonymous fields
 
-Core · published · **done**
+Core · published · **done** · Cites BASE-INPUT-001
 
-**Requirement.** `vane.js` sets no cookie or browser storage except the two declared exceptions below. In default mode it sends no visitor or session identifier, user agent, raw URL or query values. Only the consented-mode exception (`METRIC-005`) adds a transient random identifier and its issue time after explicit consent; only its site-scoped digest is stored. When Do Not Track or Global Privacy Control is set, Vane does nothing, with one exception: when the owner enables the `PRIVACY-002` counter, that page load sends one field-free count and nothing else. Collection accepts events only from the site's registered origin and only with the declared field set. It refuses extra fields, such as an email address. This clause constrains the field set: no stored raw identifier, ever. The hostname field belongs to `COLLECT-002`/`DASH-013`, and the target field set and server-side derivations are widened by `COLLECT-002`, `DASH-013`, `METRIC-001`, `DASH-005`/`DASH-006`, `PERF-001` (page timings), `CONV-002` (custom events and properties), `CONV-006` (revenue amounts) and `CONV-007` (ecommerce product lines) and `METRIC-005` (consented random identifier and issue time, raw values discarded before storage) under that constraint. The target allows exactly two declared exceptions to "no browser storage", and the methodology page (`METRIC-004`) and data inventory (`PRIVACY-001`) name both. One is the owner's own-browser exclusion (`COLLECT-003`): a single `vane_ignore` localStorage flag holding no identifier, written only when the owner opts that browser out with `#vane-ignore=on` and cleared with `#vane-ignore=off`. The other is the consented identifier (`METRIC-005`), written only after granted consent. A visitor in the default mode gets no cookie and no storage. `COLLECT-001` is complete with the `vane_ignore` own-browser exclusion, both storage exceptions named on `/methodology` and in the report's data inventory, and its browser proof; adding the hostname is `COLLECT-002`/`DASH-013` work. The public script-config door returns only the script’s consent/adapter, declined counter, sampling, automatic-event, kept-query, search-parameter and approved event-definition settings. Only when the owner has approved incumbent compatibility (`IMPORT-008`) does it add `incumbentCompatibility: true` and the site’s ISO currency; compatibility off is byte-for-byte the earlier response. Only when the owner enables `METRIC-005` does the config additionally expose `consentedVisitors: true` and its approved `consentLifetimeMonths`; the mode being off adds neither field. Excluded IPs/countries, goals, funnels, source rules, retention, public-report settings and secrets never leave through this door.
+**Requirement.** `vane.js` sets no cookie or browser storage except the two declared exceptions below. In default mode it sends no visitor or session identifier, user agent, raw URL or query values. Only the consented-mode exception (`METRIC-005`) adds a transient random identifier and its issue time after explicit consent; only its site-scoped digest is stored. When Do Not Track or Global Privacy Control is set, Vane does nothing, with one exception: when the owner enables the `PRIVACY-002` counter, that page load sends one field-free count and nothing else. Collection accepts events only from the site's registered origin and only with the declared field set. It refuses extra fields, such as an email address. This clause constrains the field set: no stored raw identifier, ever. The target allows exactly two declared exceptions to "no browser storage", and the methodology page (`METRIC-004`) and data inventory (`PRIVACY-001`) name both. One is the owner's own-browser exclusion (`COLLECT-003`): a single `vane_ignore` localStorage flag holding no identifier, written only when the owner opts that browser out with `#vane-ignore=on` and cleared with `#vane-ignore=off`. The other is the consented identifier (`METRIC-005`), written only after granted consent. A visitor in the default mode gets no cookie and no storage. The public script-configuration door serves only the settings the script uses; incumbent compatibility (`IMPORT-008`) and consented mode (`METRIC-005`) add their own fields only when the owner turns them on.
 
 **Acceptance.**
 1. Post an event from a foreign origin (403), with an extra personal field (400) and with a path carrying a query (400).
-2. A valid event is accepted (202) (`tests/vane.test.mjs`).
+2. A valid event is accepted (202).
 3. In a browser, a default-mode pageview leaves no cookie and no storage entry; `#vane-ignore=on` writes only `vane_ignore` and excludes that browser, and `#vane-ignore=off` clears it.
 4. `/methodology` and the report's data inventory name both storage exceptions.
 5. With DNT and then GPC set, a page load sends nothing while the `PRIVACY-002` counter is off, and exactly one field-free count and nothing else while it is on.
@@ -95,20 +95,20 @@ Core · published · **done**
 **Requirement.** A site chooses whether consent is required. When it is, only events that carry granted consent are admitted. Consent-mode changes go through `APPROVE-001`.
 
 **Acceptance.**
-1. On a consent-required site, an event without granted consent is refused with 403 and one with granted consent is accepted (`tests/vane.test.mjs`).
+1. On a consent-required site, an event without granted consent is refused with 403 and one with granted consent is accepted.
 
 **Evidence.** `tests/vane-access.mjs` — “script ingestion enforces site origin, field allowlists, consent, deduplication and goal totals”. Consent-required site → approved addSite at line 55; no granted consent refused → 403 at line 56; granted consent admitted → 202 at line 57. Runner: `.github/workflows/verify.yml` product-1 → `package.json` verify → rer verify → `scripts/installer/local.mjs` → `scripts/verify-app.mjs` → `scripts/vane-tests.mjs` product-1 → Node test runner → `tests/vane-access.mjs`; `tests/vane.test.mjs` also imports that module. Public requests use `tests/vane-helpers.mjs` → `tests/harness.mjs` → built Worker with real D1 migrations; only mail and declared network edges are faked. Executed log: [Verify 40094473707, product-1 job 120873735698, step Run pnpm run verify](https://github.com/just-every/run-vane/actions/runs/40094473707/job/120873735698), passing title exactly as quoted above, 36 of 36 passed on b8f1ca0e07bfe2784a12633592bad9b716eb6073. Current assertions and loader chain are unchanged from that SHA.
 **Gap.** None.
 
 #### DEDUP-001 — Each page load is admitted once
 
-Core · published · **done**
+Core · published · **done** · Cites BASE-OPS-003
 
 **Requirement.** A fresh UUID identifies each page load. A repeat with identical data is acknowledged as a duplicate without counting twice, and a repeat with different data is refused.
 
 **Acceptance.**
 1. Send the same event twice (202, then 200 with nothing counted) and then a conflicting copy (409).
-2. The report counts one visit (`tests/vane.test.mjs`).
+2. The report counts one visit.
 
 **Evidence.** `tests/vane-access.mjs` — “script ingestion enforces site origin, field allowlists, consent, deduplication and goal totals”: the same load receives 202 then 200, a conflicting copy receives 409, and the public summary reports exactly one visit, one pageview and one goal. Runner: `.github/workflows/verify.yml` product-1 → `package.json` verify → rer verify → `scripts/installer/local.mjs` → `scripts/verify-app.mjs` → `scripts/vane-tests.mjs` product-1 → Node test runner → `tests/vane-access.mjs`. `tests/vane.test.mjs` also imports the module. Requests use `tests/vane-helpers.mjs` and `tests/harness.mjs` against the built Worker with real D1 migrations; only declared network edges are faked.
 **Gap.** None.
@@ -133,46 +133,46 @@ Core · published · **done**
 **Requirement.** The owner previews a documented event-based analytics v2 Events page without any write. Visitor identifiers, titles and raw URLs are discarded before custody. The owner then approves the exact reviewed document by its fingerprint. The import is idempotent and resumable, every effect is journaled, and an undo removes its contributions while the journal remains.
 
 **Acceptance.**
-1. Preview the import (no writes, no raw identifiers), apply it with a changed fingerprint (409), apply it twice (one job), read the journal and undo it (`tests/vane.test.mjs`).
+1. Preview the import (no writes, no raw identifiers), apply it with a changed fingerprint (409), apply it twice (one job), read the journal and undo it.
 
 **Evidence.** `tests/vane-access.mjs` — “Umami dry run retains no raw identifiers; exact reviewed import is idempotent, journalled and undoable”. Preview with no raw identifiers → preview response at lines 60–61; no preview writes → complete archive-table comparison at lines 62–63, accounting only for the export request’s own audit; changed fingerprint → 409 at line 64; apply twice with one job → equal job IDs at line 65; raw identifiers absent in custody → archive checks at lines 66–68; read journal → owner approval and batches at line 69; undo → 200 and zero imported events at line 70. Runner: `.github/workflows/verify.yml` product-1 → `package.json` verify → rer verify → `scripts/installer/local.mjs` → `scripts/verify-app.mjs` → `scripts/vane-tests.mjs` product-1 → Node test runner → `tests/vane-access.mjs`; `tests/vane.test.mjs` also imports that module. Public requests use `tests/vane-helpers.mjs` → `tests/harness.mjs` → built Worker with real D1 migrations; only mail and declared network edges are faked. Executed log: [Verify 40094473707, product-1 job 120873735698, step Run pnpm run verify](https://github.com/just-every/run-vane/actions/runs/40094473707/job/120873735698), passing title exactly as quoted above, 36 of 36 passed on b8f1ca0e07bfe2784a12633592bad9b716eb6073. Current assertions and loader chain are unchanged from that SHA.
 **Gap.** None.
 
 #### ARCHIVE-001 — Complete history export and atomic restore
 
-Core · published · **done**
+Core · published · **done** · Cites BASE-DATA-001, BASE-BACKUP-001
 
-**Requirement.** The owner exports every analytics, proposal, deletion and import-custody table as an integrity-checked archive, including each site's US metro-name table with its source label and public choice (`DASH-005`). Restore works only into an empty installation, keeps the owner sign-in, rejects a corrupt archive and preserves import undo.
+**Requirement.** The owner exports every analytics, proposal, deletion and import-custody table as an integrity-checked archive, including each site's US metro-name table with its source label and public choice (`DASH-016`). Restore works only into an empty installation, keeps the owner sign-in, rejects a corrupt archive and preserves import undo.
 
 **Acceptance.**
 1. Export, corrupt the archive and restore it (400, no writes).
-2. Restore the real archive into an empty installation, check that the tables are identical, restore it again (409) and undo the restored import (`tests/vane.test.mjs`).
+2. Restore the real archive into an empty installation, check that the tables are identical, restore it again (409) and undo the restored import.
 
-**Evidence.** `tests/vane-access.mjs` — “complete history restores atomically into an empty installation, rejects corruption and preserves import undo”: public export includes native events, privacy signals and reviewed imported history; corrupt restore returns 400 and every destination table is unchanged; the unmodified archive restores with every exported table compared in full, accounting explicitly for the preserved destination sign-in audit and the newly asserted restore receipt and audit; repeat restore returns 409 and the restored import remains undoable. An older archive without signal and audit tables still restores. `tests/locations.journey.mjs` — “DASH-005 APPROVE-001 AUDIT-001 ARCHIVE-001 the owner-approved metro-name table: an administrator uploads, the owner approves, names reach every surface and public pages only when chosen, refusals change nothing, and clear, erasure, archive and transfer keep the rules” proves that the metro-name table, attribution and public choice survive restore and site transfer; integrations-3 loads that journey through `scripts/vane-tests.mjs`. Runner: `.github/workflows/verify.yml` product-1 → `package.json` verify → rer verify → `scripts/installer/local.mjs` → `scripts/verify-app.mjs` → `scripts/vane-tests.mjs` product-1 → Node test runner → `tests/vane-access.mjs`. `tests/vane.test.mjs` also imports the module. Requests use `tests/vane-helpers.mjs` and `tests/harness.mjs` against the built Worker with real D1 migrations; only declared network edges are faked.
+**Evidence.** `tests/vane-access.mjs` — “complete history restores atomically into an empty installation, rejects corruption and preserves import undo”: public export includes native events, privacy signals and reviewed imported history; corrupt restore returns 400 and every destination table is unchanged; the unmodified archive restores with every exported table compared in full, accounting explicitly for the preserved destination sign-in audit and the newly asserted restore receipt and audit; repeat restore returns 409 and the restored import remains undoable. An older archive without signal and audit tables still restores. `tests/locations.journey.mjs` — “DASH-016 APPROVE-001 AUDIT-001 ARCHIVE-001 the owner-approved metro-name table: an administrator uploads, the owner approves, names reach every surface and public pages only when chosen, refusals change nothing, and clear, erasure, archive and transfer keep the rules” proves that the metro-name table, attribution and public choice survive restore and site transfer; integrations-3 loads that journey through `scripts/vane-tests.mjs`. Runner: `.github/workflows/verify.yml` product-1 → `package.json` verify → rer verify → `scripts/installer/local.mjs` → `scripts/verify-app.mjs` → `scripts/vane-tests.mjs` product-1 → Node test runner → `tests/vane-access.mjs`. `tests/vane.test.mjs` also imports the module. Requests use `tests/vane-helpers.mjs` and `tests/harness.mjs` against the built Worker with real D1 migrations; only declared network edges are faked.
 **Gap.** None.
 
 #### ERASURE-001 — Owner-approved erasure, fenced against old backups
 
-Core · published · **done**
+Core · published · **done** · Cites BASE-DATA-003
 
 **Requirement.** An approved history erasure removes a site's live and imported events and retires its import custody. It records a deletion journal, and a later journal refuses the restore of an older archive that still holds the erased history.
 
 **Acceptance.**
 1. Erase a site with live and imported history.
-2. Both are gone, the deletion and erasure journals exist, and restoring the old archive with the later journal is refused (`tests/vane.test.mjs`).
+2. Both are gone, the deletion and erasure journals exist, and restoring the old archive with the later journal is refused.
 
 **Evidence.** `tests/vane-access.mjs` — “owner erasure removes live and imported custody and later journals fence old backups”. Seed live and imported history → line 85; prepare erasure and approve through owner form → lines 86–87; both histories gone and deletion plus erasure journals exist → exported tables at line 88; later journal refuses old archive → 409 and empty destination at lines 89–90. Runner: `.github/workflows/verify.yml` product-1 → `package.json` verify → rer verify → `scripts/installer/local.mjs` → `scripts/verify-app.mjs` → `scripts/vane-tests.mjs` product-1 → Node test runner → `tests/vane-access.mjs`; `tests/vane.test.mjs` also imports that module. Public requests use `tests/vane-helpers.mjs` → `tests/harness.mjs` → built Worker with real D1 migrations; only mail and declared network edges are faked. Executed log: [Verify 40094473707, product-1 job 120873735698, step Run pnpm run verify](https://github.com/just-every/run-vane/actions/runs/40094473707/job/120873735698), passing title exactly as quoted above, 36 of 36 passed on b8f1ca0e07bfe2784a12633592bad9b716eb6073. Current assertions and loader chain are unchanged from that SHA.
 **Gap.** None.
 
 #### RETENTION-001 — The declared retention window erases older history
 
-Core · published · **done**
+Core · published · **done** · Cites BASE-DATA-002
 
 **Requirement.** Each site declares 30, 90 or 365 days of retention (the `PRIVACY-001` target adds 13 and 25 months and unlimited). Applying retention erases older live and imported events in resumable steps and records the deletion in the journal.
 
 **Acceptance.**
 1. Import old history, collect a recent event and apply retention until it completes.
-2. The old history is gone, the recent event remains, and one deletion is journaled (`tests/vane.test.mjs`).
+2. The old history is gone, the recent event remains, and one deletion is journaled.
 
 **Evidence.** `tests/vane-access.mjs` — “retention removes old imported history while retaining recent events and a deletion journal”. Import old history and collect recent event → line 93; repeatedly apply retention through owner form until complete → three 303 responses at line 94; old history absent, recent event present and one deletion journal entry → archive counts at line 95. Runner: `.github/workflows/verify.yml` product-1 → `package.json` verify → rer verify → `scripts/installer/local.mjs` → `scripts/verify-app.mjs` → `scripts/vane-tests.mjs` product-1 → Node test runner → `tests/vane-access.mjs`; `tests/vane.test.mjs` also imports that module. Public requests use `tests/vane-helpers.mjs` → `tests/harness.mjs` → built Worker with real D1 migrations; only mail and declared network edges are faked. Executed log: [Verify 40094473707, product-1 job 120873735698, step Run pnpm run verify](https://github.com/just-every/run-vane/actions/runs/40094473707/job/120873735698), passing title exactly as quoted above, 36 of 36 passed on b8f1ca0e07bfe2784a12633592bad9b716eb6073. Current assertions and loader chain are unchanged from that SHA.
 **Gap.** None.
@@ -184,14 +184,14 @@ Core · published · **done**
 **Requirement.** The public homepage links to `/run` and `/docs`. `/run` shows the real `rer dev just-every/run-vane` launch command, and every guide's local links resolve. The run site contains only public routes, reads no installation data and loads only local assets; Run and Docs work without JavaScript.
 
 **Acceptance.**
-1. `rer build --site`, then follow every local link from the built homepage and guides (`tests/site.test.mjs`).
+1. `rer build --site`, then follow every local link from the built homepage and guides.
 
 **Evidence.** `src/base/run-site.ts`; `tests/site.test.mjs`
 **Gap.** None.
 
 #### DOCS-001 — Documentation built from repository Markdown
 
-Core · published · **done**
+Core · published · **done** · Cites BASE-DOCS-001
 
 **Requirement.** `/docs` renders the repository's Markdown guides with readable code blocks, tables, section links and optional copy-to-clipboard controls.
 
@@ -204,20 +204,19 @@ Core · published · **done**
 
 #### HOME-001 — The approved homepage in the shared theme
 
-Core · published · **done**
+Core · published · **done** · Register R-10
 
 **Requirement.** The run site serves the owner-approved design-desk landing page (17 Oct 2026: the weather vane in an open sky, the swallow mark, Inter Tight and Inter type; page-s1: one launch week at Juniper Coffee, dated section by section, with the hero's wind carried down the page as one trail) in the shared theme with locally served fonts and artwork. At phone width its hero cards and every section's drawing stack under their copy. Its Juniper Coffee figures are explanatory drawings and are never seeded as analytics.
 
 **Acceptance.**
-1. The independent visual gate compares the built homepage at 1440 and 390 px with the approved specification and picks.
-2. In the repository, a browser opens the built homepage at 390 and 1440 px: at 390 px the hero cards and every section's drawing sit under their copy with no sideways scrolling, at 1440 px each two-column section's drawing sits beside its copy and the wind trail runs down the page, and every font, image and style comes from the run site itself, with Inter Tight and Inter loaded.
+1. In the repository, a browser opens the built homepage at 390 and 1440 px: at 390 px the hero cards and every section's drawing sit under their copy with no sideways scrolling, at 1440 px each two-column section's drawing sits beside its copy and the wind trail runs down the page, and every font, image and style comes from the run site itself, with Inter Tight and Inter loaded.
 
 **Evidence.** `src/site/landing/page.ts` and its section files in `src/site/landing/`; `tests/site.test.mjs`
 **Gap.** None.
 
 #### LOBBY-001 — The installed Lobby and real sign-in stay intact
 
-Core · published · **done**
+Core · published · **done** · Cites BASE-ACCESS-001
 
 **Requirement.** An installed instance keeps its Lobby at `/`, real sign-in and first-run setup flows, and its existing authenticated routes, all in the shared Vane theme.
 
@@ -230,7 +229,7 @@ Core · published · **done**
 
 #### DEPLOY-001 — Run-site deployment stays behind its switch
 
-Core · published · **done**
+Core · published · **partial**
 
 **Requirement.** Run-site deployment runs only when the owner sets `RUN_SITE_DEPLOY`. The run site is configured for run-vane.com. Existing edition, package, Worker and database identifiers are preserved.
 
@@ -239,15 +238,15 @@ Core · published · **done**
 2. The identifiers in `wrangler.jsonc`, `package.json` and `edition.json` are unchanged.
 
 **Evidence.** `.github/workflows/run-site.yml`, Run site workflow 40142096805 on e92c624a68c66d1000bee594f83a92066d510a70: the manual prove_unset_switch input unsets the effective RUN_SITE_DEPLOY variable for this execution without changing the repository variable. Job deployment-switch completed successfully and job deploy completed skipped. The same resolved-switch output gates normal runs; only the exact value true enables deployment. `wrangler.jsonc`, `package.json` and `edition.json` are byte-for-byte unchanged from starting main 35d45430bc9fb50ba944e45d5dfece89f1777ca5, preserving all edition, package, Worker and database identifiers. No permanent configuration-shape test was added.
-**Gap.** None.
+**Gap.** Neither point has an asserting test: the skipped deployment rests on Run site workflow 40142096805 and the unchanged identifiers on a byte comparison, not on assertions in a cited file.
 
 ### Install and collection
 
 #### INSTALL-001 — One script tag with live install verification
 
-Core · target · **done**
+Core · target · **partial** · Cites BASE-DATA-004
 
-**Requirement.** Settings show the snippet with a copy button. A **Verify installation** action loads the site's homepage server-side: the Worker sends a GET for the registered origin's public homepage, following up to five redirects, carries no visitor data and stores only the pass/fail result. The owner's own website is not an integration, so the check has no `seed.json` externals entry, and it is listed under Declared data flows (`PRIVACY-005`). The action finds the script and waits up to 60 seconds for a first event from that page. It then reports the exact cause of any failure: script missing, wrong site ID, origin mismatch, Content Security Policy blocking, consent flag never set, path excluded, or a blocker suspected. Until a first event arrives, the site shows **Awaiting first event** in the overview.
+**Requirement.** Settings show the snippet with a copy button. A **Verify installation** action loads the site's homepage server-side: the Worker sends a GET for the registered origin's public homepage, following up to five redirects, carries no visitor data and stores only the pass/fail result. The action finds the script and waits up to 60 seconds for a first event from that page. It then reports the exact cause of any failure: script missing, wrong site ID, origin mismatch, Content Security Policy blocking, consent flag never set, path excluded, or a blocker suspected. Until a first event arrives, the site shows **Awaiting first event** in the overview.
 
 **Acceptance.**
 1. Point a fixture site at Vane without the script, then with the wrong site ID, then with a CSP that blocks it, then correctly.
@@ -255,11 +254,11 @@ Core · target · **done**
 3. Record the Worker's outbound requests during each check: only the homepage GET and at most five redirects, carrying no visitor data, and only the pass/fail result is stored.
 
 **Evidence.** `src/vane/install-check.ts`; `src/vane/actions.ts`; `src/vane/views/settings.ts`; `src/vane/views/script-copy.ts`; `tests/vane.test.mjs`
-**Gap.** None.
+**Gap.** The outbound record during Verify installation is unasserted: only the homepage GET with at most five redirects, no visitor data and pass/fail-only storage. Each failure cause, the redirect origin mismatch and the verified state are asserted.
 
 #### INSTALL-002 — WordPress and WooCommerce plugin
 
-Core · target · **missing**
+Core · target · **missing** · Register R-2
 
 **Requirement.** A WordPress.org plugin connects a WordPress site to a Vane installation with a site token. It inserts the script (or the proxied script from `INSTALL-006`), excludes logged-in administrators if the owner chooses, and turns on outbound-link, download, 404 and form events (`CONV-003`). With WooCommerce it records product views, add to cart, checkout and purchases with revenue (`CONV-007`). It shows a Vane dashboard widget in wp-admin.
 
@@ -272,7 +271,7 @@ Core · target · **missing**
 
 #### INSTALL-003 — Shopify app with checkout tracking
 
-Core · target · **missing**
+Core · target · **missing** · Register R-3
 
 **Requirement.** A Shopify app installs the script on the storefront through a theme app extension. It registers a Customer Events web pixel so that checkout steps and purchases (order value, currency, product lines) arrive as events with no customer personal data. Orders confirmed through the Shopify Admin API reconcile the purchases (`CONV-008`).
 
@@ -283,24 +282,46 @@ Core · target · **missing**
 **Evidence.** None.
 **Gap.** No Shopify app, web pixel or order reconciliation.
 
-#### INSTALL-004 — Webflow, Squarespace, Wix, Pane and static-site paths
+#### INSTALL-004 — Webflow, Squarespace, Wix and static-site paths
 
 Core · target · **missing**
 
-**Requirement.** Step-by-step install guides with a verification check (`INSTALL-001`) cover Webflow (site-wide custom code), Squarespace (code injection), Wix (custom code or Velo) and common static hosts (Netlify, Vercel, GitHub Pages). Each guide also shows how to send the platform's form submissions as events. A [Pane](https://github.com/just-every/run-pane) site turns Vane on with one switch, and Pane's editor shows that page's visitors. Pane can also apply a split-test variant (`EXPERIMENT-001`) to the page without code. A [Stall](https://github.com/just-every/run-stall) storefront turns Vane on the same way and emits the `CONV-007` ecommerce events (product view, add to cart, begin checkout and purchase with its product lines).
+**Requirement.** Step-by-step install guides with a verification check (`INSTALL-001`) cover Webflow (site-wide custom code), Squarespace (code injection), Wix (custom code or Velo) and common static hosts (Netlify, Vercel, GitHub Pages). Each guide also shows how to send the platform's form submissions as events.
 
 **Acceptance.**
 1. Follow each guide against its platform's test site and pass verification.
-2. Turn on Vane in a Pane site and see the page's visitors in the Pane editor.
-3. Turn on Vane in a Stall storefront and run a test purchase: the `CONV-007` ecommerce funnel and product report show the product, quantity and revenue.
-4. Apply a split-test variant (`EXPERIMENT-001`) from the Pane editor and see its exposures counted.
 
 **Evidence.** None.
-**Gap.** No platform guides with verification and no Pane switch.
+**Gap.** No platform guides with verification.
+
+#### INSTALL-009 — Pane one-switch install and page variants
+
+Core · target · **missing** · From INSTALL-004
+
+**Requirement.** A [Pane](https://github.com/just-every/run-pane) site turns Vane on with one switch, and Pane's editor shows that page's visitors. Pane can also apply a split-test variant (`EXPERIMENT-001`) to the page without code.
+
+**Acceptance.**
+1. Turn on Vane in a Pane site and see the page's visitors in the Pane editor.
+2. Apply a split-test variant (`EXPERIMENT-001`) from the Pane editor and see its exposures counted.
+
+**Evidence.** None.
+**Gap.** No Pane switch.
+
+#### INSTALL-010 — Stall one-switch install with ecommerce events
+
+Core · target · **missing** · From INSTALL-004
+
+**Requirement.** A [Stall](https://github.com/just-every/run-stall) storefront turns Vane on with one switch and emits the `CONV-007` ecommerce events (product view, add to cart, begin checkout and purchase with its product lines).
+
+**Acceptance.**
+1. Turn on Vane in a Stall storefront and run a test purchase: the `CONV-007` ecommerce funnel and product report show the product, quantity and revenue.
+
+**Evidence.** None.
+**Gap.** No Stall switch; carried missing from INSTALL-004, which had no platform path.
 
 #### INSTALL-005 — Google Tag Manager template
 
-Core · target · **missing**
+Core · target · **missing** · Register R-4
 
 **Requirement.** A published GTM Community Template installs Vane, passes GTM consent state into `PRIVACY-003`, and maps dataLayer events to Vane custom events with declared properties.
 
@@ -313,39 +334,38 @@ Core · target · **missing**
 
 #### INSTALL-006 — First-party proxy for blocker-resilient delivery
 
-Core · target · **partial**
+Core · target · **partial** · Rules D-2 · Register R-5
 
-**Requirement.** The owner can serve the script and collection endpoint from their own domain. Ready-made setups cover a Cloudflare Worker route (one click when the site's zone is in the same Cloudflare account), Next.js rewrites, Vercel, Netlify, Nginx, Apache and WordPress (`INSTALL-002`). A custom collection subdomain such as `stats.example.com` is also supported. The proxied path forwards the visitor's country and user agent for server-side derivation and never logs them. Reports label how much traffic arrived through the proxy (`COVERAGE-001`). The implemented connection is created, rotated and revoked only by the active owner, with an audit record; external server credentials are shown once and stored only as a digest. The one-click action uses the owner’s transient Cloudflare token, refuses existing route or DNS collisions, and never retains that token. Registered script and configuration GETs remain public; collection still requires the registered website Origin and the ordinary consent and privacy rules. Proxy and direct shares count admitted native pageviews over their native transport denominator; historical rows without transport and imported coverage remain explicitly unknown. Every tracker door added later inherits this proxy boundary before it ships, including WordPress insertion under `INSTALL-002`.
+**Requirement.** The owner can serve the script and collection endpoint from their own domain. Ready-made setups cover a Cloudflare Worker route (one click when the site's zone is in the same Cloudflare account), Next.js rewrites, Vercel, Netlify, Nginx, Apache and WordPress (`INSTALL-002`). A custom collection subdomain such as `stats.example.com` is also supported. The proxied path forwards the visitor's country and user agent for server-side derivation and never logs them. Reports label how much traffic arrived through the proxy (`COVERAGE-001`). The owner's proxy connection, its one-click route and its credentials follow the mechanism in `docs/first-party-proxy.md`.
 
 **Acceptance.**
 1. Configure the Cloudflare route and the Next.js rewrite, and load the site in Chromium with uBlock Origin's default lists active, including EasyPrivacy.
 2. First prove the lists are live: in the same session, before the site loads, the incumbents' real tags `https://plausible.io/js/script.js` and `https://www.googletagmanager.com/gtag/js?id=G-TEST` fail with `net::ERR_BLOCKED_BY_CLIENT`.
 3. Record the unproxied `vane.js` outcome with the uBlock and list versions; when it is blocked the proxied page still collects.
-4. The journey reruns weekly against current default lists.
-5. No Vane surface claims to evade blockers or recover blocked visitors; COVERAGE-001's proxy/direct shares are the only measure.
-6. Events still arrive, the proxy share is reported, and the forwarded values are never stored raw.
+4. No Vane surface claims to evade blockers or recover blocked visitors; COVERAGE-001's proxy/direct shares are the only measure.
+5. Events still arrive, the proxy share is reported, and the forwarded values are never stored raw.
 
 **Evidence.** `tests/proxy.test.mjs` — “owner first-party proxy setup verifies installation and keeps every tracker door, regional consent, transport coverage, credential revocation and browser requests within the declared boundary” proves owner setup, one-use credentials, every current tracking door, regional consent and GPC, installation verification, proxy/direct CSV, both Stats APIs and signed-out public/shared reports, raw-metadata absence, site-overview and scheduled-email counts, and 1440/390 settings/report/credential/methodology/inventory/site-overview screens. `tests/proxy-adapters.test.mjs` — “server proxy forwards every public tracker door over HTTP and strips untrusted identity and credentials”, “proxy refuses unsupported doors, untrusted visitors, oversized streaming bodies and leaking upstream responses”, “custom collection hosts answer only registered-origin preflights without upstream credentials or data” and “downloaded adapters execute with platform-attested metadata and Next rewritten path parameters” prove all ready-made server setups at their network/platform edges. `tests/proxy-cloudflare.test.mjs` — “owner connects an existing installation Worker with narrow idempotent Cloudflare routes and unused dedicated subdomains without retaining the transient token” proves same-account and active-Worker checks, explicit narrow route/domain writes, collision refusals, idempotency, audit and no token retention, plus owner form submission and configured end states at 1440/390, with the Cloudflare HTTP edge simulated. `tests/proxy-next.journey.mjs` — “INSTALL-006: downloaded Next setup rewrites real browser script, config and collect into one private proxy pageview” proves production Next build/start with unchanged owner downloads and actual browser/Worker requests. `tests/site.test.mjs` — “DOCS-001 each built guide renders its Markdown code blocks, tables and heading anchors, and the copy control copies the block” proves the published proxy guide, code-copy control and 1440/390 guide views. `tests/proxy-blocker.journey.mjs` — “unchanged default lists allow actual first-party collection with private metadata and honest proxy counts” passes in Linux run 20261021T230943485957Z-heavy-slot-3d7fcc95 at a46fc52af8d0dc872df4cb53b6ab13de69431463: real Chrome/uBlock with untouched defaults loads the proxy script/config, accepts collection once, reports the exact proxy delta and stores no raw metadata. Its strict unproxied-blocked subtest fails, so the parent journey remains red and this clause partial.
-**Gap.** Unproxied Vane was not blocked in the prior default-list run (uBlock 1.75, run 5d8af51e); conditional proxy survival under a real block remains unobserved. Revised exact-SHA workflow `39707779255` at `f7622a8f958db25308151504f1747d4f6f52f9bd` refreshed 263,155 default network filters and blocked the real Plausible tag, but the real Google gtag control returned HTTP 307 instead of ct’s required ERR_BLOCKED_BY_CLIENT, so the required parent journey is red. No filters or settings were changed. Run `39724581606` at `53ca40125b8d79b5cd8f69327e85c1b7e4efb2cb` refreshed 270,785 default network filters: Plausible failed with ERR_BLOCKED_BY_CLIENT and Google returned 307 to a browser-extension resource. In that same session direct Vane returned 200 and executed collection; the proxied script/config returned 200, collection returned 202 and exactly one proxy pageview was added with no raw visitor metadata retained. uBlock 1.75.0 and the complete default-list versions are recorded in the run. The nested strict control remains red. Weekly schedule exists; a full green weekly-journey run and ct re-read remain pending. Cloudflare edge simulated.
+**Gap.** Unproxied Vane was not blocked in the prior default-list run (uBlock 1.75, run 5d8af51e); conditional proxy survival under a real block remains unobserved. In the current default-list runs the real Google gtag control returns HTTP 307 instead of ERR_BLOCKED_BY_CLIENT, so the required parent journey stays red (run history in `CHANGELOG.md`). Cloudflare edge simulated.
 
 #### INSTALL-007 — Single-page applications and hash routing
 
 Core · target · **done**
 
-**Requirement.** The script records a pageview on every History API navigation and, when the owner turns it on, on hash changes. It also sends pageviews manually via `vane('pageview', {url, props})` for frameworks that control routing, and a manual or automatic pageview carries custom properties like any event (`CONV-002`). The exact rules: a pageview is sent on the document load and on every `history.pushState` and back or forward navigation; the owner turns on hash routing by adding `data-hash` to the snippet, and then every hash route change is a pageview too, with `#/about` (or `#!/about`) on `/app/` recorded as the path `/app/about`, the route's own query dropped, and a fragment that is not a route (such as `#pricing`) neither a navigation nor part of the path. With `data-manual` on the snippet the script sends no pageview by itself: `vane('pageview')` records the current page and `vane('pageview', {url})` a path or address on the site, whose kept query parameters (`COLLECT-002`) count as on any page load; calls made before the script loads wait in `vane.q`. A navigation to the path just recorded is not counted again. Only the document's first pageview carries the referrer, so later pageviews of the visit are direct, as after a link within the site; each pageview has its own ID, engagement pings and scroll depth (`METRIC-003`, `METRIC-006`), and page timings (`PERF-001`) belong to the document's first pageview. The settings page shows both snippet attributes. Properties on a pageview, automatic or manual, are `CONV-002`'s, which carries them in its text and acceptance.
+**Requirement.** The script records a pageview on every History API navigation and, when the owner turns it on, on hash changes. It also sends pageviews manually via `vane('pageview', {url, props})` for frameworks that control routing, and a manual or automatic pageview carries custom properties like any event (`CONV-002`). The settings page shows both snippet attributes. Properties on a pageview, automatic or manual, are `CONV-002`'s, which carries them in its text and acceptance.
 
 **Acceptance.**
 1. Navigate a React Router and a hash-routed fixture through four views.
-2. Four pageviews arrive with the right paths and no duplicates, and a manual pageview arrives with its path and kept UTM field; its `props: {author: 'jo'}` breakdown is `CONV-002`'s acceptance.
+2. Four pageviews arrive with the right paths and no duplicates, and a manual pageview arrives with its path and kept UTM field.
 
 **Evidence.** `src/vane/tracker.ts`; `src/vane/views/settings.ts`; `tests/fixtures/spa-router.jsx`; `tests/vane.test.mjs`
 **Gap.** None.
 
 #### INSTALL-008 — Server-side and mobile Events API
 
-Core · target · **done**
+Core · target · **done** · Cites BASE-OPS-003
 
-**Requirement.** An authenticated `POST /api/v1/events` accepts pageviews and custom events from servers, backends and mobile apps. It takes the same fields and properties as the script, plus a client IP and user agent supplied by the caller, which are used only for `METRIC-001` hashing and `DASH-005`/`DASH-006` derivation and then discarded. Tokens are scoped to one site, with rate limits and idempotency keys. The exact rules (ct 13:06Z): an owner or an administrator of the site creates its events token (`vane_e_` and 64 hex characters) on the API keys page; it is shown once, kept only as SHA-256, revocable, refused once its creator is removed, and its creation and revocation are audited. A request carries one event, or `{"events": [...]}` with 1 to 100, each of type `pageview` or `event` (a custom event naming its page load, as `CONV-002`) with the script's fields and properties plus `client_ip` and `user_agent`, and goes through the script's own collection rules (`COLLECT-001` to `COLLECT-003`, consent, paths, goals and properties). The address and agent are used in memory for the daily visitor hash, the device, browser and system classes and the owner's excluded addresses and bot rules, and never stored; the request's own Cloudflare fields (country, network, bot score) describe the caller's server, not the visitor, so they are not applied. An event naming another site is refused with 403. An `Idempotency-Key` header is kept only as its SHA-256 for 24 hours, and a repeat within them answers the first request's results without collecting again; a repeated event ID is admitted once either way. Each token may send 100 requests in each 10-second window and 10,000 events in each clock hour (UTC); over either the request is refused with 429 and Retry-After, and the limits are in the OpenAPI document.
+**Requirement.** An authenticated Events API accepts pageviews and custom events from servers, backends and mobile apps. It takes the same fields and properties as the script, plus a client IP and user agent supplied by the caller, which are used only for `METRIC-001` hashing and `DASH-005`/`DASH-006` derivation and then discarded. Tokens are scoped to one site, with rate limits and idempotency keys.
 
 **Acceptance.**
 1. Send events from a server with a site token, with a duplicate idempotency key and with a token for another site.
@@ -358,7 +378,7 @@ Core · target · **done**
 
 Core · target · **done**
 
-**Requirement.** Every page on a registered site is collected without a path allowlist. Each event carries the page's hostname beside its path, and the hostname must be one of the site's allowed hostnames (`SITE-001`, `DASH-013`). The current allowlist becomes an optional include or exclude list. Query strings are dropped except UTM parameters, the `ref` and `source` parameters, and owner-allowlisted keys, such as a site-search parameter (`DASH-012`). a `ref` or `source` value is kept by default as the visit's source when no `utm_source` is present, after the same redaction, so directory, Product Hunt and newsletter links keep their label. Ad click identifiers (gclid, fbclid, msclkid) are recorded only as a paid-click channel flag, never as values. Path segments that look like email addresses, long tokens, UUIDs or long numbers are replaced with placeholders before storage. Owners can add rewrite rules such as `/orders/*` → `/orders/:id`. Page titles are never stored. The exact rules: the include and exclude lists hold paths or patterns with the goal wildcards (`*` within a segment, `**` across), an empty include list means every path, and a page on an excluded path is refused. The hostname comes from the page's verified origin (`SITE-001`), lowercased and without its port. Each percent-decoded path segment is replaced, in this order, by `:email` when it contains `@`, `:uuid` when it is a UUID, `:number` when it holds six or more digits in a row, and `:token` when it is 16 or more letters, digits and `-_.=` holding a digit with no `-_.`-separated part that is a word of three or more letters (so slugs such as `top-10-brews-2024` stay); rewrite rules then apply in order and the first match wins. Each kept query value is trimmed and cut to 100 characters, and one that looks like an email address, a phone or account number or a web address is dropped. A visit's source is `utm_source`, else `ref` or `source`, else the referring hostname (a referrer on one of the site's own hostnames counts as direct), else direct. Imports apply the same path, exclusion and source rules; rows on excluded paths are dropped and counted in the import report.
+**Requirement.** Every page on a registered site is collected without a path allowlist. Each event carries the page's hostname beside its path, and the hostname must be one of the site's allowed hostnames (`SITE-001`, `DASH-013`). The current allowlist becomes an optional include or exclude list. Query strings are dropped except UTM parameters, the `ref` and `source` parameters, and owner-allowlisted keys, such as a site-search parameter (`DASH-012`). a `ref` or `source` value is kept by default as the visit's source when no `utm_source` is present, after the same redaction, so directory, Product Hunt and newsletter links keep their label. Ad click identifiers (gclid, fbclid, msclkid) are recorded only as a paid-click channel flag, never as values. Path segments that look like email addresses, long tokens, UUIDs or long numbers are replaced with placeholders before storage. Owners can add rewrite rules such as `/orders/*` → `/orders/:id`. Page titles are never stored.
 
 **Acceptance.**
 1. Load pages with emails, tokens, order numbers and UTM and click-ID queries in the URL.
@@ -370,9 +390,9 @@ Core · target · **done**
 
 #### COLLECT-003 — Bot, referrer-spam and internal-traffic exclusion
 
-Core · target · **done**
+Core · target · **done** · Rules D-1, D-2
 
-**Requirement.** At ingestion Vane drops known crawlers and automation, using the Cloudflare bot score where available plus a maintained user-agent list, data-center traffic heuristics and a maintained referrer-spam list. Owners can exclude IP addresses or ranges, exclude pages, exclude up to 30 countries (ISO codes matched against Cloudflare geolocation at ingestion), and exclude their own browser. The own-browser opt-out is a link on the site's settings page that sets the `vane_ignore` flag declared in `COLLECT-001` in that browser only, and opening it again clears the flag. Excluded counts are reported by reason, never silently. The exact rules: collection refuses a page load (403) with the first matching reason in this order and adds it to that day's count for the reason (`COVERAGE-001`): an excluded IP address or CIDR range (IPv4 or IPv6, up to 50), an excluded country (up to 30 ISO 3166-1 alpha-2 codes, against Cloudflare's request country), a bot (Cloudflare bot score below 30 or a verified bot where Cloudflare provides them, else a user agent containing a fragment of the published list, which names crawlers, link previewers, monitors, headless browsers and HTTP libraries), a data-center network (Cloudflare's ASN on the published list) and referrer spam (a referring domain on the published list, or a subdomain of one). The owner's excluded addresses and countries are stored in the site's settings and its archive; the visitor's raw IP address, user agent and Cloudflare country/subdivision codes are compared in memory and never stored. Postal code, coordinates and request timezone are never stored. A refused or excluded load stores no event, visitor hash or location, only its site/day/reason/count counter. An admitted load stores only DASH-005’s country, region and city names and its US metro code; metro names live in the site's metro-name table and are never stored on events. That location travels with its event in archives and is erased with it. The automatic-event door refuses the same traffic without counting it again. While `vane_ignore` is set, each page load sends only one empty request for the site, counted as own browser, and nothing is collected. The lists are published on the methodology page (`METRIC-004`).
+**Requirement.** At ingestion Vane drops known crawlers and automation, using the Cloudflare bot score where available plus a maintained user-agent list, data-center traffic heuristics and a maintained referrer-spam list. Owners can exclude IP addresses or ranges, exclude pages, exclude up to 30 countries (ISO codes matched against Cloudflare geolocation at ingestion), and exclude their own browser. The own-browser opt-out is a link on the site's settings page that sets the `vane_ignore` flag declared in `COLLECT-001` in that browser only, and opening it again clears the flag. Excluded counts are reported by reason, never silently.
 
 **Acceptance.**
 1. Send traffic from a headless browser, a spam referrer, an excluded IP, an excluded country and an opted-out browser beside real visits.
@@ -385,7 +405,7 @@ Core · target · **done**
 
 Core · target · **done**
 
-**Requirement.** One installation collects at least 10 million pageviews a month across its sites with bursts of 500 events per second. Dashboards answer a 12-month query in under 2 seconds at that volume, using aggregated rollups and a declared analytical store (Cloudflare Analytics Engine, D1 rollups or the buyer's warehouse through `API-002`). Any limit is published and shown before it is reached: the current fixed 10,000-events-per-site-per-day admission ceiling is lifted.
+**Requirement.** One installation collects at least 10 million pageviews a month across its sites with bursts of 500 events per second. Dashboards answer a 12-month query in under 2 seconds at that volume, using aggregated rollups and a declared analytical store (Cloudflare Analytics Engine, D1 rollups or the buyer's warehouse through `API-002`). Any limit is published and shown before it is reached.
 
 **Acceptance.**
 1. A load test at the stated volume and burst rate admits every valid event exactly once.
@@ -396,22 +416,22 @@ Core · target · **done**
 
 #### COVERAGE-001 — Coverage shown beside every number
 
-Core · target · **done**
+Core · target · **partial**
 
-**Requirement.** Every report states what it cannot see: the consent-declined share (the script sends a field-free declined counter when consent is not granted, if the owner enables it), sampling, exclusions by reason, the proxy and direct share, imported periods with unknown coverage, and deleted history. Where the site's Cloudflare zone is connected, Vane also compares its pageviews with zone page requests to estimate the share lost to blockers. No total is presented as complete when coverage is unknown. The exact rules: each share is its count over the page loads that reached Vane for it (that count plus the accepted page loads in the range); the declined-consent and exclusion counts hold only the site, day and reason; erased history is named with the day before which events were erased; and since blocked scripts are never measured until a zone is connected, every total is labeled partial. This is done when every coverage gap that exists today is shown: declined consent, privacy signals, excluded paths, sampling, imports with unknown coverage, erased history and page loads refused as collection errors (`ALERT-002`). Each later source of a gap shows its share before it ships: bot, referrer-spam, IP, country and own-browser exclusions (`COLLECT-003`), the proxy and direct share (`INSTALL-006`) and the Cloudflare zone comparison when a zone connection exists. The counts are site-wide under a Hostname filter (`DASH-013`).
+**Requirement.** Every report states what it cannot see: the consent-declined share (the script sends a field-free declined counter when consent is not granted, if the owner enables it), sampling, exclusions by reason, the proxy and direct share, imported periods with unknown coverage, and deleted history. Where the site's Cloudflare zone is connected, Vane also compares its pageviews with zone page requests to estimate the share lost to blockers. No total is presented as complete when coverage is unknown.
 
 **Acceptance.**
 1. Combine declined consent, sampling, exclusions, an import and a zone comparison on one site.
 2. The report shows each share with its denominator and labels the totals as partial.
 
 **Evidence.** `src/vane/exclusions.ts`; `src/vane/reports.ts`; `src/vane/views/report.ts`; `tests/vane.test.mjs`
-**Gap.** None.
+**Gap.** The Cloudflare zone comparison is unasserted (no zone connection exists); declined consent, exclusions, sampling, an import, privacy signals and erased history are asserted with their denominators and the partial label.
 
 ### Visitors and engagement
 
 #### METRIC-001 — Cookie-free unique visitors from daily-rotating salted hashes
 
-Core · target · **done**
+Core · target · **partial**
 
 **Requirement.** The server derives a visitor hash from SHA-256(daily salt + site ID + IP address + user agent). The salt is random, rotates at midnight in the site's time zone and is deleted after 24 hours. The IP and user agent are never stored, logged or returned. Unique visitors count distinct hashes within a day. For a multi-day range, the count is the sum of daily uniques unless consented mode (`METRIC-005`) applies, and the methodology page says so. A cookie-free visitor cannot be followed across days or across sites. The separate explicitly consented mode (`METRIC-005`) can link days within one site only.
 
@@ -421,7 +441,7 @@ Core · target · **done**
 3. Show that the database, logs and archive hold no IP, no user agent and no salt older than 24 hours, and that the same visitor hashes differently on another site.
 
 **Evidence.** `src/vane/visitors.ts`; `src/vane/collect.ts`; `src/vane/reports.ts`; `src/vane/methodology.ts`; `src/server.ts`; `migrations/core/0018_vane_visitors.sql`; `tests/vane.test.mjs`
-**Gap.** None.
+**Gap.** No test reads the logs for the IP or user agent; the database, archive, salt lifetime and cross-site hashing are asserted.
 
 #### METRIC-002 — Visits and pages per visit
 
@@ -453,7 +473,7 @@ Core · target · **done**
 
 Core · target · **done**
 
-**Requirement.** Every installation serves a public methodology page. It defines visitors, visits, bounce, duration, scroll depth, conversions and revenue, the hash recipe and salt lifetime, consented mode, the two declared browser-storage exceptions (`COLLECT-001`), how each metric combines in a multi-site roll-up (`DASH-010`), sampling and estimation limits. Each metric in the app links to its definition. A change to a definition is versioned and appears as an annotation on every chart it affects (`DASH-009`). The exact rules: the one definition an owner can change today is the visit timeout (`METRIC-002`), a whole number of minutes from 15 to 120, 30 by default, changed only through the owner's approval (`APPROVE-001`). An approved change is the site's next visit-definition version (the published definitions are version 1), dated the site's local day of approval; it applies to whole local days from that date, earlier days keep the version they were counted under, and a roll-up applies each member site's own version. It is annotated with its date and the old and new timeouts on every chart of visits, bounce rate or visit duration whose range covers that day, naming the site in a roll-up; unique visitors, pageviews and conversions do not depend on it, so their charts carry no such annotation. Every metric total in the app and on public stats pages links to its definition's anchor on the methodology page. Vane makes no estimates: sampled counts are never scaled up and nothing is modeled for blocked scripts or declined consent. Revenue is defined as `CONV-006` records it; consented mode is defined by `METRIC-005`: its explicit consent, random first-party identifier, fixed owner-approved lifetime, site-scoped digest, returning-visitor and cohort definitions, attribution and revocation are published there. The location entry says that metro codes are Nielsen DMA® codes from Cloudflare, that Vane ships no metro names and a site's names come from its owner, and that “DMA® is a registered service mark of The Nielsen Company; Vane is not affiliated with or endorsed by Nielsen” (`DASH-005`).
+**Requirement.** Every installation serves a public methodology page. It defines visitors, visits, bounce, duration, scroll depth, conversions and revenue, the hash recipe and salt lifetime, consented mode, the two declared browser-storage exceptions (`COLLECT-001`), how each metric combines in a multi-site roll-up (`DASH-010`), sampling and estimation limits. Each metric in the app links to its definition. A change to a definition is versioned and appears as an annotation on every chart it affects (`DASH-009`).
 
 **Acceptance.**
 1. Open the methodology page signed out and follow each metric's definition link from the dashboard.
@@ -467,7 +487,7 @@ Core · target · **done**
 
 Core · target · **done**
 
-**Requirement.** A site can turn on a consented mode for visitors who grant analytics consent. It stores a random first-party identifier with a lifetime the owner chooses (at most 13 months) and adds new and returning visitors, multi-day unique visitors, multi-visit attribution and weekly retention cohorts. Visitors without consent stay in cookie-free mode, and reports show the consented share. Revoking consent deletes the identifier on the device and stops linking. Before the mode is offered, the methodology page (`METRIC-004`) replaces its "consented mode does not exist yet" entry with the identifier, its lifetime and how returning visitors and cohorts are counted. In consented mode a funnel can order its steps within one visitor across visits (`CONV-005`), and a split test (`EXPERIMENT-001`) keeps a consented visitor's variant across days, assigned from the identifier instead of the daily hash. The exact rules: mode is off by default and changes use the owner's recorded settings approval (`APPROVE-001`). The owner chooses 1–13 whole calendar months (13 only if that proposal is approved), fixed from issuance, never extended by visits, with a short month's last day used when needed. Explicit analytics consent is required even where anonymous collection needs no consent; denied or unknown consent uses cookie-free collection only where the site's existing regional rule allows it. One first-party `vane_consent_<site ID>` localStorage entry holds a random UUID and its issue time. Only a site-scoped SHA-256 digest and issue and expiry times are stored with accepted events; raw identifier values never enter database, logs, reports or archives, and no digest is exposed in a report or ordinary export. Revocation through `vane('consent', false)` or `vane:consent` with false detail immediately clears the device entry and pending linked page references; a later grant creates a new identity. CMP updates must notify Vane; GPC and DNT and expiry stop linkage too. Historical digests remain only with their events until ordinary retention or erasure removes them. New visitors are first observed in retained site history during the selected range; returning visitors have a later visit, possibly on that same day, so a visitor may be both. Consented range uniques are deduplicated per site and combined with the sum of cookie-free daily uniques; daily buckets need not sum to a multi-day unique total. The consented share is identifier-bearing accepted native page loads divided by all accepted native page loads, excluding imports and rejected traffic. Cohorts group visitors first observed in the range by the Monday of their first site-local week, with distinct active visitors in each subsequent week over the original cohort size; unfinished weeks are labelled partial, never estimated. Multi-visit attribution shows converting visits under first touch and last non-direct touch using retained acquisition before conversion. A funnel marked `@visitor` orders a consented visitor's steps across visits within the range; unlinked visitors retain their within-visit semantics. Experiments assign from the site-scoped digest while it exists, and from the daily hash otherwise. Every roll-up still counts each member site independently (`DASH-010`). Cohort and attribution tables are aggregate-only private report and CSV data, with no identifier on shared or public pages.
+**Requirement.** A site can turn on a consented mode for visitors who grant analytics consent. It stores a random first-party identifier with a lifetime the owner chooses (at most 13 months) and adds new and returning visitors, multi-day unique visitors, multi-visit attribution and weekly retention cohorts. Visitors without consent stay in cookie-free mode, and reports show the consented share. Revoking consent deletes the identifier on the device and stops linking. In consented mode a funnel can order its steps within one visitor across visits (`CONV-005`), and a split test (`EXPERIMENT-001`) keeps a consented visitor's variant across days, assigned from the identifier instead of the daily hash.
 
 **Acceptance.**
 1. With consent granted, visit on day 1 and day 8 and see one returning visitor in the week-2 cohort.
@@ -498,7 +518,7 @@ Core · target · **done**
 
 Core · target · **done**
 
-**Requirement.** A real-time view shows current visitors (active in the last 5 minutes), pageviews per minute for the last 30 minutes, and live top pages, sources and locations, refreshing at least every 15 seconds without a reload. The exact rules: a visitor is current while their latest page load or engagement ping (`METRIC-003`) is under 5 minutes old; pageviews per minute fill 30 one-minute buckets in the site's time zone ending with the current, still running minute; the live pages list counts each current visitor at their latest page load, and the live sources list counts them under the named source (`DASH-014`) of their visit's first page load (`DASH-004`). As `DASH-008` requires, every figure and list is compared with the same window 30 minutes earlier, and the chart overlays the 30 minutes before as a dashed line. The view's one nonce'd script fetches the same session-authenticated page every 10 seconds and swaps in the new figures, so only this view's Content Security Policy allows `connect-src 'self'`; every other page keeps `'none'`. The same figures are served at `GET /api/vane/realtime`. This is done when every dimension that exists today is live; location dimensions add their live locations list when `DASH-005` ships, which carries it.
+**Requirement.** A real-time view shows current visitors (active in the last 5 minutes), pageviews per minute for the last 30 minutes, and live top pages, sources and locations, refreshing at least every 15 seconds without a reload.
 
 **Acceptance.**
 1. Send events while the real-time view is open.
@@ -511,7 +531,7 @@ Core · target · **done**
 
 Core · target · **done**
 
-**Requirement.** The main chart plots visitors, visits, pageviews, bounce rate, duration, conversions and revenue by hour, day, week or month. Preset ranges cover today, yesterday, the last 7, 30 and 90 days, month to date, last month, year to date, the last 12 months and all time, and any custom range can be chosen. Days start at midnight in the site's time zone, which defaults to the owner's US time zone and handles daylight-saving changes. Every chart has an accessible data table. The exact rules: a range is local dates, end exclusive; the last 7, 30 and 90 days end with today, month and year to date run through today, the last 12 months start on the first of the month eleven months before this one, and all time starts on the site's earliest event day; filled From and Until dates make a custom range. The chart defaults to hourly up to 2 days, daily up to 92, weekly up to 731 and monthly beyond; hourly covers at most 31 days and daily at most two years. An hour is a real hour from local midnight, labeled with its local time and zone abbreviation, so a fall-back day has 25 hours (01:00 CDT, then 01:00 CST) and a spring-forward day 23; weeks start on Monday, and the first and last weeks and months are cut to the range. A bucket's visitors are its days' daily unique visitors summed (an hour counts its distinct visitor hashes); a visit, its bounce and its duration (the chart plots the average) belong to the bucket of its first page load; pageviews and goal conversions count where they happened. Imported history has dates but no times, so it appears in daily, weekly and monthly buckets and not hourly ones. The add-site form fills in the time zone the owner's browser reports; a site prepared without one, such as through the command API, uses UTC until the owner changes it. This is done when every metric that exists today is charted, revenue included: it is charted in the site currency in the bucket of the page load it was sent on (`CONV-006`).
+**Requirement.** The main chart plots visitors, visits, pageviews, bounce rate, duration, conversions and revenue by hour, day, week or month. Preset ranges cover today, yesterday, the last 7, 30 and 90 days, month to date, last month, year to date, the last 12 months and all time, and any custom range can be chosen. Days start at midnight in the site's time zone, which defaults to the owner's US time zone and handles daylight-saving changes. Every chart has an accessible data table.
 
 **Acceptance.**
 1. Seed events either side of a US daylight-saving change and midnight in America/Chicago.
@@ -537,7 +557,7 @@ Core · target · **done**
 
 Core · target · **done**
 
-**Requirement.** Every visit gets a channel, using published definitions: Direct, Organic Search, Paid Search, Organic Social, Paid Social, Email, Referral, AI Assistants (ChatGPT, Perplexity, Claude, Gemini, Copilot), Affiliates and Display. Referrer domains and URLs come from public referring pages. All five UTM fields (source, medium, campaign, term, content) are available as dimensions. No allowlist is needed. Email-client and webmail referrers are grouped. Every channel, referrer and UTM table shows, per row, the visitors, visits, bounce rate, visit duration and the conversion rate for the selected goal, as the pages table does. The exact rules: the channel is set at collection by the first matching rule, in the order Affiliates, Display, Paid Social, Paid Search, AI Assistants, Email, Organic Search, Organic Social, Referral, Direct, from the visit's source (`COLLECT-002`), `utm_medium` and paid-click flag, with the source lists and the paid `utm_medium` values published on the methodology page (`METRIC-004`). A referring page is kept as its hostname and path, redacted like page paths, without query or fragment; email-client and webmail referrers are grouped as the source `webmail` and their addresses are never kept. Each visit counts under its first page load's channel, source, referring page and UTM values. The conversion rate counts visits with the goal the reader selects, or with any goal when none is selected; the page tables follow the same selection. Imported history has no visits, so it is left out of these tables.
+**Requirement.** Every visit gets a channel, using published definitions: Direct, Organic Search, Paid Search, Organic Social, Paid Social, Email, Referral, AI Assistants (ChatGPT, Perplexity, Claude, Gemini, Copilot), Affiliates and Display. Referrer domains and URLs come from public referring pages. All five UTM fields (source, medium, campaign, term, content) are available as dimensions. No allowlist is needed. Email-client and webmail referrers are grouped. Every channel, referrer and UTM table shows, per row, the visitors, visits, bounce rate, visit duration and the conversion rate for the selected goal, as the pages table does.
 
 **Acceptance.**
 1. Send visits with Google organic, Google paid (gclid flag), Facebook, an email UTM, a chatgpt.com referrer and five-field UTMs.
@@ -548,9 +568,9 @@ Core · target · **done**
 
 #### DASH-005 — Country, region and city
 
-Core · target · **done**
+Core · target · **done** · Rules D-1
 
-**Requirement.** Location comes from Cloudflare's request geolocation at ingestion. Country, region (US state) and city are stored as names; the US metro area (DMA) is stored as its code and named from the site's own metro-name table; none of it is ever stored as an IP address. On shared links, embeds and public dashboards (`SHARE-001`, `SHARE-002`), a city with fewer than 5 visitors in the selected range is folded into an "Other cities" row in its region. Signed-in team members see every city. Country, region and city rows show conversions and conversion rate for the selected goal (`CONV-004`). Countries, regions and cities join the movers in the report's explanation (`REPORT-003`) and are filter dimensions (`DASH-007`). The real-time view (`DASH-001`) gains a live locations list: current visitors by country, region and city, compared with the same window 30 minutes earlier. The exact rules: the country is stored as its English name from Cloudflare's two-letter code (unknown `XX` and Tor `T1` store no location), the region is Cloudflare's first-level subdivision name (a US state, a Canadian province, England), and the US metro area is stored as `metro_code` only when a US page load carries exactly three ASCII digits (otherwise NULL); events never store a metro name. By ct ruling (20 October 2026) Vane ships no DMA code-to-name table, pinned or fetched, because no published source licenses one for this MIT repository (`SOURCES.md`): names come only from the site's own metro-name table, a site setting holding no visitor data. A signed-in owner or administrator of the site uploads it on the site's settings page as a UTF-8 CSV with the header `metro_code,metro_name`, at most 1,000 rows and 262,144 bytes (256 KB): each code exactly three digits and listed once, each name 1 to 100 characters after trimming, with no control character and not starting with `=`, `+`, `-` or `@`. The upload carries a source label of 1 to 200 characters, the owner's statement “This site may use and show these names under the terms of their source” and a switch, off by default, to also show the names on shared links, embeds and public pages. Viewers, Analysts, Stats API and provisioning keys, shared-link viewers and the agent command API cannot prepare one, and there is no import from a web address. Any error refuses the whole file, naming its rows (counted from the first row after the header), and changes nothing. The owner reviews a preview (rows; added, changed and removed names; codes seen in the site's events that it names or leaves unnamed; its codes never seen) and only the owner approves it (`APPROVE-001`). Approval replaces the whole table at once on every surface, older data included, and is audited (`AUDIT-001`); it is refused (409) when another approval changed the table after this one was prepared, and an approved clear brings back the unnamed labels. The table travels with the archive, restore and site transfer (`ARCHIVE-001`, `SITE-001`), erasure and retention leave it alone, deleting the site removes it, and it is never sent anywhere. A name is looked up when a report, export or API answer is made: the site's table, then a bundled table only under a written licence recorded first in `SOURCES.md` (none exists), then unnamed; a roll-up (`DASH-010`) names a code from its member sites' tables, the first member's name first. Filters, saved segments, comparisons and movers key on the code (`metro:is:635`). A named code shows its name. An unnamed code shows “Metro NNN (unnamed)” with “Most visitors: ‹city›, ‹region›”: the city with the most unique visitors among that metro's visits in the range, counted as the report counts (each visit's first page load, daily uniques summed), ties broken alphabetically, the region alone when no city is known and nothing when neither is. That place is display only: it is never stored, never put in `metro_name`, never exported and never returned by the Stats API, MCP or the session JSON doors, and it is never called the DMA's name. A US page load without a valid code counts as “Unknown metro area”, a page load without geolocation stays in the “Unknown location” row of the country, region and city tables, and non-US page loads are not in the US metro areas table. US metro areas have the same columns, selected-goal figures and comparisons as other location tables, filters and saved segments, explanation movers, Stats API/MCP dimensions (`metro_code` and `metro_name`, null when unnamed), the CSV, ZIP metros file and warehouse export (the approved name at export time, empty when unnamed) and a live list. Public pages fold metros under five visitors into “Other metro areas”, show the owner's names only once the owner approved them for public pages (otherwise the unnamed label), and name an unnamed code's city only when that city's own row is shown there (5 or more unique visitors), otherwise its region. Wherever the owner's names show, a footnote reads “Metro names: ‹label›, supplied by the site owner”; the signed-in report counts its unnamed codes in a footnote linking to the setting, and the settings page shows the source label, approval date, approver, row count, the public choice and the codes seen without a name. Headings say “US metro areas”. A page load without Cloudflare geolocation, and a server-side Events API send (`INSTALL-008`), whose request location is the sender's server, stores NULL in every location field and appears in an explicit “Unknown location” row. Raw IP address, user agent, Cloudflare country/subdivision codes, postal code, coordinates and request timezone are never stored. Refused, excluded, consent-denied, DNT and GPC loads retain only site/day/reason/count counters when enabled. Location travels with its event in the archive and is erased with it. Each visit counts under its first page load's location, like the channel and device tables (`DASH-004`, `CONV-004`), and a location filter judges that first page load. The fold threshold counts unique visitors as the report does (daily uniques summed over the range); folded cities sum into one "Other cities" row per region. Locations appear on a shared link or the public stats page only when the owner chooses the "Countries, regions and cities" report (`SHARE-002`: none is chosen by default). The live list counts each current visitor at their latest page load's city, region and country, with "Unknown location" for page loads without one. Movers rank locations by unique visitors.
+**Requirement.** Location comes from Cloudflare's request geolocation at ingestion. Country, region (US state) and city are stored as names. On shared links, embeds and public dashboards (`SHARE-001`, `SHARE-002`), a city with fewer than 5 visitors in the selected range is folded into an "Other cities" row in its region. Signed-in team members see every city. Country, region and city rows show conversions and conversion rate for the selected goal (`CONV-004`). Countries, regions and cities join the movers in the report's explanation (`REPORT-003`) and are filter dimensions (`DASH-007`). The real-time view (`DASH-001`) gains a live locations list: current visitors by country, region and city, compared with the same window 30 minutes earlier. US metro areas are `DASH-015` and the owner's metro names `DASH-016`.
 
 **Acceptance.**
 1. Send events with Cloudflare geo for Texas, Ontario and London.
@@ -560,7 +580,7 @@ Core · target · **done**
 5. With the real-time view open, a current visitor from Texas appears in its live locations list and drops after 5 minutes idle.
 6. A week where Texas visitors fall names Texas among the explanation's movers with its totals.
 7. The country table shows each country's conversions and conversion rate for the selected goal.
-8. Filtering by country is United States keeps only those visits. The metro journeys (`tests/locations.journey.mjs`) use Cloudflare's own example code 635 (Austin, Texas) and synthetic codes, places and names (999, “Fixture Metro A”), never real DMA names. Code 635 shows unnamed with Austin, Texas as its place; CSV, the ZIP metros file, the warehouse export, the Stats API and MCP give an empty name and the dashboard's figures; the saved filter, the mover and the live list key on the code. A US load without a valid code counts as Unknown metro area, non-US loads are absent, and loads without geolocation stay Unknown location. On shared and public pages the place shows, a 3-visitor metro folds into Other metro areas, a metro whose leading city is under 5 visitors names only its region, and nothing shows without the chosen report. An administrator uploads a table and it waits; after the owner approves, the name appears on every signed-in surface, export and API answer, and on public pages only after public names are approved, with the footnote; the audit records it and event rows are unchanged. Uploads by a Viewer, an Analyst, a Stats API or provisioning key, the agent command API or from a web address, approval by an administrator, codes 63, 6355 and 6a5, a duplicate code, empty, overlong and formula-leading names, a control character, wrong, extra or missing columns, files over 1,000 rows or 256 KB and a missing label or statement are each refused with nothing changed. Clearing reverts to unnamed, erasure leaves the table, and the archive, restore and a site transfer keep the names.
+8. Filtering by country is United States keeps only those visits.
 
 **Evidence.** `src/vane/locations.ts`; `src/vane/metro-names.ts`; `src/vane/collect.ts`; `src/vane/reports.ts`; `src/vane/realtime.ts`; `src/vane/segments.ts`; `src/vane/views/locations.ts`; `src/vane/views/metro-names.ts`; `src/vane/views/public.ts`; `migrations/core/0061_vane_metro_names.sql`; `tests/locations.journey.mjs`; `tests/vane.test.mjs`
 **Gap.** None.
@@ -582,15 +602,14 @@ Core · target · **done**
 
 Core · target · **done**
 
-**Requirement.** Clicking any dimension value filters the whole dashboard. Filters combine with is, is not, contains, does not contain and matches (regex), on any dimension (including Hostname, `DASH-013`) or event property. Filter combinations can be saved as named segments, shared with the team, and used in reports, alerts and the API. A saved segment also filters a funnel (`CONV-005`). The exact rules: a filter keeps or drops whole visits, so every total, table, chart, journey (`DASH-011`), funnel and explanation of a filtered report is computed over the page loads and goal events of the kept visits. Channel, source, referring page, UTM fields, entry page, device, browser and its version, operating system and its version, and screen size judge each visit's first page load; page, hostname, site-search term and goal keep a visit when any of its page loads matches (is, contains, matches) or when none does (is not, does not contain). Filters combine with AND, after the Hostname filter of `DASH-013`. is and is not compare exactly, and on Page and Entry page they take the goal wildcards of `CONV-001`; contains and does not contain ignore ASCII case; matches is a restricted regular expression: backreferences and lookaround are refused with a visible reason, and matching runs in linear time, tested against each distinct value in the range (at most 500 matching values). A report takes up to 10 filters with values of up to 200 characters. Imported history and automatic events carry no visit, so a filtered report leaves them out, and coverage counts stay site-wide. A segment is a site's named filter set (up to 50 a site, names up to 60 characters): every team member reads and applies it, and the owner and administrators save, replace and delete it, each change in the audit log (`AUDIT-001`); `TEAM-001` adds the Analyst, who also creates segments, and per-site scope. Roll-ups take filters but not one site's saved segments. This is done for every dimension and door that exists today, and the session summary API (`/api/vane/summary`) takes `filter` and `segment`. Each later clause carries its part before it ships: event properties become filter dimensions with `CONV-002`, country, region and city with `DASH-005`, alerts take a saved segment with `ALERT-001`, and the versioned Stats API takes filters and segments with `API-001`.
+**Requirement.** Clicking any dimension value filters the whole dashboard. Filters combine with is, is not, contains, does not contain and matches (regex), on any dimension (including Hostname, `DASH-013`) or event property. Filter combinations can be saved as named segments, shared with the team, and used in reports, alerts and the API. A saved segment also filters a funnel (`CONV-005`).
 
 **Acceptance.**
 1. From the report, filter by Organic Search and mobile and not `/blog/*`, save the segment and reopen it in the report and the summary API.
 2. Each total equals a hand-computed count of the seeded events, and each comparison keeps whole visits.
 3. The saved segment recomputes a funnel's step counts.
 4. A member applies the segment but cannot save one.
-5. Reopening the segment in an alert is `ALERT-001`'s acceptance.
-6. An unsupported pattern is refused at save with the reason, never silently ignored or run.
+5. An unsupported pattern is refused at save with the reason, never silently ignored or run.
 
 **Evidence.** `tests/vane-conversions.mjs` — “DASH-007 filtering the report by Organic Search, mobile and not /blog/* keeps hand-counted whole visits, saves a team segment that reopens in the report and the API and recomputes a funnel, and each comparison filters by visit” proves dimension filters, comparison totals, saved segments, funnel recomputation, member authority, audit and deletion; “DASH-007 restricted matches refuse unsupported patterns visibly at every filter door and keep whole visits” proves backreference and lookaround refusals with reasons in the filter form, segment save and summary API, no saved mutation, accepted linear patterns retaining whole visits, and 1440 and 390 screens with the menu tooltip.
 **Gap.** None.
@@ -599,7 +618,7 @@ Core · target · **done**
 
 Core · target · **done**
 
-**Requirement.** Any range can be compared with the previous period, the same period last year or a custom period. Both series appear on the chart, and every table shows the change with its absolute and percentage values. Comparisons match weekdays when the owner chooses. The exact rules: the previous period is the same number of days just before the range; last year is the same calendar dates a year earlier (29 February becomes 1 March); a custom period is any start and end dates. Matching weekdays moves the previous period back by the range's length rounded up to whole weeks, last year back by 364 days, and a custom period back by 0 to 6 days, so each compared start falls on the range's starting weekday. The chart overlays the compared period as a dashed line, its first bucket beside the range's first, and the data table lists each compared bucket beside it. Every total compares the two periods; every table row shows its first count column's change (visitors, or pageviews, conversions, searches, visits or events where that column comes first) as the absolute difference and the percentage of the compared value, with `new` when the row had nothing then; the source, campaign, page and goal breakdowns also list rows seen only in the compared period. This is done when every chart and table that exists today shows the comparison; each later clause that adds a report table or chart (`DASH-001`, `DASH-005`, `DASH-011`, `CONV-002`, `CONV-004`, `CONV-005`, `CONV-006`, `PERF-001`) shows the same change before it ships.
+**Requirement.** Any range can be compared with the previous period, the same period last year or a custom period. Both series appear on the chart, and every table shows the change with its absolute and percentage values. Comparisons match weekdays when the owner chooses.
 
 **Acceptance.**
 1. Compare the last 30 days with the previous period and with last year.
@@ -612,7 +631,7 @@ Core · target · **done**
 
 Core · target · **done**
 
-**Requirement.** Team members add dated notes to charts. Vane adds annotations for settings and definition changes, imports, agent-shipped changes (`AGENT-003`), Mango campaign sends, Uptime incidents, Spool error spikes, deploy webhooks and GitHub releases. Annotations show on every affected chart, in reports and in agent explanations.The exact rules: any signed-in owner, administrator or member adds a note to a site on a date in the site's time zone, as plain text of up to 280 characters; its author or the owner deletes it; adding and deleting are audited; notes are never shown on public stats pages (`SHARE-002`). Approved settings changes and completed imports and undos come from the audit trail, and visit-definition versions from `METRIC-004`. Deploy pipelines, Uptime, Spool and Mango post `{siteId, id, kind, at, title, url}` to `POST /api/vane/annotations` with the site's bearer secret: kind is deploy, release, incident, error-spike or campaign; the title is plain text of up to 120 characters; a web address keeps only its origin and path; the sender's id makes a repeat idempotent; a site accepts at most 60 integration annotations an hour. Only the owner creates, replaces or revokes the secret, which is shown once and kept only as its SHA-256, and each change is audited. GitHub releases arrive at `POST /api/vane/annotations/github/<site ID>`, verified by `X-Hub-Signature-256` with a separate owner-created GitHub key that is kept encrypted (signature checks need the key itself), shown once and revocable; only release events (and GitHub's ping) are accepted, and a published release becomes a release annotation. An annotation marks its date's bucket on every chart of its site and on roll-up charts (named by site), and on the overview sparkline; a definition version marks only the charts of visits, bounce rate and visit duration; the real-time view's 30-minute chart carries none, because annotations are dated by day. Every annotation in a report's range is listed in the report's Annotations panel and its explanation (`REPORT-003`). Agent-shipped changes are annotated by `AGENT-003` and listed in agent explanations by `AGENT-002`, each carrying it.
+**Requirement.** Team members add dated notes to charts. Vane adds annotations for settings and definition changes, imports, agent-shipped changes (`AGENT-003`), Mango campaign sends, Uptime incidents, Spool error spikes, deploy webhooks and GitHub releases. Annotations show on every affected chart, in reports and in agent explanations.
 
 **Acceptance.**
 1. Add a manual note, approve a settings change, post a deploy webhook and receive an Uptime incident.
@@ -626,7 +645,7 @@ Core · target · **done**
 
 Core · target · **done**
 
-**Requirement.** The sites list shows each site's visitors, change and a sparkline for the selected range, and the list can be sorted and searched. An owner can create a roll-up view that combines several sites, for example the marketing site and the store. Every report, filter and breakdown works on the roll-up, and each row can be split by site. The roll-up never de-duplicates people across sites, because `METRIC-001` hashes the site ID into every visitor hash. So each metric combines by a stated rule. Visitors and visits are the sum of each site's own counts, labeled "summed per site", with a note that one person on two sites counts once per site. Pageviews, events, conversions and revenue are exact sums. Bounce rate, visit duration and conversion rate are recomputed from the summed visits and conversions, not averaged across sites. The methodology page (`METRIC-004`) states these rules, and the roll-up links to them. A site with consented mode (`METRIC-005`) still counts its visitors on its own, so the roll-up never links one consented identifier across sites. The exact rules: the sites list shows each site's unique visitors for a preset range in the site's own time zone, the change from the previous period of the same length (absolute and percent) and a sparkline of the chart's buckets for that range (`DASH-002`); it sorts by date added, name, visitors (most first) or change (largest absolute increase first), and its search keeps sites whose name or origin contains the text, ignoring case. Only the owner creates a roll-up (at least two sites), and creating one is audited (`AUDIT-001`); every signed-in reader can open it. A roll-up's ranges use its first site's time zone while each event keeps its own site's local date; its goals are the members' goals by name and its owner grouping rules apply in member order. Split by site lists, in every table, each member's own rows over the roll-up's dates, labeled with the site's name. A deleted site leaves its roll-ups. This is done when every metric that exists today combines by its rule; revenue is an exact sum in the first site's currency, with a member site in another currency listed apart (`CONV-006`), and consented visitors stay per site under `METRIC-005`, never linked across member sites.
+**Requirement.** The sites list shows each site's visitors, change and a sparkline for the selected range, and the list can be sorted and searched. An owner can create a roll-up view that combines several sites, for example the marketing site and the store. Every report, filter and breakdown works on the roll-up, and each row can be split by site. The roll-up never de-duplicates people across sites, because `METRIC-001` hashes the site ID into every visitor hash. So each metric combines by a stated rule. Visitors and visits are the sum of each site's own counts, labeled "summed per site", with a note that one person on two sites counts once per site. Pageviews, events, conversions and revenue are exact sums. Bounce rate, visit duration and conversion rate are recomputed from the summed visits and conversions, not averaged across sites. The methodology page (`METRIC-004`) states these rules, and the roll-up links to them. A site with consented mode (`METRIC-005`) still counts its visitors on its own, so the roll-up never links one consented identifier across sites.
 
 **Acceptance.**
 1. With three sites, open the overview, sort it by change and create a roll-up of two of them.
@@ -643,7 +662,7 @@ Core · target · **done**
 
 Core · target · **done**
 
-**Requirement.** From any page or entry page, a journey view shows the next and previous three steps within visits, with counts and drop-off, and it can be filtered by segment. The exact rules: a visit passes through a page at its first load of that path, and an entry journey keeps only the visits whose first load is the page; the next three steps are the page loads that follow within the visit, ending at (exit), and the previous three are those before it, starting at (entrance); each page load is a step, so a reload counts; counts are visits, in aggregate, and the drop-off at a step is the visits that left before reaching it. Without a chosen page the journey is the range's most loaded page, and every top and entry page row links to its journey (rows of page groups do not, since a group is not one page). Journeys follow the report's range, comparison (`DASH-008`) and Hostname filter (`DASH-013`), which are the filters that exist today; segments join when `DASH-007` ships them, before it is done.
+**Requirement.** From any page or entry page, a journey view shows the next and previous three steps within visits, with counts and drop-off, and it can be filtered by segment.
 
 **Acceptance.**
 1. Seed visits through home → pricing → signup and home → blog → exit.
@@ -667,9 +686,9 @@ Core · target · **done**
 
 #### DASH-013 — Hostnames and subdomains within one site
 
-Core · target · **done**
+Core · target · **partial**
 
-**Requirement.** A site that accepts several hostnames (`SITE-001`), for example `www.example.com`, `blog.example.com` and `app.example.com`, records the hostname of every pageview and event (`COLLECT-002`) as a dimension. The hostname is stored lowercased and without its port, and only when it is one of the site's allowed hostnames. A Hostnames report shows visitors, visits, pageviews, bounce rate and conversions per hostname. Page, entry and exit tables keep the same path on different hostnames apart (`DASH-003`). A Hostname filter (is, is not, contains, and matches with wildcards such as `*.example.com`) narrows every report, funnel, goal, alert, shared link, export and Stats API answer (`DASH-007`, `API-001`), and it can be saved in a segment. A goal or funnel step can be scoped to a hostname. The exact rules: the filter compares lowercased values, `matches` takes `*` wildcards only, and rows without a hostname (imported history and page loads collected before hostnames were stored) never match a hostname filter; the field-free privacy-signal count (`PRIVACY-002`) carries no hostname and stays site-wide. A goal is scoped by prefixing its hostname, as in `blog.example.com/thanks`. The Hostnames report counts visitors, visits, pageviews, bounce rate and conversions (visits with a goal, or with the selected goal) per hostname. This is done when every report and door that exists honors the filter: the dashboard, its page, source, channel, UTM, device, search, goal and automatic-event tables, and the JSON summary that `API-001` versions. Each later door inherits the obligation before it ships: segments and saved views (`DASH-007`), funnels and funnel-step scoping (`CONV-005`), alerts (`ALERT-001`, `ALERT-002`), shared links (`SHARE-001`), CSV export (`API-002`), scheduled reports (`REPORT-001`) and the versioned Stats API (`API-001`).
+**Requirement.** A site that accepts several hostnames (`SITE-001`), for example `www.example.com`, `blog.example.com` and `app.example.com`, records the hostname of every pageview and event (`COLLECT-002`) as a dimension. The hostname is stored lowercased and without its port, and only when it is one of the site's allowed hostnames. A Hostnames report shows visitors, visits, pageviews, bounce rate and conversions per hostname. Page, entry and exit tables keep the same path on different hostnames apart (`DASH-003`). A Hostname filter (is, is not, contains, and matches with wildcards such as `*.example.com`) narrows every report, funnel, goal, alert, shared link, export and Stats API answer (`DASH-007`, `API-001`), and it can be saved in a segment. A goal or funnel step can be scoped to a hostname.
 
 **Acceptance.**
 1. On one site with `www.` and `blog.` hostnames, send `/` and `/pricing` from each.
@@ -679,13 +698,13 @@ Core · target · **done**
 5. An event from a hostname that is not allowed is refused.
 
 **Evidence.** `src/vane/hosts.ts`; `src/vane/visits.ts`; `src/vane/reports.ts`; `src/vane/goals.ts`; `tests/vane.test.mjs`
-**Gap.** None.
+**Gap.** The Hostname filter on the Stats API answer and on a CSV export, and a hostname segment's totals in a scheduled report, are unasserted; the dashboard filter, is, is not, contains and wildcard, the four page rows and the refused hostname are asserted.
 
 #### DASH-014 — Named sources for referrer domains and app referrers
 
-Core · target · **done**
+Core · target · **partial**
 
-**Requirement.** Every referrer is reported under a named source from a maintained source list that Vane publishes with its methodology (`METRIC-004`). Web and app referrers for the same service group together: `news.ycombinator.com` reports as Hacker News, `android-app://com.slack.android`, `slack.com` and `app.slack.com` as Slack, `l.facebook.com`, `m.facebook.com` and `android-app://com.facebook.katana` as Facebook, and `t.co` as X. The source feeds the channel definitions (`DASH-004`), and the referrer domains and app identifiers stay available as a drill-down beneath each source. A referrer that is not on the list reports under its own domain, and an owner can add grouping rules of their own through `APPROVE-001`. The exact rules: a list entry is a hostname (covering its subdomains, so `l.facebook.com` is Facebook), a hostname prefix ending in a dot (any top-level domain, with or without `www.`) or an `android-app://` app ID, and the first match wins; the site's approved grouping rules are tried before the list and regroup history already collected. Names a site sends itself as `utm_source`, `ref` or `source` are reported as sent (`COLLECT-002`); only referrer domains and app IDs are named. Each named source's kind (search engine, social network, AI assistant, email) feeds the channel definitions, and its drill-down lists the lowercased referrer domains and app IDs of the visits it names.
+**Requirement.** Every referrer is reported under a named source from a maintained source list that Vane publishes with its methodology (`METRIC-004`). Web and app referrers for the same service group together: `news.ycombinator.com` reports as Hacker News, `android-app://com.slack.android`, `slack.com` and `app.slack.com` as Slack, `l.facebook.com`, `m.facebook.com` and `android-app://com.facebook.katana` as Facebook, and `t.co` as X. The source feeds the channel definitions (`DASH-004`), and the referrer domains and app identifiers stay available as a drill-down beneath each source. A referrer that is not on the list reports under its own domain, and an owner can add grouping rules of their own through `APPROVE-001`.
 
 **Acceptance.**
 1. Send visits with the referrers `https://news.ycombinator.com/item?id=1`, `android-app://com.slack.android`, `https://app.slack.com/` and `https://l.facebook.com/`, and an unlisted `https://brewblog.example/`.
@@ -693,13 +712,13 @@ Core · target · **done**
 3. An approved owner rule naming `brewblog.example` as Brew Blog regroups that row, and the published source list names every grouping used.
 
 **Evidence.** `src/vane/sources.ts`; `src/vane/channels.ts`; `src/vane/reports.ts`; `tests/vane.test.mjs`
-**Gap.** None.
+**Gap.** That the published source list names every grouping used is unasserted; the named sources, the Slack drill-down and the approved owner rule are asserted.
 
 #### PERF-001 — Page performance
 
 Core · target · **done**
 
-**Requirement.** The script can report Core Web Vitals (LCP, INP, CLS) and page load time, without identifiers, and Vane shows them per page and device class at the 75th percentile. Performance alerting and synthetic checks belong to [Uptime](https://github.com/just-every/run-uptime), which can read these figures. The exact rules: when a page is hidden, the script sends `POST /api/vane/perf` naming only the site and its page load, with the page's largest contentful paint, interaction to next paint (the longest interaction, or the 98th percentile once there are 50) and load time in whole milliseconds and its cumulative layout shift (the largest session window of shifts without recent input); a report is accepted within 30 minutes of its page load and the latest figures are kept on that page load. Reports show, per page and per device class, the page loads measured and each figure's 75th percentile by nearest rank (the value at rank ⌈0.75·n⌉ of the page loads that reported it), with the change in page loads measured against the compared period (`DASH-008`); the methodology page defines each figure (`METRIC-004`), and the data inventory and policy text name them (`PRIVACY-001`).
+**Requirement.** The script can report Core Web Vitals (LCP, INP, CLS) and page load time, without identifiers, and Vane shows them per page and device class at the 75th percentile. Performance alerting and synthetic checks belong to [Uptime](https://github.com/just-every/run-uptime), which can read these figures.
 
 **Acceptance.**
 1. Load a fixture page with an artificially slow image and see its LCP p75 above 2.5 s on that page only.
@@ -709,27 +728,15 @@ Core · target · **done**
 
 #### HEAT-001 — Aggregate click and scroll maps
 
-Core · target · **done**
+Core · target · **done** · Rules D-2
 
-**Requirement.** For pages the owner chooses, Vane records click positions on a grid and scroll depth, without identifiers, form contents or text. It shows them as a heatmap and a scroll map over the page’s recorded geometry, with blocks sized from the captured anonymous layout grid and no image. No individual session can be replayed. Approved defaults (ct 22 October 2026): heatmaps are off until the owner explicitly enables an audited exact primary-origin path; only the owner reads the maps. Click requests hold no visitor or page-load identifier and update daily width-specific grid counters directly, alongside the page height and up to 200 anonymous grid rectangles. No DOM text, attributes, selectors or element identifiers enter the layout grid. Scroll reach reuses METRIC-006’s maximum-depth engagement samples. Future tracker doors inherit INSTALL-006’s proxy and consent boundaries before shipping.
+**Requirement.** For pages the owner chooses, Vane records click positions on a grid and scroll depth, without identifiers, form contents or text. It shows them as a heatmap and a scroll map over the page’s recorded geometry, with blocks sized from the captured anonymous layout grid and no image. No individual session can be replayed. Heatmaps are off until the owner enables an audited exact path, and only the owner reads the maps (RL-2). A live screenshot behind the maps is `HEAT-002`.
 
 **Acceptance.**
 1. Click two buttons repeatedly on a fixture page.
 2. The heatmap concentrates on them, no event holds text or identifiers, and the scroll map matches `METRIC-006`.
 
 **Evidence.** `tests/heat.test.mjs` — “HEAT-001 real clicks aggregate at two buttons without text or identifiers; scroll reach is METRIC-006 and recorded geometry maps fit desktop and mobile” proves two real button concentrations, anonymous grid/geometry request and custody shape, denied consent and privacy signals, off-default owner-only audited controls, scroll equality with METRIC-006 and both recorded-geometry map pages at 1440/390. `tests/proxy-adapters.test.mjs` — “server proxy forwards every public tracker door over HTTP and strips untrusted identity and credentials” includes heat clicks.
-**Gap.** Live native screenshots are carried by HEAT-002.
-
-#### HEAT-002 — Heatmap over a live screenshot of the page
-
-Core · target · **done**
-
-**Requirement.** The owner explicitly shares the live tracked browser tab through native tab capture; its Capture Handle must match this site, approved path and geometry. Screenshots remain only in that owner tab’s memory, no screenshot service is called, no image is uploaded or persisted, and sharing stops after each frame.
-
-**Acceptance.**
-1. The owner captures the enabled fixture page natively and sees its click and scroll maps over that live screenshot at 1440 and 390 CSS pixels.
-
-**Evidence.** `src/vane/heat/browser.ts`; `tests/heat.test.mjs` — “HEAT-001 real clicks aggregate at two buttons without text or identifiers; scroll reach is METRIC-006 and recorded geometry maps fit desktop and mobile”, explicit VANE_HEAT_CAPTURE=1 native mode. Harness exception approved ct 22 Oct 15:14Z: fresh throwaway user-data-dir in this run’s work directory, real HOME, current Playwright Chromium headless, mock keychain and basic password store, own process group, directory deleted on success or failure; never a real profile, fake stream or fake handle. Native journey passed at 1440 and 390 in the 22 October native run, proving genuine native frames behind click and scroll maps, wrong-site/path/geometry refusal, memory-only images and stopped tracks after success and refusal; request/custody assertions exclude uploaded images. Product capture code is unchanged.
 **Gap.** None.
 
 ### Conversions and revenue
@@ -753,7 +760,7 @@ Core · target · **done**
 
 Core · target · **done**
 
-**Requirement.** Sites send events through `vane('Signup', {props: {plan: 'pro'}})` or by adding CSS classes (`vane-event-name=Signup`, with property classes). An event can carry up to 30 properties with string or number values. Property keys and values pass the `COLLECT-002` redaction, and an event carrying an email address is refused. Properties are dimensions for filtering (`DASH-007` filters and saved segments), breakdowns and funnels. Pageviews, automatic or sent with `vane('pageview', {url, props})`, carry properties the same way, for example author or category on a blog post (`INSTALL-007`). The script also accepts the aggregate website analytics and event-value analytics call and class syntax, so a switched site keeps counting before any code changes (`IMPORT-008`). A funnel step can be a custom event with property conditions (`CONV-005`). The exact rules: a custom event (`POST /api/vane/custom`) names the page load it happened on, so it belongs to that page load's visitor hash, day and visit, and no IP address or user agent is read for it; the script sends it on the current page load, after that page load's pageview was accepted. A class event fires on a click of the element carrying `vane-event-name=<name>` (or on submit of such a form), with `vane-event-<key>=<value>` classes as properties and `+` for a space. Automatic pageviews take properties from `data-prop-<name>` attributes on the snippet. An event or pageview carries at most 30 properties; keys are 1 to 40 lowercase letters, digits, `_` or `-`; values are strings of 1 to 100 characters or finite numbers, and event names 1 to 60 characters of plain text. A key, value or name that looks like an email address refuses the whole event (400); a string value that looks like a phone or account number or a web address is dropped and counted per site and day as a dropped property in the report's coverage (`COVERAGE-001`); kept strings take the `COLLECT-002` path redaction. Each event ID is accepted once, and excluded traffic (`COLLECT-003`) is refused. The report lists custom events with their events and visitors, event properties by event, key and value, and pageview properties by key and value, each with its compared-period change (`DASH-008`), and each value filters the report: `event` and `prop.<key>` are `DASH-007` dimensions that keep a visit when any of its page loads, or a custom event on one, matches. A funnel step `event:<name>` or `event:<name>[key=value]` may be reached on the page load of the step before it. The data inventory and generated policy name both tables; public stats pages (`SHARE-002`) show no custom event or property.
+**Requirement.** Sites send events through `vane('Signup', {props: {plan: 'pro'}})` or by adding CSS classes (`vane-event-name=Signup`, with property classes). An event can carry up to 30 properties with string or number values. Property keys and values pass the `COLLECT-002` redaction, and an event carrying an email address is refused. Properties are dimensions for filtering (`DASH-007` filters and saved segments), breakdowns and funnels. Pageviews, automatic or sent with `vane('pageview', {url, props})`, carry properties the same way, for example author or category on a blog post (`INSTALL-007`). The script also accepts the aggregate website analytics and event-value analytics call and class syntax, so a switched site keeps counting before any code changes (`IMPORT-008`). A funnel step can be a custom event with property conditions (`CONV-005`).
 
 **Acceptance.**
 1. Fire Signup with plan=pro and plan=free through JavaScript and CSS classes.
@@ -782,7 +789,7 @@ Core · target · **done**
 
 Core · target · **done**
 
-**Requirement.** Every breakdown (channel, referrer, UTM, entry page, country, device) can show the conversions, conversion rate and revenue for a chosen goal. The exact rules: every channel, source, referring-page, UTM, entry-page, top- and exit-page and device row shows its visits' conversions (visits with the selected goal, or with any goal when none is selected) and its conversion rate over those visits; channel, source, referrer, UTM and device rows count each visit under its first page load (`DASH-004`), and page rows count the visits their page loads belong to (`DASH-003`). Every one of these rows also shows its revenue and revenue per visitor (`CONV-006`). This is done when every breakdown that exists today shows them; country rows join when `DASH-005` ships, which carries it.
+**Requirement.** Every breakdown (channel, referrer, UTM, entry page, country, device) can show the conversions, conversion rate and revenue for a chosen goal.
 
 **Acceptance.**
 1. Seed conversions from Google and from email.
@@ -795,7 +802,7 @@ Core · target · **done**
 
 Core · target · **done**
 
-**Requirement.** An owner or analyst defines a funnel of 2 to 8 steps (pageviews, wildcard paths or custom events with property conditions), ordered within one visit, or within one visitor across visits in consented mode. The funnel report shows the entrants, conversion and drop-off at each step, the median time between steps and a segment filter. Clicking a drop-off opens the journeys (`DASH-011`). The exact rules: a site keeps up to 10 funnels in its settings, changed through the owner's approval (`APPROVE-001`; owners and administrators prepare them until `TEAM-001` adds the Analyst). A step is a page path or pattern with the goals' meaning (`CONV-001`, optionally hostname-scoped) or a goal by name. A visit enters at its first page load matching step 1 and reaches each later step at its first later page load matching it. Each step shows the visits reaching it, their share of the entrants and of the step before, the drop-off (visits that reached it but not the next step), the median time from the step before in seconds, and the compared period's visits with the change (`DASH-008`). A drop-off links to the journeys onward from that step's most common page (`DASH-011`). The segment filter today is the report's Hostname filter (`DASH-013`); a roll-up shows no funnels. This is done when every step kind that exists today works: custom-event steps with property conditions join with `CONV-002`, steps across visits with consented mode (`METRIC-005`), and saved segments as funnel filters with `DASH-007`, each carrying it.
+**Requirement.** An owner or analyst defines a funnel of 2 to 8 steps (pageviews, wildcard paths or custom events with property conditions), ordered within one visit, or within one visitor across visits in consented mode. The funnel report shows the entrants, conversion and drop-off at each step, the median time between steps and a segment filter. Clicking a drop-off opens the journeys (`DASH-011`).
 
 **Acceptance.**
 1. Define the funnel product → cart → checkout → purchase and seed visits that drop at each step.
@@ -808,14 +815,14 @@ Core · target · **done**
 
 Core · target · **done**
 
-**Requirement.** A custom event can carry a revenue amount and an ISO currency. Revenue is stored and reported in the currency the event sends; reports total it in the site's currency (USD by default, `SITE-001`), and another currency converts only at an exchange rate the owner entered for it, dated, which is shown and labeled as owner-entered and never fetched; revenue no rate converts is listed separately in its own currency. Reports show total revenue, average order value, and revenue per visitor by source, campaign, page and segment. Payment-processor referrers (Stripe Checkout, PayPal, Shop Pay, Klarna, Afterpay) are excluded from attribution, so the original source keeps credit. Revenue for the selected goal joins every breakdown row that shows conversions (`CONV-004`). Before revenue is shown, the methodology page (`METRIC-004`) replaces its "no revenue yet" entry with this definition. The exact rules: an event sends `revenue: {amount, currency}` (`vane('Signup', {revenue: {amount: 49, currency: 'USD'}})`, the aggregate source’s form), an amount from 0 to 1,000,000,000 kept rounded half up to the currency's minor unit; a `Purchase` with product lines (`CONV-007`) and no amount carries its lines' total. A rate is written in the site settings as `CAD 0.73 from 2026-10-01` (one unit in the site currency, from that local day until a later rate for the same currency; at most 50, through `APPROVE-001`); each event converts at the rate in effect on its own day, rounded half up to the site currency's minor unit, and the report lists the rates it used. Orders are the events carrying converted revenue; average order value is revenue over orders and revenue per visitor is revenue over unique visitors, each rounded to the minor unit. A breakdown row's revenue is that of its visits (sources, campaigns, channels and devices by each visit's first page load, pages by the visits their page loads belong to, `DASH-004`, `DASH-003`), all of it with no goal selected and only the converting visits' with one; a filter or saved segment (`DASH-007`) narrows it like every total. A page load returning from a payment processor (`checkout.stripe.com`, `paypal.com`, `shop.app` or `pay.shopify.com`, `klarna.com`, `afterpay.com`, and their subdomains) without its own UTM source, `ref` or `source` keeps the acquisition (source, referrer, campaign, UTM fields, paid-click flag and channel) of the visitor's latest earlier page load that day, else counts as direct, so even a return after the visit timeout credits the original source. Revenue charts by the bucket of the page load it was sent on (`DASH-002`), compares with the compared period (`DASH-008`), and sums exactly in a roll-up (`DASH-010`) in its first site's currency, where a member site with another currency is listed apart. Revenue appears on a public stats page (`SHARE-002`) only when the owner adds the revenue report to that page's chosen reports (it is off by default, like every public report); that report shows the revenue sent in each event's currency, the site-currency total with its orders, average order value and revenue per visitor, revenue no rate converts listed apart, and the exchange rates it used, each labeled as owner-entered. The page's other reports carry no revenue column.
+**Requirement.** A custom event can carry a revenue amount and an ISO currency. Revenue is stored and reported in the currency the event sends; reports total it in the site's currency (USD by default, `SITE-001`), and another currency converts only at an exchange rate the owner entered for it, dated, which is shown and labeled as owner-entered and never fetched; revenue no rate converts is listed separately in its own currency. Reports show total revenue, average order value, and revenue per visitor by source, campaign, page and segment. Payment-processor referrers (Stripe Checkout, PayPal, Shop Pay, Klarna, Afterpay) are excluded from attribution, so the original source keeps credit. Revenue for the selected goal joins every breakdown row that shows conversions (`CONV-004`).
 
 **Acceptance.**
 1. Record USD and CAD purchases with a Stripe Checkout return referrer.
 2. Revenue totals in USD at the owner-entered CAD rate, which is shown, and attribution goes to the original source rather than Stripe, both after the visit timeout and within the visit; a EUR amount with no rate is listed apart.
 3. The methodology page (`METRIC-004`) defines revenue: what is summed, the owner-entered conversion rate and the roll-up's exact sum.
 4. With Google and email conversions seeded, the channel table shows each channel's revenue and revenue per visitor for the selected goal, and the revenue chart, its data table, the compared period and a roll-up's exact sum match.
-5. The site's public stats page, with totals, pages and devices chosen, shows no revenue; once the owner adds the revenue report, it shows the USD and CAD amounts as sent, the USD total with the CAD rate labeled as owner-entered and the EUR amount apart, while the page and device rows still carry none (`tests/vane.test.mjs`).
+5. The site's public stats page, with totals, pages and devices chosen, shows no revenue; once the owner adds the revenue report, it shows the USD and CAD amounts as sent, the USD total with the CAD rate labeled as owner-entered and the EUR amount apart, while the page and device rows still carry none.
 
 **Evidence.** `src/vane/revenue.ts`; `src/vane/custom-events.ts`; `src/vane/collect.ts`; `src/vane/visits.ts`; `src/vane/series.ts`; `src/vane/reports.ts`; `src/vane/methodology.ts`; `src/vane/privacy.ts`; `src/vane/views/revenue.ts`; `src/vane/views/tables.ts`; `src/vane/views/chart.ts`; `src/vane/views/settings.ts`; `migrations/core/0034_vane_revenue.sql`; `tests/vane.test.mjs`
 **Gap.** None.
@@ -824,15 +831,15 @@ Core · target · **done**
 
 Core · target · **done**
 
-**Requirement.** Standard events cover product view, add to cart, begin checkout and purchase, with a product SKU, name, category, quantity and price. WooCommerce (`INSTALL-002`), Shopify (`INSTALL-003`) and [Stall](https://github.com/just-every/run-stall) (`INSTALL-004`) emit them automatically, and a ready-made ecommerce funnel and a product-performance report come with them. The exact rules: the standard events are `CONV-002` custom events named `Product view`, `Add to cart`, `Begin checkout` and `Purchase`, sent as `vane('Purchase', {items: [{sku, name, category, quantity, price}], currency: 'USD'})`; only these four carry product lines. An event carries 1 to 50 lines and one ISO 4217 currency; a line is a SKU (1 to 64 characters), a name (1 to 100), an optional category (1 to 100), a whole quantity from 1 to 10,000 (1 when left out) and a unit price from 0 to 1,000,000,000, kept in the currency's minor units, rounded half up (19.999 EUR is €20.00). Line text is plain text; a line carrying an email address refuses the event (400), as a property does, and lines hold no customer details. The product report has one row per SKU, name, category and currency as sent, over the report's page loads and filters (`DASH-007`): product views (lines on `Product view` events), units added to cart, checked out and purchased, and revenue, the purchased units times their unit price in the currency the purchase sent, never converted (`CONV-006` owns conversion); each row shows its purchased units' change (`DASH-008`). The ready-made `Ecommerce` funnel is product view → add to cart → begin checkout → purchase within one visit with the `CONV-005` rules, listed after the site's own funnels once the range or the compared period has a standard event; a roll-up shows no funnels. The data inventory names the product-line table. This is done when the script and the custom-event door that every platform sends through carry these events; each platform's own emission ships with its clause, which proves its test purchase in this funnel and report before it is done: WooCommerce with `INSTALL-002`, Shopify with `INSTALL-003` and Stall with `INSTALL-004`.
+**Requirement.** Standard events cover product view, add to cart, begin checkout and purchase, with a product SKU, name, category, quantity and price. WooCommerce (`INSTALL-002`), Shopify (`INSTALL-003`) and [Stall](https://github.com/just-every/run-stall) (`INSTALL-010`) emit them under their own clauses, and a ready-made ecommerce funnel and a product-performance report come with them.
 
 **Acceptance.**
 1. In a browser, one visitor views a tee, adds two to the cart, adds a mug, checks out and buys both across three page loads, and another views and adds a tee.
 2. The ecommerce funnel shows 2, 2, 1 and 1 visits, and the product report shows each product's views, units and revenue ($50.00 for the tees, $12.50 for the mug), with a euro purchase kept as €20.00.
-3. Lines on another event, an email address in a line, a zero quantity, an unknown or missing currency, an undeclared line field and more than 50 lines are refused (`tests/vane.test.mjs`).
+3. Lines on another event, an email address in a line, a zero quantity, an unknown or missing currency, an undeclared line field and more than 50 lines are refused.
 
 **Evidence.** `src/vane/ecommerce.ts`; `src/vane/custom-events.ts`; `src/vane/tracker.ts`; `src/vane/reports.ts`; `src/vane/views/events.ts`; `migrations/core/0033_vane_ecommerce.sql`; `tests/vane.test.mjs`
-**Gap.** WooCommerce, Shopify and Stall emission ship with `INSTALL-002`, `INSTALL-003` and `INSTALL-004`.
+**Gap.** None.
 
 #### CONV-008 — Conversions reconciled with real orders and leads
 
@@ -852,7 +859,7 @@ Core · target · **missing**
 
 Core · target · **done**
 
-**Requirement.** In the app, an owner or analyst can define events without editing the site: a click on a CSS selector, a form submission, an element becoming visible, or a pageview pattern. A definition is previewed against the live page and applied through `APPROVE-001`, and the script picks it up from the site configuration. The exact rules: definitions are part of the site's settings, written one per line as `Book demo = click #book-demo`, `Lead = submit form.contact`, `Pricing seen = visible #pricing` or `Docs = pageview /docs/**` (at most 20; names as `CONV-002` event names; selectors up to 200 characters), so administrators prepare them and the owner approves them, and until `TEAM-001` adds the Analyst the owner acts for that role. Each sends its name as a `CONV-002` custom event on the current page load: click on a click on or inside a matching element, submit when a matching form is submitted, visible when a matching element present at the pageview first becomes at least half visible (once per element per pageview, so a single-page navigation counts it again), and pageview on each recorded pageview (`INSTALL-007`) whose path matches the pattern with the goal wildcards (`CONV-001`). The preview, for owners and administrators, loads one page of the site from its registered origins (redirects must stay on them; 10 seconds; the first 2 MB) with no cookie or visitor data, and shows the selector's match count and the first three matched elements' tag, id, classes and first 80 characters of text; nothing is kept.
+**Requirement.** In the app, an owner or analyst can define events without editing the site: a click on a CSS selector, a form submission, an element becoming visible, or a pageview pattern. A definition is previewed against the live page and applied through `APPROVE-001`, and the script picks it up from the site configuration.
 
 **Acceptance.**
 1. Define a click event for `#book-demo`, preview the matched element and approve it.
@@ -865,24 +872,24 @@ Core · target · **done**
 
 Core · target · **done**
 
-**Requirement.** An owner sets up a split test of 2 to 4 variants on a page. Assignment is stable within a visitor's day in cookie-free mode, and across days in consented mode. The site applies a variant through the script API, or through Pane or the buyer's code. Results show each variant's visitors, conversions and conversion rate with a 95% interval, the probability that it beats control, a minimum-sample warning, and a sample-ratio-mismatch check. A test cannot be called while it is underpowered. The exact rules: tests are part of the site settings, one per line as `pricing = /pricing > signup : control, cheaper` (a page path or pattern with the goal wildcards, one of the site's goals, then 2 to 4 variant names, the first being the control; at most 10), so administrators prepare them and the owner approves them (`APPROVE-001`). In cookie-free mode a visitor's variant is the first four bytes of SHA-256(the daily visitor hash, `:`, the test name) modulo the number of variants, so it is stable within the visitor's day, equal across variants in expectation, and needs nothing stored; an accepted page load on the test's page returns its variant, `vane('experiment', 'pricing', variant => ...)` hands it to the page once that pageview is accepted, and the script then reports the exposure (`POST /api/vane/exposure`), whose variant the server recomputes from the page load's own hash and never takes from the request, once per page load and test. A variant's visitors are the distinct daily visitor hashes exposed to it, summed over days, and its conversions those visitor-days reaching the test's goal at or after their first exposure that day; its conversion rate has a 95% Wilson interval. Each other variant shows its difference from the control with a 95% normal interval and the probability that it beats the control, Φ(difference ÷ standard error). The minimum sample is the visitors per variant needed to detect a 20% relative lift on the control's rate with 80% power at a two-sided 5% level; until every variant has it, or while the control has no conversion, the test is underpowered and its result is not called, and once called a variant beats or trails the control only when its difference's interval excludes zero. The sample-ratio check compares the variants' exposed visitors with an equal split by a chi-square test and warns below p = 0.01. Results follow the report's range and filters (`DASH-007`); a roll-up shows no tests. This is done when cookie-free tests applied through the script API conform; assignment across days ships with consented mode (`METRIC-005`) and applying a variant from Pane with Pane's switch (`INSTALL-004`), each carrying it in its text and acceptance before it is done.
+**Requirement.** An owner sets up a split test of 2 to 4 variants on a page. Assignment is stable within a visitor's day in cookie-free mode, and across days in consented mode. The site applies a variant through the script API or the buyer's code; applying one from Pane is `INSTALL-009`. Results show each variant's visitors, conversions and conversion rate with a 95% interval, the probability that it beats control, a minimum-sample warning, and a sample-ratio-mismatch check. A test cannot be called while it is underpowered.
 
 **Acceptance.**
 1. Run a fixture test with a seeded 20% lift and a null test.
 2. The first reaches significance with the expected interval, the null test never does, and a skewed split triggers the mismatch warning.
 3. Before every variant has the minimum sample the test reports underpowered and calls no result.
-4. In a browser, `vane('experiment', ...)` hands the page its variant and reports the exposure, and an exposure naming its own variant is refused (`tests/vane.test.mjs`).
+4. In a browser, `vane('experiment', ...)` hands the page its variant and reports the exposure, and an exposure naming its own variant is refused.
 
 **Evidence.** `src/vane/experiments.ts`; `src/vane/experiment-stats.ts`; `src/vane/collect.ts`; `src/vane/tracker.ts`; `src/vane/reports.ts`; `src/vane/privacy.ts`; `src/vane/views/experiments.ts`; `src/vane/views/settings.ts`; `migrations/core/0035_vane_experiments.sql`; `tests/vane.test.mjs`
-**Gap.** Cross-day assignment is proven by `tests/consented.test.mjs` (`METRIC-005`); Pane-applied variants remain `INSTALL-004` work.
+**Gap.** None.
 
 ### Search and advertising
 
 #### SEARCH-001 — Google Search Console keywords
 
-Core · target · **done**
+Core · target · **done** · Rules D-3, D-4
 
-**Requirement.** The owner connects Google Search Console through OAuth with a read-only scope. Vane shows queries with clicks, impressions, CTR and average position, per page and overall, for any range Search Console holds (up to 16 months). Clicking a query filters the dashboard's organic landing pages. Tokens are encrypted and can be disconnected. Vane syncs Search Console at least daily. Search Console publishes each day two to three days late, so the latest days show as pending with the next sync time, and each is filled in once at the first sync after Google publishes it. Each query lists the landing pages its clicks went to, beside that page's Vane visitors. The exact rules: only the owner connects through Google’s fixed official OAuth and API endpoints with `webmasters.readonly`; a single-use ten-minute approval is bound to the native session and site. The owner selects a property from Google’s returned list. Disconnect and same-property reconnect keep fetched history; once history exists, a different property is refused with 409 until the owner erases that history through the reviewed erasure proposal. No connect action deletes aggregates. Sealed access/refresh tokens never enter archives and disconnect deletes them, retaining fetched aggregate history. Manual date-range sync covers Google’s available 16 months, with Pacific dates and an exclusive end in Vane. Final source daily snapshots publish once; missing dates remain pending, revisited daily with the next check shown. Query/page/query-page grains remain independent from property totals and carry source top-row/anonymization limits; CTR is clicks divided by impressions and position is impression-weighted. Query labels and page paths use existing redaction. Clicking a query keeps native Organic Search visits whose first path is among that query’s source landing paths, showing each path’s Vane daily-unique visitors beside source clicks; no person-level attribution is inferred. Source figures are site-scoped private reports, CSV/ZIP and portable history, excluded from public shares. `PRIVACY-001`, `PRIVACY-005`, `ACCESS-001`, `TEAM-001`, `ARCHIVE-001`, `RETENTION-001` and `API-002` apply before shipment.
+**Requirement.** The owner connects Google Search Console through OAuth with a read-only scope. Vane shows queries with clicks, impressions, CTR and average position, per page and overall, for any range Search Console holds (up to 16 months). Clicking a query filters the dashboard's organic landing pages. Tokens are encrypted and can be disconnected. Vane syncs Search Console at least daily. Search Console publishes each day two to three days late, so the latest days show as pending with the next sync time, and each is filled in once at the first sync after Google publishes it. Each query lists the landing pages its clicks went to, beside that page's Vane visitors.
 
 **Acceptance.**
 1. Against a Search Console API fixture, connect, read the queries, filter by a query and disconnect.
@@ -891,23 +898,23 @@ Core · target · **done**
 4. After the fixture publishes them, the next sync fills both days in once with the fixture's figures, and each query lists its landing pages with their clicks and Vane visitors.
 
 **Evidence.** `src/vane/search-console/index.ts`; `src/vane/routes.ts`; `src/vane/views/search-keywords.ts`; `migrations/core/0054_vane_search.sql`; `tests/search-console.test.mjs`
-**Gap.** Owner OAuth, private source query/page figures, organic landing filters, daily pending fill, 16-month history, encrypted tokens, disconnect and portable aggregates.
+**Gap.** None.
 
 #### SEARCH-002 — Bing Webmaster Tools keywords
 
-Core · target · **done**
+Core · target · **done** · Rules D-3, D-4
 
-**Requirement.** The same keyword report is available from Bing Webmaster Tools (API key or OAuth), shown beside Google's. The exact rules: the owner supplies an API key and a property returned verified by Bing. Only fixed official Bing endpoints receive the key (the provider-required `apikey` query parameter); it is sealed, never echoed/logged/archived or included in errors, and disconnect deletes it while keeping fetched aggregates. Same-property reconnect keeps history; once history exists, a different property is refused with 409 until the owner erases that history through the reviewed erasure proposal. No connect action deletes aggregates. Daily reads preserve Bing’s source dates and independent weekly top query/page/query-page sets and daily all-vertical site totals; no interpolation or joining independent totals. CTR is clicks/impressions, null with no impressions; AvgImpressionPosition is impression-weighted, unavailable for site/date totals. Empty responses are unknown, not measured zero; earlier history outside the returned window remains. Redacted site-scoped reports stay private, have CSV/ZIP and portable history, and query clicks filter native Organic Search entry paths by the same rule as `SEARCH-001`. `PRIVACY-001`, `PRIVACY-005`, `ACCESS-001`, `TEAM-001`, `ARCHIVE-001`, `RETENTION-001` and `API-002` apply before shipment.
+**Requirement.** The same keyword report is available from Bing Webmaster Tools (API key or OAuth), shown beside Google's.
 
 **Acceptance.**
 1. Against a Bing API fixture, connect and see Bing queries beside Google's with matching figures.
 
 **Evidence.** `src/vane/bing/index.ts`; `src/vane/routes.ts`; `src/vane/views/search-keywords.ts`; `migrations/core/0055_vane_bing.sql`; `tests/bing.test.mjs`
-**Gap.** Verified-property owner connection, sealed key, private query/page/date aggregates beside Google, organic landing filters, daily sync and source limits.
+**Gap.** None.
 
 #### ADS-001 — Ad spend matched to campaigns
 
-Core · target · **missing**
+Core · target · **missing** · Rules D-3
 
 **Requirement.** The owner connects Google Ads, Microsoft Advertising, Meta Ads and LinkedIn Ads read-only. Vane imports daily campaign-level spend, impressions and clicks in USD, and nothing at the person level. It matches campaigns to UTM campaigns by name or by an explicit mapping, and it reports cost per visit, cost per conversion and return on ad spend from confirmed revenue (`CONV-008`).
 
@@ -922,22 +929,22 @@ Core · target · **missing**
 
 #### IMPORT-002 — Property-based analytics history import
 
-Core · target · **done**
+Core · target · **partial** · Rules D-3, D-4
 
-**Requirement.** The owner connects property-based analytics through OAuth (read-only) and picks a property and a date range. Vane imports daily aggregates through the property-based analytics Data API: users, sessions, pageviews, bounce and engagement, pages, landing pages, channels, source and medium, campaigns, countries, regions, cities, devices, browsers, operating systems, key events and ecommerce revenue. Every import shows a preview of the property-based analytics metric definitions that differ from Vane's, is journaled and can be undone (`IMPORT-001` custody). Legacy session analytics archives exported as CSV import the same way. Only the owner connects through fixed official Google OAuth, Admin and Data API endpoints with `analytics.readonly`. Single-use approval expires after ten minutes and is bound to the native owner session and site. Properties come from all pages of the Admin account summaries. The selected range is inclusive in source-local dates. All Data report offsets and Admin key-event pages are read before review; partial or changing reports are refused. Each reviewed document is bounded to 8 MB and 20,000 sanitized source rows; larger ranges need separate reviewed documents. Credentials are sealed locally, never archived, removed on disconnect and revoked at Google. A failed refresh visibly stops further reads until reconnection. Key events require observed native evidence or explicit completion and ordinary approval before becoming live goals.
+**Requirement.** The owner connects property-based analytics through OAuth (read-only) and picks a property and a date range. Vane imports daily aggregates through the property-based analytics Data API: users, sessions, pageviews, bounce and engagement, pages, landing pages, channels, source and medium, campaigns, countries, regions, cities, devices, browsers, operating systems, key events and ecommerce revenue. Every import shows a preview of the property-based analytics metric definitions that differ from Vane's, is journaled and can be undone (`IMPORT-001` custody). Legacy session analytics archives exported as CSV import the same way.
 
 **Acceptance.**
 1. Against a property-based analytics Data API fixture, preview, apply, read the journal and undo a 13-month import.
 2. Imported totals match the fixture per dimension, and the definition-difference notes are shown.
 
 **Evidence.** `tests/ga4.test.mjs` — “IMPORT-002 thirteen months of GA4 daily history and independent dimensions preserve source metrics, key events, review, journal and undo without creating native visits” proves each source dimension and definition differences; “IMPORT-002 UA CSV retains daily source aggregates; rejects partial GA4 exports, forged carries, personal URLs and unsupported columns before custody” proves UA and refusal; “Connected GA4 reads every source page before review, journals and undoes source history, fences OAuth and visibly stops revoked access” proves paged read-only OAuth, returned properties, inclusive 13-month dates, 910 rows including a second Data page and second Admin pages, sealed nonportable tokens, revocation, journal and undo; “IMPORT-002 owner uploads, reviews, applies, completes a recovered key event for approval and undoes source reports at desktop and mobile widths” proves review and definition completion at 1440 and 390. `docs/history.md`.
-**Gap.** Complete bounded source documents are reviewed before publication; larger ranges are split into separate reviewed documents. No native totals are invented from source measures.
+**Gap.** The definition-difference notes are unasserted; preview, apply, journal, undo and the per-dimension and daily totals of a 13-month import are asserted.
 
 #### IMPORT-003 — Aggregate website analytics import
 
-Core · target · **done**
+Core · target · **done** · Rules D-4
 
-**Requirement.** Vane imports an aggregate website analytics CSV export ZIP, or reads the aggregate website analytics Stats API with a buyer's API key. It covers visitors, visits, pageviews, bounce rate, duration, pages, entry and exit pages, sources, UTM fields, locations, devices, goals, custom properties and revenue, with the same preview, journal and undo. The import also recovers the site's goal and custom-property definitions from whatever the buyer's aggregate website analytics plan exposes, and rebuilds funnels through a guided step, because aggregate website analytics exposes no funnel definitions in any export or API (`IMPORT-009`). The recovered definitions are proposed as Vane definitions (`IMPORT-008`). Dashboard CSV breakdowns summarize the exported period and carry the owner-chosen period label date; the dated visitors series keeps its source dates. Stats API reads import one source-local date at a time, with source units, percentages and currency retained. Every report stays separate from native totals; merging and overlap remain `IMPORT-007`.
+**Requirement.** Vane imports an aggregate website analytics CSV export ZIP, or reads the aggregate website analytics Stats API with a buyer's API key. It covers visitors, visits, pageviews, bounce rate, duration, pages, entry and exit pages, sources, UTM fields, locations, devices, goals, custom properties and revenue, with the same preview, journal and undo. The import also recovers the site's goal and custom-property definitions from whatever the buyer's aggregate website analytics plan exposes, and rebuilds funnels through a guided step, because aggregate website analytics exposes no funnel definitions in any export or API (`IMPORT-012`). The recovered definitions are proposed as Vane definitions (`IMPORT-008`). Dashboard CSV breakdowns summarize the exported period and carry the owner-chosen period label date; the dated visitors series keeps its source dates. Stats API reads import one source-local date at a time, with source units, percentages and currency retained. Every report stays separate from native totals; merging and overlap remain `IMPORT-007`.
 
 **Acceptance.**
 1. Import a fixture in the aggregate source’s dashboard-export layout and a Stats API fixture.
@@ -961,16 +968,16 @@ Core · target · **missing**
 
 #### IMPORT-005 — Reporting analytics import
 
-Core · target · **partial**
+Core · target · **partial** · Rules D-3, D-4
 
-**Requirement.** Vane imports from hosted reporting analytics or self-hosted reporting analytics through its Reporting API with a token, or from report CSV exports. It brings visits, unique visitors, actions, pages, referrers, campaigns, locations, devices, goals and ecommerce, with preview, journal and undo. Visitor logs are never imported. The exact rules: the owner selects one source-site local day, confirms its currency and supplies a public https Reporting API address and one-use token. Known aggregate methods are read through POST `API.getBulkRequest` with unformatted daily JSON, flattened report rows and no visitor-log method; redirects, private or local endpoint names or address literals, source errors and responses above 2 MB are refused. Only the owner enters the destination. Workers fetch uses API-002’s current literal and name public-host rule, https only, redirects refused and no credentials in URLs; no separate DNS preflight is performed. IMPORT-005 remains partial until it adopts resolved-address and pinned egress (Base egress door), inherited here by name. The token and raw response never enter custody. Up to 500 sanitized report rows enter the existing reviewed-fingerprint, journal, resumable apply and undo doors; each source table keeps its own numeric metrics and grouping, its currency, and unknown coverage, separate from native visitor and event totals. Existing path and label redaction applies. Source goal display names and exact case-sensitive URL or event-name conditions are proposed through `APPROVE-001`; an ambiguous condition needs completion. Approving a supported goal counts future matching accepted page loads or custom events under the source display name, once per matching load and event; a revenue goal requires revenue in its confirmed currency. Undo removes imported history and keeps separately approved settings. Native chart merging and overlap handling remain `IMPORT-007` obligations. The read flow is declared under `PRIVACY-005` and optional `seed.json` external `matomo`.
+**Requirement.** Vane imports from hosted reporting analytics or self-hosted reporting analytics through its Reporting API with a token, or from report CSV exports. It brings visits, unique visitors, actions, pages, referrers, campaigns, locations, devices, goals and ecommerce, with preview, journal and undo. Visitor logs are never imported.
 
 **Acceptance.**
 1. Import from a reporting analytics Reporting API fixture.
 2. The aggregates match, no visitor-log rows are stored, and undo works.
 
 **Evidence.** `src/vane/movein/matomo.ts`; `src/vane/movein/matomo-reader.ts`; `src/vane/movein/aggregates.ts`; `src/vane/views/imported-reports.ts`; `migrations/core/0053_vane_import_reports.sql`; `tests/matomo.test.mjs`
-**Gap.** Hosted reporting analytics and self-hosted Reporting API and unformatted report CSVs import daily aggregate visits, visitors, actions, pages, referrers, campaigns, locations, devices, goals and ecommerce without visitor logs. Owner-reviewed preview, resumable apply, journal, undo, archive and restore, retention and native goal proposals work. Gap: resolved-address and pinned egress (Base egress door), required by ct 19 Oct 20:44Z for the owner-entered endpoint before DONE.
+**Gap.** Hosted reporting analytics and self-hosted Reporting API and unformatted report CSVs import daily aggregate visits, visitors, actions, pages, referrers, campaigns, locations, devices, goals and ecommerce without visitor logs. Owner-reviewed preview, resumable apply, journal, undo, archive and restore, retention and native goal proposals work. Gap: resolved-address and pinned egress (Base egress door) for the owner-entered endpoint (RL-7).
 
 #### IMPORT-006 — Event-based analytics, lightweight analytics and web-event analytics at full scale
 
@@ -987,54 +994,65 @@ Core · target · **done**
 
 #### IMPORT-007 — Imported history merges without double counting
 
-Core · target · **done**
+Core · target · **done** · Rules D-4
 
-**Requirement.** Each import declares a cut-over date. For overlapping days, live data wins and the overlap is reported. Imported periods are labeled on charts with their source and their definition differences, and their coverage counts as unknown (`COVERAGE-001`). Any viewer, including a shared-link viewer, can switch imported data on or off for the dashboard. The choice applies to every report, comparison and CSV export on that view, and the Stats API takes the same choice as a query option. A buyer who runs both scripts during a switch gets a parallel-run report for the overlap days: Vane's and the incumbent's visitors, visits, pageviews, bounce rate, top sources and goal conversions side by side per day (the incumbent's read through its Stats API or export). Each difference over 5% is explained by its known cause: definition, bot filtering, consent, blockers or proxy coverage. Two imports never double count either. When an import covers days that another import already holds, such as an aggregate website analytics export reaching back into a period imported from property-based analytics, its preview names those days and the source that holds them. They are skipped unless the owner chooses the new source for them, and the import journal lists them. The exact rules for the viewer's choice and for two imports: the choice is `imported=off` on the dashboard, a shared link and a public report page (a checkbox or a link, the default is on), and `imported=off` on `/api/v1/stats` or `include.imports: false` on the aggregate website analytics-compatible `/api/v2/query` (the aggregate source’s own option name; the default here is on, where the aggregate source’s is off). Off leaves imported events, imported source reports, their coverage counts and their compared-period figures out of every figure, table, chart series and CSV table of that view; the answer says which it used. A day counts as held when another source holds imported source reports or anonymous imported events for it. A new source skips every held day and names each day and its holder in preview and journal; an entirely held import is refused. The owner may explicitly choose the new source in the review, fingerprint-bound and recorded with approval; that choice replaces the earlier source only in reports, retaining its custody and undo. Undoing the replacement reveals the earlier source. Every new preview declares its cut-over (the day after the final normalized source date unless the owner supplies another), bound to approval; earlier imports without a date keep their recorded policy until undone and reimported. Strictly earlier normalized dates appear, live collection wins overlap days, source aggregates remain separately labelled and never enter native chart totals (ct 21 Oct 18:20Z, following IMPORT-005). Every future report, CSV and API surface inherits the source label, definition disclosure and never-merge duty before it ships. The parallel-run report is owner-only, transient, uses the fixed official aggregate website analytics Stats endpoint or its documented export, retains no token or raw response, and compares 14 complete source-local days with native imports excluded. Differences above 5% carry owner-supplied evidence of definition, bot filtering, consent, blockers or proxy coverage; a difference without evidence remains explicitly unresolved, never assigned an invented cause.
+**Requirement.** Each import declares a cut-over date. For overlapping days, live data wins and the overlap is reported. Imported periods are labeled on charts with their source and their definition differences, and their coverage counts as unknown (`COVERAGE-001`). Any viewer, including a shared-link viewer, can switch imported data on or off for the dashboard. The choice applies to every report, comparison and CSV export on that view, and the Stats API takes the same choice as a query option. Two imports never double count either. When an import covers days that another import already holds, such as an aggregate website analytics export reaching back into a period imported from property-based analytics, its preview names those days and the source that holds them. They are skipped unless the owner chooses the new source for them, and the import journal lists them. The parallel-run report is `IMPORT-010`.
 
 **Acceptance.**
 1. Import property-based analytics history that overlaps two days of live collection.
 2. Charts show the overlap once using live data, label the imported range and count it as unknown coverage.
-3. Against an aggregate website analytics Stats API fixture for 14 overlap days, the parallel-run report shows both columns per day and explains a seeded bot-filter difference.
-4. Switching imported data off removes the imported range from the chart, the tables, a CSV export and the Stats API answer with the option set, and switching it back on restores them.
-5. Import property-based analytics history through 4 June 2024, then preview an aggregate website analytics export that starts on 3 June 2024.
-6. The preview lists 3–4 June 2024 as overlapping property-based analytics and skipped, the applied import's journal lists them, and those days' totals equal property-based analytics's alone.
+3. Switching imported data off removes the imported range from the chart, the tables, a CSV export and the Stats API answer with the option set, and switching it back on restores them.
+4. Import property-based analytics history through 4 June 2024, then preview an aggregate website analytics export that starts on 3 June 2024.
+5. The preview lists 3–4 June 2024 as overlapping property-based analytics and skipped, the applied import's journal lists them, and those days' totals equal property-based analytics's alone.
 
-**Evidence.** `tests/import-merge.test.mjs` — “IMPORT-007 later sources name and skip held days; the owner can replace them without losing undo or custody” proves property-based analytics-held 3–4 June totals, named preview and journal skips, owner replacement, repeated approval, successive undo and event-export overlap; “IMPORT-007 any viewer switches imported data off and on for the dashboard, its comparison, CSV tables, shared link and both Stats API doors” proves all viewer doors; “IMPORT-007 a reviewed cut-over keeps live days once across events, source reports, CSV and ZIP; custody, transfer, restore and undo retain the policy” proves normalized date precedence, unknown coverage and portability; “IMPORT-007 the owner reviews and applies a dated import through the history form at 1440 and 390” proves date review and source and definition labels on the chart. `tests/import-parallel.test.mjs` — “IMPORT-007 owner compares 14 live overlap days with paginated Plausible queries and an export, attributes measured bot differences only to owner evidence, saves nothing, and uses history forms at 1440 and 390” proves both daily columns, sources, every goal kind, known bot-filter evidence, unresolved causes and browser review. `tests/import-export.test.mjs` — “IMPORT-006 whole PostHog JSON Lines preview and apply resume after interruption and a lost response, deduplicate across pages, discard identifiers and undo through the public doors” proves one declared CLI cut-over across duplicate source events on separate pages.
-**Gap.** Existing undated archives keep their recorded policy until the owner undoes and reimports with a reviewed date. New report, CSV and API surfaces inherit source labels and never adding source aggregates to native totals.
+**Evidence.** `tests/import-merge.test.mjs` — “IMPORT-007 later sources name and skip held days; the owner can replace them without losing undo or custody” proves property-based analytics-held 3–4 June totals, named preview and journal skips, owner replacement, repeated approval, successive undo and event-export overlap; “IMPORT-007 any viewer switches imported data off and on for the dashboard, its comparison, CSV tables, shared link and both Stats API doors” proves all viewer doors; “IMPORT-007 a reviewed cut-over keeps live days once across events, source reports, CSV and ZIP; custody, transfer, restore and undo retain the policy” proves normalized date precedence, unknown coverage and portability; “IMPORT-007 the owner reviews and applies a dated import through the history form at 1440 and 390” proves date review and source and definition labels on the chart. `tests/import-parallel.test.mjs` — “IMPORT-010 owner compares 14 live overlap days with paginated Plausible queries and an export, attributes measured bot differences only to owner evidence, saves nothing, and uses history forms at 1440 and 390” proves both daily columns, sources, every goal kind, known bot-filter evidence, unresolved causes and browser review. `tests/import-export.test.mjs` — “IMPORT-006 whole PostHog JSON Lines preview and apply resume after interruption and a lost response, deduplicate across pages, discard identifiers and undo through the public doors” proves one declared CLI cut-over across duplicate source events on separate pages.
+**Gap.** None.
 
-#### IMPORT-008 — Tracking cut-over keeps incumbent events counting
+#### IMPORT-010 — Parallel-run report during a switch
 
-Core · target · **done**
+Core · target · **done** · From IMPORT-007 · Rules D-4
 
-**Requirement.** On the day the buyer swaps the incumbent's script for Vane's, their custom events, conversions and revenue keep arriving with no page edit, and their goal definitions come with them. The cut-over has three parts.
-- *Compatible calls.* With the owner's per-site *Incumbent compatibility* setting approved and on (the public script-config response then adds only its compatibility flag and ISO site currency, under `COLLECT-001`), `vane.js` defines `window.plausible` and `window.fathom` shims. `plausible(name, {props, revenue: {amount, currency}, interactive, callback})` and its pre-load queue (`window.plausible.q`) become Vane custom events with properties and revenue. The `plausible-event-name=` CSS classes become events too, in both the `=` and the `--` form, with `plausible-event-<prop>=` property classes and `+` read as a space. `fathom.trackEvent(name, {_value})` becomes an event whose `_value` is read in cents and converted to the site currency (USD by default, `CONV-006`), and `fathom.trackPageview()` becomes a pageview. The shim also reads the options an aggregate website analytics snippet configures, so pageview properties and automatic events do not stop silently after cut-over. These are the `plausible.init({...})` options `customProperties` (pageview properties, as an object or a function), `fileDownloads` with its `fileExtensions` list, `outboundLinks`, `formSubmissions`, `hashBasedRouting`, `autoCapturePageviews` and `captureOnLocalhost`, plus the legacy script's file-name extensions (such as `script.hash.outbound-links.file-downloads.js`) and its `event-<prop>` attributes. Each maps to the matching Vane setting for that page (`INSTALL-007`, `CONV-002`, `CONV-003`). Approved compatibility permits its page-local outbound, download and form options through the native automatic-event door; the inventory and policy name all three. A configured download-extension list replaces the defaults. Dynamic custom properties are evaluated for each event name; explicit per-call properties take precedence. Localhost collection requires `captureOnLocalhost: true`. An option Vane does not support is listed in the call-site scan, never dropped silently. Every shimmed call passes the same `COLLECT-001`/`COLLECT-002` field rules and redaction as a native call, so an incumbent call carrying an email address is refused. The incumbent's own script tag, if left in place, is detected and reported.
-- *Call-site scan.* An explicit owner- or administrator-started scan in installation settings (`INSTALL-001`) reads the registered origin’s robots.txt-listed sitemaps, or /sitemap.xml when none is listed, and their same-origin pages, up to the owner-selected page limit (1–500). It honours robots.txt disallow, refuses credentials and redirects, sends no visitor data or credentials, and stores no fetched bodies. Only derived install and capture findings with URL and time enter custody, beside a scan row recording actor, time, pages fetched and refused. This is the one sitemap extension to `PRIVACY-005`’s fetch boundary. The static call-site inventory does not execute page JavaScript or fetch external script files. It and lists every page that still loads an incumbent script or fires an incumbent call or class. For each one it drafts the native `vane()` rewrite, so the shim can be retired. The drafts are reviewable native `vane()` calls; dynamic expressions are explicitly marked for completion. `AGENT-001` inherits handing the drafts off to open as a pull request or a Pane change before that capability ships.
-- *Definitions carried over.* Vane proposes the incumbent's pageview, custom-event, scroll-depth and revenue goals and its custom-property names under the same names, so imported history and live conversions line up. Each definition comes from the source the buyer's incumbent plan actually exposes, and funnels are rebuilt through the guided step, as `IMPORT-009` sets out. Property-based analytics key events (`IMPORT-002`) and reporting analytics goals (`IMPORT-005`) are proposed the same way. The proposals wait for approval (`APPROVE-001`). Approving one makes live conversions count against it from that moment, and each carried-over definition is annotated (`DASH-009`).
+**Requirement.** A buyer who runs both scripts during a switch gets a parallel-run report for the overlap days: Vane's and the incumbent's visitors, visits, pageviews, bounce rate, top sources and goal conversions side by side per day (the incumbent's read through its Stats API or export). Each difference over 5% is explained by its known cause: definition, bot filtering, consent, blockers or proxy coverage, from evidence the owner supplies; a difference without evidence stays unresolved.
+
+**Acceptance.**
+1. Against an aggregate website analytics Stats API fixture for 14 overlap days, the parallel-run report shows both columns per day and explains a seeded bot-filter difference.
+
+**Evidence.** `tests/import-merge.test.mjs` — “IMPORT-007 later sources name and skip held days; the owner can replace them without losing undo or custody” proves property-based analytics-held 3–4 June totals, named preview and journal skips, owner replacement, repeated approval, successive undo and event-export overlap; “IMPORT-007 any viewer switches imported data off and on for the dashboard, its comparison, CSV tables, shared link and both Stats API doors” proves all viewer doors; “IMPORT-007 a reviewed cut-over keeps live days once across events, source reports, CSV and ZIP; custody, transfer, restore and undo retain the policy” proves normalized date precedence, unknown coverage and portability; “IMPORT-007 the owner reviews and applies a dated import through the history form at 1440 and 390” proves date review and source and definition labels on the chart. `tests/import-parallel.test.mjs` — “IMPORT-010 owner compares 14 live overlap days with paginated Plausible queries and an export, attributes measured bot differences only to owner evidence, saves nothing, and uses history forms at 1440 and 390” proves both daily columns, sources, every goal kind, known bot-filter evidence, unresolved causes and browser review. `tests/import-export.test.mjs` — “IMPORT-006 whole PostHog JSON Lines preview and apply resume after interruption and a lost response, deduplicate across pages, discard identifiers and undo through the public doors” proves one declared CLI cut-over across duplicate source events on separate pages.
+**Gap.** None.
+
+#### IMPORT-008 — Tracking cut-over keeps incumbent calls and definitions
+
+Core · target · **partial**
+
+**Requirement.** On the day the buyer swaps the incumbent's script for Vane's, their custom events, conversions and revenue keep arriving with no page edit, and their goal definitions come with them. The cut-over has two parts here; the call-site scan is `IMPORT-011`. *Compatible calls.* With the owner's per-site *Incumbent compatibility* setting approved and on (the public script-config response then adds only its compatibility flag and ISO site currency, under `COLLECT-001`), `vane.js` defines `window.plausible` and `window.fathom` shims. `plausible(name, {props, revenue: {amount, currency}, interactive, callback})` and its pre-load queue (`window.plausible.q`) become Vane custom events with properties and revenue. The `plausible-event-name=` CSS classes become events too, in both the `=` and the `--` form, with `plausible-event-<prop>=` property classes and `+` read as a space. `fathom.trackEvent(name, {_value})` becomes an event whose `_value` is read in cents and converted to the site currency (USD by default, `CONV-006`), and `fathom.trackPageview()` becomes a pageview. The shim also reads the options an aggregate website analytics snippet configures, so pageview properties and automatic events do not stop silently after cut-over. Every shimmed call passes the same `COLLECT-001`/`COLLECT-002` field rules and redaction as a native call, so an incumbent call carrying an email address is refused. The incumbent's own script tag, if left in place, is detected and reported. *Definitions carried over.* Vane proposes the incumbent's pageview, custom-event, scroll-depth and revenue goals and its custom-property names under the same names, so imported history and live conversions line up. Each definition comes from the source the buyer's incumbent plan actually exposes, and funnels are rebuilt through the guided step, as `IMPORT-012` sets out. Property-based analytics key events (`IMPORT-002`) and reporting analytics goals (`IMPORT-005`) are proposed the same way. The proposals wait for approval (`APPROVE-001`). Approving one makes live conversions count against it from that moment, and each carried-over definition is annotated (`DASH-009`).
 
 **Acceptance.**
 1. On a fixture page instrumented only with aggregate website analytics calls (props and USD revenue) and `plausible-event-name=Book+Demo` and `plausible-event-name--Book+Demo` classes, swap in `vane.js` with compatibility on.
 2. The same events, properties and USD revenue arrive with no page edit.
 3. On a fixture page whose snippet calls `plausible.init({customProperties: {author: 'jo'}, fileDownloads: {fileExtensions: ['dwg']}})`, the pageview carries author=jo and a click on a `.dwg` link arrives as a file download.
 4. On a second fixture page with `fathom.trackEvent('Purchase', {_value: 4999})`, a $49.99 revenue event arrives.
-5. A third page that still loads `plausible.js` appears in the call-site scan with a drafted rewrite.
-6. After the `IMPORT-009` export fixture is imported, the goals are proposed under the same names, and approving them makes the live events from the first fixture count as conversions in the goal reports.
+5. After the `IMPORT-009` export fixture is imported, the goals are proposed under the same names, and approving them makes the live events from the first fixture count as conversions in the goal reports.
+
+**Evidence.** `src/vane/tracker-compat.ts`; `src/vane/cutover/scan.ts`; `src/vane/cutover/findings.ts`; `src/vane/movein/import-definitions.ts`; `tests/plausible-definitions.test.mjs`; `tests/incumbent-options.test.mjs`; `tests/sitemap-scan.test.mjs`
+**Gap.** `plausible()` calls carrying USD revenue and the `plausible-event-name=` and `plausible-event-name--` class forms are unasserted; `plausible()` events with properties, the init options, Fathom cents and the approved carried-over goals are asserted.
+
+#### IMPORT-011 — Call-site scan drafts native rewrites
+
+Core · target · **done** · From IMPORT-008 · Cites BASE-DATA-004
+
+**Requirement.** An explicit owner- or administrator-started scan in installation settings reads the registered origin's sitemaps and the same-origin pages they list, up to an owner-selected page limit, and lists every page that still loads an incumbent script or fires an incumbent call or class. For each one it drafts the native `vane()` rewrite, so the shim can be retired. Its fetch boundary is in `docs/contract/data-flows.md`.
+
+**Acceptance.**
+1. A third page that still loads `plausible.js` appears in the call-site scan with a drafted rewrite.
 
 **Evidence.** `src/vane/tracker-compat.ts`; `src/vane/cutover/scan.ts`; `src/vane/cutover/findings.ts`; `src/vane/movein/import-definitions.ts`; `tests/plausible-definitions.test.mjs`; `tests/incumbent-options.test.mjs`; `tests/sitemap-scan.test.mjs`
 **Gap.** None.
 
-#### IMPORT-009 — Goal and funnel definitions recovered from what each incumbent plan exposes
+#### IMPORT-009 — Goal definitions recovered from what each incumbent plan exposes
 
 Core · target · **done**
 
-**Requirement.** Vane recovers each incumbent definition from a source that really holds it on the buyer's plan, never from one that does not, and it says which source each proposal came from.
-- *Aggregate website analytics Business with a Stats API key.* Vane reads goals and custom properties from the read-only Sites API endpoints (`GET /api/v1/sites/goals` and `GET /api/v1/sites/custom-props`), which aggregate website analytics opens to a Stats API key on any plan that includes the Stats API. Each goal arrives with its type (page, event or scroll), its page path or event name, its display name and its custom-property conditions. The two fields that listing does not hold are recovered as follows. A scroll goal's threshold is parsed from the aggregate source’s default display name `Scroll <N>% on <path>`. A revenue goal's currency comes from a Stats API v2 query of `total_revenue` grouped by `event:goal`, whose answer carries the currency.
-- *Aggregate website analytics Enterprise with a Sites API key.* Vane reads the same endpoints with the Sites API key, and the threshold and currency are recovered the same way.
-- *Aggregate website analytics Starter, or a buyer with only the dashboard CSV export.* The export's `conversions.csv` holds goal display names and summary counts, and `custom_props.csv` holds property names and values. Vane infers each goal's definition from the aggregate source’s default display-name forms. `Visit <path>` is a pageview goal on that path, wildcards kept. `Scroll <N>% on <path>` is a scroll-depth goal (`CONV-001`). Any other name is a custom-event goal, which is confirmed when the shim (`IMPORT-008`) receives an event of that name. The current CSV contains no revenue type, amount or currency: [the aggregate source’s conversion CSV fixture](https://github.com/plausible/analytics/blob/master/test/plausible_web/controllers/CSVs/30d/conversions.csv) and [the dashboard CSV report configuration](https://github.com/plausible/analytics/blob/master/assets/js/dashboard/stats/reports/reports-config.ts) establish the real layout. A matching accepted live event carrying revenue establishes a revenue goal and its currency, which the owner must confirm. Multiple observed currencies or absent evidence stay Needs completion; a person can explicitly complete the type and currency. The site currency is only the initial completion value, never source evidence. Custom-property names come from `custom_props.csv`.
-- *What cannot be recovered is asked for, never guessed.* A display name the owner renamed in aggregate website analytics and that matches no form, and a currency or threshold that no source holds, is listed under **Needs completion** with the evidence Vane has (its imported conversion counts and any matching live events). The owner, an analyst or `AGENT-001` completes it, and nothing is proposed for approval until it is complete.
-- *Funnels are rebuilt, not imported.* aggregate website analytics offers funnels on its Business plan, with 2 to 8 steps, but exposes no funnel definition in its export, Stats API or Sites API. Vane says so on the import screen and offers a guided rebuild. The owner names the funnel and either picks its steps in order from the recovered goals or pastes the step list as shown in the aggregate source’s funnel settings, and each pasted line is matched to a recovered goal by display name. The rebuilt funnel is a `CONV-005` funnel proposed through `APPROVE-001`. Once approved, it counts live events, and it applies to the imported period only where the imported data supports it, which is labeled.
-- *Current-capability completion and inherited work.* This clause is complete when every definition source available in this release conforms: the aggregate website analytics dashboard ZIP, fixed official `https://plausible.io` API reads and the existing reporting analytics definitions. `IMPORT-004` adds event-value analytics definitions, `IMPORT-002` adds property-based analytics key events, and `IMPORT-008` adds call-site evidence before those capabilities ship. `AGENT-001` inherits human-reviewed completion before agent drafting ships. Self-hosted aggregate website analytics CE API origins are not offered by this release. Each proposal names its source and uses `APPROVE-001`; imported summaries do not establish historical visitor journeys.
-- *Event-value analytics, property-based analytics and reporting analytics by the same rule.* event-value analytics event names come from its CSV export or from its API with the buyer's key, and an event whose export carries `_value` totals becomes a revenue goal (`IMPORT-004`). Property-based analytics key events come from the property-based analytics Admin API (`IMPORT-002`). Reporting analytics goals, with their match patterns and revenue, come from the Reporting API's `Goals.getGoals` (`IMPORT-005`). Reporting analytics funnels are rebuilt through the same guided step.
-- When shipped, the call-site scan (`IMPORT-008`) attaches the incumbent calls and classes it finds to the matching proposals, and the owner can hand any incomplete definition to `AGENT-001`. That agent drafts a completion from the site's pages and live events, and it is still approved by a person.
+**Requirement.** Vane recovers each incumbent definition from a source that really holds it on the buyer's plan, never from one that does not, and it says which source each proposal came from. *Aggregate website analytics Business with a Stats API key.* Vane reads goals and custom properties from the read-only Sites API endpoints , which aggregate website analytics opens to a Stats API key on any plan that includes the Stats API. *Aggregate website analytics Enterprise with a Sites API key.* Vane reads the same endpoints with the Sites API key, and the threshold and currency are recovered the same way. *Aggregate website analytics Starter, or a buyer with only the dashboard CSV export.* The export's `conversions.csv` holds goal display names and summary counts, and `custom_props.csv` holds property names and values. Vane infers each goal's definition from the aggregate source’s default display-name forms. A matching accepted live event carrying revenue establishes a revenue goal and its currency, which the owner must confirm. *What cannot be recovered is asked for, never guessed.* A display name the owner renamed in aggregate website analytics and that matches no form, and a currency or threshold that no source holds, is listed under **Needs completion** with the evidence Vane has (its imported conversion counts and any matching live events). The owner, an analyst or `AGENT-001` completes it, and nothing is proposed for approval until it is complete. *Event-value analytics, property-based analytics and reporting analytics by the same rule.* event-value analytics event names come from its CSV export or from its API with the buyer's key, and an event whose export carries `_value` totals becomes a revenue goal (`IMPORT-004`). Property-based analytics key events come from the property-based analytics Admin API (`IMPORT-002`). Reporting analytics goals, with their match patterns and revenue, come from the Reporting API's `Goals.getGoals` (`IMPORT-005`).
 
 **Acceptance.**
 1. Import a fixture in the aggregate source’s real dashboard-export layout, with no funnel file.
@@ -1044,7 +1062,21 @@ Core · target · **done**
 5. `Leads (old)` appears under Needs completion and is not proposed.
 6. `plan` is proposed as a property.
 7. Against a fixture of the read-only goals endpoint called with a Stats API key, plus a Stats API v2 revenue answer in EUR, the same goals are read directly, `Purchase` carries EUR, and no field is inferred from a name except the scroll threshold.
-8. Against a fixture of the same endpoint called with an Enterprise Sites API key, the result is identical. Rebuild the funnel `Visit /pricing` → `Signup` → `Purchase` by pasting the three step names, approve it, and replay the live shimmed events from the first `IMPORT-008` fixture. The funnel report counts them at each step. The import screen states that aggregate website analytics exposes no funnel definitions, and no funnel is ever proposed from an export or API read.
+8. Against a fixture of the same endpoint called with an Enterprise Sites API key, the result is identical.
+
+**Evidence.** `src/vane/movein/plausible-definitions.ts`; `src/vane/movein/plausible-reader.ts`; `src/vane/movein/import-definitions.ts`; `src/vane/views/import-definitions.ts`; `tests/plausible-definitions.test.mjs`; `tests/matomo.test.mjs`
+**Gap.** None.
+
+#### IMPORT-012 — Funnels rebuilt in a guided step
+
+Core · target · **done** · From IMPORT-009
+
+**Requirement.** Aggregate website analytics offers funnels on its Business plan but exposes no funnel definition in its export, Stats API or Sites API, so Vane says so on the import screen and offers a guided rebuild. The owner names the funnel and either picks its steps in order from the recovered goals or pastes the step list as shown in the incumbent's funnel settings, and each pasted line is matched to a recovered goal by display name. The rebuilt funnel is a `CONV-005` funnel proposed through `APPROVE-001`. Once approved, it counts live events, and it applies to the imported period only where the imported data supports it, which is labeled. Reporting analytics funnels are rebuilt through the same guided step.
+
+**Acceptance.**
+1. Rebuild the funnel `Visit /pricing` → `Signup` → `Purchase` by pasting the three step names, approve it, and replay the live shimmed events from the first `IMPORT-008` fixture.
+2. The funnel report counts them at each step.
+3. The import screen states that aggregate website analytics exposes no funnel definitions, and no funnel is ever proposed from an export or API read.
 
 **Evidence.** `src/vane/movein/plausible-definitions.ts`; `src/vane/movein/plausible-reader.ts`; `src/vane/movein/import-definitions.ts`; `src/vane/views/import-definitions.ts`; `tests/plausible-definitions.test.mjs`; `tests/matomo.test.mjs`
 **Gap.** None.
@@ -1053,9 +1085,9 @@ Core · target · **done**
 
 #### REPORT-001 — Scheduled email reports
 
-Core · target · **done**
+Core · target · **done** · Cites BASE-OPS-004
 
-**Requirement.** Each team member, or an external recipient the owner adds, can subscribe to daily, weekly or monthly email reports for chosen sites and segments. Reports are sent at a chosen local time in the site's time zone. Each one shows the headline metrics with their comparison, top pages, sources, goals and revenue, the coverage notes and the explanation (`REPORT-003`). Every email has a one-click unsubscribe. A temporary delivery failure is retried 3 times, after 15 minutes, 2 hours and 12 hours, using the same message ID so the report is never sent twice. A permanent bounce is not retried. Either way the failure shows in the app with its reason. A permanent bounce, a spam complaint or a suppression the mail provider reports later, through its signed delivery events, also shows on that send and stops further report email to the address. A weekly report goes out on the weekday the recipient chooses (Monday by default), and a monthly report on the first day of the month. The exact rules: a subscription is one site (a site's saved segment optional) and one address; a team member subscribes their own address on any site they may open, and only the owner adds an external recipient. The chosen time is a whole hour in the site's time zone, daylight saving included, checked every 5 minutes: a daily report covers the day before, a weekly report the seven days before the chosen weekday, a monthly report the month before the 1st, each compared with the period before it. A send keeps one delivery ID on every attempt. A temporary failure (no answer, a rate limit or a provider error) is retried after 15 minutes, 2 hours and 12 hours and then shows as failed; a permanent failure, the provider rejecting the message, is not retried and shows at once. The site's settings list each send with its state, attempts and reason. The unsubscribe link ends the subscription with one click (a GET of the link, or the one-click POST the mail headers announce on an https installation), and only its SHA-256 is kept. Removing a team member ends their own subscriptions. Later delivery facts come from the installation mail provider's signed event webhook (Resend or SendGrid, keyed by `MAIL_WEBHOOK_KEY`) at `/api/vane/mail-events`: Base's intake checks the signature, schema and event identity and keeps each receipt, and Vane accepts an event only for a report send it holds, to that send's own address (any other event is refused; events for other installation mail, such as sign-in links, are acknowledged and not kept). The site's send list shows the provider's newest report on each send (delivered to the recipient's mail server, delayed, failed, bounced permanently, marked as spam or suppressed), labelled as a provider event with its date, never as proof that a person read the email; without the key the settings say delivery events are not connected. An address reported bounced permanently, marked as spam or suppressed gets no further report email from the installation: each later send to it shows as failed, not sent, with that reason, and the subscriptions list marks it stopped.
+**Requirement.** Each team member, or an external recipient the owner adds, can subscribe to daily, weekly or monthly email reports for chosen sites and segments. Reports are sent at a chosen local time in the site's time zone. Each one shows the headline metrics with their comparison, top pages, sources, goals and revenue, the coverage notes and the explanation (`REPORT-003`). Every email has a one-click unsubscribe. A temporary delivery failure is retried 3 times, after 15 minutes, 2 hours and 12 hours, using the same message ID so the report is never sent twice. A permanent bounce is not retried. Either way the failure shows in the app with its reason. A weekly report goes out on the weekday the recipient chooses (Monday by default), and a monthly report on the first day of the month.
 
 **Acceptance.**
 1. Subscribe two recipients to the weekly report at 8:00 America/New_York and run the schedule across a daylight-saving change.
@@ -1064,29 +1096,42 @@ Core · target · **done**
 4. Fail another on all four attempts: it shows as failed after the 12-hour retry.
 5. A permanent bounce shows in the app at once and is not retried.
 6. A weekly report set to Mondays at 8:00 am arrives on Monday at 8:00 local time and on no other day.
-7. Then a signed provider event reports a permanent bounce on one delivered report hours later and a spam complaint on another: each shows on its send at once, a wrong signature or another address is refused, an identical retry changes nothing, and the next scheduled sends to both addresses fail unsent with that reason while other recipients keep their reports.
+
+**Evidence.** `src/vane/email-reports.ts`; `src/vane/mail-events.ts`; `src/vane/views/report-settings.ts`; `migrations/core/0042_vane_email_reports.sql`; `migrations/core/0045_vane_report_mail_events.sql`; `tests/vane.test.mjs`
+**Gap.** None.
+
+#### REPORT-004 — Provider delivery events stop report mail
+
+Core · target · **done** · From REPORT-001 · Cites BASE-MAIL-001
+
+**Requirement.** A permanent bounce, a spam complaint or a suppression the mail provider reports later, through its signed delivery events, shows on that report send and stops further report email to the address. The send list labels each provider event as the provider's, with its date. The event intake is in `docs/contract/rules.md`.
+
+**Acceptance.**
+1. A signed provider event reports a permanent bounce on one delivered report hours later and a spam complaint on another: each shows on its send at once.
+2. A wrong signature or another address is refused, and an identical retry changes nothing.
+3. The next scheduled sends to both addresses fail unsent with that reason while other recipients keep their reports.
 
 **Evidence.** `src/vane/email-reports.ts`; `src/vane/mail-events.ts`; `src/vane/views/report-settings.ts`; `migrations/core/0042_vane_email_reports.sql`; `migrations/core/0045_vane_report_mail_events.sql`; `tests/vane.test.mjs`
 **Gap.** None.
 
 #### REPORT-002 — Slack, Microsoft Teams and Nook delivery
 
-Core · target · **partial**
+Core · target · **partial** · Rules D-3
 
-**Requirement.** Reports and alerts can be sent to a Slack channel (Slack app with OAuth), a Microsoft Teams channel (Teams app or workflow webhook) or a [Nook](https://github.com/just-every/run-nook) channel, with a link back to the filtered dashboard. The exact rules (ct 19 Oct 20:50Z): only the owner connects destinations and schedules reports; admins and analysts may choose an owner-connected destination for alerts on their own sites. Slack uses its fixed official OAuth/API endpoints with bot scope `chat:write` only and an owner-entered channel ID (invite the bot first). Single-use ten-minute state is bound to the site and native owner session. The owner’s POST prepares the connection in Settings, followed by its Continue to Slack link; denied consent returns a readable Vane failure page. Bot tokens, Teams workflow URLs and Nook integration credentials are sealed with AES-GCM, never displayed or archived. Slack disconnect calls `auth.revoke`, reports an unconfirmed revocation honestly, and deletes the local token; Teams disconnect deletes the URL. Nook uses an owner-pasted scoped integration token from Nook’s `NOOK-079`, bound there to the chosen channel; it posts only `body` to `/api/conversations/<id>/messages` with bearer authorization and a stable idempotency key per report or alert. The owner-entered Nook origin and token stay sealed and never archived. Disconnect erases them locally; the owner revokes the token in Nook. Nook success means accepted by Nook; refusals, including revoked-token HTTP failures, are visible. Due reports reuse REPORT-001’s local-time daily/weekly/monthly periods and saved segments, and alerts keep ALERT-001’s holds and cooldowns. Only aggregate figures plus a private filtered native dashboard link are sent, with no visitor/person fields. The settings log records every test and due delivery with time, state and safe reason, no bodies/tokens/URL queries. A period is claimed before sending, at most once per schedule; a crash or missing answer stays uncertain and is never automatically retried. Slack acceptance is provider acceptance; Teams success is labelled ‘accepted by workflow’, never channel delivery. Authorization failures are visible. Both configuring owner and site authority are checked again before dispatch. Chat report generation queues API-003 signed `report.generated` webhooks, with only opaque report/site IDs, kind and generation time, once per generated destination report. Only owner-configured endpoints may subscribe to this new event under the EGRESS RULE. Owner-entered URLs follow API-002’s literal/name public-host rule, HTTPS only, redirects refused and no credentials in URLs; no separate DNS preflight. REPORT-002 stays partial with the named gap ‘resolved-address/pinned egress (Base egress door)’; it inherits that capability before DONE. A person’s Nook session cookie is never an integration credential. The flows are declared under PRIVACY-005 and optional seed.json integrations.
+**Requirement.** Reports and alerts can be sent to a Slack channel (Slack app with OAuth), a Microsoft Teams channel (Teams app or workflow webhook) or a [Nook](https://github.com/just-every/run-nook) channel, with a link back to the filtered dashboard.
 
 **Acceptance.**
 1. Against fixture endpoints for all three, send a weekly report and an alert.
 2. Each payload carries the right figures and a working deep link, and a revoked token surfaces as a delivery failure.
 
 **Evidence.** `src/vane/chat/connections.ts`; `src/vane/chat/delivery.ts`; `src/vane/views/chat-settings.ts`; `migrations/core/0056_vane_chat.sql`; `tests/chat.test.mjs`
-**Gap.** Slack OAuth, Teams workflow and Nook NOOK-079 reports/alerts, sealed credentials, filtered links and once-per-period outcomes. Gap: resolved-address/pinned egress (Base egress door).
+**Gap.** Slack OAuth, Teams workflow and Nook NOOK-079 reports/alerts, sealed credentials, filtered links and once-per-period outcomes. Gap: resolved-address/pinned egress (Base egress door), as RL-7 sets for owner-entered endpoints.
 
 #### REPORT-003 — A readable explanation of what changed
 
 Core · target · **done**
 
-**Requirement.** Every report and alert explains its change by its largest contributors: which channels, pages, campaigns, locations or devices moved, and by how much, with denominators. It includes annotations in the window and any coverage change. It labels a change "within normal variation" exactly when the value falls inside the 95% prediction interval of `ALERT-001`'s day-of-week baseline, and it shows that interval. The explanation never claims a cause. The exact rules: the explanation compares the range with its compared period (`DASH-008`) and lists the two largest absolute movers in each of channels (visits, by each visit's first page load), pages and named campaigns (pageviews) and devices (unique visitors), each with its count in both periods, the change in absolute and percentage terms, and the totals of that dimension in both periods as its denominators. It lists every annotation dated in the range and every coverage count (`COVERAGE-001`: each exclusion reason, privacy signals and imported events) that differs between the periods. For ranges of up to 31 days it judges each day's unique visitors, visits and pageviews against the day-of-week baseline: the same weekday in the 8 weeks before that day, leaving out US federal holidays (as observed) and days before the site's first event, with the 95% prediction interval mean ± t(0.975, n−1) × s × √(1 + 1 ÷ n) shown and rounded to one decimal; a day is within normal variation exactly when its value lies inside the interval, inclusive. A US federal holiday is not judged, and a day with fewer than 4 baseline days is not judged; longer ranges are not judged. This is done when every report that exists today explains itself this way; locations join the movers when `DASH-005` ships, each alert carries the same explanation when `ALERT-001` and `ALERT-002` ship, `ALERT-001` refines this baseline by hour and the owner's business calendar for the report too, and each annotation kind `DASH-009` adds appears in the explanation, each before it is done.
+**Requirement.** Every report and alert explains its change by its largest contributors: which channels, pages, campaigns, locations or devices moved, and by how much, with denominators. It includes annotations in the window and any coverage change. It labels a change "within normal variation" exactly when the value falls inside the 95% prediction interval of `ALERT-001`'s day-of-week baseline, and it shows that interval. The explanation never claims a cause.
 
 **Acceptance.**
 1. Seed a week where organic search falls 40% on one page while other channels are stable.
@@ -1099,7 +1144,7 @@ Core · target · **done**
 
 Core · target · **done**
 
-**Requirement.** An owner sets an alert on visitors, visits or pageviews for a site or a saved segment (`DASH-007`), which then counts only the segment's visits. It fires on a fixed threshold, or on an anomaly: a value outside the 95% prediction interval of a day-of-week and hour baseline that accounts for US federal holidays and the owner's business calendar. Alerts have quiet hours, a cool-down and a recipients list across email, Slack, Teams, Nook and webhook. A spike alert can also watch current visitors (`DASH-001`) against a fixed threshold. Spike and current-visitor conditions are evaluated at least every 5 minutes, and the alert is sent within 15 minutes of the threshold being crossed. The owner can enter scheduled maintenance windows, one-off or recurring, and an Uptime maintenance window arrives the same way. A drop inside a window is held, not sent, and the held alert is recorded in the alert log and on the chart with its reason. Its baseline is the day-of-week baseline of `REPORT-003`, refined by hour and the owner's business calendar, and the report's normal-variation judgment uses the same refinement. Every alert explains its change as `REPORT-003` does: its largest movers with their totals, the annotations in its window and any coverage change. The exact rules: analysts, admins and the owner set alerts (`TEAM-001`) on a site or one of its saved segments, whose filters (the Hostname filter of `DASH-013` included) decide which visits count. Metrics are current visitors (`DASH-001`; fixed threshold only), or visitors, visits (counted in the window they start in) and pageviews, over the last 60 minutes for a fixed threshold and per local clock hour for the anomaly. The anomaly baseline is the same weekday and local hour in the 8 weeks before, leaving out US federal holidays and the closed days of the business calendar (owner and admins name them), with at least 4 baseline hours and the interval mean ± t·s·√(1 + 1 ÷ n); a spike is judged on the running hour as soon as it passes the top, a drop when the hour ends below the bottom, once per hour; an hour on a holiday or a closed day is held. The report's normal-variation judgment (`REPORT-003`) judges whole days, so it takes the same baseline days: holidays and closed days are left out and not judged. Every check runs on the 5-minute cron: a crossing is logged with its time and sent at once, unless the cool-down (1 to 168 hours, 6 by default) since the last send is running, it falls in the alert's quiet hours (local times, wrapping past midnight) or, for a drop, its hour overlaps a maintenance window; each such crossing is held, logged with its reason and not sent later, and a hold by maintenance, a holiday or a closed day is drawn on the chart. A fixed-threshold alert sends again only after the value returns inside the threshold. Maintenance windows are one-off (a date) or weekly (a weekday) local times, or arrive from Uptime through the `DASH-009` annotation door as kind `maintenance` with an end at most 7 days later. Recipients are people who can open the site (the alert's creator by default), each by email and by web push (`MOBILE-001`), and, when an admin or the owner chooses, the site's signed webhooks taking `traffic.alert` (`API-003`); Slack, Microsoft Teams and Nook channels join the recipients with `REPORT-002`, which delivers alerts there before it ships. The message names the alert, the value and its range or threshold, the largest movers against the same window a week before (channels and devices in unique visitors, pages and campaigns in pageviews, each with its totals), that day's annotations and the coverage counts that changed against the same day a week before.
+**Requirement.** An owner sets an alert on visitors, visits or pageviews for a site or a saved segment (`DASH-007`), which then counts only the segment's visits. It fires on a fixed threshold, or on an anomaly: a value outside the 95% prediction interval of a day-of-week and hour baseline that accounts for US federal holidays and the owner's business calendar. Alerts have quiet hours, a cool-down and a recipients list across email, Slack, Teams, Nook and webhook. A spike alert can also watch current visitors (`DASH-001`) against a fixed threshold. Spike and current-visitor conditions are evaluated at least every 5 minutes, and the alert is sent within 15 minutes of the threshold being crossed. The owner can enter scheduled maintenance windows, one-off or recurring, and an Uptime maintenance window arrives the same way. A drop inside a window is held, not sent, and the held alert is recorded in the alert log and on the chart with its reason. Its baseline is the day-of-week baseline of `REPORT-003`, refined by hour and the owner's business calendar, and the report's normal-variation judgment uses the same refinement. Every alert explains its change as `REPORT-003` does: its largest movers with their totals, the annotations in its window and any coverage change.
 
 **Acceptance.**
 1. Seed eight weeks of baseline traffic, then inject a 4× spike, a 70% drop and a Thanksgiving-day dip.
@@ -1116,9 +1161,9 @@ Core · target · **done**
 
 #### ALERT-002 — Conversion, revenue and tracking-health alerts
 
-Core · target · **done**
+Core · target · **partial**
 
-**Requirement.** Alerts also cover a goal or revenue drop and a conversion-rate change. Revenue alerts judge custom-event amounts in the site currency configured at evaluation (retained on each logged crossing), using `CONV-006` dated rates and per-event rounding. A fixed threshold is a major-unit amount with the currency’s minor-unit precision, compared with the last 60 minutes; the usual-range condition uses `ALERT-001`’s hourly baseline. Windows include their start and exclude their end (the fixed window includes the evaluation instant). A window containing an amount without a dated exchange rate is not judged and records an audit diagnostic; it never becomes zero revenue. Tracking-health alerts cover a site with prior traffic that goes silent, a goal that stops firing after a deploy, a surge in collection errors, a collapse in the consent rate, and a divergence between browser-reported and confirmed outcomes (`CONV-008`). Tracking health also covers a page or template that stops sending pageviews while the rest of the site still does. The site overview shows a tracking-health line: how many goals are tracking out of how many, and when the check last ran. The check runs at least daily, at a local time the owner sets (9:00 am by default). Every alert explains its change as `REPORT-003` does: its largest movers with their totals, the annotations in its window and any coverage change. This is done when every currently available conversion, revenue and tracking-health check conforms. Future `CONV-008` carries the browser-reported versus confirmed-outcome divergence alert under all these rules before its outcome sources ship; its acceptance below remains in full. The exact rules for tracking health: once a day, at the first 5-minute check at or after the local time the owner sets (09:00 by default, in the site's time zone; only the owner changes it, and each change is audited), Vane judges the site's previous local day against its baseline days. These are the same weekday in the 8 weeks before, leaving out US federal holidays, the business calendar's closed days (`ALERT-001`) and days before the site's first event, with at least 4 such days (`REPORT-003`'s baseline days). A holiday, a closed day or a day with fewer baseline days is not judged and changes no alert. A site is silent when it had no page load on the day after page loads on every baseline day. A goal (every goal, or the one the alert names) is silent when it had no conversion on the day after conversions on every baseline day while page loads continued; its alert names the latest deploy or release annotation (`DASH-009`) dated from its last conversion's day through the judged day, or says none was annotated. A page or template is a stored path after the site's rewrite rules (`COLLECT-002`). It is silent when it had no pageview on the day after pageviews on every baseline day while the rest of the site still sent; at most 10 are named. A collection error is a page load of a site refused as malformed (400 or 413), from an origin the site does not register (403), or conflicting with an admitted page load or the daily admission limit (409). Collection errors are counted per site and local day with the coverage counts (`COVERAGE-001`), holding only the site, day, fixed reason class (`collection-error`) and count. They surge when the day holds at least 10 and more than the top of the baseline days' 95% prediction interval (`REPORT-003`'s mean ± t·s·√(1 + 1 ÷ n), to one decimal). The consent rate is known only on a site that requires consent and counts declined consent (`COVERAGE-001`). It is admitted page loads over admitted page loads plus declined counts. It collapses when at least 20 page loads reached Vane on the day and the rate fell under half its mean over the baseline days that had page loads reaching Vane (at least 4). Analysts, admins and the owner set each tracking-health condition as its own alert on the whole site (`TEAM-001`). It sends when a check finds its condition and again only after a check no longer does, through `ALERT-001`'s recipients, quiet hours, cool-down, log, web push (`MOBILE-001`), webhooks (`API-003`), chat destinations (`REPORT-002`) and follow-up item (`FOLLOW-001`). Its message explains the judged day against the same day a week before. The overview's line counts the site's goals that converted on the judged day out of all its goals, names the others and shows when the check ran.
+**Requirement.** Alerts also cover a goal or revenue drop and a conversion-rate change. Revenue alerts judge custom-event amounts in the site currency configured at evaluation (retained on each logged crossing), using `CONV-006` dated rates and per-event rounding. A fixed threshold is a major-unit amount with the currency’s minor-unit precision, compared with the last 60 minutes; the usual-range condition uses `ALERT-001`’s hourly baseline. Windows include their start and exclude their end (the fixed window includes the evaluation instant). A window containing an amount without a dated exchange rate is not judged and records an audit diagnostic; it never becomes zero revenue. Tracking-health alerts cover a site with prior traffic that goes silent, a goal that stops firing after a deploy, a surge in collection errors, a collapse in the consent rate, and a divergence between browser-reported and confirmed outcomes (`CONV-008`). Tracking health also covers a page or template that stops sending pageviews while the rest of the site still does. The site overview shows a tracking-health line: how many goals are tracking out of how many, and when the check last ran. The check runs at least daily, at a local time the owner sets (9:00 am by default). Every alert explains its change as `REPORT-003` does: its largest movers with their totals, the annotations in its window and any coverage change.
 
 **Acceptance.**
 1. Remove the script from a fixture site, break a goal's event name and block browser purchase events while Stripe confirms orders.
@@ -1128,17 +1173,17 @@ Core · target · **done**
 5. Each alert's message lists its largest movers with their totals, as the report's explanation does.
 
 **Evidence.** `src/vane/tracking-health.ts`; `src/vane/traffic-alerts.ts`; `src/vane/alert-baseline.ts`; `src/vane/collect.ts`; `src/vane/views/alert-settings.ts`; `src/vane/views/settings.ts`; `migrations/core/0052_vane_alert_goals.sql`; `migrations/core/0059_vane_alert_currency.sql`; `migrations/core/0062_vane_tracking_health.sql`; `tests/vane.test.mjs`; `tests/revenue-alert.test.mjs`; `tests/tracking-health.test.mjs`
-**Gap.** Daily tracking-health checks, named site/goal/page silence, collection-error surge, consent-rate collapse, owner-local schedule, overview line, delivery and webhook proof now ship. Future CONV-008 carries browser-versus-confirmed divergence before its outcome sources ship, under ct scope-review-51; the full acceptance remains unchanged.
+**Gap.** The browser-reported versus confirmed-outcome divergence alert is unasserted; it needs `CONV-008`'s outcome sources (RL-8). The silent site, the goal silent after a deploy, the silent page, separate named alerts, the overview line and the movers are asserted.
 
 #### FOLLOW-001 — Alerts are followed through until a person resolves them
 
 Core · target · **done**
 
-**Requirement.** Each alert opens an item with a responsible person, a next due action and a due time in local business hours. The item can be acknowledged, assigned, commented on and resolved with an outcome: real change, tracking fault fixed, expected, or ignored. Unacknowledged items remind the responsible person, then escalate to a second recipient, on the owner's schedule. Reminders stop when the item is resolved, the metric recovers and a person confirms it, or the owner ends the policy. A delivery or connector failure keeps the item open, and an alert notification alone never closes it. The exact rules: every sent alert (`ALERT-001`; conversion, revenue and tracking-health alerts of `ALERT-002` the same way before they ship) opens an item for the person who set the alert, with the next action "Acknowledge and check the change" due after the policy's reminder hours, counted in business hours: Monday to Friday between the owner's start and end hour in the site's time zone (9:00 to 17:00, 2 hours to the reminder and 4 to the escalation by default). The 5-minute cron reminds the responsible person once, by email and web push, when an unacknowledged item passes its due time, and escalates once to the policy's second recipient (a person who can open the site) at the escalation time. Analysts, admins and the owner acknowledge, assign to a person who can open the site and resolve; every role that sees the item comments in plain text up to 500 characters. Acknowledging stops reminders and escalation; resolving records who, when and the outcome; a recovered metric is resolved by the person confirming it, as expected or real change. The owner sets the policy and can end it, which stops reminders on every item. Each change (opened, reminded, escalated, acknowledged, assigned, commented, resolved) is kept in the item's history, audited and delivered as `follow.change` to the site's webhooks that take it (`API-003`), with the item's state and outcome and never a person.
+**Requirement.** Each alert opens an item with a responsible person, a next due action and a due time in local business hours. The item can be acknowledged, assigned, commented on and resolved with an outcome: real change, tracking fault fixed, expected, or ignored. Unacknowledged items remind the responsible person on the owner's schedule; escalating to a second person is Oncall's job. Reminders stop when the item is resolved, the metric recovers and a person confirms it, or the owner ends the policy. A delivery or connector failure keeps the item open, and an alert notification alone never closes it.
 
 **Acceptance.**
-1. Fire a drop alert, leave it unacknowledged past the reminder time, then the escalation time.
-2. One reminder and one escalation arrive.
+1. Fire a drop alert and leave it unacknowledged past the reminder time.
+2. One reminder arrives.
 3. Acknowledge and resolve it as a tracking fault.
 4. Reminders stop and the item records who resolved it, when and with what outcome.
 
@@ -1149,9 +1194,9 @@ Core · target · **done**
 
 #### SHARE-001 — Shared links and embedded dashboards
 
-Core · target · **done**
+Core · target · **done** · Cites BASE-PUBLIC-002
 
-**Requirement.** An owner creates read-only shared links to a site or segment, optionally password-protected and with an expiry. Each link is revocable and can hide revenue or chosen reports. A link can be embedded as an iframe with a light or dark theme. Viewers need no account and cannot see settings or other sites. The exact rules: the owner or an administrator creates a link in the site settings to the whole site or one saved segment (`DASH-007`), which the viewer cannot change, with reports chosen from the public-page list (`SHARE-002`), so a link hides revenue by leaving the revenue report (`CONV-006`) unchosen. The link's address holds a token of 32 random bytes shown once; Vane keeps only its SHA-256. An optional password of 8 to 200 characters is kept as a salted PBKDF2-SHA256 hash (100,000 iterations); the right password sets a signed cookie scoped to that link's path for 24 hours, and after 10 wrong passwords within 15 minutes the link answers 429 until that window ends. A link may expire 1 to 365 days after it is created (exactly that many 24-hour days); an expired, revoked or unknown link answers 404, and revoking deletes the link at once. A link opens in an iframe only on the site's registered origins (`SITE-001`) and up to 5 more https origins the owner lists, light by default and dark with `?theme=dark`; its pages are never indexed. A viewer may change the reporting period and nothing else, and the link opens no private route. Creating and revoking a link are audited (`AUDIT-001`). The viewer's imported-data switch is `IMPORT-007`'s, and city and metro folding and metro-name publication on links are `DASH-005`'s, each before it ships.
+**Requirement.** An owner creates read-only shared links to a site or segment, optionally password-protected and with an expiry. Each link is revocable and can hide revenue or chosen reports. A link can be embedded as an iframe with a light or dark theme. Viewers need no account and cannot see settings or other sites.
 
 **Acceptance.**
 1. Create a password-protected link that hides revenue, open it signed out and embed it.
@@ -1162,7 +1207,7 @@ Core · target · **done**
 
 #### SHARE-002 — Public dashboards
 
-Core · target · **done**
+Core · target · **done** · Cites BASE-PUBLIC-001
 
 **Requirement.** A site can publish a public stats page at a stable URL. The owner chooses which reports appear and whether search engines may index it. No report is chosen by default, so a site has no public page until the owner chooses one; revenue appears only in the revenue report, when the owner chooses it (`CONV-006`).
 
@@ -1176,39 +1221,49 @@ Core · target · **done**
 
 #### TEAM-001 — Per-site roles and invitations
 
-Core · target · **done**
+Core · target · **done** · Cites BASE-ROLE-001, BASE-ACCESS-004
 
-**Requirement.** People are invited by email to the whole installation or to chosen sites with a role. An Owner controls everything, including billing and erasure. An Admin manages sites and settings. An Analyst creates goals, funnels, segments (`DASH-007`), no-code events (`CONV-009`), reports and alerts. A Viewer reads. Ownership can be transferred, and removal takes effect at once. Every private door enforces the role and the site scope server-side. The exact rules: Base holds each person's account, the emailed invitation and the account role (owner, admin or member); Vane adds, per person, the Vane role and the sites they may open, either every site or the chosen ones. An Admin is a Base admin; an Analyst or Viewer is a Base member, and a member invited before these roles existed is a Viewer of every site. The owner invites any role; an admin invites analysts and viewers to sites they can open, and only the owner or an installation-wide admin grants every site. Analysts save and delete segments, preview no-code events and prepare settings proposals that change only goals, scroll goals, funnels and no-code events, which the owner approves; every other setting is carried over unchanged. every role, Viewers included, adds dated notes to its sites (`DASH-009`); roll-ups stay the owner's (`DASH-010`) and open only for a person who can open every site in them. Only the owner approves proposals, erasure and site deletion. A site outside a person's sites is absent from every list and overview, and every door that names it, by query, path, form or command, answers 403 before any write; the installation audit and the team page need installation-wide access, and a site-scoped admin manages only members within their sites. A change of role or sites applies at the next request, and removal is Base's deactivation, which ends the person's sessions at once. Ownership moves only when the current owner types the new owner's email address and holds Base's fresh emailed confirmation (`owner:transfer`); the new owner holds every site and the former owner becomes an admin. Alerts (`ALERT-001`, `ALERT-002`) and scheduled reports (`REPORT-001`) inherit these roles and sites before they ship.
+**Requirement.** People are invited by email to the whole installation or to chosen sites with a role. An Owner controls everything, including billing and erasure. An Admin manages sites and settings. An Analyst creates goals, funnels, segments (`DASH-007`), no-code events (`CONV-009`), reports and alerts. A Viewer reads. Ownership can be transferred, and removal takes effect at once. Every private door enforces the role and the site scope server-side.
 
 **Acceptance.**
 1. Invite an analyst to one site and a viewer to two sites.
-2. Exercise every action through its public route as each role, including the analyst saving a segment (`DASH-007`) and preparing a no-code event (`CONV-009`): every out-of-role or out-of-scope call is refused with no write, and a transfer of ownership works only with the current owner's confirmation.
+2. Exercise every action through its public route as each role, including the analyst saving a segment (`DASH-007`) and preparing a no-code event (`CONV-009`): every out-of-role or out-of-scope call is refused, and a transfer of ownership works only with the current owner's confirmation.
 
 **Evidence.** `src/vane/team.ts`; `src/vane/core.ts`; `src/vane/routes.ts`; `src/vane/commands.ts`; `src/vane/views/team.ts`; `migrations/core/0037_vane_team.sql`; `tests/vane.test.mjs`
 **Gap.** None.
 
-#### TEAM-002 — Single sign-on and two-step sign-in
+#### TEAM-002 — Single sign-on through Google and Microsoft
 
-Core · target · **partial**
+Core · target · **partial** · Cites BASE-SIGNIN-001
 
-**Requirement.** Team members can sign in with Google Workspace or Microsoft Entra ID through OIDC, with SAML and SCIM provisioning through [Auth](https://github.com/just-every/run-auth), Okta or Entra ID. Every account can turn on a TOTP or passkey second step, with one-time recovery codes. Owners can require SSO, or require a passkey/TOTP second step for everyone. A member without a second step is then held at enrollment on their next sign-in and can reach nothing else until they enroll. The ct-approved authority rules (22 October 2026, 12:30Z) are: installation-owned provider bindings and explicit SAML/Entra subject associations admit native accounts. SCIM creates a native zero-site Viewer and a federation binding by issuer and subject, never an email merge or site grant; only an owner subsequently grants sites. SCIM never raises a role, reactivates an owner-removed or deactivated person, touches an owner or sends invitation mail. Its credential is owner-issued, shown once, stored hashed, scoped to SCIM only, rotatable and revocable with audit. Deactivation ends sessions, API keys and push tokens at the next request and is idempotent; replayed or out-of-order calls change nothing twice. SSO and TOTP are off by default, owner-proved, audited and enforced for owners and existing sessions at the next request. The documented owner break-glass uses a fresh deployment-issued `rer signin` link, preserves any enrolled or required second step, disables SSO explicitly with audit, and is never SCIM-reachable. Credentials and factor proofs are excluded from analytics archives. Future MOBILE-002 and AGENT-003 inherit live membership and required sign-in fences for native user sessions and custodial grants.
+**Requirement.** Team members can sign in with Google Workspace or Microsoft Entra ID through OIDC, and owners can require SSO. Provider bindings are installation-owned, SSO is off until the owner turns it on, and the owner's documented break-glass sign-in works during an identity-provider outage (RL-3). SAML and SCIM provisioning are `TEAM-004`; second-step sign-in is `TEAM-003`.
 
 **Acceptance.**
-1. Against OIDC and SAML fixture issuers, sign in, enforce SSO and deprovision a member through SCIM; their access ends at once.
-2. Turn on TOTP for one member and sign in with a valid code, a wrong code (refused) and a recovery code (accepted once).
-3. Then enforce a second step for everyone.
-4. A member without one is held at the enrollment page, and every private route refuses them until they enroll, after which they sign in with TOTP.
-5. Prove owner-issued shown-once hashed SCIM credentials, scope, rotation, revocation and audit; issuer+subject creation without email merge or site grants; no privilege raise, reactivation, owner mutation or invitation mail; next-request session/API/push revocation; idempotent and out-of-order requests; off-default, owner-proved audited enforcement including owners and existing sessions; and audited deployment-custody owner break-glass during an IdP outage.
-6. A real Auth, Okta or Entra IdP tenant must exercise SCIM; fixtures alone are not provider proof.
+1. Against an OIDC fixture issuer, sign in and enforce SSO.
+2. The owner turns SSO on with an audited proof, enforcement covers owners and existing sessions at the next request, and the owner's deployment-issued break-glass link signs in during an identity-provider outage with audit.
 
 **Evidence.** `tests/security.test.mjs` — “organization OIDC signs in Google and Entra members, refuses altered proofs and replay, and fences existing sessions when SSO is required” proves Google/Entra fixture sign-in and SSO enforcement; “SAML fixture signs existing invited accounts into native sessions, enforces signed binding constraints and refuses response replay” proves SAML fixture sign-in and enforced SSO; “SCIM credentials are owner-issued once, hashed, isolated from native and API authority, rotatable and revocable with audit” proves credential custody; “SCIM provisions bound zero-site Viewers without mail or email merges and never grants sites or raises roles” proves immutable federation binding and provisioning scope; “SCIM deactivation ends native and federated sessions, API keys and push tokens on the next request; replays and owner removal never reactivate” proves revocation and replay/order safety; “authenticator sign-in refuses wrong and replayed codes, consumes a recovery code once, and excludes credentials from analytics archives” proves TOTP/recovery and archive exclusion; “owner enforcement holds every account without a factor at enrollment, refuses private mutations and enrolls it before authenticator sign-in” proves owner-proved enrollment and all existing private HTTP and bearer doors. `tests/security-browser.test.mjs` — “members enroll and challenge in a real browser; owner requirements and SAML sign-in render at 1440 and 390” proves sign-in, factor and SCIM-credential screens; “owner outage recovery requires a deployment-issued owner link, preserves the second step and audits one recovery at 1440 and 390” proves audited owner break-glass and its access limits.
-**Gap.** Named external dependency `okta-scim-admin-console`: the held Okta Integrator tenant and administrator API token are available, but its SCIM test integration requires Admin Console provisioning configuration and no administrator console session is held. On 26 October 2026, the real tenant created isolated app `0oa1952y0wj03P7WL698`; the connection API returned HTTP 200 with status UNKNOWN and authScheme UNKNOWN, enabling USER_PROVISIONING returned HTTP 400 E0000001 with “Provisioning is not supported.”, and activation returned HTTP 500 E0000009. App updates did not persist provisioning settings or features. System Log event `8ae92de3-d11d-11f1-90c9-cd15bf80c920` records the app update at 09:13:43.999Z; no SCIM provider request was exercised. System Log deletion event `dd8b59e4-d11d-11f1-a032-cfff29bedbfc` succeeded at 09:16:02.635Z. The temporary app was deactivated and deleted, with GET returning 404; no test users or Cloudflare resources were created. Still unproved: real-provider create and deactivate, next-request session, API and push revocation, and zero-site provisioning in that live journey. Existing fixture proof remains valid; TEAM-002 stays PARTIAL under the ct ruling of 22 October 2026 12:30Z.
+**Gap.** Status carried from partial TEAM-002, whose named gap is the real-tenant SCIM run (TEAM-004, R-6); this part is a fresh-judge candidate.
+
+#### TEAM-003 — Two-step sign-in with TOTP or a passkey
+
+Core · target · **partial** · From TEAM-002 · Cites BASE-SIGNIN-002
+
+**Requirement.** Every account can turn on a TOTP or passkey second step, with one-time recovery codes. Owners can require a passkey or TOTP second step for everyone; a member without one is then held at enrollment on their next sign-in and can reach nothing else until they enroll.
+
+**Acceptance.**
+1. Turn on TOTP for one member and sign in with a valid code, a wrong code (refused) and a recovery code (accepted once).
+2. Then enforce a second step for everyone.
+3. A member without one is held at the enrollment page, and every private route refuses them until they enroll, after which they sign in with TOTP.
+
+**Evidence.** `tests/security.test.mjs` — “organization OIDC signs in Google and Entra members, refuses altered proofs and replay, and fences existing sessions when SSO is required” proves Google/Entra fixture sign-in and SSO enforcement; “SAML fixture signs existing invited accounts into native sessions, enforces signed binding constraints and refuses response replay” proves SAML fixture sign-in and enforced SSO; “SCIM credentials are owner-issued once, hashed, isolated from native and API authority, rotatable and revocable with audit” proves credential custody; “SCIM provisions bound zero-site Viewers without mail or email merges and never grants sites or raises roles” proves immutable federation binding and provisioning scope; “SCIM deactivation ends native and federated sessions, API keys and push tokens on the next request; replays and owner removal never reactivate” proves revocation and replay/order safety; “authenticator sign-in refuses wrong and replayed codes, consumes a recovery code once, and excludes credentials from analytics archives” proves TOTP/recovery and archive exclusion; “owner enforcement holds every account without a factor at enrollment, refuses private mutations and enrolls it before authenticator sign-in” proves owner-proved enrollment and all existing private HTTP and bearer doors. `tests/security-browser.test.mjs` — “members enroll and challenge in a real browser; owner requirements and SAML sign-in render at 1440 and 390” proves sign-in, factor and SCIM-credential screens; “owner outage recovery requires a deployment-issued owner link, preserves the second step and audits one recovery at 1440 and 390” proves audited owner break-glass and its access limits.
+**Gap.** Status carried from partial TEAM-002, whose named gap is the real-tenant SCIM run (TEAM-004, R-6); this part is a fresh-judge candidate.
 
 #### AGENCY-001 — Agency client workspaces and branded reports
 
 Core · target · **done**
 
-**Requirement.** An agency installation groups sites by client. Client users see only their client's sites, and reports, shared links and emails can carry the agency's or the client's logo, colors and custom domain. The agency sees a cross-client overview. Implemented authority (ct approval pending): the owner explicitly manages audited client membership, site assignment, branding and public report domains; client accounts are viewers bounded by their client’s current sites on every request and email dispatch. Branding is disabled by default. Enabling a brand publishes only the uploaded raster logo, name and colors on the existing report scopes; custom domains expose only public/shared report, asset and unsubscribe doors, with native sign-in kept on the installation origin. Domain attachment and TLS remain the owner’s explicit Cloudflare configuration; Vane never provisions or probes them. Whole-installation archives retain agency settings; a site transfer grants no client membership at its destination.
+**Requirement.** An agency installation groups sites by client. Client users see only their client's sites, and reports, shared links and emails can carry the agency's or the client's logo, colors and custom domain. The agency sees a cross-client overview. The owner manages client membership, site assignment, branding and public report domains; branding is off by default, and its rules are in `docs/contract/rules.md`.
 
 **Acceptance.**
 1. Create two clients, each with a site and a client user.
@@ -1221,7 +1276,7 @@ Core · target · **done**
 
 Core · target · **done**
 
-**Requirement.** A documented REST API (`/api/v1/stats`, with an OpenAPI description) answers the same metrics, dimensions, filters, segments, comparisons and date ranges as the dashboard. It uses API keys that are scoped to sites, read-only and revocable, and it publishes its rate limits. Answers equal the dashboard's figures. For switchers, an aggregate website analytics Stats API v2-compatible route (`POST /api/v2/query`) answers existing aggregate website analytics scripts and dashboards with Vane's figures. A Sites API with provisioning keys lets an agency create sites, goals and shared links from its own tooling. The exact rules: `GET /api/v1/stats` takes `site_id`, `metrics` (visitors, visits, pageviews, bounce_rate, visit_duration as the average in seconds, views_per_visit, conversion_rate), one `dimension` (channel, source, referrer, the five UTM fields, device, browser, os, screen, page, entry_page, exit_page, hostname, country, region, city, metro; a metro row's value is its code, beside `metro_code` and `metro_name`, null when unnamed, and filters match the code, `DASH-005`), a `period` preset or `from` and an exclusive `to` in the site's time zone, `compare` (previous, year or custom with `compare_from`/`compare_to`), `filter=dimension:op:value` and a saved `segment`, and answers from the dashboard's own report service with the compared period's totals and each breakdown row's compared figure. `GET /api/v1/openapi.json` describes every route and the limits. A Stats API key is created by the owner, or by an admin for sites within their `TEAM-001` sites, reads only its chosen sites, is shown once and kept only as SHA-256, and is refused with 401 once revoked or once its creator is removed; a key for another site gets 403. Per key, at most 30 requests in each 10-second window and 600 in each clock hour (UTC) are answered; over either, 429 with Retry-After. Requests are recorded only as per-key counts per window, and the UTC day's count is shown with each key, never a per-request log. `POST /api/v2/query` takes aggregate website analytics v2's `site_id` (the site's hostname or Vane ID), `metrics`, `date_range` (day, 7d, 30d, month, year, 12mo, all as Vane's presets ending today in the site's time zone, or [first, last] with both days included), at most one dimension, filters with one value each and `include.comparisons` (previous_period or year_over_year); anything else is refused with 400 rather than answered differently. A provisioning key is created only by the owner and acts as the owner's standing approval: `POST /api/v1/sites`, `/api/v1/sites/{id}/goals` and `/api/v1/sites/{id}/shared-links` prepare and approve at once in the owner's name through the proposal path (the exception `APPROVE-001` names), audited via `key:<label>`; shared links follow `SHARE-001` and their URL is returned once; the key stops working when its creator is no longer the active owner.
+**Requirement.** A documented REST API with an OpenAPI description answers the same metrics, dimensions, filters, segments, comparisons and date ranges as the dashboard. It uses API keys that are scoped to sites, read-only and revocable, and it publishes its rate limits. Answers equal the dashboard's figures. For switchers, an aggregate website analytics Stats API v2-compatible route answers existing aggregate website analytics scripts and dashboards with Vane's figures. A Sites API with provisioning keys lets an agency create sites, goals and shared links from its own tooling.
 
 **Acceptance.**
 1. With a scoped key, query visitors by channel with a filter, a saved segment (`DASH-007`) and a comparison; the figures equal the dashboard's.
@@ -1233,9 +1288,9 @@ Core · target · **done**
 
 #### API-002 — CSV, Looker Studio and warehouse export
 
-Core · target · **done**
+Core · target · **done** · Rules D-3
 
-**Requirement.** Every report table downloads as CSV, and a whole site exports as a ZIP of CSVs in the same layout aggregate website analytics uses. A Looker Studio connector reads the Stats API. A scheduled export of rollups and anonymous events goes to BigQuery, Snowflake, Amazon S3 or Cloudflare R2, with a declared schema. The exact rules: CSV downloads and the site ZIP follow the person's site scope (`TEAM-001`). The ZIP holds one `imported_<table>_<first date>_<last date>.csv` per aggregate website analytics table (visitors, sources, pages, entry pages, exit pages, custom events, devices, browsers, operating systems, locations and metros), one row per site-local date and value, measured with the dashboard's visit definitions, so daily counts match that date’s dashboard figures; pageviews, visits and conversions add across dates, while consented unique visitors (`METRIC-005`) deduplicate over the requested range and cannot be obtained by summing daily ZIP visitor counts; `visit_duration` is the visits' total in whole seconds, direct visits have an empty source, and the locations file carries country, region and city names, with a separate metros file carrying `metro_code` and `metro_name`, the name the site's approved metro-name table gives the code at export time, empty when unnamed (`DASH-005`); the warehouse events carry the same two columns the same way, and an unnamed code's observed place is never exported. The Looker Studio connector is an Apps Script community connector in `connectors/looker-studio` that reads `/api/v1/stats` with a site's read-only Stats API key (`API-001`), one dimension per chart, over Looker Studio's inclusive date range in the site's time zone, with rates as fractions. Only the owner schedules the export, to an S3-compatible bucket (Amazon S3 or Cloudflare R2, signed with AWS Signature Version 4); BigQuery and Snowflake load from that bucket through their own S3 stage, and a direct BigQuery or Snowflake destination inherits every rule here before it ships. The secret key is sealed with AES-GCM under the installation's session secret, never shown again, erased when the export stops and left out of history archives. The endpoint is an https origin and never localhost, a `.localhost`, `.local`, `.internal` or `.home.arpa` name, a single-label name, or a private, loopback, link-local, carrier-grade NAT, unspecified or multicast address literal. Each site-local date is sent once after it ends, checked every 5 minutes and at most seven dates a run, as two CSV objects: `<prefix>vane/<site ID>/daily_rollups/<date>.csv` (that date's dashboard totals) and `<prefix>vane/<site ID>/events/<date>.csv` (every stored page load and goal event, never the visitor hash, salt, IP address or user agent), in the schema published at `/api/v1/export-schema.json`. Every run is audited with its row counts; a refused upload sends nothing more, keeps the date and is retried after an hour. The destination is listed under Declared data flows and in `seed.json` (`PRIVACY-005`).
+**Requirement.** Every report table downloads as CSV, and a whole site exports as a ZIP of CSVs in the same layout aggregate website analytics uses. A Looker Studio connector reads the Stats API. A scheduled export of rollups and anonymous events goes to BigQuery, Snowflake, Amazon S3 or Cloudflare R2, with a declared schema.
 
 **Acceptance.**
 1. Download a breakdown as CSV and a site ZIP, run the Looker Studio connector against the API, and run a scheduled export to an R2 fixture.
@@ -1246,9 +1301,9 @@ Core · target · **done**
 
 #### API-003 — Webhooks for goals, alerts and reports
 
-Core · target · **done**
+Core · target · **done** · Cites BASE-OPS-003, BASE-OPS-004 · Rules D-3
 
-**Requirement.** Signed webhooks fire on goal conversions (aggregated per minute, never per person), alerts, follow-up changes and report generation. They are retried with backoff, and their deliveries are visible. They feed [Crank](https://github.com/just-every/run-crank), Zapier and Make. The exact rules: an owner or an administrator of the site adds an endpoint, an https address on a public host (the refused hosts of `API-002`), and chooses its events. This is done when every event that exists today is delivered this way: goal conversions, sent as one delivery per site, goal and ended UTC minute with its count (`event`, `site_id`, `goal`, `minute`, `count`), never per person. Traffic alerts (`ALERT-001`) are delivered this way as `traffic.alert`, one delivery per sent alert that names webhooks among its recipients, carrying the alert's name, metric, condition, direction, value, threshold or range and time, never a visitor field. Follow-up items (`FOLLOW-001`) are delivered as `follow.change`, one delivery per change with the item's state and outcome and never a person. The remaining alert and report events inherit every rule here before `ALERT-002`, `REPORT-001` and `REPORT-002` ship. Each body is signed as `Vane-Signature: t=<unix seconds>,v1=<hex HMAC-SHA256 of t.body>` with the endpoint's secret, shown once, sealed with AES-GCM under the installation's session secret and left out of history archives; `Vane-Delivery` names the delivery and stays the same on every retry, so a receiver keeps one. The cron queues ended minutes and sends due deliveries every 5 minutes; a delivery that does not answer 2xx is retried after 1, 5 and 30 minutes, 2 and 6 hours, then shows as failed. The delivery log, for owners and administrators, keeps each attempt's time, HTTP status and outcome, never a response body. Adding and deleting a webhook are audited, and the flow is listed under Declared data flows and in `seed.json` (`PRIVACY-005`).
+**Requirement.** Signed webhooks fire on goal conversions (aggregated per minute, never per person), alerts, follow-up changes and report generation. They are retried with backoff, and their deliveries are visible. They feed [Crank](https://github.com/just-every/run-crank), Zapier and Make.
 
 **Acceptance.**
 1. Subscribe a webhook endpoint, fire an alert and a goal burst, and fail the first delivery.
@@ -1259,9 +1314,9 @@ Core · target · **done**
 
 #### API-004 — MCP endpoint for assistants
 
-Core · target · **done**
+Core · target · **done** · Cites BASE-AGENT-001
 
-**Requirement.** An authenticated Model Context Protocol endpoint lets Claude, ChatGPT and other assistants query a site's analytics with the same scopes as API keys. Assistants are read-only unless a grant from `AGENT-003` applies. The exact rules: the endpoint is `POST /api/v1/mcp`, MCP's Streamable HTTP transport (protocol versions 2025-06-18, 2025-03-26 and 2024-11-05) with one JSON-RPC message per request, JSON answers and no event stream, so any client that sends a bearer header connects. It takes a Stats API key (`API-001`) as `Authorization: Bearer`, with that key's site scope, revocation and published rate limits. `list_sites` names the key's sites, and `query_stats` takes the Stats API's parameters and returns its answer unchanged. Write tools (today `add_annotation`) need an agent grant from `AGENT-003`: until `AGENT-003` issues grants every write tool is refused and changes nothing, and `AGENT-003` inherits this endpoint's key scope before it grants one.
+**Requirement.** An authenticated Model Context Protocol endpoint lets Claude, ChatGPT and other assistants query a site's analytics with the same scopes as API keys. A write tool acts only within an agent grant the owner issued (`AGENT-003`).
 
 **Acceptance.**
 1. Connect an MCP client with a scoped key and ask for last week's top sources; the result equals the Stats API answer, and a write tool is refused without a grant.
@@ -1273,22 +1328,22 @@ Core · target · **done**
 
 #### PRIVACY-001 — Data inventory and privacy-policy text
 
-Core · target · **done**
+Core · target · **partial**
 
-**Requirement.** For each site, Vane shows exactly which fields are collected, which are derived and then discarded, the identifier lifetime in each mode, the salt rotation, the retention (30, 90 or 365 days, 13 or 25 months, or unlimited) and the processors (Cloudflare, plus each connected integration). It also generates plain-language privacy-policy text the owner can paste. The text changes when the settings change. This is done when every capability that exists conforms: the inventory names every column each site stores, by table, and the text follows consent, automatic events, site search, kept query parameters, the privacy-signal counter, retention and time zone. Each later capability inherits the obligation and adds its inventory entry and policy sentence before it ships: the consented identifier and its lifetime (`METRIC-005`), longer retention windows (`RETENTION-002`), custom events (`CONV-002`), location (`DASH-005`, with the site's US metro-name table listed as a site setting holding no visitor data), and each processor it connects (`SEARCH-001`, `SEARCH-002`, `ADS-001`, `CONV-008`, `REPORT-002`, `API-003`). Until then the inventory states that no consented identifier exists and that Cloudflare is the only processor.
+**Requirement.** For each site, Vane shows exactly which fields are collected, which are derived and then discarded, the identifier lifetime in each mode, the salt rotation, the retention (30, 90 or 365 days, 13 or 25 months, or unlimited) and the processors (Cloudflare, plus each connected integration). It also generates plain-language privacy-policy text the owner can paste. The text changes when the settings change.
 
 **Acceptance.**
 1. Toggle consented mode, automatic events and a Search Console connection.
 2. The inventory and the generated text change to match, and the stored data matches the inventory.
 
 **Evidence.** `src/vane/inventory.ts`; `src/vane/views/settings.ts`; `tests/vane.test.mjs`
-**Gap.** None.
+**Gap.** Toggling consented mode and a Search Console connection is unasserted in the inventory journey; automatic events, site search, kept query parameters, the signal counter, retention, time zone and the stored-column check are asserted.
 
 #### RETENTION-002 — Raw events kept as long as the owner chooses
 
-Core · target · **done**
+Core · target · **done** · Cites BASE-DATA-002
 
-**Requirement.** Each site chooses how long its raw pageviews and events are kept: 30, 90 or 365 days, 13 or 25 months, or for as long as the installation exists. Inside the window every accepted pageview and event is kept at full detail, never only as a rollup, and applying retention (`RETENTION-001`) erases only events older than the window. No visit is turned away or thinned for volume once `COLLECT-004` lifts the daily admission ceiling. Before the installation's store reaches 80% of its published capacity (`COLLECT-004`), the app warns and names the two choices: a scheduled warehouse export (`API-002`) or a shorter window. Vane never drops or rolls up raw events silently to make room. The exact rules: a window of N days keeps events dated from N days before today (UTC), and a window of N months keeps those from the same date N months earlier (the month's last day when it is shorter); applying retention on a keep-forever site erases nothing and journals nothing, and Apply retention erases one imported event per run, so the owner repeats it until none remain (one deletion is journaled per cut-off day). The published capacity is D1's database size limit, 10,240 MB on Workers Paid; an owner on Workers Free sets `VANE_STORE_LIMIT_MB` to 500. The store's size is the one D1 reports, shown on the History pages; from 80% of the capacity every app page warns and names both choices, each in a site's settings: the scheduled warehouse export (`API-002`) and a shorter window. The daily admission ceiling is `COLLECT-004`'s to lift; this clause adds no volume limit of its own.
+**Requirement.** Each site chooses how long its raw pageviews and events are kept: 30, 90 or 365 days, 13 or 25 months, or for as long as the installation exists. Inside the window every accepted pageview and event is kept at full detail, never only as a rollup, and applying retention (`RETENTION-001`) erases only events older than the window. Before the installation's store reaches 80% of its published capacity (`COLLECT-004`), the app warns and names the two choices: a scheduled warehouse export (`API-002`) or a shorter window. Vane never drops or rolls up raw events silently to make room.
 
 **Acceptance.**
 1. On a site set to keep events for as long as the installation exists, import 30 months of history, collect today's events and apply retention.
@@ -1314,9 +1369,9 @@ Core · target · **done**
 
 #### PRIVACY-003 — Consent managers and regional consent modes
 
-Core · target · **done**
+Core · target · **done** · Rules D-1, D-2
 
-**Requirement.** Consent comes from `window.vaneConsent`, Google Consent Mode v2 signals, or a ready adapter for OneTrust, Cookiebot, Termly, Osano, Iubenda and CookieYes. A site can require consent only for chosen regions (for example the EU, the UK and California) and stay cookie-free elsewhere. Consented mode (`METRIC-005`) runs only after consent. The exact rules (ct 13:06Z): the script reads consent once as the page loads, in this order: `window.vaneConsent` when it is `true` or `false`; then the last Google Consent Mode v2 `consent` default or update in `dataLayer` that sets `analytics_storage`; then the site's one chosen consent manager through its public JavaScript API only (OneTrust group C0002 in `OnetrustActiveGroups`, Cookiebot `consent.statistics` once it has a response, Termly `getConsentState().analytics`, Osano `getConsent().ANALYTICS` of ACCEPT, Iubenda purpose 4 in `getPreferences()`, CookieYes `categories.analytics` once the visitor has acted). No answer means no consent, Vane reads or writes no consent-manager cookie, and a choice made later on the page applies from the next page load. A site that requires consent may list regions (EU, EEA, UK, a country code, or a subdivision such as US-CA); consent is then required only where the visitor's Cloudflare country, or country and region code, is in one of them, compared in memory. Raw IP address, user agent, Cloudflare country/subdivision codes, postal code, coordinates and request timezone are never stored. A consent-denied or unknown-consent load stores no event, visitor hash or location, only an owner-enabled site/day/reason/count counter. An admitted load stores only DASH-005’s country, region and city names and its US metro code (metro names live in the site's metro-name table and are never stored on events); Unknown/XX/T1 and Events API locations are NULL and shown as Unknown location. Location travels with its event in archives and is erased with it, and a visitor whose country is unknown (`XX`, `T1` or absent) is asked for consent. The configuration door tells the script only whether consent is required and which manager to read, and every collection door (page loads, automatic and custom events, split-test exposures and the Events API, `INSTALL-008`) refuses a request without granted consent where it is required. A denied or unknown page load sends nothing but the owner-enabled field-free declined count (`COVERAGE-001`). Consented mode (`METRIC-005`) inherits this consent before it ships.
+**Requirement.** Consent comes from `window.vaneConsent`, Google Consent Mode v2 signals, or a ready adapter for OneTrust, Cookiebot, Termly, Osano, Iubenda and CookieYes. A site can require consent only for chosen regions (for example the EU, the UK and California) and stay cookie-free elsewhere. Consented mode (`METRIC-005`) runs only after consent.
 
 **Acceptance.**
 1. With each adapter on a fixture page, deny and then grant consent from a California, a German and a Texas location.
@@ -1325,51 +1380,37 @@ Core · target · **done**
 **Evidence.** `src/vane/consent.ts`; `src/vane/tracker.ts`; `src/vane/collect.ts`; `src/vane/views/settings.ts`; `src/vane/privacy.ts`; `tests/vane.test.mjs`
 **Gap.** None.
 
-#### PRIVACY-004 — Data location choice
-
-Core · target · **missing**
-
-**Requirement.** At setup the owner chooses where analytics data is stored: the US (the default), or the EU jurisdiction for EU-facing sites, using Cloudflare D1 location and jurisdiction controls. The choice is shown in the data inventory.
-
-**Acceptance.**
-1. Deploy one installation with the EU jurisdiction.
-2. The database reports EU jurisdiction, and the inventory says so.
-
-**Evidence.** None.
-**Gap.** No data location choice.
-
 #### PRIVACY-005 — Visitor data stays in the owner's installation
 
-Core · target · **done**
+Core · target · **done** · Cites BASE-DATA-004, BASE-DATA-005
 
-**Requirement.** Visitor events go only from the visitor's browser to the installation's own Worker, or to the owner's own proxy (`INSTALL-006`), and are stored only in the installation's own database. The script loads nothing from any other host and sends nothing to one. Collection, reports, imports and exports make no outbound request except to an integration the owner has connected, each declared under Declared data flows and in `seed.json`, and no integration ever receives a visitor-level record. The other outbound flow is Verify installation (`INSTALL-001`), listed under Declared data flows: a GET for the registered origin's public homepage (up to five redirects) that carries no visitor data and stores only the pass and fail result; the owner's own website is not an integration, so it has no `seed.json` externals entry. The one extension is the explicit owner- or administrator-started sitemap scan (`IMPORT-008`): only the registered origin’s robots.txt-listed or /sitemap.xml sitemaps and the same-origin pages they list, with an owner-selected page limit, honouring robots.txt disallow, no redirects or credentials, no stored bodies, only derived findings with URL and time and the scan actor and time and fetched and refused record. Neither the Vane authors nor Run Edit Run receive any data or telemetry from an installation.
+**Requirement.** Visitor events go only from the visitor's browser to the installation's own Worker, or to the owner's own proxy (`INSTALL-006`), and are stored only in the installation's own database. The script loads nothing from any other host and sends nothing to one. Collection, reports, imports and exports make no outbound request except to an integration the owner has connected, each declared in `docs/contract/data-flows.md` and in `seed.json`, and no integration ever receives a visitor-level record. Verify installation (`INSTALL-001`) and the call-site scan (`IMPORT-011`) are the two owner-started fetches of the owner's own site, with the boundaries in `docs/contract/data-flows.md`.
 
 **Acceptance.**
 1. In a browser, load a fixture page with `vane.js` and record every request: only the installation's origin receives one.
 2. With every outbound request from the Worker refused and recorded, collect events, read every report, apply an import and download the archive.
 3. Each succeeds, and the record holds no outbound request.
-4. `seed.json` lists Cloudflare as the only required external; every other entry is an integration an owner connects (today the scheduled warehouse export, `API-002`, webhooks, `API-003`, and browser push services, `MOBILE-001`, and owner-initiated reporting analytics report reads, `IMPORT-005`, and owner-connected property-based analytics aggregate history reads, `IMPORT-002`).
+4. `seed.json` lists Cloudflare as the only required external; every other entry is an integration an owner connects.
 
 **Evidence.** `src/vane/cutover/scan.ts`; `tests/sitemap-scan.test.mjs`; `src/vane/tracker.ts`; `src/vane/collect.ts`; `seed.json`; `tests/harness.mjs`; `tests/vane.test.mjs`
 **Gap.** None.
 
 #### AUDIT-001 — Durable audit of settings, data and agent actions
 
-Core · target · **done**
+Core · target · **done** · Cites BASE-OPS-005, BASE-AUDIT-001
 
-**Requirement.** An audit history records every proposal and approval, setting change, import and undo, export, restore, erasure, retention run, shared-link and API-key change, sign-in and agent action, with the actor, time and subject. It covers every action that exists: an agent action is any proposal prepared through the agent command API (`agent.prepare`), and a sign-in is recorded on every new session. Shared-link changes and API-key changes are audit obligations of `SHARE-001` and `API-001`, which must meet `AUDIT-001` before they ship (a standing rule). The history is portable in the archive and survives erasure of a site's history.
+**Requirement.** An audit history records every proposal and approval, setting change, import and undo, export, restore, erasure, retention run, shared-link and API-key change, sign-in and agent action, with the actor, time and subject. It covers every action that exists: an agent action is any proposal prepared through the agent command API (`agent.prepare`), and a sign-in is recorded on every new session. The history is portable in the archive and survives erasure of a site's history. Shared-link and API-key changes are audited as `SHARE-001` and `API-001` set out.
 
 **Acceptance.**
 1. Perform each audited action that exists, including an `agent.prepare` proposal and a sign-in that opens a new session, and read the audit view and export.
 2. Each entry is present with its actor, time and subject, and erasing a site's history leaves the audit entries without the erased data.
-3. `SHARE-001` and `API-001` each prove their shared-link or API-key changes in the same audit view and export before they ship.
 
 **Evidence.** `migrations/core/0017_vane_audit.sql`; `src/vane/audit.ts`; `src/vane/commands.ts`; `src/vane/views/audit.ts`; `tests/vane.test.mjs`
 **Gap.** None.
 
 #### SITE-001 — Site management
 
-Core · target · **done**
+Core · target · **done** · Cites BASE-DATA-003
 
 **Requirement.** Owners and admins add sites and, through `APPROVE-001`, change a site's name, origins (including extra allowed hostnames and subdomains), time zone, currency, retention and collection options. They can also transfer a site between installations by archive, and delete a site together with its history (`ERASURE-001`). Extra allowed origins are exact origins, up to 10 besides the website origin (each subdomain is listed), and events from any of them count for the site. The currency is an ISO 4217 code, USD by default. Deletion is prepared and approved like any change: it erases the site's history as history erasure does, then removes the site with its counters and salts; the audit entries and the deletion journal keep only its ID, and an archive made before the deletion cannot bring the site back into that installation. Like every export (`ACCESS-001`), a site archive is downloaded and added only by the owner; admins prepare deletion for the owner to approve. The archive carries the site's settings, events, privacy-signal counts, automatic events, deletion journal and imported rows, and it is added only to an installation where neither that site nor its origin exists. The site keeps its ID, so its script tag keeps working, and imported rows arrive settled: their import journal and undo stay in the source installation's archive (`ARCHIVE-001`). Daily salts never leave an installation, so a visitor seen on both sides of a transfer on the same day counts once in each.
 
@@ -1382,22 +1423,22 @@ Core · target · **done**
 
 #### HOST-001 — Owner-run hosting with measured cost
 
-Core · target · **done**
+Core · target · **partial** · Cites BASE-INSTALL-001 · Register R-1
 
 **Requirement.** Vane runs in the buyer's own Cloudflare account with one `rer deploy`. It has no third-party analytics processor and nothing for the owner to patch: no virtual machine, PHP runtime or MySQL database. The deployment is one Worker and its declared Cloudflare bindings (`deploy.json`). The Cloudflare plan the buyer needs is stated before setup. Workers Free suits a trial or a small site, but its daily request limit (100,000 Worker requests a day) is far below the `COLLECT-004` volume, so an installation whose collection, engagement and dashboard requests exceed it needs Workers Paid. The setup screen and cost panel name the plan the measured request volume needs, and Vane warns at 80% of the Free daily limit. The app shows the measured monthly cost in USD at the installation's volume, and the documentation publishes the cost per 100,000 pageviews from a measured run.
 
 **Acceptance.**
-1. Deploy to a Cloudflare test account, run the `COLLECT-004` load test and read the cost panel.
+1. Deploy to a Cloudflare test account, run a deployed native load of 1,000,000 pageviews and read the cost panel.
 2. The stated cost per 100,000 pageviews matches the measured account usage within 10%, and the deployed resources are exactly the Worker and the bindings `deploy.json` declares.
 3. The cost panel names Workers Paid as the plan for the load-test volume.
 4. On a Workers Free fixture account, traffic at 80% of the daily request limit raises the plan warning.
 
 **Evidence.** `deploy.json`; `wrangler.jsonc`; `rer-setup.json`; `README.md`; `src/vane/hosting.ts`; `src/vane/hosting-cost.ts`; `src/vane/views/hosting.ts`; `docs/hosting-cost.md`; `tests/host-cloudflare-cost.journey.mjs`; `tests/host-cloudflare-usage.mjs`; `tests/vane-report-settings.mjs` — “HOST-001 a deployed Vane Worker under real native load costs what the panel states, within 10% of Cloudflare's own account usage” in `tests/host-cloudflare-cost.journey.mjs` is the held-account sandbox proof (receipt: verification run on 6e3124d34ceaa082d70db9285be6555ef33b825c, 26 October 2026, CLOUDFLARE_VANE_TEST_TOKEN through the injector, exit 0, kept with the campaign). It deploys with public rer deploy into the RunEditRun test account, loads 1,000,000 genuine pageviews through the COLLECT-004 native batch door and reads Cloudflare's own Worker and D1 analytics: usage cost per 100,000 pageviews USD 0.804 measured against 0.803 stated, and monthly cost at 10,000,000 pageviews USD 34.43 against 34.32, each asserted within 10%; the deployed panel names Workers Paid; the account inventory gained exactly one Worker and one D1 database, the Worker's bindings equal `deploy.json` plus the four rer kit bindings, and the inventory is identical after removal. `tests/vane-report-settings.mjs` — “HOST-001 real collection measures requests, D1 work and storage before projecting hosting cost” proves real native admissions, owner-only projection, the Workers Paid notice, the Free fixture warning at 80%, missing and stale input honesty, the plan notice in the setup questions read through rer's own manifest reader, and the 1440 and 390 cost panels.
-**Gap.** None.
+**Gap.** `deploy.json` does not declare the four bindings the rer deploy kit adds (`ASSETS`, `RER_VERSION`, `RER_DEPLOY_FINGERPRINT`, `RER_DEPLOY_SOURCE`), so the deployed bindings are not exactly the declared ones; the 1,000,000-pageview deployed cost within 10%, the plan and the Free warning are asserted.
 
 #### HOST-002 — Runs on the owner's own computer
 
-Core · target · **done**
+Core · target · **done** · Cites BASE-INSTALL-001
 
 **Requirement.** One command, `npx -y @runeditrun/rer dev just-every/run-vane` (or `rer dev` in a checkout), clones, installs and starts the complete Vane on the owner's own macOS, Linux or Windows (WSL2) computer. Collection, dashboards, imports and the archive all work there, with the data in a local D1 database inside the checkout. After installation it needs no Cloudflare account and no outside service; sign-in mail goes to the local outbox. Moving a local installation to the owner's Cloudflare account, history included, is `HOST-003`.
 
@@ -1411,7 +1452,7 @@ Core · target · **done**
 
 #### HOST-003 — Local installation moves to the owner's Cloudflare account
 
-Core · target · **done**
+Core · target · **done** · Cites BASE-DATA-001, BASE-INSTALL-001
 
 **Requirement.** A local installation moves to the owner's Cloudflare account (`HOST-001`) with `rer export` and `rer import`, history included.
 
@@ -1424,16 +1465,16 @@ Core · target · **done**
 
 #### OPEN-001 — Free and open source under the MIT license
 
-Core · target · **done**
+Core · target · **partial** · Cites BASE-DATA-005
 
-**Requirement.** Vane's complete source is published at https://github.com/just-every/run-vane under the MIT license. Every capability in this contract ships in that source. Vane has no paid tier, license key, feature gate or seat limit, and nothing in it bills or meters use. The only running cost is the buyer's own Cloudflare usage, which `HOST-001` measures and shows.
+**Requirement.** Vane's complete source is published at https://github.com/just-every/run-vane under the MIT license. Every capability in this contract ships in that source. Vane has no paid tier, feature gate or seat limit, and nothing in it bills or meters use. The only running cost is the buyer's own Cloudflare usage, which `HOST-001` measures and shows.
 
 **Acceptance.**
 1. `LICENSE` holds the MIT license text and `package.json` declares `MIT`.
-2. A scan of `src/` finds no license-key check, payment-provider call, plan gate or usage meter, and the product tests pass on a fresh clone with no key or account other than the owner's own.
+2. A scan of `src/` finds no payment-provider call, plan gate or usage meter, and the product tests pass on a fresh clone with no key or account other than the owner's own.
 
 **Evidence.** `LICENSE`; `package.json`; `tests/host-local.journey.mjs` — “HOST-002 installed journey: empty-folder command, sign-in, real tracker, durable report and network-cut replay” proves complete-source installation and analytics without a vendor credential; `tests/vane.test.mjs` and `.github/workflows/verify.yml` prove fresh-checkout product tests with no vendor key or account.
-**Gap.** None.
+**Gap.** No test asserts the licence text, the package licence field or the absence of payment calls, plan gates and meters in `src/`; fresh-checkout product tests pass in Verify and the installed journey.
 
 #### DEMO-001 — Try Vane on realistic data
 
@@ -1450,9 +1491,9 @@ Core · target · **done**
 
 #### MOBILE-001 — Phone-ready, accessible dashboard
 
-Core · target · **done**
+Core · target · **done** · Cites BASE-ACCESSIBILITY-001 · Register R-8, R-9
 
-**Requirement.** Every dashboard, report, settings page and approval works at 390 px wide without horizontal scrolling. Keyboard navigation and screen readers work to WCAG 2.2 AA, and every chart has a data table. The app can be installed as a PWA that receives web-push alerts. The exact rules: the alert journey is setting a traffic alert (`ALERT-001`) from the keyboard on a site's settings, and its crossing arrives as a web-push alert carrying only its title, site name and link; conversion, revenue and tracking-health alerts (`ALERT-002`) and follow-up reminders (`FOLLOW-001`) send through the same push path before they ship. Every chart has a data table: the report and real-time charts in a Data table disclosure under the chart, and each site's overview sparkline in a table for screen readers beside it.
+**Requirement.** Every dashboard, report, settings page and approval works at 390 px wide without horizontal scrolling, and every chart has a data table. The app can be installed as a PWA that receives web-push alerts.
 
 **Acceptance.**
 1. At 390 and 1440 px, complete the site, report, filter, approval and alert journeys by keyboard with an automated accessibility scan clean.
@@ -1461,9 +1502,309 @@ Core · target · **done**
 **Evidence.** `src/vane/views/shell.ts`; `src/vane/views/html.ts`; `src/vane/views/settings.ts`; `public/vane.css`; `src/vane/push.ts`; `src/vane/views/push.ts`; `src/vane/traffic-alerts.ts`; `src/vane/views/alert-settings.ts`; `public/manifest.webmanifest`; `public/vane-sw.js`; `tests/vane.test.mjs`
 **Gap.** None.
 
+### Push further with agents
+
+#### AGENT-001 — Maintain trustworthy instrumentation
+
+Core · push-further · **partial** · Rules D-3
+
+**Requirement.** The agent compares the declared goals, events and funnels with what actually arrives. It also reads the site's pages (by crawling the sitemap), deploy diffs from a connected GitHub repository or Pane, the consent state, and server-side counts from Stripe, Shopify or the CRM (`CONV-008`). It finds missing, duplicated, misnamed and newly broken events, pages without the script, and funnels whose steps no longer exist. For each problem it drafts a fix: a pull request to the site repository, a GTM template change, a Pane setting or a no-code event (`CONV-009`). After the fix ships it verifies the real payload. Each fix carries the class of its change (a pull request is external, a no-code event or setting is live), and the company's policy decides whether it runs alone or waits for a person; the agent never widens the collected fields. GitHub access is off until the owner connects one mapped repository with audited consent, through a credential limited to contents and pull requests on it; the agent opens one pull request per fix on a Vane branch and never merges, deploys or updates the base branch (RL-4).
+
+**Acceptance.**
+1. Deploy a fixture site change that renames the signup button and drops the script from one template.
+2. The agent reports both with evidence and drafts a PR and a no-code event.
+3. Under the held policy, after the owner approves and the change deploys, the agent confirms the events arrive again and annotates the fix.
+
+**Evidence.** `tests/instrumentation.test.mjs`; `docs/instrumentation.md`
+**Gap.** PARTIAL until a real GitHub receipt. The fixture edge proves fixed-host mapped-file comparisons, a mapped script-only HTML draft PR after exact-diff-hash approval and separate confirmation, with sensitive/operational path and classic-token refusals, source drift refusal, read-only response-loss reconciliation and sealed/revocable credential custody. Native script tags and declared selectors are inspected statically; execution, consent and blockers remain unmeasured. Only word-ID/tag/ordinal structural rename candidates are drafted. Pane deploy-diff connections, automatic edits for source languages other than mapped HTML, GTM/Pane hand-off (INSTALL-005/AGENT-003), and server-confirmed outcome reconciliation (CONV-008) are absent. This is account-free foundation, not the complete agent; no DONE claim.
+
+#### AGENT-002 — Explain why traffic or conversions moved
+
+Core · push-further · **partial**
+
+**Requirement.** When numbers change, the agent separates four causes. Tracking coverage covers event volume against confirmed outcomes, consent rate, script errors and blockers. Channel mix covers the contributions by source, campaign and search query (`SEARCH-001`). Page behavior covers funnel steps, page speed (`PERF-001`) and errors from Spool. External events cover Uptime incidents, Mango sends, ad-spend changes, seasonality and US holidays. It returns ranked hypotheses, each with denominators, linked evidence, its confidence and the observation that would disprove it. Missing coverage is stated as missing, never as a cause, and the agent never claims causality from a correlation. Its explanations list the annotations in their window (`DASH-009`). Investigations are owner-started and run on this installation's own figures; sender-reported outside aggregates are off until the owner issues a site-scoped sender credential, and they are labelled sender-reported in every explanation (RL-5).
+
+**Acceptance.**
+1. Seed three fixture weeks: a tracking break, an organic ranking drop, and a real checkout failure that confirmed orders corroborate.
+2. For each, the agent ranks the true cause first with cited evidence and names what is unknown.
+3. Each explanation lists the annotations dated in its window.
+
+**Evidence.** `tests/movement.test.mjs`; `docs/movement.md`
+**Gap.** PARTIAL until real sender integrations exist. External aggregates authenticate the owner-selected sender, not a real Stripe/Shopify/CRM, Spool or Uptime provider; CONV-008 reconciliation and independently verified confirmed orders are absent. Blocker share, browser script errors, unpreserved historical consent settings, numeric Mango sends/ad-spend (ADS-001) and established seasonality remain unknown. No complete-agent or causality claim.
+
+#### AGENT-003 — Propose and ship a site or campaign change under granted authority
+
+Core · push-further · **partial**
+
+**Requirement.** From an explanation or an opportunity (`AGENT-006`), the agent drafts a concrete change. The change can be page copy, a call to action, a title and meta description, a broken link or a form fix, a UTM correction, or a campaign budget or schedule change. It states the expected effect, its guardrail metrics and how it will be measured (`AGENT-004`). The agent ships only through grants the owner has given: a Pane page edit, a pull request to the site's GitHub repository, a Webflow CMS item, a Mango campaign draft, or an ad-platform change. A spend change carries the money class and a copy change the live class (with external when it is published), and the company's policy decides each; every grant can be revoked. A 404 path that gets visits (`CONV-003`), such as a mistyped `/pricng`, gets a drafted redirect to the page it most likely meant. Every change the agent ships is added as a dated annotation on the charts (`DASH-009`). Local drafts that create no outbound deployment or campaign authority need no grant; shipping needs a current grant for that exact destination and action, checked for revocation before the effect (RL-101).
+
+**Acceptance.**
+1. Grant Pane page-edit and GitHub PR access but no ad access.
+2. Under the held policy the agent ships an approved CTA change in Pane and opens a PR for a title change.
+3. Under the held policy its proposed budget change waits for approval, and without the ad grant it cannot ship under either policy, and revoking the Pane grant blocks the next edit.
+4. From a 404 report where `/pricng` has 37 visits, the agent drafts a redirect to `/pricing` and opens it as a PR under the GitHub grant.
+5. Once it is merged and deployed, the next visit to `/pricng` lands on `/pricing`, and the path's 404 count stops growing.
+6. The shipped CTA change appears as an annotation on its day.
+
+**Evidence.** `tests/agent-work.test.mjs`; `docs/agents.md`
+**Gap.** Local drafts record the expected effect, guardrail and measurement; no shipping destination is built yet, and the instrumentation GitHub authority (RL-4) is not widened. External dependency: Pane page-edit capability is unavailable. General title and redirect PRs, grant lifecycle, deployed redirect proof and shipped-change annotation remain unbuilt.
+
+#### AGENT-004 — Measure the result against coverage gaps
+
+Core · push-further · **partial**
+
+**Requirement.** For every shipped change, the agent runs an experiment (`EXPERIMENT-001`) where it can, or a before-and-after comparison with matched weekdays and guardrails where it cannot. It reports the measured effect with an interval, whether coverage changed in the window, and a verdict: measured improvement, no detectable change, worse, or inconclusive because of coverage or sample size. It recommends keeping or reverting the change, and a revert runs only under a current grant for that destination and carries the live class, which the company's policy decides. A result states its comparison and experiment intervals with their coverage and sample limits, and an observed coverage change withholds a positive verdict (RL-102).
+
+**Acceptance.**
+1. Ship two fixture changes: one with a real lift under an experiment, and one before-and-after change during a consent-rate drop.
+2. The first is reported as a measured improvement with its interval, the second as inconclusive because of coverage, and under the held policy an approved revert restores the prior page.
+
+**Evidence.** `tests/agent-work.test.mjs`; `docs/agents.md`
+**Gap.** A result endpoint requires a verified deployed instrumentation fix, matched weekdays and existing experiment intervals, and withholds positive verdicts for observed coverage changes. Only draft-as-shipped refusal is asserted so far; positive lift, consent-drop assessment and approved page revert acceptance remain unproved. Pane revert depends on the unavailable Pane edit capability.
+
+#### AGENT-005 — Pursue anomalies to resolution
+
+Core · push-further · **partial**
+
+**Requirement.** On an alert (`ALERT-001`, `ALERT-002`), the agent investigates with `AGENT-002` first and attaches its findings to the follow-up item (`FOLLOW-001`). It contacts the responsible person only when a decision or an outside fix is needed, for example a developer for a broken event or the marketer for a paused campaign, on the owner's channels and schedule. It keeps the item open until it is resolved, and it closes it on a verified recovery with coverage intact or when a person confirms the outcome; traffic reduction alone never proves a repair. A new outside contact uses the audience and cadence the owner configured (RL-103).
+
+**Acceptance.**
+1. Fire a silent-site alert caused by a deploy.
+2. The agent attaches its evidence, messages the configured developer once, reminds them after the due time, and after the fix verifies events and closes the item with that evidence.
+3. A real traffic dip with no fault is closed as expected after the owner confirms.
+
+**Evidence.** `tests/agent-work.test.mjs`; `docs/agents.md`
+**Gap.** An owner-requested pursuit runs the movement investigation first and attaches its evidence to the existing follow-up item, which stays open; outside contact and closure on a verified recovery are unbuilt. Silent-deploy investigation, one configured developer contact, due reminder and verified event recovery with intact coverage remain unproved.
+
+#### AGENT-006 — Weekly growth brief with opportunities
+
+Core · push-further · **done**
+
+**Requirement.** Each week the agent writes a brief of three to five opportunities, each with figures. Examples are pages with high entry and high exit, campaigns that convert above the site's average, Search Console queries ranking 4 to 20 with high impressions, slow pages that convert below their peers, and stalled funnel steps. It links each one to a drafted `AGENT-003` change. The owner can dismiss an opportunity type, and the agent stops raising it. Linked changes stay drafts until `AGENT-003` ships them.
+
+**Acceptance.**
+1. On a fixture site with seeded opportunities, the brief names each with correct figures and a linked draft.
+2. A dismissed type does not return the next week.
+
+**Evidence.** `tests/agent-work.test.mjs` — “Weekly local opportunities cite exact native figures and linked drafts and suppress dismissed types next week”; “Scheduled ended-week briefs review all five opportunity types with exact figures and suppress dismissed types in saved briefs and next week” proves cron production, all five types and exact figures, working local draft links, repeat idempotence, immediate dismissal in saved brief reads and Settings with recalculated shortfall, preserved historical evidence and drafts, next-week suppression and all-type review at 1440 and 390. `docs/agents.md`.  CT judged DONE-JUSTIFIED on 25 October 2026 at e905c013f97d392a9e4689de679c5c52db8a6215. `tests/agent-work.test.mjs`, lines 60–100, proves both acceptance sentences with owner-only local drafts and no new outbound authority; shipping remains AGENT-003.
+**Gap.** None.
+
+#### AGENT-007 — Answer questions in plain English in the app and MCP, with the query shown
+
+Core · push-further · **done**
+
+**Requirement.** In the app and through MCP, a team member asks a question such as "Which campaigns brought paying customers from Texas last month?". The answer comes back as a chart, the figures, and the exact filters, metrics and range used. The figures equal what the dashboard shows for that query. Ambiguous questions get a clarifying choice, and questions the data cannot answer (people, causes, data outside coverage) say so. Questions are off until the owner turns them on for a site; only the question and Vane's own vocabulary go to the deployment's model provider, Vane validates and runs the resulting Stats API query itself, and it stores no question or answer (RL-6). Slack and Teams questions are `AGENT-008`.
+
+**Acceptance.**
+1. Ask ten fixture questions, including an ambiguous one and an unanswerable one.
+2. Every numeric answer equals the Stats API result for the shown query, the ambiguous question gets a choice and the unanswerable one says why.
+
+**Evidence.** `tests/ask.test.mjs` — “AGENT-007 ten fixture questions answer with the shown Stats API query, a clarifying choice and honest refusals, and the model sees only the question and the vocabulary” covers ten questions, numeric equality with Stats API results; choice and refusal paths, question-only egress, no stored text and chart/table pages at 1440/390; “AGENT-007 questions are off until the owner enables them, owner-only to change, scoped, limited, and a bad model reply runs nothing” covers audited owner-only enablement, app/MCP scope and site switch, all refusal attempts in the shared budget, and no repair. `tests/ask-journey.mjs` — real-model sandbox passed 2026-10-22T22:50:41.860Z on c0271cc7262225ab077ea7e8387ed47eeed89d96 through deployment Base ai with gpt-4.1: seven numeric answers independently equal the shown Stats API result; one clarifying choice runs without a further model call; people and causes are refused; exactly ten provider calls and text-free audit custody pass.
+**Gap.** None.
+
+#### AGENT-008 — Questions from Slack and Teams
+
+Core · push-further · **missing** · From AGENT-007
+
+**Requirement.** The same plain-English questions work from Slack and Microsoft Teams, under the same per-site switch, provider rules and hourly budget as the app and MCP, with the answer's figures and its exact query.
+
+**Acceptance.**
+1. From a Slack and a Teams fixture, ask ten fixture questions, including an ambiguous one and an unanswerable one.
+2. Every numeric answer equals the Stats API result for the shown query, the ambiguous question gets a choice and the unanswerable one says why.
+
+**Evidence.** None.
+**Gap.** No Slack or Teams question door exists; the old AGENT-007 gap named them as future.
+
+## Agent surface
+
+### Agent surface
+
+#### SURFACE-001 — The registry equals this table and the Base harness passes
+
+Agent surface · target · **missing** · From new · Cites BASE-AGENT-001, BASE-AGENT-002, BASE-AGENT-003, BASE-AGENT-013
+
+**Requirement.** Vane serves the Base MCP door at `/mcp` with the tools, resources, events and prompts in this section, each tool calling the same server action as the analytics UI. The tools of the existing MCP endpoint (`API-004`) move onto that door under their table names.
+
+**Acceptance.**
+1. `tools/list` names exactly the tools in the table, each with its declared classes in `_meta`, and their Core clause ids plus the not-a-tool reasons cover every Core clause.
+2. The Base conformance harness runs BASE-AGENT-001 to BASE-AGENT-013 on Vane's seeded sites under the all-autonomous and the held policies, and passes.
+3. On the shared fixture, each tool and its UI action give the same record state and audit event type.
+4. `resources/templates/list` names the resources above, and a site read as a Viewer returns exactly the figures and settings the Viewer sees in the UI.
+5. The existing `list_sites`, `query_stats`, `add_annotation` and `ask_question` tools answer at `/mcp` under their table names, and the old path stays an alias.
+6. `/docs/agents` lists every tool, class, resource, event type and prompt in this section.
+
+**Evidence.** None.
+**Gap.** No Base MCP door, class declarations or harness run; four tools answer today at `/api/v1/mcp` (`API-004`).
+
+#### SURFACE-002 — Sharing and outside delivery carry external with their counterparty
+
+Agent surface · target · **missing** · From new · Cites BASE-AGENT-006
+
+**Requirement.** Every call that exposes figures outside the business carries the external class, with facts the server computes from the recipients, the link and the site's team.
+
+**Acceptance.**
+1. A shared link or a public stats page carries external with counterparty public and the reports it exposes.
+2. A report or alert to a team member's address is standard; to an outside address it carries external with counterparty new, and to an owner-connected chat destination external with counterparty known, each with its recipient count.
+3. Adding a webhook endpoint or scheduling a warehouse export carries external with the destination host as its counterparty.
+4. An argument or record text claiming a recipient is internal leaves the computed class and facts unchanged.
+
+**Evidence.** None.
+**Gap.** No class declarations or classifier.
+
+#### SURFACE-003 — Collection settings and shipped site changes carry live
+
+Agent surface · target · **missing** · From new · Cites BASE-AGENT-006
+
+**Requirement.** Every call that changes what the running script or collection does for a site's visitors, or what the site itself serves, carries the live class with the site and the setting as facts.
+
+**Acceptance.**
+1. Changing consent mode or regions, collection paths, exclusions, script options, no-code events, split tests or incumbent compatibility carries live with the site and setting; changing only goals, funnels or source rules is standard.
+2. Connecting, rotating or revoking the first-party proxy route carries live · security.
+3. Shipping a page, title, redirect or campaign change through a grant carries live, adds external when it publishes outside the business, and adds money with the amount in USD when it changes spend.
+
+**Evidence.** None.
+**Gap.** No class declarations or classifier.
+
+#### SURFACE-004 — Access, security and destructive calls
+
+Agent surface · target · **missing** · From new · Cites BASE-AGENT-005, BASE-AGENT-006
+
+**Requirement.** Team, key and grant changes carry access, sign-in and credential changes carry security, and history erasure carries destructive, each with facts the server computes.
+
+**Acceptance.**
+1. Inviting, changing, removing or transferring a person, a client membership, a key or an agent grant carries access with the people count and whether it widens or narrows.
+2. SSO, second-step, SCIM, events-token and key-secret changes carry security.
+3. Erasing a site's history, applying a retention window and deleting a site carry destructive with the event count.
+4. An agent call that widens its own grant or its sponsor's role returns `self_escalation` and changes nothing.
+
+**Evidence.** None.
+**Gap.** No class declarations or classifier.
+
+#### SURFACE-005 — Provider consent screens are gated
+
+Agent surface · target · **missing** · From new · Cites BASE-AGENT-006, BASE-AGENT-008
+
+**Requirement.** Connecting a provider whose consent screen sits in a person's own account is gated, so the step goes to that person before the call runs.
+
+**Acceptance.**
+1. Connecting Search Console, property-based analytics or Slack carries gated with the provider and its consent step, and returns that step for the named person; no agent call completes it.
+2. A connection made with a pasted key (Bing, reporting analytics, Teams or Nook) carries security, not gated.
+
+**Evidence.** None.
+**Gap.** No class declarations or classifier.
+
+#### SURFACE-006 — Policy setup, Pause and the Agents page
+
+Agent surface · target · **missing** · From new · Cites BASE-AGENT-007, BASE-AGENT-009, BASE-AGENT-011
+
+**Requirement.** The company answers every class Vane uses before agents act, Pause stops them, and every agent call is audited with its classes and decision.
+
+**Acceptance.**
+1. Before setup is answered, an agent call returns `policy_unset` with the setup link, and setup lists every class Vane uses with no answer pre-selected.
+2. Pause agents stops the next Vane call within 60 seconds.
+3. The Agents page's counts by class and decision equal the audit rows for the seeded week.
+
+**Evidence.** None.
+**Gap.** No policy evaluator, setup questions or Agents page.
+
+#### SURFACE-007 — An analytics week under two company policies
+
+Agent surface · target · **missing** · From new · Cites BASE-AGENT-013
+
+**Requirement.** A stranger agent runs a seeded analytics week through MCP alone, for a named sponsor with the Admin role, under two company policies.
+
+**Acceptance.**
+1. Given only the seed URL, the agent connects through MCP for the sponsor and lists the analytics tools.
+2. Under the all-autonomous policy it explains a traffic drop, repairs a broken goal with a no-code event, shares a weekly link with a client and sets a spike alert with no person involved: nothing waits for approval, nothing is refused by policy and the review feed is empty.
+3. Under the held policy (standard reviewed, every other class approved by the test person), the same week waits at the live, external and access calls, and each runs once approved.
+4. Under the held policy with external blocked, the share returns `policy_blocked` and the rest of the week completes.
+5. In both runs every agent act reads "<agent> for <person>" in the audit and the activity view, and each approval names the test person.
+
+**Evidence.** None.
+**Gap.** No Base MCP door, policy or harness run.
+
+## Later
+
+### Dashboards and analysis
+
+#### DASH-015 — US metro areas by code
+
+Later · target · **done** · From DASH-005 · Rules D-1
+
+**Requirement.** A US page load stores its Nielsen DMA® metro code from Cloudflare, never a name. Vane ships no code-to-name table (RL-1): an unnamed code shows "Metro NNN (unnamed)" with the place most of its visitors came from, for display only. US metro areas have the columns, selected-goal figures, comparisons, filters, movers, live list and exports of the other location tables, and public pages fold small metros.
+
+**Acceptance.**
+1. Code 635 shows unnamed with Austin, Texas as its place.
+2. CSV, the ZIP metros file, the warehouse export, the Stats API and MCP give an empty name and the dashboard's figures.
+3. The saved filter, the mover and the live list key on the code.
+4. A US load without a valid code counts as Unknown metro area, non-US loads are absent, and loads without geolocation stay Unknown location.
+5. On shared and public pages the place shows, a 3-visitor metro folds into Other metro areas, a metro whose leading city is under 5 visitors names only its region, and nothing shows without the chosen report.
+
+**Evidence.** `src/vane/locations.ts`; `src/vane/metro-names.ts`; `src/vane/collect.ts`; `src/vane/reports.ts`; `src/vane/realtime.ts`; `src/vane/segments.ts`; `src/vane/views/locations.ts`; `src/vane/views/metro-names.ts`; `src/vane/views/public.ts`; `migrations/core/0061_vane_metro_names.sql`; `tests/locations.journey.mjs`; `tests/vane.test.mjs`
+**Gap.** None.
+
+#### DASH-016 — Owner-supplied metro names
+
+Later · target · **done** · From DASH-005 · Cites BASE-INPUT-003
+
+**Requirement.** The site's owner or an administrator uploads the site's own metro-name table, a site setting holding no visitor data, and only the owner approves it (`APPROVE-001`). Approved names replace the unnamed labels on every signed-in surface, export and API answer, and on public pages only when the owner also approves public names, with a footnote naming their source. The table travels with the archive, restore and site transfer and survives erasure. The upload limits are in `docs/contract/rules.md`.
+
+**Acceptance.**
+1. An administrator uploads a table and it waits; after the owner approves, the name appears on every signed-in surface, export and API answer.
+2. On public pages the name appears only after public names are approved, with the footnote; the audit records it and event rows are unchanged.
+3. Uploads by a Viewer, an Analyst, a Stats API or provisioning key or from a web address, an upload through the command API, which offers no metro-name command, and approval by an administrator, are each refused with nothing changed.
+4. Codes 63, 6355 and 6a5, a duplicate code, empty, overlong and formula-leading names, a control character, wrong, extra or missing columns, files over 1,000 rows or 256 KB and a missing label or statement are each refused with nothing changed.
+5. Clearing reverts to unnamed, erasure leaves the table, and the archive, restore and a site transfer keep the names.
+
+**Evidence.** `src/vane/locations.ts`; `src/vane/metro-names.ts`; `src/vane/collect.ts`; `src/vane/reports.ts`; `src/vane/realtime.ts`; `src/vane/segments.ts`; `src/vane/views/locations.ts`; `src/vane/views/metro-names.ts`; `src/vane/views/public.ts`; `migrations/core/0061_vane_metro_names.sql`; `tests/locations.journey.mjs`; `tests/vane.test.mjs`
+**Gap.** None.
+
+#### HEAT-002 — Heatmap over a live screenshot of the page
+
+Later · target · **done**
+
+**Requirement.** The owner explicitly shares the live tracked browser tab through native tab capture; its Capture Handle must match this site, approved path and geometry. Screenshots remain only in that owner tab’s memory, no screenshot service is called, no image is uploaded or persisted, and sharing stops after each frame.
+
+**Acceptance.**
+1. The owner captures the enabled fixture page natively and sees its click and scroll maps over that live screenshot at 1440 and 390 CSS pixels.
+
+**Evidence.** `src/vane/heat/browser.ts`; `tests/heat.test.mjs` — “HEAT-001 real clicks aggregate at two buttons without text or identifiers; scroll reach is METRIC-006 and recorded geometry maps fit desktop and mobile”, explicit VANE_HEAT_CAPTURE=1 native mode. Harness exception approved ct 22 Oct 15:14Z: fresh throwaway user-data-dir in this run’s work directory, real HOME, current Playwright Chromium headless, mock keychain and basic password store, own process group, directory deleted on success or failure; never a real profile, fake stream or fake handle. Native journey passed at 1440 and 390 in the 22 October native run, proving genuine native frames behind click and scroll maps, wrong-site/path/geometry refusal, memory-only images and stopped tracks after success and refusal; request/custody assertions exclude uploaded images. Product capture code is unchanged.
+**Gap.** None.
+
+### Sharing, team and data access
+
+#### TEAM-004 — SAML sign-in and SCIM provisioning
+
+Later · target · **partial** · From TEAM-002 · Cites BASE-SIGNIN-001 · Register R-6
+
+**Requirement.** Team members can sign in through SAML, and SCIM provisions and deprovisions them, through [Auth](https://github.com/just-every/run-auth), Okta or Entra ID. SCIM creates a native zero-site Viewer bound by issuer and subject, never merges by email or grants a site, never raises a role, reactivates a removed person, touches an owner or sends invitation mail, and its owner-issued credential is shown once, stored hashed, scoped, rotatable and revocable with audit (RL-3).
+
+**Acceptance.**
+1. Against a SAML fixture issuer, sign in and deprovision a member through SCIM; their access ends at once.
+2. Prove owner-issued shown-once hashed SCIM credentials, scope, rotation, revocation and audit; issuer+subject creation without email merge or site grants; no privilege raise, reactivation, owner mutation or invitation mail; next-request session/API/push revocation; and idempotent and out-of-order requests.
+3. Against run-auth as the standards provider, SAML sign-in and the SCIM lifecycle pass.
+
+**Evidence.** `tests/security.test.mjs` — “organization OIDC signs in Google and Entra members, refuses altered proofs and replay, and fences existing sessions when SSO is required” proves Google/Entra fixture sign-in and SSO enforcement; “SAML fixture signs existing invited accounts into native sessions, enforces signed binding constraints and refuses response replay” proves SAML fixture sign-in and enforced SSO; “SCIM credentials are owner-issued once, hashed, isolated from native and API authority, rotatable and revocable with audit” proves credential custody; “SCIM provisions bound zero-site Viewers without mail or email merges and never grants sites or raises roles” proves immutable federation binding and provisioning scope; “SCIM deactivation ends native and federated sessions, API keys and push tokens on the next request; replays and owner removal never reactivate” proves revocation and replay/order safety; “authenticator sign-in refuses wrong and replayed codes, consumes a recovery code once, and excludes credentials from analytics archives” proves TOTP/recovery and archive exclusion; “owner enforcement holds every account without a factor at enrollment, refuses private mutations and enrolls it before authenticator sign-in” proves owner-proved enrollment and all existing private HTTP and bearer doors. `tests/security-browser.test.mjs` — “members enroll and challenge in a real browser; owner requirements and SAML sign-in render at 1440 and 390” proves sign-in, factor and SCIM-credential screens; “owner outage recovery requires a deployment-issued owner link, preserves the second step and audits one recovery at 1440 and 390” proves audited owner break-glass and its access limits.
+**Gap.** The SCIM run against a real tenant is the open part: the held Okta Integrator tenant needs Admin Console provisioning configuration (register row R-6); SAML and SCIM pass against fixture issuers.
+
+### Privacy, compliance and administration
+
+#### PRIVACY-004 — Data location choice
+
+Later · target · **missing**
+
+**Requirement.** At setup the owner chooses where analytics data is stored: the US (the default), or the EU jurisdiction for EU-facing sites, using Cloudflare D1 location and jurisdiction controls. The choice is shown in the data inventory.
+
+**Acceptance.**
+1. Deploy one installation with the EU jurisdiction.
+2. The database reports EU jurisdiction, and the inventory says so.
+
+**Evidence.** None.
+**Gap.** No data location choice.
+
 #### MOBILE-002 — Native iOS and Android apps
 
-Core · target · **missing**
+Later · target · **missing** · Register R-7
 
 **Requirement.** Native apps show every site's overview, real-time visitors, reports with filters, and alerts with push notifications and follow-up actions (`FOLLOW-001`). They include home-screen widgets for visitors today. Apps sign in with the installation's sign-in, including SSO.
 
@@ -1474,114 +1815,17 @@ Core · target · **missing**
 **Evidence.** None.
 **Gap.** No native apps.
 
-### Push further with agents
-
-#### AGENT-001 — Maintain trustworthy instrumentation
-
-Core · push-further · **partial**
-
-**Requirement.** The agent compares the declared goals, events and funnels with what actually arrives. It also reads the site's pages (by crawling the sitemap), deploy diffs from a connected GitHub repository or Pane, the consent state, and server-side counts from Stripe, Shopify or the CRM (`CONV-008`). It finds missing, duplicated, misnamed and newly broken events, pages without the script, and funnels whose steps no longer exist. For each problem it drafts a fix: a pull request to the site repository, a GTM template change, a Pane setting or a no-code event (`CONV-009`). After the fix ships it verifies the real payload. A human approves each fix, and the agent never widens the collected fields. Implemented conservative default for GitHub authority, ct approved as adopted with riders, 22 Oct: off until explicit audited owner consent; one repository/base and mapped templates; a GitHub App installation or fine-grained token restricted to contents and pull requests on the mapped repository (no administration, actions/workflows write or secrets), sealed with AES-GCM and excluded from archives; read-only source/diff bodies kept only in memory; normal version-bound approval of the exact diff hash (any diff change voids approval) plus a separate explicit owner action before any script-only HTML draft PR; one PR per approved fix on a namespaced Vane branch only, no force push, never a base/default-branch update, merge or deploy; revocation or an ownership change blocks further source reads/writes, a new owner reconnects explicitly, and uncertain outcomes reconcile read-only. CI/workflow files, deploy config, dependency manifests and secret-bearing paths require the owner to change them by hand and never enter an agent PR. `.env` and key-like paths are never read. Repository content never goes to a model provider without AGENT-007 per-site consent; this implementation makes no source-to-model request. AGENT-003 inherits source-generation, approval, revocation and no-replay fences before adding broader granted edits. Current native door: the owner explicitly starts a bounded sitemap investigation, reviews structural candidates, prepares a normal version-bound no-code proposal and verifies a deployed fix against new accepted page and event payloads. A displayed investigation draft is labelled draft-only; an opened GitHub draft PR is claimed only after a confirmed provider response, with its URL and full source SHA. No source body, element text, input value or new visitor field is kept.
-
-**Acceptance.**
-1. Deploy a fixture site change that renames the signup button and drops the script from one template.
-2. The agent reports both with evidence and drafts a PR and a no-code event.
-3. After the owner approves and the change deploys, the agent confirms the events arrive again and annotates the fix.
-
-**Evidence.** `tests/instrumentation.test.mjs` — “Instrumentation investigation compares a renamed signup control and missing template script, prepares a reviewed no-code fix and PR draft, then verifies deployed pages and real payloads once” proves both structural findings with links, draft-only PR contents, the normal owner-approved no-code change, a real GitHub draft-PR network-edge hand-off and source-diff evidence, real browser payload recovery, one dated annotation with the PR link and Settings/Approvals at 1440/390; “Instrumentation authority is owner-only and scoped, same-origin, read-only until a reviewed version-bound approval, and incomplete scans never claim recovery” proves authority, explicit review, stale-version refusal, failure honesty and custody; “Instrumentation compares page, scroll and custom goals and funnel reach with arriving native payloads, and cites a sitemap step removed with HTTP 404” proves those counts, compared denominators, silent-step qualification, unavailable-page evidence and Settings at 1440/390. `docs/instrumentation.md`.
-**Gap.** PARTIAL until a real GitHub receipt. GitHub source authority: ct approved as adopted with riders, 22 Oct. The fixture edge proves fixed-host mapped-file comparisons, a mapped script-only HTML draft PR after exact-diff-hash approval and separate confirmation, with sensitive/operational path and classic-token refusals, source drift refusal, read-only response-loss reconciliation and sealed/revocable credential custody. Native script tags and declared selectors are inspected statically; execution, consent and blockers remain unmeasured. Only word-ID/tag/ordinal structural rename candidates are drafted. Pane deploy-diff connections, automatic edits for source languages other than mapped HTML, GTM/Pane hand-off (INSTALL-005/AGENT-003), and server-confirmed outcome reconciliation (CONV-008) are absent. This is account-free foundation, not the complete agent; no DONE claim.
-
-#### AGENT-002 — Explain why traffic or conversions moved
-
-Core · push-further · **partial**
-
-**Requirement.** When numbers change, the agent separates four causes. Tracking coverage covers event volume against confirmed outcomes, consent rate, script errors and blockers. Channel mix covers the contributions by source, campaign and search query (`SEARCH-001`). Page behavior covers funnel steps, page speed (`PERF-001`) and errors from Spool. External events cover Uptime incidents, Mango sends, ad-spend changes, seasonality and US holidays. It returns ranked hypotheses, each with denominators, linked evidence, its confidence and the observation that would disprove it. Missing coverage is stated as missing, never as a cause, and the agent never claims causality from a correlation. Its explanations list the annotations in their window (`DASH-009`). Implemented conservative default, ct approved as adopted with riders, 22 Oct: investigations are explicit and owner-only; native aggregate figures, finalized search records and dated annotations stay in this installation and no model is called. Incoming anonymous daily order/attempt, checkout-error/request and availability-failure/check aggregates are off until the owner explicitly approves a site-scoped, shown-once SHA-256 sender credential. Only bounded daily aggregates are accepted, never anything finer; a sender credential writes only its own site's rows, and rotation or revocation stops new rows at once. Credentials grant no native/API/annotation authority and never travel in archives. These are sender-reported figures, labelled sender-reported in every explanation that uses them, not independently provider-verified outcomes or identity matches. Confidence is a qualitative evidence grade and scores only order hypotheses, never causal probabilities. Missing dates are unknown, never zero. Imported history is not treated as native arrivals; it stays source-labelled in ordinary reports and outside native-arrival hypotheses until its coverage is established. CONV-008, ADS-001, AGENT-003 and AGENT-005 inherit evidence provenance, missing-coverage and non-causality obligations before extending these sources or acting on a hypothesis.
-
-**Acceptance.**
-1. Seed three fixture weeks: a tracking break, an organic ranking drop, and a real checkout failure that confirmed orders corroborate.
-2. For each, the agent ranks the true cause first with cited evidence and names what is unknown.
-3. Each explanation lists the annotations dated in its window.
-
-**Evidence.** `tests/movement.test.mjs` — “Movement investigations rank a tracking break, organic ranking drop and corroborated checkout failure first in three fixture weeks, cite denominators, preserve unknowns and list every window annotation at 1440 and 390” proves the three fixture rankings (including an independent HTTP checkout failure and confirmed-order ledger), native/source denominators, source and named-campaign contributions, linked evidence, confidence, disproof observations, missing coverage, non-causality, dated annotations and report screens; “Aggregate evidence is off until explicit owner consent, shown once and hashed, scoped, revision-safe, revocable and limited, and never grants native or annotation authority” proves the source credential and settings screens; “Movement refuses invalid or private requests, missing source dates never become zero causes, and derived evidence follows archives, erasure and retention” proves privacy, unknown dates and custody. `docs/movement.md`.
-**Gap.** PARTIAL until real sender integrations exist. Owner-only, local-only investigation and off-default incoming anonymous daily aggregates: ct approved as adopted with riders, 22 Oct. External aggregates authenticate the owner-selected sender, not a real Stripe/Shopify/CRM, Spool or Uptime provider; CONV-008 reconciliation and independently verified confirmed orders are absent. Blocker share, browser script errors, unpreserved historical consent settings, numeric Mango sends/ad-spend (ADS-001) and established seasonality remain unknown. No complete-agent or causality claim.
-
-#### AGENT-003 — Propose and ship a site or campaign change under granted authority
-
-Core · push-further · **partial**
-
-**Requirement.** From an explanation or an opportunity (`AGENT-006`), the agent drafts a concrete change. The change can be page copy, a call to action, a title and meta description, a broken link or a form fix, a UTM correction, or a campaign budget or schedule change. It states the expected effect, its guardrail metrics and how it will be measured (`AGENT-004`). The agent ships only through grants the owner has given: a Pane page edit, a pull request to the site's GitHub repository, a Webflow CMS item, a Mango campaign draft, or an ad-platform change. Spend changes and material copy always need a person's approval, and every grant can be revoked. A 404 path that gets visits (`CONV-003`), such as a mistyped `/pricng`, gets a drafted redirect to the page it most likely meant. Every change the agent ships is added as a dated annotation on the charts (`DASH-009`).
-
-**Acceptance.**
-1. Grant Pane page-edit and GitHub PR access but no ad access.
-2. The agent ships an approved CTA change in Pane and opens a PR for a title change.
-3. Its proposed budget change waits for approval and cannot be shipped without the ad grant, and revoking the Pane grant blocks the next edit.
-4. From a 404 report where `/pricng` has 37 visits, the agent drafts a redirect to `/pricing` and opens it as a PR under the GitHub grant.
-5. Once it is merged and deployed, the next visit to `/pricng` lands on `/pricing`, and the path's 404 count stops growing.
-6. The shipped CTA change appears as an annotation on its day.
-
-**Evidence.** `tests/agent-work.test.mjs` — “Agent drafts preserve the review plan and refuse every unavailable shipping destination and unauthorized caller”; `docs/agents.md`.
-**Gap.** Owner-only local drafts record expected effect, guardrail and measurement. All shipping refuses; the ct-approved instrumentation GitHub authority is not widened. External dependency: Pane page-edit capability is unavailable. General title and redirect PRs, grant lifecycle, deployed redirect proof and shipped-change annotation remain unbuilt. Conservative default adopted: local owner-only work, no outbound grant; ct approval pending.
-
-#### AGENT-004 — Measure the result against coverage gaps
-
-Core · push-further · **partial**
-
-**Requirement.** For every shipped change, the agent runs an experiment (`EXPERIMENT-001`) where it can, or a before-and-after comparison with matched weekdays and guardrails where it cannot. It reports the measured effect with an interval, whether coverage changed in the window, and a verdict: measured improvement, no detectable change, worse, or inconclusive because of coverage or sample size. It recommends keeping or reverting the change, and it reverts only under the grant, with approval.
-
-**Acceptance.**
-1. Ship two fixture changes: one with a real lift under an experiment, and one before-and-after change during a consent-rate drop.
-2. The first is reported as a measured improvement with its interval, the second as inconclusive because of coverage, and an approved revert restores the prior page.
-
-**Evidence.** `tests/agent-work.test.mjs` — “Result assessment refuses local drafts as shipped changes”; `docs/agents.md`.
-**Gap.** A result endpoint requires a verified deployed instrumentation fix, matched weekdays and existing experiment intervals, and withholds positive verdicts for observed coverage changes. Only draft-as-shipped refusal is asserted so far; positive lift, consent-drop assessment and approved page revert acceptance remain unproved. Pane revert depends on the unavailable Pane edit capability. Conservative default adopted: no automatic revert and no new grant; ct approval pending.
-
-#### AGENT-005 — Pursue anomalies to resolution
-
-Core · push-further · **partial**
-
-**Requirement.** On an alert (`ALERT-001`, `ALERT-002`), the agent investigates with `AGENT-002` first and attaches its findings to the follow-up item (`FOLLOW-001`). It contacts the responsible person only when a decision or an outside fix is needed, for example a developer for a broken event or the marketer for a paused campaign, on the owner's channels and schedule. It keeps the item open until it is resolved, and it closes it only on a person's confirmation or a verified recovery with coverage intact.
-
-**Acceptance.**
-1. Fire a silent-site alert caused by a deploy.
-2. The agent attaches its evidence, messages the configured developer once, reminds them after the due time, and after the fix verifies events and closes the item with that evidence.
-3. A real traffic dip with no fault is closed as expected after the owner confirms.
-
-**Evidence.** `tests/agent-work.test.mjs` — “Anomaly pursuit attaches movement evidence, preserves the open item and waits for a person to confirm expected traffic”; `docs/agents.md`.
-**Gap.** Owner-requested pursuit runs movement investigation first, attaches its evidence to the existing follow-up and leaves it open until a person resolves it. No new outbound message or automatic closure. Silent-deploy investigation, one configured developer contact, due reminder and verified event recovery with intact coverage remain unproved. Conservative default adopted: no autonomous contact or closure; ct approval pending.
-
-#### AGENT-006 — Weekly growth brief with opportunities
-
-Core · push-further · **done**
-
-**Requirement.** Each week the agent writes a brief of three to five opportunities, each with figures. Examples are pages with high entry and high exit, campaigns that convert above the site's average, Search Console queries ranking 4 to 20 with high impressions, slow pages that convert below their peers, and stalled funnel steps. It links each one to a drafted `AGENT-003` change. The owner can dismiss an opportunity type, and the agent stops raising it.
-
-**Acceptance.**
-1. On a fixture site with seeded opportunities, the brief names each with correct figures and a linked draft.
-2. A dismissed type does not return the next week.
-
-**Evidence.** `tests/agent-work.test.mjs` — “Weekly local opportunities cite exact native figures and linked drafts and suppress dismissed types next week”; “Scheduled ended-week briefs review all five opportunity types with exact figures and suppress dismissed types in saved briefs and next week” proves cron production, all five types and exact figures, working local draft links, repeat idempotence, immediate dismissal in saved brief reads and Settings with recalculated shortfall, preserved historical evidence and drafts, next-week suppression and all-type review at 1440 and 390. `docs/agents.md`.  CT judged DONE-JUSTIFIED on 25 October 2026 at e905c013f97d392a9e4689de679c5c52db8a6215. `tests/agent-work.test.mjs`, lines 60–100, proves both acceptance sentences with owner-only local drafts and no new outbound authority; shipping remains AGENT-003.
-**Gap.** None. Linked changes remain local drafts; shipping belongs to AGENT-003.
-
-#### AGENT-007 — Answer questions in plain English, with the query shown
-
-Core · push-further · **done**
-
-**Requirement.** In the app, Slack, Teams and MCP, a team member asks a question such as "Which campaigns brought paying customers from Texas last month?". The answer comes back as a chart, the figures, and the exact filters, metrics and range used. The figures equal what the dashboard shows for that query. Ambiguous questions get a clarifying choice, and questions the data cannot answer (people, causes, data outside coverage) say so. Approved as landed with riders (ct 22 October 2026): questions are off until the owner turns them on for a site (audited); only the question text, Vane's own metric, breakdown, filter and period names, the site's goal names, time zone and today's date go to the deployment's model provider (Base `ai` module, `AI_ENABLED`), never a stored Vane analytics figure, visitor field or page value; the model only proposes a Stats API query, which Vane validates against that API's vocabulary, refuses without repair when it does not fit and runs itself; Vane stores no question, model reply or answer; every question attempt, including refused email, over-limit and unrunnable-plan attempts, counts toward the 60-per-hour site limit and is audited by actor and time without text. Email addresses are refused before provider egress. Typed personal data beyond email is a named input Gap: the ask box warns that the text goes to the provider and other personal details are not automatically removed. The provider is solely the deployment’s Base ai module; its retention and training terms are an external Gap, never claimed by Vane. The app and MCP tool `ask_question` share this per-site switch and budget today; Slack and Teams inherit the same switch and all these rules before their question doors ship. Unsupported data coverage is enforced by the closed Stats API plan-refusal path without repair, rather than a model judgement Vane claims to verify.
-
-**Acceptance.**
-1. Ask ten fixture questions, including an ambiguous one and an unanswerable one.
-2. Every numeric answer equals the Stats API result for the shown query, the ambiguous question gets a choice and the unanswerable one says why.
-
-**Evidence.** `tests/ask.test.mjs` — “AGENT-007 ten fixture questions answer with the shown Stats API query, a clarifying choice and honest refusals, and the model sees only the question and the vocabulary” covers ten questions, numeric equality with Stats API results; choice and refusal paths, question-only egress, no stored text and chart/table pages at 1440/390; “AGENT-007 questions are off until the owner enables them, owner-only to change, scoped, limited, and a bad model reply runs nothing” covers audited owner-only enablement, app/MCP scope and site switch, all refusal attempts in the shared budget, and no repair. `tests/ask-journey.mjs` — real-model sandbox passed 2026-10-22T22:50:41.860Z on c0271cc7262225ab077ea7e8387ed47eeed89d96 through deployment Base ai with gpt-4.1: seven numeric answers independently equal the shown Stats API result; one clarifying choice runs without a further model call; people and causes are refused; exactly ten provider calls and text-free audit custody pass.
-**Gap.** Ct approved as landed with riders 22 Oct. Named input Gap: typed personal data beyond email is not automatically removed; the ask box discloses provider egress. Named external Gap: deployment-provider retention/training terms are not established or claimed. Slack/Teams question doors remain future REPORT-002/AGENT-007 carriers of the same switch and controls. Coverage refusal is the closed Stats API validation path, without repair.
-
-## Agent surface
-
-None.
-
-## Later
-
-None.
-
 ## Field proof register
 
-No field proof is recorded yet.
+| ID | Proof | Clauses | State | Date | Receipt |
+| --- | --- | --- | --- | --- | --- |
+| R-1 | The `COLLECT-004` load (twelve months of 10,000,000 pageviews with 500 events a second) run on a deployed Cloudflare account, with the stated cost within 10% of the account's usage; about USD 900 at the published rates | HOST-001 | not run | | |
+| R-2 | The WordPress plugin listed in the WordPress.org plugin directory | INSTALL-002 | not run | | |
+| R-3 | The Shopify app approved and listed in the Shopify App Store | INSTALL-003 | not run | | |
+| R-4 | The Google Tag Manager template published in the Community Template Gallery | INSTALL-005 | not run | | |
+| R-5 | A full green run of the blocker journey on its weekly schedule against the then-current default lists, re-read by ct | INSTALL-006 | not run | | |
+| R-6 | SAML sign-in and the SCIM lifecycle against real Okta and Entra ID tenants: create, deactivate, next-request session, API and push revocation and zero-site provisioning | TEAM-004 | not run | | |
+| R-7 | The iOS and Android apps approved and listed in the App Store and Google Play | MOBILE-002 | not run | | |
+| R-8 | A human screen-reader pass with VoiceOver or NVDA over the dashboard, report, settings, approval and alert journeys | MOBILE-001 | not run | | |
+| R-9 | A VPAT for the web app | MOBILE-001 | not run | | |
+| R-10 | The independent visual gate comparing the built homepage at 1440 and 390 px with the approved specification and picks | HOME-001 | not run | | |
