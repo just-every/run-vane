@@ -94,7 +94,7 @@ Carried-done audit of every clause done at `7d02f5807e148660e634f62b713d1fa39e46
 | `HOME-001` | 1 | at 1440 px the wind trail runs down the page | `tests/site.test.mjs:137` | asserted |
 | `HOME-001` | 1 | every font, image and style comes from the run site itself | `tests/site.test.mjs:140` | asserted |
 | `HOME-001` | 1 | Inter Tight and Inter are loaded | `tests/site.test.mjs:142` | asserted |
-| `HOME-001` | old 1 | the independent visual gate's comparison with the approved specification (a human pass) moved to register row R-12 | — | moved |
+| `HOME-001` | old 1 | the independent visual gate's comparison with the approved specification (a human pass) moved to register row R-10 | — | moved |
 | `LOBBY-001` | 1 | on a fresh installation the owner completes /setup | `tests/vane-access.mjs:156` | asserted |
 | `LOBBY-001` | 1 | the owner signs in by email link | `tests/vane-access.mjs:160` | asserted |
 | `LOBBY-001` | 1 | the owner opens /app | `tests/vane-access.mjs:168` | asserted |
@@ -222,7 +222,7 @@ Carried-done audit of every clause done at `7d02f5807e148660e634f62b713d1fa39e46
 | `DASH-015` | 5 | a 3-visitor metro folds into Other metro areas | `tests/locations.journey.mjs:93` | asserted |
 | `DASH-015` | 5 | a metro whose leading city is under 5 visitors names only its region | `tests/locations.journey.mjs:92` | asserted |
 | `DASH-015` | 5 | nothing shows without the chosen report | `tests/locations.journey.mjs:96` | asserted |
-| `DASH-015` | old 8 of DASH-005 | the journeys use Cloudflare's example code 635 and synthetic codes, places and names (a proof boundary, moved to docs/contract-rules.md) | — | moved |
+| `DASH-015` | old 8 of DASH-005 | the journeys use Cloudflare's example code 635 and synthetic codes, places and names (a proof boundary, moved to docs/contract/rules.md) | — | moved |
 | `DASH-016` | 1 | an administrator uploads a table and it waits | `tests/locations.journey.mjs:212` | asserted |
 | `DASH-016` | 1 | after the owner approves, the name appears on every signed-in surface | `tests/locations.journey.mjs:216` | asserted |
 | `DASH-016` | 1 | the name appears in exports | `tests/locations.journey.mjs:221` | asserted |
@@ -323,7 +323,7 @@ Carried-done audit of every clause done at `7d02f5807e148660e634f62b713d1fa39e46
 | `CONV-002` | 5 | a filter plan is pro keeps only the visits with a pro signup | `tests/vane-conversions.mjs:126` | asserted |
 | `CONV-003` | 1 | an outbound link, a PDF link, a 404 page and a form submission on a fixture site | `tests/vane-reports.mjs:190` | asserted |
 | `CONV-003` | 2 | four events arrive with the right properties | `tests/vane-reports.mjs:190` | asserted |
-| `CONV-003` | 2 | no form contents are kept | `tests/vane-reports.mjs:195` | asserted |
+| `CONV-003` | 2 | no form contents are kept | `tests/vane-reports.mjs:197` | asserted |
 | `CONV-004` | 1 | conversions from Google and from email are seeded | `tests/vane-report-settings.mjs:273` | asserted |
 | `CONV-004` | 2 | the channel table shows each channel's conversion rate for the selected goal | `tests/vane-report-settings.mjs:278` | asserted |
 | `CONV-004` | 2 | the channel table shows each channel's revenue for the selected goal | `tests/vane-conversions.mjs:157` | asserted |
@@ -347,7 +347,7 @@ Carried-done audit of every clause done at `7d02f5807e148660e634f62b713d1fa39e46
 | `CONV-007` | 1 | one visitor views, adds two tees and a mug, checks out and buys across three page loads; another views and adds a tee | `tests/vane-conversions.mjs:182` | asserted |
 | `CONV-007` | 2 | the ecommerce funnel shows 2, 2, 1 and 1 visits | `tests/vane-conversions.mjs:196` | asserted |
 | `CONV-007` | 2 | the product report shows each product's views, units and revenue | `tests/vane-conversions.mjs:195` | asserted |
-| `CONV-007` | 2 | a euro purchase is kept as 20.00 euros | `tests/vane-conversions.mjs:191` | asserted |
+| `CONV-007` | 2 | a euro purchase is kept as 20.00 euros | `tests/vane-conversions.mjs:195` | asserted |
 | `CONV-007` | 3 | lines on another event, an email address in a line, a zero quantity, an unknown or missing currency, an undeclared field and more than 50 lines are refused | `tests/vane-conversions.mjs:192` | asserted |
 | `CONV-009` | 1 | a click event for #book-demo is defined and its matched element previewed | `tests/vane-conversions.mjs:242` | asserted |
 | `CONV-009` | 1 | the definition is approved | `tests/vane-conversions.mjs:251` | asserted |
@@ -455,10 +455,10 @@ Carried-done audit of every clause done at `7d02f5807e148660e634f62b713d1fa39e46
 | `REPORT-001` | 5 | it shows in the app at once | `tests/vane-alerts.mjs:32` | asserted |
 | `REPORT-001` | 6 | a Monday 8:00 weekly report arrives on Monday at 8:00 local time and on no other day | `tests/vane-alerts.mjs:19` | asserted |
 | `REPORT-004` | 1 | a signed provider event reports a permanent bounce on a delivered report hours later and it shows on that send | `tests/vane-alerts.mjs:52` | asserted |
-| `REPORT-004` | 1 | a spam complaint on another send shows on it | `tests/vane-alerts.mjs:54` | asserted |
+| `REPORT-004` | 1 | a spam complaint on another send shows on it | none | none |
 | `REPORT-004` | 2 | a wrong signature is refused | `tests/vane-alerts.mjs:42` | asserted |
 | `REPORT-004` | 2 | an event naming another address is refused | `tests/vane-alerts.mjs:43` | asserted |
-| `REPORT-004` | 2 | an identical retry changes nothing | `tests/vane-alerts.mjs:49` | asserted |
+| `REPORT-004` | 2 | an identical retry changes nothing | none | none |
 | `REPORT-004` | 3 | the next scheduled sends to both addresses fail unsent with that reason | `tests/vane-alerts.mjs:58` | asserted |
 | `REPORT-004` | 3 | the second stopped address fails unsent too | `tests/vane-alerts.mjs:59` | asserted |
 | `REPORT-004` | 3 | other recipients keep their reports | `tests/vane-alerts.mjs:60` | asserted |
@@ -476,7 +476,7 @@ Carried-done audit of every clause done at `7d02f5807e148660e634f62b713d1fa39e46
 | `ALERT-001` | 4 | the recorded crossing and send times show it | `tests/vane-alerts.mjs:78` | asserted |
 | `ALERT-001` | 5 | a recurring Saturday 2:00-3:00 maintenance window with a drop inside it | `tests/vane-alerts.mjs:117` | asserted |
 | `ALERT-001` | 6 | no alert is sent inside the window | `tests/vane-alerts.mjs:128` | asserted |
-| `ALERT-001` | 6 | the alert log shows the drop as held with the reason scheduled maintenance | `tests/vane-alerts.mjs:144` | asserted |
+| `ALERT-001` | 6 | the alert log shows the drop as held with the reason scheduled maintenance | `tests/vane-alerts.mjs:143` | asserted |
 | `ALERT-001` | 6 | the same drop at 4:00 alerts | `tests/vane-alerts.mjs:129` | asserted |
 | `ALERT-001` | 7 | each alert's message lists its largest movers with their totals | `tests/vane-alerts.mjs:124` | asserted |
 | `ALERT-001` | 8 | an alert on a saved segment counts only that segment's visits | `tests/vane-alerts.mjs:101` | asserted |
@@ -510,8 +510,9 @@ Carried-done audit of every clause done at `7d02f5807e148660e634f62b713d1fa39e46
 | `TEAM-001` | 1 | an analyst is invited to one site and a viewer to two | `tests/vane-team-and-exports.mjs:25` | asserted |
 | `TEAM-001` | 2 | every in-role action through its public route succeeds for each role | `tests/vane-team-and-exports.mjs:28` | asserted |
 | `TEAM-001` | 2 | every out-of-scope call is refused | `tests/vane-team-and-exports.mjs:29` | asserted |
+| `TEAM-001` | 2 | every out-of-role call is refused | `tests/vane-team-and-exports.mjs:50` | asserted |
 | `TEAM-001` | 2 | the analyst saves a segment | `tests/vane-team-and-exports.mjs:56` | asserted |
-| `TEAM-001` | 2 | the analyst prepares a no-code event | `tests/vane-team-and-exports.mjs:57` | asserted |
+| `TEAM-001` | 2 | the analyst prepares a no-code event | `tests/vane-team-and-exports.mjs:58` | asserted |
 | `TEAM-001` | 2 | "with no write" restated BASE-ROLE-001 and left the point (base); the no-write check is still at line 54 | — | moved |
 | `TEAM-001` | 2 | a transfer of ownership is refused without the current owner's confirmation | `tests/vane-team-and-exports.mjs:71` | asserted |
 | `TEAM-001` | 2 | a confirmed transfer works | `tests/vane-team-and-exports.mjs:81` | asserted |
@@ -570,7 +571,7 @@ Carried-done audit of every clause done at `7d02f5807e148660e634f62b713d1fa39e46
 | `PRIVACY-005` | 3 | each succeeds | `tests/vane-access.mjs:143` | asserted |
 | `PRIVACY-005` | 3 | the record holds no outbound request | `tests/vane-access.mjs:146` | asserted |
 | `PRIVACY-005` | 4 | seed.json lists Cloudflare as the only required external | `tests/vane-access.mjs:135` | asserted |
-| `PRIVACY-005` | 4 | the present-tense list of today's optional integrations moved to docs/data-flows.md | — | moved |
+| `PRIVACY-005` | 4 | the present-tense list of today's optional integrations moved to docs/contract/data-flows.md | — | moved |
 | `AUDIT-001` | 1 | each audited action is performed, including an agent.prepare proposal and a sign-in opening a session | `tests/vane-access.mjs:262` | asserted |
 | `AUDIT-001` | 1 | the audit view is read | `tests/vane-access.mjs:272` | asserted |
 | `AUDIT-001` | 1 | the export is read | `tests/vane-access.mjs:270` | asserted |
@@ -584,6 +585,7 @@ Carried-done audit of every clause done at `7d02f5807e148660e634f62b713d1fa39e46
 | `SITE-001` | 2 | deletion leaves no history | `tests/vane-reports.mjs:235` | asserted |
 | `HOST-001` | 1 | deploy to a Cloudflare test account and run a 1,000,000-pageview native load | `tests/host-cloudflare-cost.journey.mjs:106` | asserted |
 | `HOST-001` | 1 | read the cost panel | `tests/host-cloudflare-cost.journey.mjs:103` | asserted |
+| `HOST-001` | old 1 | the `COLLECT-004` load run on a deployed account (a proof boundary) moved to register row R-1 | — | moved |
 | `HOST-001` | 2 | the stated cost per 100,000 pageviews matches measured account usage within 10% | `tests/host-cloudflare-cost.journey.mjs:124` | asserted |
 | `HOST-001` | 2 | the deployed resources are exactly the Worker and the bindings deploy.json declares | none | none |
 | `HOST-001` | 3 | the cost panel names Workers Paid for the load-test volume | `tests/host-cloudflare-cost.journey.mjs:107` | asserted |
@@ -617,6 +619,9 @@ Carried-done audit of every clause done at `7d02f5807e148660e634f62b713d1fa39e46
 | `AGENT-007` | 2 | every numeric answer equals the Stats API result for the shown query | `tests/ask.test.mjs:33` | asserted |
 | `AGENT-007` | 2 | the ambiguous question gets a choice | `tests/ask.test.mjs:42` | asserted |
 | `AGENT-007` | 2 | the unanswerable one says why | `tests/ask.test.mjs:46` | asserted |
+| `AGENT-008` | 1 | the ten fixture questions are asked from a Slack fixture | none | none |
+| `AGENT-008` | 1 | the ten fixture questions are asked from a Teams fixture | none | none |
+| `AGENT-008` | 2 | the Slack and Teams answers match the Stats API, offer a choice for the ambiguous question and say why for the unanswerable one | none | none |
 
 Rows: 615; 582 asserted, 22 none, 11 moved. Clauses audited: 98.
 

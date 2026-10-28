@@ -155,7 +155,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "f363a55ac38cef4ff6a200c80e033a90f1314996c3aad2517d4bae4b98c7c354",
+      "sha256": "d07c655d6b4be5cd9c32316eb1148cae73aa40711c9f22dd253e21636ce1ff3c",
       "executable": false
     },
     "AGENTS.md": {
@@ -167,7 +167,7 @@
       "executable": false
     },
     "CHANGELOG.md": {
-      "sha256": "cf4b690a2e1ecfddc920bfecd99b65bc1cf0b03f0e4f189076e10c1e303dfe94",
+      "sha256": "533cf544250baa25d40e52d6191b1e50e2b14cae9117159e84ae2530971c6e8e",
       "executable": false
     },
     "CLAUDE.md": {
@@ -187,7 +187,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "969f27943e05b04129c662273e1a66a14d191390da402b474ad67086f76bd491",
+      "sha256": "a58c5d72f13bdcbaf4843fafecd9ded9031d5ab0260851fb0cac2df3ccf5c904",
       "executable": false
     },
     "DEMO.md": {
@@ -247,11 +247,11 @@
       "executable": false
     },
     "docs/contract/data-flows.md": {
-      "sha256": "85163b9aea45108c8344f79d99fcf98a86d85d5b68692ea1f952ddf0d14a6764",
+      "sha256": "6723fc7453da77995ccda87584ac6016b8a0c3a89fb4f0f1fefb52332bc374d0",
       "executable": false
     },
     "docs/contract/DONE-AUDIT.md": {
-      "sha256": "e9ecf6c0f9e9fbc65e5eb765d42fc0b9e63287ec71a8d2be355b801628d31c05",
+      "sha256": "fcd3f5869bb2157536160906efa11947cc6f2b5ad9821bf1a1cbc73d0eaf7ff9",
       "executable": false
     },
     "docs/contract/ID-MAP.json": {

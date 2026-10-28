@@ -8,10 +8,10 @@ The primary journey: a US business owner adds one script or a platform path, bri
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 83 | 22 | 10 | 115 |
+| Core | 82 | 23 | 10 | 115 |
 | Agent surface | 0 | 0 | 7 | 7 |
 | Later | 3 | 1 | 2 | 6 |
-| Full target | 86 | 23 | 19 | 128 |
+| Full target | 85 | 24 | 19 | 128 |
 
 Judged from the code and tests at commit `c0271cc7262225ab077ea7e8387ed47eeed89d96` (22 October 2026). Field proof register: 10 rows; 0 passed, 0 failed, 10 not run.
 
@@ -1102,7 +1102,7 @@ Core · target · **done** · Cites BASE-OPS-004
 
 #### REPORT-004 — Provider delivery events stop report mail
 
-Core · target · **done** · From REPORT-001 · Cites BASE-MAIL-001
+Core · target · **partial** · From REPORT-001 · Cites BASE-MAIL-001
 
 **Requirement.** A permanent bounce, a spam complaint or a suppression the mail provider reports later, through its signed delivery events, shows on that report send and stops further report email to the address. The send list labels each provider event as the provider's, with its date. The event intake is in `docs/contract/rules.md`.
 
@@ -1112,7 +1112,7 @@ Core · target · **done** · From REPORT-001 · Cites BASE-MAIL-001
 3. The next scheduled sends to both addresses fail unsent with that reason while other recipients keep their reports.
 
 **Evidence.** `src/vane/email-reports.ts`; `src/vane/mail-events.ts`; `src/vane/views/report-settings.ts`; `migrations/core/0042_vane_email_reports.sql`; `migrations/core/0045_vane_report_mail_events.sql`; `tests/vane.test.mjs`
-**Gap.** None.
+**Gap.** A spam complaint shown on its own send, and that an identical provider-event retry changes nothing, are unasserted: the journey checks only that each of those deliveries answers 200. A bounce shown on its send at once, the refused wrong signature and other address, and the stopped later sends with other recipients kept are asserted.
 
 #### REPORT-002 — Slack, Microsoft Teams and Nook delivery
 

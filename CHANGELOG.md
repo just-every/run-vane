@@ -6,7 +6,7 @@
 - Split one-capability parts: INSTALL-004 (INSTALL-009 Pane, INSTALL-010 Stall), DASH-005 (DASH-015 US metro codes, DASH-016 owner metro names, both Later), IMPORT-007 (IMPORT-010 parallel-run report), IMPORT-008 (IMPORT-011 call-site scan), IMPORT-009 (IMPORT-012 funnel rebuild), REPORT-001 (REPORT-004 provider delivery events), TEAM-002 (TEAM-003 second step, TEAM-004 SAML and SCIM, Later) and AGENT-007 (AGENT-008 Slack and Teams questions).
 - Moved exact rules, endpoints and constants to `docs/contract/rules.md`, declared data flows to `docs/contract/data-flows.md`, HOST-001's evidence-scope notes to `docs/hosting-cost.md`, and rulings to `RULINGS.md` (RL-1 to RL-9, plus ct's RL-101 to RL-103).
 - Escalation of an unacknowledged follow-up item to a second person moves to Oncall (cleanup rule 7).
-- The carried-done audit (`docs/contract/DONE-AUDIT.md`) found twelve done clauses with an unasserted outcome; each is now partial with that Gap: DEPLOY-001, INSTALL-001, COVERAGE-001, METRIC-001, DASH-013, DASH-014, IMPORT-002, IMPORT-008, ALERT-002, PRIVACY-001, HOST-001 and OPEN-001.
+- The carried-done audit (`docs/contract/DONE-AUDIT.md`) found thirteen done clauses with an unasserted outcome; each is now partial with that Gap: DEPLOY-001, INSTALL-001, COVERAGE-001, METRIC-001, DASH-013, DASH-014, IMPORT-002, IMPORT-008, REPORT-004, ALERT-002, PRIVACY-001, HOST-001 and OPEN-001.
 - "Done when what exists today conforms" scope notes, build-order sentences and run receipts from clause bodies and Gap cells are kept below in the contract source and in this entry's history; the full prior contract follows under "Contract source before".
 
 ## Unreleased — 19 October 2026

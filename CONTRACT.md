@@ -1673,8 +1673,8 @@ Judged from the code and tests at commit `c0271cc7262225ab077ea7e8387ed47eeed89d
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 16 | 1 | 0 | 17 |
-| Target and push further | 70 | 22 | 19 | 111 |
-| All | 86 | 23 | 19 | 128 |
+| Target and push further | 69 | 23 | 19 | 111 |
+| All | 85 | 24 | 19 | 128 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -1759,7 +1759,7 @@ Judged from the code and tests at commit `c0271cc7262225ab077ea7e8387ed47eeed89d
 | `IMPORT-009` | Goal definitions recovered from what each incumbent plan exposes | target | done | `src/vane/movein/plausible-definitions.ts`; `src/vane/movein/plausible-reader.ts`; `src/vane/movein/import-definitions.ts`; `src/vane/views/import-definitions.ts`; `tests/plausible-definitions.test.mjs`; `tests/matomo.test.mjs` |  |
 | `IMPORT-012` | Funnels rebuilt in a guided step | target | done | `src/vane/movein/plausible-definitions.ts`; `src/vane/movein/plausible-reader.ts`; `src/vane/movein/import-definitions.ts`; `src/vane/views/import-definitions.ts`; `tests/plausible-definitions.test.mjs`; `tests/matomo.test.mjs` |  |
 | `REPORT-001` | Scheduled email reports | target | done | `src/vane/email-reports.ts`; `src/vane/mail-events.ts`; `src/vane/views/report-settings.ts`; `migrations/core/0042_vane_email_reports.sql`; `migrations/core/0045_vane_report_mail_events.sql`; `tests/vane.test.mjs` |  |
-| `REPORT-004` | Provider delivery events stop report mail | target | done | `src/vane/email-reports.ts`; `src/vane/mail-events.ts`; `src/vane/views/report-settings.ts`; `migrations/core/0042_vane_email_reports.sql`; `migrations/core/0045_vane_report_mail_events.sql`; `tests/vane.test.mjs` |  |
+| `REPORT-004` | Provider delivery events stop report mail | target | partial | `src/vane/email-reports.ts`; `src/vane/mail-events.ts`; `src/vane/views/report-settings.ts`; `migrations/core/0042_vane_email_reports.sql`; `migrations/core/0045_vane_report_mail_events.sql`; `tests/vane.test.mjs` | A spam complaint shown on its own send, and that an identical provider-event retry changes nothing, are unasserted: the journey checks only that each of those deliveries answers 200. A bounce shown on its send at once, the refused wrong signature and other address, and the stopped later sends with other recipients kept are asserted. |
 | `REPORT-002` | Slack, Microsoft Teams and Nook delivery | target | partial | `src/vane/chat/connections.ts`; `src/vane/chat/delivery.ts`; `src/vane/views/chat-settings.ts`; `migrations/core/0056_vane_chat.sql`; `tests/chat.test.mjs` | Slack OAuth, Teams workflow and Nook NOOK-079 reports/alerts, sealed credentials, filtered links and once-per-period outcomes. Gap: resolved-address/pinned egress (Base egress door), as RL-7 sets for owner-entered endpoints. |
 | `REPORT-003` | A readable explanation of what changed | target | done | `src/vane/explain.ts`; `src/vane/reports.ts`; `src/vane/views/report.ts`; `tests/vane.test.mjs` |  |
 | `ALERT-001` | Traffic spike and drop alerts | target | done | `src/vane/traffic-alerts.ts`; `src/vane/alert-baseline.ts`; `src/vane/alert-explain.ts`; `src/vane/annotation-door.ts`; `src/vane/annotations.ts`; `src/vane/explain.ts`; `src/vane/views/alert-settings.ts`; `migrations/core/0046_vane_traffic_alerts.sql`; `migrations/core/0047_vane_alert_anomaly.sql`; `migrations/core/0048_vane_alert_recipients.sql`; `migrations/core/0049_vane_closed_days.sql`; `migrations/core/0050_vane_alert_segments.sql`; `tests/vane.test.mjs` |  |
