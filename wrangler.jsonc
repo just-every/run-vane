@@ -21,7 +21,6 @@
   ],
   "vars": {
     "AUTH_ORIGIN": "",
-    "OWNER_EMAIL": "",
     "IDENTITY_PROVIDER": "",
     "MAIL_PROVIDER": "",
     "MAIL_FROM": "",
