@@ -623,10 +623,10 @@ Carried-done audit of every clause done at `7d02f5807e148660e634f62b713d1fa39e46
 | `AGENT-008` | 1 | the ten fixture questions are asked from a Teams fixture | none | none |
 | `AGENT-008` | 2 | the Slack and Teams answers match the Stats API, offer a choice for the ambiguous question and say why for the unanswerable one | none | none |
 
-Rows: 615; 582 asserted, 22 none, 11 moved. Clauses audited: 98.
+Rows: 620; 581 asserted, 27 none, 12 moved. Clauses audited: 99.
 
 Notes.
 
 - Point numbers are the new contract's. "old N" marks an outcome that left a point: a Base restatement mapped `base`, a pointer to another clause, a proof boundary moved to the register or docs, or the escalation step moved to Oncall.
 - `tests/vane.test.mjs`, which most Evidence cells name, is the entry that imports `tests/vane-access.mjs`, `tests/vane-metrics.mjs`, `tests/vane-reports.mjs`, `tests/vane-report-settings.mjs`, `tests/vane-conversions.mjs`, `tests/vane-team-and-exports.mjs`, `tests/vane-mobile-and-api.mjs` and `tests/vane-alerts.mjs`; a line cited in one of those modules runs under that Evidence file. Lines cited in `tests/host-local-processes.mjs` and `tests/host-local-ui.mjs` are in helpers that the cited journeys call.
-- Each `none` row demotes its clause to partial in the same commit, with a Gap naming the unasserted outcome: `DEPLOY-001`, `INSTALL-001`, `COVERAGE-001`, `METRIC-001`, `DASH-013`, `DASH-014`, `IMPORT-002`, `IMPORT-008`, `ALERT-002`, `PRIVACY-001`, `HOST-001`, `OPEN-001`.
+- Each `none` row demotes its clause to partial in the same commit, with a Gap naming the unasserted outcome: `DEPLOY-001`, `INSTALL-001`, `COVERAGE-001`, `METRIC-001`, `DASH-013`, `DASH-014`, `IMPORT-002`, `IMPORT-008`, `REPORT-004`, `ALERT-002`, `PRIVACY-001`, `HOST-001`, `OPEN-001`. The exception is `AGENT-008`, the part of done `AGENT-007` that the old Gap named as future: it is missing, and its Gap says no Slack or Teams question door exists.
