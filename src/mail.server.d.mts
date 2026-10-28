@@ -1,7 +1,7 @@
 import type { MailSender } from './modules/operator-auth/index.mjs'
 import type { Bindings } from './auth.server'
 export function operatorMail(env: Bindings): MailSender | undefined
-// REPORT-004: Base's signed delivery-event intake (src/modules/mail/src/events/README.md).
+// REPORT-001: Base's signed delivery-event intake (src/modules/mail/src/events/README.md).
 export function verifyWebhook(input: { provider: 'resend' | 'sendgrid'; rawBody: Uint8Array; headers: Headers; key: string; now: number; toleranceSeconds?: number }): Promise<boolean>
 export function createD1EventStore(options: { db: D1Database }): unknown
 export interface DeliveryEvent { eventId: string; providerMessageId: string; deliveryId: string | null; status: string | null; occurredAt: number; recipients: string[] }

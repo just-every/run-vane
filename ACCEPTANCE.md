@@ -21,9 +21,9 @@ Judged from the code and tests at commit `c0271cc7262225ab077ea7e8387ed47eeed89d
 
 #### HTTP-001 — One Worker with honest public and private doors
 
-Core · published · **done** · Cites BASE-ACCESS-003, BASE-OPS-001
+Core · published · **done** · Cites BASE-ACCESS-002, BASE-ACCESS-003, BASE-OPS-001
 
-**Requirement.** One Cloudflare Worker serves the installed instance. The Lobby is at `/`, with `/health`, `/signin` and `/setup`. The collection script is at `/vane.js`, with its collection and configuration endpoints. Private app and API routes are behind native sessions, and unknown paths return real 404 responses. The public run site is a separate static surface.
+**Requirement.** One Cloudflare Worker serves the installed instance. The Lobby is at `/`, with `/health`, `/signin` and `/setup`. The collection script is at `/vane.js`, with its collection and configuration endpoints. Unknown paths return real 404 responses. The public run site is a separate static surface.
 
 **Acceptance.**
 1. Request `/health`, `/vane.js`, an unknown path and every private route signed out on a built Worker.
@@ -142,7 +142,7 @@ Core · published · **done**
 
 Core · published · **done** · Cites BASE-DATA-001, BASE-BACKUP-001
 
-**Requirement.** The owner exports every analytics, proposal, deletion and import-custody table as an integrity-checked archive, including each site's US metro-name table with its source label and public choice (`DASH-016`). Restore works only into an empty installation, keeps the owner sign-in, rejects a corrupt archive and preserves import undo.
+**Requirement.** The owner exports every analytics, proposal, deletion and import-custody table as an integrity-checked archive, including each site's US metro-name table with its source label and public choice (`DASH-016`). A restore keeps the owner sign-in, rejects a corrupt archive and preserves import undo.
 
 **Acceptance.**
 1. Export, corrupt the archive and restore it (400, no writes).
@@ -1223,7 +1223,7 @@ Core · target · **done** · Cites BASE-PUBLIC-001
 
 Core · target · **done** · Cites BASE-ROLE-001, BASE-ACCESS-004
 
-**Requirement.** People are invited by email to the whole installation or to chosen sites with a role. An Owner controls everything, including billing and erasure. An Admin manages sites and settings. An Analyst creates goals, funnels, segments (`DASH-007`), no-code events (`CONV-009`), reports and alerts. A Viewer reads. Ownership can be transferred, and removal takes effect at once. Every private door enforces the role and the site scope server-side.
+**Requirement.** People are invited by email to the whole installation or to chosen sites with a role. An Owner controls everything, including billing and erasure. An Admin manages sites and settings. An Analyst creates goals, funnels, segments (`DASH-007`), no-code events (`CONV-009`), reports and alerts. A Viewer reads. Ownership can be transferred, and removal takes effect at once. Every private door also enforces the person's site scope on the server.
 
 **Acceptance.**
 1. Invite an analyst to one site and a viewer to two sites.
@@ -1399,7 +1399,7 @@ Core · target · **done** · Cites BASE-DATA-004, BASE-DATA-005
 
 Core · target · **done** · Cites BASE-OPS-005, BASE-AUDIT-001
 
-**Requirement.** An audit history records every proposal and approval, setting change, import and undo, export, restore, erasure, retention run, shared-link and API-key change, sign-in and agent action, with the actor, time and subject. It covers every action that exists: an agent action is any proposal prepared through the agent command API (`agent.prepare`), and a sign-in is recorded on every new session. The history is portable in the archive and survives erasure of a site's history. Shared-link and API-key changes are audited as `SHARE-001` and `API-001` set out.
+**Requirement.** An audit history records every proposal and approval, setting change, import and undo, export, restore, erasure, retention run, shared-link and API-key change, sign-in and agent action, with the actor, time and subject. It covers every action that exists: an agent action is any proposal prepared through the agent command API (`agent.prepare`), and a sign-in is recorded on every new session. The history is portable in the archive. Shared-link and API-key changes are audited as `SHARE-001` and `API-001` set out.
 
 **Acceptance.**
 1. Perform each audited action that exists, including an `agent.prepare` proposal and a sign-in that opens a new session, and read the audit view and export.

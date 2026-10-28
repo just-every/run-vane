@@ -192,7 +192,25 @@
     {
       "file": "CONTRACT.md",
       "line": 45,
-      "text": "**HTTP-001 — One Worker with honest public and private doors.** One Cloudflare Worker serves the installed instance. The Lobby is at `/`, with `/health`, `/signin` and `/setup`. The collection script is at `/vane.js`, with its collection and configuration endpoints. Private `/app` and `/api/vane/*` routes are behind native sessions, and unknown paths return real 404 responses. The public run site is a separate static surface.",
+      "text": "**HTTP-001 — One Worker with honest public and private doors.** One Cloudflare Worker serves the installed instance. The Lobby is at `/`, with `/health`, `/signin` and `/setup`. The collection script is at `/vane.js`, with its collection and configuration endpoints.",
+      "to": "clause",
+      "ids": [
+        "HTTP-001"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 45,
+      "text": "Private `/app` and `/api/vane/*` routes are behind native sessions, and",
+      "to": "base",
+      "ids": [
+        "BASE-ACCESS-002"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 45,
+      "text": "unknown paths return real 404 responses. The public run site is a separate static surface.",
       "to": "clause",
       "ids": [
         "HTTP-001"
@@ -538,7 +556,25 @@
     {
       "file": "CONTRACT.md",
       "line": 63,
-      "text": "**ARCHIVE-001 — Complete history export and atomic restore.** The owner exports every analytics, proposal, deletion and import-custody table as an integrity-checked archive, including each site's US metro-name table with its source label and public choice (`DASH-005`). Restore works only into an empty installation, keeps the owner sign-in, rejects a corrupt archive and preserves import undo.",
+      "text": "**ARCHIVE-001 — Complete history export and atomic restore.** The owner exports every analytics, proposal, deletion and import-custody table as an integrity-checked archive, including each site's US metro-name table with its source label and public choice (`DASH-005`).",
+      "to": "clause",
+      "ids": [
+        "ARCHIVE-001"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 63,
+      "text": "Restore works only into an empty installation,",
+      "to": "base",
+      "ids": [
+        "BASE-DATA-001"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 63,
+      "text": "keeps the owner sign-in, rejects a corrupt archive and preserves import undo.",
       "to": "clause",
       "ids": [
         "ARCHIVE-001"
@@ -3011,10 +3047,27 @@
     {
       "file": "CONTRACT.md",
       "line": 238,
-      "text": "**TEAM-001 — Per-site roles and invitations.** People are invited by email to the whole installation or to chosen sites with a role. An Owner controls everything, including billing and erasure. An Admin manages sites and settings. An Analyst creates goals, funnels, segments (`DASH-007`), no-code events (`CONV-009`), reports and alerts. A Viewer reads. Ownership can be transferred, and removal takes effect at once. Every private door enforces the role and the site scope server-side.",
+      "text": "**TEAM-001 — Per-site roles and invitations.** People are invited by email to the whole installation or to chosen sites with a role. An Owner controls everything, including billing and erasure. An Admin manages sites and settings. An Analyst creates goals, funnels, segments (`DASH-007`), no-code events (`CONV-009`), reports and alerts. A Viewer reads. Ownership can be transferred, and removal takes effect at once.",
       "to": "clause",
       "ids": [
         "TEAM-001"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 238,
+      "text": "Every private door enforces the role and the site scope server-side.",
+      "to": "base",
+      "ids": [
+        "BASE-ROLE-001"
+      ],
+      "also": [
+        {
+          "to": "clause",
+          "ids": [
+            "TEAM-001"
+          ]
+        }
       ]
     },
     {
@@ -3543,10 +3596,19 @@
     {
       "file": "CONTRACT.md",
       "line": 266,
-      "text": "The history is portable in the archive and survives erasure of a site's history.",
+      "text": "The history is portable in the archive",
       "to": "clause",
       "ids": [
         "AUDIT-001"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 266,
+      "text": "and survives erasure of a site's history.",
+      "to": "base",
+      "ids": [
+        "BASE-OPS-005"
       ]
     },
     {

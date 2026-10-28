@@ -60,7 +60,7 @@ export interface Bindings {
  MAIL_FROM?: string
  MAIL_API_KEY?: string
  MAIL_ACCOUNT_ID?: string
- /** REPORT-004: the Resend webhook signing secret (whsec_...) or SendGrid's event-webhook public key. */
+ /** REPORT-001: the Resend webhook signing secret (whsec_...) or SendGrid's event-webhook public key. */
  MAIL_WEBHOOK_KEY?: string
  /** Vane's published store capacity in MB (RETENTION-002); unset means D1's 10,240 MB limit on Workers Paid. */
  VANE_STORE_LIMIT_MB?: string

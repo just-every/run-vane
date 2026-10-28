@@ -155,7 +155,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "ef96c9ef06af136482b00feed47ab48ba55b954b0cd9a4b84276fcfb59b51b97",
+      "sha256": "b24bffd430eff1ee28a1ceedf01de3e61b80cd5837a36943033af2d350c9aaf3",
       "executable": false
     },
     "AGENTS.md": {
@@ -187,7 +187,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "8f518b39325611d84d04f42239a11b776ba6c19ad26a311d237f713085338bfa",
+      "sha256": "e3c876aec11370b529863b547452008e37d5356c7c55909ca82d0bd20f3250a5",
       "executable": false
     },
     "DEMO.md": {
@@ -243,11 +243,23 @@
       "executable": false
     },
     "docs/contract/COVERAGE.json": {
-      "sha256": "7cb9ee508cb1e08e422786e667141d452767a07b8c240e837afe88fcd3889a37",
+      "sha256": "9935f250492fccb7c319c1112ab014c14c73661fa8102c46053e74eed81c1909",
+      "executable": false
+    },
+    "docs/contract/data-flows.md": {
+      "sha256": "85163b9aea45108c8344f79d99fcf98a86d85d5b68692ea1f952ddf0d14a6764",
+      "executable": false
+    },
+    "docs/contract/DONE-AUDIT.md": {
+      "sha256": "e9ecf6c0f9e9fbc65e5eb765d42fc0b9e63287ec71a8d2be355b801628d31c05",
       "executable": false
     },
     "docs/contract/ID-MAP.json": {
       "sha256": "d7f114f9e0f372904a90adfd6d3f6bc5c089e67023300c09e8a36905e1d87dd1",
+      "executable": false
+    },
+    "docs/contract/rules.md": {
+      "sha256": "e373894410222e177afee15756df6803f2ff60902082cfb972196c22a0dd0a9f",
       "executable": false
     },
     "docs/first-party-proxy.md": {
@@ -1054,6 +1066,10 @@
       "sha256": "ce3212cb539b027f4698962bf754df6a666549dd2612f33041fc1f7f2b441020",
       "executable": false
     },
+    "RULINGS.md": {
+      "sha256": "e516b59b85ad0a1eba68780bd8cd3d1e0fd881f75fd67ea63e7d2241cd6688e8",
+      "executable": false
+    },
     "RUN-LOCALLY.md": {
       "sha256": "bdacc6dc9ca31066510b1db75f382d7ccb7f50557ab386cbbc9c715d5095d5ce",
       "executable": false
@@ -1295,7 +1311,7 @@
       "executable": false
     },
     "src/auth.server.ts": {
-      "sha256": "84ad8f26daad2205e6621e9ac0ce04124e55c58dd5c940f691796f6c70969c6d",
+      "sha256": "c7739ad251492d00c91265f64c05397338bf8049333f92924c4e034f55921eba",
       "executable": false
     },
     "src/base/contract-docs.mjs": {
@@ -1427,7 +1443,7 @@
       "executable": false
     },
     "src/mail.server.d.mts": {
-      "sha256": "9845dcd9b7b1e11f8c15e45b8f9b241a73b1fef8ddb817e09a3dc7dbd2f2acc6",
+      "sha256": "20c54f900b578a057b1e90f231599ffb72347c34e392f6542bead9ecf9b458e8",
       "executable": false
     },
     "src/mail.server.mjs": {
