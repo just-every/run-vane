@@ -16,6 +16,32 @@ AGENT-003 through AGENT-006 remain partial. Their original acceptance requiremen
 
 ## Company agent policy
 
-Company-agent adoption is not enabled in this edition. The copied shared door and Business settings source are pinned to Base `f96363bf919ea3e7ed1837daba6894810a50e4a6`, with CLI `0.2.86` and additive native migrations. Copying them does not make the existing MCP dispatcher a signed company-policy door.
+Company-agent adoption is not enabled in this edition. The shared door and
+Business settings runtime are recorded at Base
+`2135c394939f4a737adabdc8003b0e667b31ac5a`; the released CLI is `0.2.91`.
+Base now supports the Core declaration: tools, policy, pause, audit and
+idempotency. Events, resources, prompts and subscriptions can remain
+undeclared, with typed refusals. Source preparation does not claim production
+routing, native sponsorship or integrated conformance.
 
-The requested first adoption declares tools, policy, pause, audit and idempotency, with principal authorization and owner-bound tokens. The selected Base runtime always adds its events tool and its verifier requires that tool; it cannot yet represent this Core declaration with the events family undeclared. Production routing and the native tool/resource adapters await that shared capability boundary. Until then, use the existing native session and site-scoped API doors described above. Native approvals, provider connections, secrets, sign-in and import custody retain their existing boundaries. No company approval, sponsor binding or conformance completion is claimed by this source preparation.
+Two adoption inputs remain unavailable:
+
+- **VANE-BASE-EPHEMERAL:** `AGENT-007` promises that question text and model
+  replies are not stored. The existing `ask_question` MCP action performs that
+  native job. Shared read approvals retain the full arguments in their payload,
+  and shared read reviews retain the argument summary. The door has no
+  ephemeral-argument/result contract. Replacing the existing endpoint while
+  retaining its question job would break that custody promise. A shared
+  no-retention path is needed before this native action can enter the door.
+- **VANE-BASE-HISTORY:** the conformance history context supplies `now` and
+  SELECT-only disposable database access. `AGENT-004` needs a genuinely verified
+  instrumentation fix before an ended, matched-weekday measurement window.
+  Native follow-up fixtures also originate in the real scheduler. The current
+  fixture hook cannot prepare those historical states or advance native time.
+  A contained native history/scheduler lifecycle hook is needed; direct SQL,
+  fabricated verification receipts and production test routes are not substitutes.
+
+Until these boundaries are available, native sessions, site-scoped API keys,
+provider ceremonies and the existing MCP retain their current purposes. No
+company approval, sponsor binding, queued-consent enforcement or specialist
+journey completion is claimed. Spend reservations remain unsupported.
