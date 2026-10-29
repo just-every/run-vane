@@ -13,3 +13,35 @@ The owner can request reviewable local work through the authenticated Vane HTTP 
 Saved drafts contain owner-authored text; avoid entering personal details. Briefs, measurements and pursuits contain derived aggregate evidence and existing record references. These records do not create per-visitor histories. Whole-installation archives include them. History erasure removes them; retention removes work whose evidence begins before the retained window. Dismissals persist as owner preferences until site deletion. Per-site transfers exclude this work. Derived writes check the original settings version and deletion journal before committing, so an in-flight result cannot recreate erased evidence.
 
 AGENT-003 through AGENT-006 remain partial. Their original acceptance requirements still apply. The weekly scheduler creates local drafts only; its DONE ruling remains with ct under the 23 October riders. Future shipping must carry active owner authority, explicit grant scope, revocation, approved material copy and spend, custody and evidence controls before becoming available.
+
+## Company agent policy
+
+Company-agent adoption is not enabled in this edition. The shared door and
+Business settings runtime are recorded at Base
+`2135c394939f4a737adabdc8003b0e667b31ac5a`; the released CLI is `0.2.91`.
+Base now supports the Core declaration: tools, policy, pause, audit and
+idempotency. Events, resources, prompts and subscriptions can remain
+undeclared, with typed refusals. Source preparation does not claim production
+routing, native sponsorship or integrated conformance.
+
+Two adoption inputs remain unavailable:
+
+- **VANE-BASE-EPHEMERAL:** `AGENT-007` promises that question text and model
+  replies are not stored. The existing `ask_question` MCP action performs that
+  native job. Shared read approvals retain the full arguments in their payload,
+  and shared read reviews retain the argument summary. The door has no
+  ephemeral-argument/result contract. Replacing the existing endpoint while
+  retaining its question job would break that custody promise. A shared
+  no-retention path is needed before this native action can enter the door.
+- **VANE-BASE-HISTORY:** the conformance history context supplies `now` and
+  SELECT-only disposable database access. `AGENT-004` needs a genuinely verified
+  instrumentation fix before an ended, matched-weekday measurement window.
+  Native follow-up fixtures also originate in the real scheduler. The current
+  fixture hook cannot prepare those historical states or advance native time.
+  A contained native history/scheduler lifecycle hook is needed; direct SQL,
+  fabricated verification receipts and production test routes are not substitutes.
+
+Until these boundaries are available, native sessions, site-scoped API keys,
+provider ceremonies and the existing MCP retain their current purposes. No
+company approval, sponsor binding, queued-consent enforcement or specialist
+journey completion is claimed. Spend reservations remain unsupported.
