@@ -74,7 +74,11 @@ export const runtimeBindings = (env: Bindings): Bindings => env.RER_DEV_ORIGIN &
 // site-scoped team page (vane/team.ts), and reads or ends only their own sessions.
 const OWNER_DOORS = new Set(['/auth/invite', '/auth/invite/cancel', '/auth/operators', '/auth/operator/status', '/auth/operator/role'])
 const rolePolicy = (input: PolicyInput) => defaultRolePolicy(input) && (input.actor.role === 'owner' || !input.action.startsWith('sessions:') || input.target?.id === input.actor.id)
-export const authConfig = (env: Bindings): AuthConfig => ({ dependencies: true, origin: env.AUTH_ORIGIN, local: env.AUTH_LOCAL === 'true', OWNER_EMAIL: env.OWNER_EMAIL, SESSION_SECRET: env.SESSION_SECRET, SETUP_TOKEN: env.SETUP_TOKEN, MAIL_FROM: env.MAIL_FROM, providers: env.VANE_OIDC_PROVIDERS ? JSON.parse(env.VANE_OIDC_PROVIDERS) : [], OIDC_TRANSACTION_SECRET: env.OIDC_TRANSACTION_SECRET, branding: { productName: branding.name, accentColor: branding.primaryColor, signInPath: '/signin', theme: theme.href } })
+export const authConfig = (env: Bindings): AuthConfig => ({ dependencies: true, origin: env.AUTH_ORIGIN, local: env.AUTH_LOCAL === 'true', OWNER_EMAIL: env.OWNER_EMAIL, SESSION_SECRET: env.SESSION_SECRET, SETUP_TOKEN: env.SETUP_TOKEN, MAIL_FROM: env.MAIL_FROM, providers: env.VANE_OIDC_PROVIDERS ? JSON.parse(env.VANE_OIDC_PROVIDERS) : [],
+ // SAML verifies its configured issuer in Vane's native handler. Tell the
+ // shared account service about that provider before enabling federated sign-in.
+ externalIssuers: env.VANE_SAML_CONFIG ? [JSON.parse(env.VANE_SAML_CONFIG).issuer] : [],
+ OIDC_TRANSACTION_SECRET: env.OIDC_TRANSACTION_SECRET, branding: { productName: branding.name, accentColor: branding.primaryColor, signInPath: '/signin', theme: theme.href } })
 export function rawOperatorAuth(env: Bindings) {
  return createOperatorAuth({ db: env.DB, config: authConfig(env), mailSender: operatorMail(env), rolePolicy, hooks:{async afterConfirm({operator,session}){const pending=await pendingSecurity(env,{...session,operatorId:operator.id,operator});if(pending==='sso')throw new AuthError('sso_required',403);return pending?{returnTo:`/auth/security/${pending}`}:{}}}, clientIp: request => request.headers.get('CF-Connecting-IP') ?? '' })
 }
