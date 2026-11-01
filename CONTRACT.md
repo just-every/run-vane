@@ -440,7 +440,7 @@ The approved homepage (page-s1, 17 Oct 2026, `HOME-001`) follows one launch week
 
 ## Status
 
-Judged from the code and tests at commit `c0271cc7262225ab077ea7e8387ed47eeed89d96` (22 October 2026).
+Judged from the code and tests at commit `0bbec39ed3e1d5ab8db406338c136a5326317d83` (1 November 2026).
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
