@@ -1,6 +1,27 @@
 import test from 'node:test'
 import { assert, readFile, createHash, createHmac, crc32, createRequire, installation, appsScript, fixture, unlinked, withApp, DESKTOP_CHROME, browse, movein } from './vane-helpers.mjs'
 
+test('mail-off installations refuse sign-in email and record scheduled reports as unsent', async t => {
+ const a=await installation({vars:{MAIL_PROVIDER:'none',MAIL_API_KEY:'',MAIL_FROM:''}})
+ t.after(()=>a.close())
+ const signIn=await a.post('/auth/magic-link',{email:'owner@example.test'})
+ assert.equal(signIn.status,503)
+
+ await a.clock(Date.parse('2026-03-02T06:55:00Z'))
+ const siteId=await a.addSite({name:'Fern Studio',timeZone:'UTC'})
+ const subscribed=await a.form({operation:'report.subscribe',siteId,frequency:'daily',hour:'7'},a.owner)
+ assert.equal(subscribed.status,303)
+ await a.clock(Date.parse('2026-03-02T07:01:00Z'))
+ await a.scheduled()
+ await a.clock(Date.parse('2026-03-02T07:17:00Z'))
+ await a.scheduled()
+
+ const settings=await a.request(`/app/sites/${siteId}?section=settings`,{headers:{cookie:a.owner}})
+ assert.equal(settings.status,200)
+ assert.match(await settings.text(), /<td>failed<\/td><td class="vane-number">1<\/td><td>[^<]*\bmail_off\b/)
+ assert.deepEqual(a.egress,[])
+})
+
 test('REPORT-001 two weekly subscribers get the Monday 8:00 New York report once each across a daylight-saving change with the dashboard\'s figures, one-click unsubscribe stops it, temporary failures retry after 15 minutes and 2 hours, four failures show as failed, a rejected message is not retried, and later signed provider bounces and complaints show on the sends and stop further reports to that address',async t=>{
  const key=`whsec_${Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString('base64')}`,a=await installation({vars:{MAIL_WEBHOOK_KEY:key}});t.after(()=>a.close())
  const owner={headers:{cookie:a.owner}},id=await a.addSite({paths:[],timeZone:'America/New_York',goals:{signup:'/thanks'}})

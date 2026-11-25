@@ -55,7 +55,7 @@ export interface Bindings {
  OWNER_EMAIL: string
  SESSION_SECRET: string
  SETUP_TOKEN?: string
- MAIL_PROVIDER?: 'development' | 'rer' | 'resend' | 'sendgrid' | 'cloudflare'
+ MAIL_PROVIDER?: 'none' | 'development' | 'rer' | 'resend' | 'sendgrid' | 'cloudflare'
  MAIL_RELAY_URL?: string
  MAIL_FROM?: string
  MAIL_API_KEY?: string
@@ -76,7 +76,7 @@ const OWNER_DOORS = new Set(['/auth/invite', '/auth/invite/cancel', '/auth/opera
 const rolePolicy = (input: PolicyInput) => defaultRolePolicy(input) && (input.actor.role === 'owner' || !input.action.startsWith('sessions:') || input.target?.id === input.actor.id)
 export const authConfig = (env: Bindings): AuthConfig => ({ dependencies: true, origin: env.AUTH_ORIGIN, local: env.AUTH_LOCAL === 'true', OWNER_EMAIL: env.OWNER_EMAIL, SESSION_SECRET: env.SESSION_SECRET, SETUP_TOKEN: env.SETUP_TOKEN, MAIL_FROM: env.MAIL_FROM, providers: env.VANE_OIDC_PROVIDERS ? JSON.parse(env.VANE_OIDC_PROVIDERS) : [], OIDC_TRANSACTION_SECRET: env.OIDC_TRANSACTION_SECRET, branding: { productName: branding.name, accentColor: branding.primaryColor, signInPath: '/signin', theme: theme.href } })
 export function rawOperatorAuth(env: Bindings) {
- return createOperatorAuth({ db: env.DB, config: authConfig(env), mailSender: operatorMail(env), rolePolicy, hooks:{async afterConfirm({operator,session}){const pending=await pendingSecurity(env,{...session,operatorId:operator.id,operator});if(pending==='sso')throw new AuthError('sso_required',403);return pending?{returnTo:`/auth/security/${pending}`}:{}}}, clientIp: request => request.headers.get('CF-Connecting-IP') ?? '' })
+ return createOperatorAuth({ db: env.DB, config: authConfig(env), mailSender: env.MAIL_PROVIDER === 'none' ? undefined : operatorMail(env), rolePolicy, hooks:{async afterConfirm({operator,session}){const pending=await pendingSecurity(env,{...session,operatorId:operator.id,operator});if(pending==='sso')throw new AuthError('sso_required',403);return pending?{returnTo:`/auth/security/${pending}`}:{}}}, clientIp: request => request.headers.get('CF-Connecting-IP') ?? '' })
 }
 
 // Direct session consumers share the same fence as HTTP. Enrollment uses rawOperatorAuth only.

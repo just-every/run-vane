@@ -1,4 +1,4 @@
-import { RerError } from '@runeditrun/rer/internal/cli/errors.mjs';
+import { RerError } from '@runeditrun/rer/errors';
 import { localPortability } from '@runeditrun/rer/portability';
 import { installationPolicy } from './portability-policy.mjs';
 import { remoteImport } from './remote-import.mjs';

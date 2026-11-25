@@ -24,7 +24,7 @@ test('HOST-003 local rer archive restores the same fixture pageview into a fresh
  const state = join(root, '.rer', 'deploy', `${environment}.json`);
  const args = command => [command, '--declaration', 'deploy.json', '--environment', environment, '--product', '', '--state', state];
  const privateEnv = { ...process.env, SESSION_SECRET: randomBytes(32).toString('hex'),
-  SETUP_TOKEN: randomBytes(32).toString('hex'), MAIL_API_KEY: 'synthetic-vane-1' };
+  SETUP_TOKEN: randomBytes(32).toString('hex'), MAIL_PROVIDER: 'none' };
  let browser, passed = false, cleanupPromise;
  const cleanup = () => cleanupPromise ??= (async () => {
   try { await browser?.close(); }

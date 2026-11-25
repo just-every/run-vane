@@ -90,6 +90,10 @@
           "label": "Cloudflare Email Sending"
         },
         {
+          "value": "none",
+          "label": "Off (owner signs in with rer signin)"
+        },
+        {
           "value": "development",
           "label": "Local development (no email)"
         }

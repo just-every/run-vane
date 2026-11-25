@@ -103,7 +103,7 @@ async function deliver(env:Env,send:{id:string,subscription_id:string,site_id:st
  let status='',code='',messageId:string|null=null
  try{if(!mail)throw new Error('mail');const result=await mail.send({deliveryId:send.id,from:env.MAIL_FROM!,to:[send.email],...message,headers:{},...(link.startsWith('https://')?{unsubscribe:{url:link,oneClick:true}}:{})} as any);status=result.status;code=result.code??'';messageId=result.providerMessageId??null}catch{status='invalid'}
  const attempt=send.attempts+1,sent=status==='accepted'||status==='development',temporary=status==='uncertain'||status==='rate_limited'
- const reason=sent?null:temporary?(attempt>RETRIES.length?`temporary failure (${status}) on all ${attempt} attempts`:`temporary failure (${status}); retry in ${RETRIES[attempt-1]!/60000} min`):status==='invalid'?'mail is not configured or the message was refused before sending':`rejected by the mail provider${code?` (${code})`:''}; not retried`
+ const reason=sent?null:code==='mail_off'?'outbound mail is off (mail_off); not retried':temporary?(attempt>RETRIES.length?`temporary failure (${status}) on all ${attempt} attempts`:`temporary failure (${status}); retry in ${RETRIES[attempt-1]!/60000} min`):status==='invalid'?'mail is not configured or the message was refused before sending':`rejected by the mail provider${code?` (${code})`:''}; not retried`
  const state=sent?'sent':temporary&&attempt<=RETRIES.length?'pending':'failed'
  await statement(env,'UPDATE vane_report_sends SET state=?,attempts=?,next_at=?,reason=?,sent_at=?,provider_message_id=? WHERE id=?',state,attempt,state==='pending'?now+RETRIES[attempt-1]!:now,reason,sent?now:null,messageId,send.id).run()
 }

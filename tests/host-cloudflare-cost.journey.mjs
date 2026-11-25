@@ -35,7 +35,7 @@ test('HOST-001 a deployed Vane Worker under real native load costs what the pane
  const state = join(root, '.rer', 'deploy', `${environment}.json`);
  const args = command => [command, '--declaration', 'deploy.json', '--environment', environment, '--product', '', '--state', state];
  const privateEnv = { ...process.env, OWNER_EMAIL: 'synthetic-vane-1@example.test', SESSION_SECRET: randomBytes(32).toString('hex'),
-  SETUP_TOKEN: randomBytes(32).toString('hex'), MAIL_API_KEY: 'synthetic-vane-1', WRANGLER_SEND_METRICS: 'false' };
+  SETUP_TOKEN: randomBytes(32).toString('hex'), MAIL_PROVIDER: 'none', WRANGLER_SEND_METRICS: 'false' };
  let passed = false, cleanupPromise, before;
  const cleanup = () => cleanupPromise ??= removeTransfer({ state, env: privateEnv, root, args, passed });
  t.after(cleanup);

@@ -1,4 +1,4 @@
-import { RerError } from '@runeditrun/rer/internal/cli/errors.mjs';
+import { RerError } from '@runeditrun/rer/errors';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 import { getPlatformProxy, unstable_splitSqlQuery } from 'wrangler';
