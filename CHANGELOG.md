@@ -1,6 +1,28 @@
 # Changelog
 
-## Unreleased — 19 October 2026
+## 0.1.0 — 2026-11-26
+
+The first release. Vane is cookie-free website analytics, and it runs in your own Cloudflare account.
+
+Prepare Vane for hosted installation with a generated delivery descriptor, Managed mail relay support, source provenance and synthetic integration fixtures.
+
+### What a site owner gets
+
+- **Analytics without cookies.** One script tag counts page loads, sources, campaigns and goal conversions; it uses no cookies or browser storage and stores no IP address, user agent or visitor ID.
+- **Changes a person approves.** Administrators prepare a site's settings; only the owner approves, and actor and time are recorded.
+- **Move in and take it with you.** Import Umami, PostHog and Simple Analytics pages and read-only GA4 data, with undo; export, archive and restore the full history.
+- **Hosting you can measure.** The hosting panel projects usage from measured collection work, and a running install moves from a local computer to Cloudflare intact.
+- **Mail optional.** A Business can run Vane with mail off, or configure Managed or direct-provider mail.
+
+### Not in this release
+
+Visits mean accepted page loads, not unique people or sessions; blocked, excluded and non-consenting loads are not counted, and the 10-million-a-month collection target is not yet proven.
+
+### Upgrading
+
+This is the first tagged release; every migration under `migrations/core` counts as added. Preserve the analytics project identity and existing migration bytes.
+
+### Earlier work, 19 October 2026
 
 - Carry the owner-picked app look through every app screen: a slim rail with the
   swallow mark, site switcher and live count; an Overview with a top bar, five
@@ -19,7 +41,7 @@
   one-line labels in report tables, 24 px checkboxes, and field borders at
   about 3:1 without changing the brand file's tokens.
 
-## Unreleased — 16 October 2026
+### Earlier work, 16 October 2026
 
 - Run the hosted demo on rer 0.2.30's native Worker Loader host instead of a
   container; Base copies refreshed from rer-v0.2.30.
